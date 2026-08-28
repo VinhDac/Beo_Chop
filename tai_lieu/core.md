@@ -58,6 +58,7 @@ nguon_tick.py    dữ liệu tick nằm ở đâu, hình dạng gì, thủng ch�
 phat_lai.py      trộn hai luồng thành MỘT dòng sự kiện, trục thời gian là `t_ta`
 khop_lenh.py     lệnh THỤ ĐỘNG của ta khớp lúc nào — hàng đợi, độ trễ, giá của requote
 bo_chay.py       nối sơ đồ với thị trường, đóng vòng phản hồi tồn kho → báo giá
+                 (`MARKOUT_MS` — con số nói ta có đang bị chọn ngược hay không)
 do_thi_truong.py quét spread ÷ (2 × phí maker) trên bốn sàn
 luu_tru.py       MỘT chỗ duy nhất biết file nằm ở đâu
 api.py           bề mặt DUY NHẤT giao diện gọi tới   (JS → api.py → core.py)
@@ -139,6 +140,32 @@ lãi khống chui vào:
 > sau khi sửa thì KẸT CỨNG ở hạn mức tồn kho (99% số sự kiện bị post-only từ chối).
 > Cả hai đều không lộ ra trên canvas, không lộ ra ở soát tĩnh, và cái thứ hai còn cần
 > chạy đủ dài mới hiện. Xem `Api.demo_process` và `o_cam_trong.md`.
+
+### ⭐ MARKOUT — con số bảng lãi lỗ KHÔNG nói ra
+
+Lãi lỗ trộn ba chuyện vào một số: ăn spread, trả phí, và **bị chọn ngược**. Chỉ cái thứ
+ba mới cho biết chiến lược có đang bị người khác lấy tiền hay không, và ba chuyện đó
+cần ba cách chữa khác hẳn nhau. Nên bảng Kết quả tách chúng ra:
+
+```
+Gộp (trước phí)     −60,17     ← ăn spread trừ đi phần bị chọn ngược
+Phí maker          −207,46     ← số học của biểu phí, không dính chiến lược
+──────────────────────────
+Ròng               −267,63
+Markout 1000 ms    −0,523 tick/lot   ← bị chọn ngược
+```
+
+Đo bằng cách: mua 1 lot ở giá `p`, một giây sau `mid` là `m` thì phần lời tức thời là
+`(m − p)`. Cộng dồn mọi lần khớp, chia cho tổng số lot, quy ra tick.
+
+* **Markout ÂM** — người khớp vào ta biết thứ ta không biết. Nới spread KHÔNG cứu được
+  nếu nguyên nhân là báo giá đứng im khi chợ đã đi.
+* **Markout DƯƠNG mà vẫn lỗ** — vấn đề là PHÍ, một bài toán khác hẳn: đổi symbol, đổi
+  hạng phí, hoặc vào chương trình Market Maker để có rebate.
+
+Chỉ những lần khớp ĐỦ TUỔI mới được tính; số lot đo được nằm ở `markout_kl`, so với
+`kl_da_khop` là thấy ngay phần bị bỏ. Chốt bừa ở giá cuối là trộn một phép đo nửa vời
+vào trung bình rồi không ai biết.
 
 ### Vì sao `so_lenh.py` dùng id của ta
 

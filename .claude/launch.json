@@ -1,0 +1,12 @@
+{
+  "//": "Chạy webui bằng vite dev để SOI giao diện trong trình duyệt thường — pywebview không chụp màn hình được. Cầu nối giả: python tools/gia_lap.py, xem hướng dẫn tiêm trong file đó.",
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cat-webui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "webui"],
+      "port": 5173
+    }
+  ]
+}

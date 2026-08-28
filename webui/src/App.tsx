@@ -8,9 +8,10 @@ import {
 
 import { py, cho_cau_noi } from './api'
 import type {
-  Bootstrap, Card, ProcEdge, Problem, ProcessDoc, SoDo, Step, StepKind,
+  Bootstrap, Card, KetQuaTest, ProcEdge, Problem, ProcessDoc, SoDo, Step, StepKind,
   Tab,
 } from './types'
+import KetQuaPanel from './components/KetQuaPanel'
 import Ribbon, { PillTab, type MucMenu } from './components/Ribbon'
 import StepNode from './components/StepNode'
 import ActionDialog from './components/ActionDialog'
@@ -90,6 +91,10 @@ const TOI_DA_UNDO = 60
 const CAO_TOI_THIEU = 90
 const CAO_GAP = 33
 
+/** Chạy ▶ Test xong thì nới bảng dưới ra ít nhất chừng này — hai biểu đồ nhét vào một
+ *  dải 176px thì không đọc được gì. Chỉ NỚI, không bao giờ thu lại. */
+const CAO_KET_QUA = 440
+
 /** Bộ nhớ tạm Ctrl+C/Ctrl+V cho KHỐI trên canvas. Giữ cả đường nối GIỮA các khối được
  *  chép — chép 3 khối đang nối nhau mà mất dây thì coi như chép hụt. */
 let boNhoKhoi: { steps: Step[]; edges: ProcEdge[] } = { steps: [], edges: [] }
@@ -127,7 +132,10 @@ function Ung() {
      Cách chúng được nuôi thì đáng giữ làm mẫu: Python TÍNH rồi gửi KÈM `validate`, giao
      diện chỉ nhận một `Set` chứ không tự đi lại đồ thị — hai đoạn mã cùng duyệt một sơ
      đồ là hai luật, và chúng sẽ lệch nhau. */
-  const [tabDuoi, setTabDuoi] = useState<'van-de' | 'nhat-ky'>('van-de')
+  const [tabDuoi, setTabDuoi] = useState<'van-de' | 'nhat-ky' | 'ket-qua'>('van-de')
+  /** Kết quả ▶ Test gần nhất. Chỉ giữ LẦN CUỐI — lịch sử nằm ở Nhật ký. */
+  const [ketQua, setKetQua] = useState<KetQuaTest | null>(null)
+  const [dangChay, setDangChay] = useState(false)
   const [nhatKy, setNhatKy] = useState<{ gio: string; msg: string; tag?: string | null }[]>([])
   const [sanSang, setSanSang] = useState(false)
   const [trangThai, setTrangThai] = useState('đang khởi động…')
@@ -748,43 +756,38 @@ function Ung() {
 
   /* ------------------------------- ▶ Test ---------------------------------
    *
-   * ⚠ CHƯA CÓ CỬA SỔ TESTER — kết quả đổ vào NHẬT KÝ dưới dạng vài dòng chữ, không
-   * phải biểu đồ. Cố ý làm vậy thay vì đợi có cửa sổ: bộ chạy đã chạy được rồi, và
-   * một bảng số đọc được còn hơn một cái nút bấm vào không ra gì.
+   * Kết quả vào tab **Kết quả** của bảng dưới, và bảng tự MỞ RỘNG ra nếu đang thấp —
+   * hai biểu đồ trong một dải 176px thì không đọc được gì. Chỉ nới, không bao giờ thu
+   * lại: người dùng đã kéo cao hơn là có ý, đừng giành lấy quyền đó.
    *
-   * Dòng `⚠` (chỗ kết quả KHÔNG chắc) ghi ở mức CẢNH BÁO. Nó là phần dễ bỏ qua nhất
-   * mà lại quan trọng nhất — "còn tồn kho" hay "KẸT 99% bị từ chối" biến một bảng lãi
-   * lỗ trông ổn thành một bảng vô nghĩa. */
+   * Nhật ký vẫn nhận một dòng tóm tắt, để lịch sử mấy lần chạy còn nằm lại đâu đó —
+   * tab Kết quả chỉ giữ được LẦN CUỐI. */
   const chay = useCallback(async () => {
+    setDangChay(true)
+    setTabDuoi('ket-qua')
+    setPanelGap(false)
+    setPanelCao(c => Math.max(c, CAO_KET_QUA))
     setTrangThai('đang chạy backtest…')
     const r = await py.mo_tester(layDoc())
+    setDangChay(false)
     if (!r.ok) {
       const ds = ((r as any).loi as Problem[] | undefined)
         ?.map(p => '✖ ' + p.message).join('\n\n')
       window.alert((r.error ?? 'không chạy được') + (ds ? '\n\n' + ds : ''))
-      setTabDuoi('van-de')
+      setTabDuoi(ds ? 'van-de' : 'nhat-ky')
+      ghi(r.error ?? 'không chạy được', 'err')
       setTrangThai('sẵn sàng')
       return
     }
     const v = r.value!
     const b = v.bang
+    setKetQua(v)
     const n = (x: number) => x.toLocaleString('vi-VN')
-    const so = (x: number, le = 2) =>
-      x.toLocaleString('vi-VN', { minimumFractionDigits: le, maximumFractionDigits: le })
-    ghi(`▶ ${v.symbol} ${v.tu_ngay}…${v.den_ngay} — ${n(b.so_su_kien)} sự kiện `
-        + `trong ${b.giay_chay}s`, 'ok')
-    ghi(`khớp ${n(b.so_lan_khop)} lần · tồn kho ${so(b.ton_kho, 0)} · `
-        + `giá trị ${so(b.gia_tri)} · phí ${so(b.phi_da_tra)}`)
-    ghi(`đặt ${n(b.so_dat)} · huỷ ${n(b.so_huy)} · từ chối ${n(b.so_tu_choi)}`)
-    ghi(`giả định: phí ${b.gia_dinh.phi_maker_bps} bps · trễ ra ${b.gia_dinh.tre_ra_ms} ms`
-        + ` · huỷ trước ${b.gia_dinh.phan_huy_truoc} · mức sâu ${b.gia_dinh.phan_muc_sau}`
-        + ` · tick ${b.gia_dinh.buoc_gia}`)
-    // Thẻ `warn`, KHÔNG phải `canh`: `.dong-log.t-warn` mới có luật CSS. Lớp
-    // ghép lúc chạy như thế này thì `tests/test_giao_dien.py` không quét được —
-    // nó chỉ đọc `className` viết thẳng — nên chỗ này phải tự canh lấy.
+    ghi(`▶ ${v.symbol} ${v.tu_ngay}…${v.den_ngay} — ${n(b.so_su_kien)} sự kiện, `
+        + `khớp ${n(b.so_lan_khop)}, ròng ${b.gia_tri.toFixed(2)}, `
+        + `markout ${b.markout_tick.toFixed(3)} tick/lot`, 'ok')
     if (b.loi) ghi('⚠ ' + b.loi, 'warn')
-    setTabDuoi('nhat-ky')
-    setTrangThai(`đã chạy ${n(b.so_su_kien)} sự kiện`)
+    setTrangThai(`đã chạy ${n(b.so_su_kien)} sự kiện trong ${b.giay_chay}s`)
   }, [layDoc, ghi])
 
 
@@ -1167,6 +1170,10 @@ function Ung() {
                   onClick={() => { setTabDuoi('nhat-ky'); setPanelGap(false) }}>
             Nhật ký
           </button>
+          <button className={'tab' + (tabDuoi === 'ket-qua' ? ' dang' : '')}
+                  onClick={() => { setTabDuoi('ket-qua'); setPanelGap(false) }}>
+            Kết quả
+          </button>
           <span className="day" />
           {tabDuoi === 'nhat-ky' && !panelGap &&
             <button className="nut-nho" onClick={() => setNhatKy([])}>Xoá nhật ký</button>}
@@ -1176,7 +1183,9 @@ function Ung() {
           </button>
         </div>
         {!panelGap && <div className="noi-dung-tab">
-          {tabDuoi === 'van-de' ? (
+          {tabDuoi === 'ket-qua' ? (
+            <KetQuaPanel kq={ketQua} dangChay={dangChay} />
+          ) : tabDuoi === 'van-de' ? (
             vanDe.length === 0
               ? <div className="trong">Không có vấn đề nào.</div>
               : vanDe.map((v, i) => (

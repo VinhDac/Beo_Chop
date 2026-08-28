@@ -810,6 +810,76 @@ select.o { cursor: pointer; }
 }
 .k-the.doan { color: var(--warn); border-color: var(--warn); }
 
+/* ==========================================================================
+   KẾT QUẢ ▶ Test — tab thứ ba của bảng dưới
+   ==========================================================================
+   Bảng dưới vốn cao 176px; chạy xong ▶ Test thì App nới ra 340px (`CAO_KET_QUA`).
+   Mọi thứ ở đây phải đọc được ở 340px, và không được vỡ khi người dùng kéo lên 600. */
+.kq { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+
+.kq-tren { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+.kq-so { font-size: 11.5px; line-height: 1.75; color: var(--text); }
+.kq-nhan { color: var(--muted); }
+.kq-gia-dinh { color: var(--muted); max-width: 420px; }
+
+/* Ba dòng GỘP / PHÍ / RÒNG. Trình bày như một phép tính cộng thật, có gạch ngang —
+   đó là toàn bộ ý: lãi lỗ KHÔNG phải một con số, nó là hai nguyên nhân cộng lại, và
+   hai nguyên nhân ấy cần hai cách chữa khác hẳn nhau. */
+.kq-tach { font-size: 12px; min-width: 210px; }
+.kq-dong { display: flex; justify-content: space-between; gap: 16px; line-height: 1.7; }
+.kq-dong > span { color: var(--muted); }
+.kq-dong > b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.kq-cong { border-top: 1px solid var(--border); margin-top: 2px; padding-top: 2px; }
+.kq-cong > span { color: var(--text); }
+
+/* MARKOUT to hơn hẳn: nó trả lời câu "gộp âm thì vì sao", câu mà bảng lãi lỗ không
+   nói. Xem `bo_chay.MARKOUT_MS`. */
+.kq-noi-bat {
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  border-left: 2px solid var(--border);
+  cursor: help;
+}
+.kq-noi-bat b { font-size: 14px; font-variant-numeric: tabular-nums; margin-left: 8px; }
+.kq-phu { color: var(--dim); font-size: 10.5px; margin-left: 6px; }
+
+.t-ok  { color: var(--ok); }
+.t-err { color: var(--err); }
+.t-dim { color: var(--dim); }
+
+/* ---- biểu đồ ---- */
+.kq-bd { display: flex; flex-direction: column; }
+.kq-bd-dau { display: flex; align-items: center; gap: 10px; font-size: 10.5px; }
+.kq-bd-ten { color: var(--text); font-weight: 600; }
+.kq-truc { color: var(--dim); font-variant-numeric: tabular-nums; }
+.kq-chu-giai { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.kq-chu-giai i { width: 10px; height: 2px; border-radius: 1px; }
+
+/* `preserveAspectRatio: none` để đường kéo giãn hết bề ngang bảng — chữ thì để NGOÀI
+   svg, vì trong đó nó sẽ méo theo. Nét giữ nguyên độ dày nhờ `vector-effect`. */
+/* Nhãn trục nằm ĐÈ lên biểu đồ, ghim vào góc phải. `pointer-events: none` để chúng
+   không chặn chuột nếu sau này biểu đồ có tương tác. */
+.kq-khung { position: relative; }
+.kq-truc-tren, .kq-truc-duoi {
+  position: absolute; right: 5px; pointer-events: none;
+  font-size: 10px; line-height: 1;
+}
+.kq-truc-tren { top: 3px; }
+.kq-truc-duoi { bottom: 3px; }
+
+.kq-svg {
+  width: 100%;
+  height: 78px;
+  display: block;
+  background: var(--field);
+  border-radius: var(--radius-sm);
+}
+
+.kq-chan { display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: var(--dim); }
+.kq-chan .day, .kq-bd-dau .day { flex: 1; }
+
 /* Chỗ trống có lời giải thích — mọi bảng/danh sách rỗng dùng chung. */
 .cd-rong { color: var(--dim); font-size: 11.5px; font-style: italic; }
 

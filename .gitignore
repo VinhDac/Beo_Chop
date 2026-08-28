@@ -15,6 +15,11 @@ templates/
 # Shortcut do tools/tao_shortcut.bat sinh ra — chứa đường dẫn tuyệt đối của máy này
 Cat Studio.lnk
 
+# Dữ liệu GIẢ để soi giao diện trong trình duyệt thường — `tools/gia_lap.py` sinh lại
+# được bất cứ lúc nào, mà file thì 410 KB và đổi mỗi lần chạy. Giữ CÔNG CỤ, không giữ
+# sản phẩm của nó.
+webui/gia_lap.json
+
 # Build
 webui/node_modules/
 webui/dist/

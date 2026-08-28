@@ -300,8 +300,20 @@ kiem("số lần khớp trong bảng khớp với danh sách khớp",
 kiem("bảng mang theo CẢ BỐN giả định — kết quả không được rời khỏi giả định của nó",
      set(b["gia_dinh"]) == {"buoc_gia", "phi_maker_bps", "tre_ra_ms",
                             "phan_huy_truoc", "phan_muc_sau"})
-kiem("đường vốn có lấy mẫu, không phải mỗi sự kiện một điểm",
-     0 < len(kq.duong_von) < kq.so_su_kien, f"— {len(kq.duong_von)} điểm")
+kiem("mẫu có LẤY THƯA, không phải mỗi sự kiện một điểm",
+     0 < len(kq.mau) < kq.so_su_kien, f"— {len(kq.mau)} điểm")
+kiem("mỗi điểm mẫu mang đủ NĂM số trên CÙNG một trục thời gian",
+     all(len(x) == 5 for x in kq.mau))
+
+# MARKOUT — con số nói ra ta có đang bị chọn ngược hay không.
+kiem("markout đo được, và chỉ đo phần khớp ĐỦ TUỔI",
+     0 < kq.markout_kl <= kq.tom_tat_khop["kl_da_khop"],
+     f"— đo {kq.markout_kl:.0f}/{kq.tom_tat_khop['kl_da_khop']:.0f} lot")
+kiem("markout quy ra TICK để đọc được bằng mắt",
+     abs(b["markout_tick"] - b["markout_tong"] / b["markout_kl"] / TICK) < 1e-9,
+     f"— {b['markout_tick']:+.3f} tick/lot sau {b['markout_ms']} ms")
+kiem("chiến lược ngây thơ treo ở đúng đỉnh thì BỊ CHỌN NGƯỢC — markout âm",
+     b["markout_tick"] < 0, f"— {b['markout_tick']:+.3f} tick/lot")
 
 # TÍNH XÁC ĐỊNH — chạy lại ra kết quả Y HỆT. Không có gì ngẫu nhiên trong cả đường đi,
 # nên bất kỳ khác biệt nào cũng là một trạng thái rò rỉ giữa hai lượt chạy.

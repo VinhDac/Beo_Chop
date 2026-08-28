@@ -232,18 +232,32 @@ export interface CaiDatNguon {
 
 /** Kết quả một lượt ▶ Test. Mọi con số do Python tính, JS không tính lại con nào. */
 export interface KetQuaTest {
+  /** ⚠ KHAI ĐỦ, KHÔNG dùng `[k: string]: unknown`. Một chữ ký chỉ mục biến mọi
+   *  trường chưa khai thành `unknown` — tức TypeScript im lặng cho qua rồi bắt chỗ
+   *  DÙNG phải ép kiểu, và lúc đó không ai còn biết Python thật sự trả về gì.
+   *  Khớp với `bo_chay.KetQua.bang()` + `khop_lenh.SoKhop.tom_tat()`. */
   bang: {
     so_su_kien: number; so_luot: number; so_lan_khop: number; giay_chay: number
+    tu_ms: number; den_ms: number
     ton_kho: number; tien: number; gia_tri: number; phi_da_tra: number
+    so_khop: number; kl_da_khop: number
     so_dat: number; so_huy: number; so_tu_choi: number; giay_mu_co_lenh: number
+    /** MARKOUT — sau khi khớp `markout_ms` thì giá đi đâu. ÂM = bị chọn ngược.
+     *  Con số quan trọng nhất của market making; xem `bo_chay.MARKOUT_MS`. */
+    markout_ms: number; markout_tong: number; markout_kl: number
+    /** Trung bình mỗi lot, quy ra tick — dạng đọc được bằng mắt. */
+    markout_tick: number
     /** Chỗ kết quả KHÔNG chắc — rỗng nghĩa là không có gì phải dè dặt. */
     loi: string
     /** Bốn giả định của mô hình khớp. Kết quả không được rời khỏi giả định của nó. */
     gia_dinh: CaiDatKhop & { buoc_gia: number }
-    [k: string]: unknown
   }
-  /** `[thời_điểm_ms, giá_trị]`, đã lấy mẫu ~1 điểm/giây. */
-  duong_von: [number, number][]
+  /** `[t, giá_trị, tồn_kho, phí, số_lần_từ_chối]` — năm số trên CÙNG trục thời gian,
+   *  lấy mẫu ~1 điểm/giây. Chồng được lên nhau nên nhìn một chỗ là thấy vốn tụt lúc
+   *  nào, tồn kho phình lúc nào, bị từ chối dồn ở đâu. */
+  mau: [number, number, number, number, number][]
+  /** `[tu, den]` — quãng MÙ. Trong đó sàn vẫn khớp mà backtest không thấy. */
+  lo_hong: [number, number][]
   khop: { t: number; ben: number; gia: number; kl: number; phi: number
           ton_kho: number }[]
   symbol: string

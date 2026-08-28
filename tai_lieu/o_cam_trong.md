@@ -193,31 +193,36 @@ thôi là "sức khoẻ", nó thành tham số của chiến lược.
 
 ---
 
-## 3. Cửa sổ Strategy Tester
+## 3. Cửa sổ Tester — CÒN THIẾU THANG BÁO GIÁ
 
-**Nằm ở đâu** — không còn. `webui/src/main.tsx` cũng đã bỏ nhánh rẽ `?tester=1`.
+**Nằm ở đâu** — `webui/src/components/KetQuaPanel.tsx`, tab **Kết quả** của bảng dưới.
 
-**Trước cắm gì** — `webui/src/tester/` (2.033 dòng) + `api.ApiTester` (~720): `Chart`
-(nến + hộp zone), `BangSoLieu`, `ThongKe` (bội R, drawdown), `Journey`, `LichSu`,
-`BangDuoi`, `NutChart`.
+Đã cắm bốn trong năm thứ đáng nhìn: tách **gộp ⟷ phí** thành một phép cộng thật, chỉ số
+**markout** (bị chọn ngược bao nhiêu tick mỗi lot), **tồn kho theo thời gian**, và dải
+**MÙ** đỏ ngay trên trục thời gian. Bốn giả định hiện cạnh kết quả, không giấu trong
+Cài đặt.
 
-**Phải cắm gì** — bộ chạy ĐÃ CÓ và đã trả về số, nên đây giờ là ổ cắm **gấp nhất**:
-`api.mo_tester` trả `KetQuaTest` (bảng số + đường vốn + danh sách khớp) mà không có gì
-vẽ nó — App đổ tạm bốn dòng vào Nhật ký.
+⚠ Cửa sổ cũ (`webui/src/tester/` 2.033 dòng + `api.ApiTester` ~720) vẽ NẾN và hộp zone.
+Không một dòng nào dùng lại được — đó là lý do bản này viết mới ~230 dòng chứ không
+phải cứu bản cũ.
 
-Màn hình của market maker không dùng chung một dòng nào với chart nến:
+**Phải cắm gì** — hai thứ, và cả hai đều cần một CON TRỎ THỜI GIAN:
 
-| vẽ gì | vì sao nó là thứ phải nhìn |
+| còn thiếu | vì sao nó là thứ phải nhìn |
 |---|---|
-| thang báo giá hai bên + bid/ask thị trường | thấy ngay ta đang treo TRONG hay NGOÀI sổ |
-| tồn kho theo thời gian | trục rủi ro duy nhất; nhìn nó là biết chiến lược có kiểm soát được mình không |
-| đường vốn, tách **gộp / phí** | dữ liệu đã có sẵn (`phi_da_tra`) — hai đường tách nhau nói ra ngay là spread có đủ trả phí không |
-| chất lượng khớp | khớp xong 100 ms sau giá đi đâu? Đây là ĐO ĐƯỢC mức bị chọn ngược, thứ quyết định sống chết |
-| dải **bị từ chối** / **mù** | hai quãng mà kết quả KHÔNG đáng tin, phải hiện trên chính trục thời gian |
+| **thang báo giá hai bên** — bid/ask của ta cạnh bid/ask thị trường tại một thời điểm | thấy ngay ta đang treo TRONG sổ hay NGOÀI sổ. Đây là câu hỏi mà mọi con số tổng hợp đều trả lời gián tiếp |
+| **tua tới một thời điểm** — bấm vào biểu đồ để nhảy tới đó | tồn kho phình lúc 14:32 thì lúc đó chuyện gì xảy ra? Không tua được thì chỉ đoán |
 
-> ⚠ **Bốn giả định phải hiện trên màn hình đó**, không giấu trong Cài đặt. `KetQuaTest.
-> bang.gia_dinh` đã mang sẵn. Một bảng lãi lỗ không nói nó giả định gì thì không đọc
-> được — và tệ hơn, nó trông như một sự thật.
+Cả hai chung một cơ chế với §5 *soi một lượt*, nên nên làm cùng lúc: cần phát lại được
+tới đúng một sự kiện và giữ trạng thái ở đó.
+
+> **Ba chỗ đã cân nhắc rồi bỏ, ghi ra để khỏi bàn lại:**
+> · *Đếm số lần bị từ chối theo thời gian* — `mau` đã chở sẵn cột đó (cột thứ 5), chỉ
+>   chưa vẽ. Rẻ, thêm lúc nào cũng được.
+> · *Biểu đồ phân bố markout* — thú vị nhưng một con số trung bình đã đủ để quyết định,
+>   và phân bố cần chỗ bằng cả hai biểu đồ hiện có.
+> · *So hai lượt chạy cạnh nhau* — đúng là thứ người ta muốn khi vặn `phan_huy_truoc`
+>   qua ba mức. Đợi tới khi có ai thật sự làm việc đó nhiều lần.
 
 ---
 
@@ -243,6 +248,11 @@ thích). Đường ống còn sống nửa dưới: `api.Api._ban` và `window._
 **Trước cắm gì** — chuột phải một dòng nhật ký ở cửa sổ tester → cửa sổ vẽ nhảy lên
 trước, tô đúng đường lượt đó đã đi, mờ phần còn lại, kèm dấu đạt/trượt trên **từng
 dòng** điều kiện.
+
+> ⚠ Làm mục này thì làm CÙNG LÚC với hai thứ còn thiếu ở §3 (thang báo giá · tua tới
+> một thời điểm): cả ba đều cần đúng một cơ chế — phát lại tới một sự kiện rồi DỪNG ở
+> đó. Và bộ chạy hiện NGẮT SỚM ở điều kiện sai đầu tiên, nên soi một lượt sẽ cần một
+> `mot_luot_ghi()` chạy đủ mọi điều kiện; xem §12.
 
 **Phải cắm gì** — chính nó, khi có bộ chạy mới nhả ra cùng hình dạng (`duong` · `cong` ·
 `ve`). Ba cái bẫy đã trả giá, đừng gặp lại: kẹp `soi.tab === tab` ở **nơi tiêu thụ** chứ
@@ -473,7 +483,8 @@ một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược 
 | **kho `nen_tang`** — 8 toán hạng, mỗi cái tự khai công thức của nó | *Kho toán hạng* |
 | **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu | *Từ vựng của khối hành động* |
 | **mô hình khớp** — `khop_lenh.py` + tab Cài đặt · 58 phép kiểm | *Mô hình khớp* |
-| **bộ chạy** — `bo_chay.py`, vòng phản hồi khép kín · 41 phép kiểm | *Bộ chạy* |
+| **bộ chạy** — `bo_chay.py`, vòng phản hồi khép kín · 45 phép kiểm | *Bộ chạy* |
+| **bảng Kết quả** — tách gộp/phí · markout · tồn kho · dải mù · giả định | phần lớn *Cửa sổ Strategy Tester* |
 
 **Backtest chạy được từ đầu đến cuối.** ▶ Test đọc tick đã ghi, chạy sơ đồ mỗi sự kiện,
 khớp lệnh, và trả về bảng số kèm bốn giả định.
@@ -496,11 +507,13 @@ khớp lệnh, và trả về bảng số kèm bốn giả định.
 
 ### Thứ tự cắm tiếp
 
-**§3 cửa sổ Tester là ổ cắm gấp nhất** — bộ chạy đã trả về số mà không có gì vẽ nó, App
-đang đổ tạm bốn dòng vào Nhật ký. Xem §3 để biết phải vẽ gì và vì sao.
+**Ổ cắm gấp nhất giờ là §5 soi một lượt** — và nó kéo theo hai thứ còn thiếu của §3
+(thang báo giá, tua tới một thời điểm), vì cả ba dùng chung một cơ chế. Làm xong bộ ba
+đó thì vòng *vẽ → chạy → hiểu vì sao → sửa* mới thật sự khép lại: hiện tại xem được
+KẾT QUẢ nhưng chưa xem được NGUYÊN NHÂN.
 
 Rồi: §2 kết nối sàn (backtest phải sạch trước khi có gì đáng chạy thật) → §11 sổ lệnh →
-§12 nhật ký → §4 cửa sổ Live → §5 soi lượt → §6 cài đặt.
+§12 nhật ký → §4 cửa sổ Live → §6 cài đặt.
 
 **§8 bảng tham số · §9 bốn toán hạng · §10 động từ taker** thì độc lập. Riêng §10 giờ đã
 có **con số** chứ không còn là suy đoán: bộ chạy đo được đúng chỗ chiến lược muốn thoát

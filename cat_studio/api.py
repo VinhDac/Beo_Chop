@@ -775,7 +775,7 @@ class Api(NenCuaSo):
             # Lỗi biên dịch đã mang sẵn nhãn khối (`[1B.2] …`) — đưa thẳng lên, đừng
             # bọc thêm một lớp chữ làm loãng mất cái nhãn.
             return _loi(str(e))
-        return _ok({"bang": kq.bang(), "duong_von": kq.duong_von,
+        return _ok({"bang": kq.bang(), "mau": kq.mau, "lo_hong": kq.lo_hong,
                     "khop": kq.khop[:2000], "symbol": symbol,
                     "tu_ngay": tu, "den_ngay": den})
 

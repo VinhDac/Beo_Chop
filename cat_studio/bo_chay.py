@@ -83,6 +83,7 @@ Chạy 400.000 sự kiện giả, sơ đồ mẫu treo ĐÚNG ở bid/ask:
    không phải suy đoán.
 """
 import math
+from collections import deque
 
 from . import core
 from . import kho
@@ -127,6 +128,27 @@ MA_DON_VI = {"tick": DV_TICK, "spread": DV_SPREAD, "bps": DV_BPS}
 # ---- loại lệnh trong chương trình đã biên dịch
 LENH_CONG = 0      # cổng: rẽ nhánh
 LENH_SO_HANG = 1
+
+
+def _so_vi(x, le=0):
+    """Số theo kiểu Việt: `.` ngăn nghìn, `,` thập phân.
+
+    ⚠ Python mặc định `f"{x:,}"` cho ra kiểu Anh — và trong một giao diện tiếng Việt
+    thì `2,970 giây` đọc thành *hai phẩy chín bảy giây*, sai đúng một nghìn lần. Chuỗi
+    này do Python sinh rồi hiện thẳng lên màn hình, nên phải đúng quy ước ngay tại đây.
+
+    Không dùng `locale`: nó là trạng thái TOÀN CỤC của tiến trình, đổi một chỗ là đổi
+    mọi chỗ, và trên Windows thì tên locale còn khác hệ khác."""
+    return f"{x:,.{le}f}".translate(str.maketrans(",.", ".,")).replace("-", "−")
+
+
+def _khoang(giay):
+    """Quãng thời gian → chữ đọc được. `2970` → `49 phút`, không phải `2.970 giây`."""
+    if giay < 90:
+        return f"{_so_vi(giay, 1)} giây"
+    if giay < 5400:
+        return f"{_so_vi(giay / 60)} phút"
+    return f"{_so_vi(giay / 3600, 1)} giờ"
 
 
 class LoiChay(Exception):
@@ -432,34 +454,80 @@ def chot_bao_gia(nhap):
 class KetQua:
     """Kết quả một lượt backtest. Mọi con số ở đây là số của Python, JSON hoá được."""
 
-    __slots__ = ("so_su_kien", "so_luot", "khop", "duong_von", "loi",
-                 "tom_tat_khop", "tu_ms", "den_ms", "giay_chay")
+    __slots__ = ("so_su_kien", "so_luot", "khop", "mau", "lo_hong", "loi",
+                 "tom_tat_khop", "tu_ms", "den_ms", "giay_chay",
+                 "markout_tong", "markout_kl", "markout_ms")
 
     def __init__(self):
         self.so_su_kien = 0
         self.so_luot = 0
         self.khop = []
-        self.duong_von = []          # [(t, giá_trị)] — lấy mẫu, xem `chay()`
+        #: `[(t, giá_trị, tồn_kho, phí_đã_trả, số_lần_từ_chối)]` — lấy mẫu, xem `chay()`.
+        #: Năm số CÙNG MỘT TRỤC thời gian, để biểu đồ chồng được lên nhau: nhìn một chỗ
+        #: là thấy vốn tụt lúc nào, tồn kho phình lúc nào, bị từ chối dồn ở đâu.
+        self.mau = []
+        self.lo_hong = []            # [(tu, den)] — quãng MÙ, kết quả không đáng tin
         self.loi = ""
         self.tom_tat_khop = {}
         self.tu_ms = self.den_ms = 0
         self.giay_chay = 0.0
+        self.markout_tong = 0.0
+        self.markout_kl = 0.0
+        self.markout_ms = 0
 
     def bang(self):
         d = dict(self.tom_tat_khop)
+        tick = self.tom_tat_khop.get("gia_dinh", {}).get("buoc_gia") or 1.0
         d.update({"so_su_kien": self.so_su_kien, "so_luot": self.so_luot,
                   "so_lan_khop": len(self.khop), "loi": self.loi,
                   "tu_ms": self.tu_ms, "den_ms": self.den_ms,
-                  "giay_chay": round(self.giay_chay, 2)})
+                  "giay_chay": round(self.giay_chay, 2),
+                  "markout_ms": self.markout_ms,
+                  "markout_tong": self.markout_tong,
+                  "markout_kl": self.markout_kl,
+                  # Trung bình MỖI LOT, quy ra TICK — dạng đọc được bằng mắt: "sau một
+                  # giây, mỗi lot khớp lãi/lỗ trung bình bao nhiêu tick".
+                  "markout_tick": (self.markout_tong / self.markout_kl / tick
+                                   if self.markout_kl else 0.0)})
         return d
 
 
-#: Đường vốn lấy mẫu bao lâu một điểm (ms). Vẽ mười triệu điểm lên biểu đồ 800px là
-#: mười nghìn điểm chồng lên mỗi pixel — tốn RAM, tốn thời gian, không thấy gì thêm.
+#: Lấy mẫu bao lâu một điểm (ms) — mốc BAN ĐẦU, sẽ tự giãn ra. Xem `TOI_DA_MAU`.
 NHIP_VON_MS = 1000
 
+#: TRẦN SỐ ĐIỂM MẪU. Chạm trần thì bỏ một nửa số điểm và nhân đôi nhịp lấy mẫu.
+#:
+#: ⚠ Không có nó thì độ phân giải cố định 1 giây kéo theo số điểm tăng tuyến tính theo
+#: độ dài lượt chạy — đo thật: hai ngày cho **130.000 điểm, 10 MB JSON** đi qua cầu
+#: nối, cho một biểu đồ rộng 1000 px. Mất vài giây chỉ để chuyển thứ mắt không thấy.
+#:
+#: Giãn ra thì độ phân giải giảm dần: một ngày ~1 s/điểm, một tuần ~4 s, một tháng
+#: ~16 s. Đọc một đường vốn thì chừng đó thừa sức — và giao diện còn nén tiếp về 500
+#: nhóm, có GIỮ đỉnh và đáy mỗi nhóm nên cú sụt sâu nhất không bị nuốt.
+TOI_DA_MAU = 3000
 
-def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
+#: MARKOUT — sau khi khớp bao lâu thì đo lại giá.
+#:
+#: ⚠ ĐÂY LÀ CON SỐ QUAN TRỌNG NHẤT CỦA MARKET MAKING, và là thứ bảng lãi lỗ không nói
+#: ra. Lãi lỗ trộn ba chuyện vào một số: ăn spread, trả phí, và **bị chọn ngược**. Chỉ
+#: cái thứ ba mới cho biết chiến lược có đang bị người khác lấy tiền hay không.
+#:
+#: Cách đo: mua 1 lot ở giá `p`, một giây sau `mid` là `m` thì phần lời tức thời là
+#: `(m − p)`. Cộng dồn mọi lần khớp:
+#:
+#:     markout ÂM  → khớp xong giá đi NGƯỢC. Ta là bên bị chọn — người khớp vào ta biết
+#:                   thứ ta không biết. Càng khớp nhiều càng lỗ, và nới spread cũng
+#:                   không cứu được nếu nguyên nhân là báo giá đứng im khi chợ đã đi.
+#:     markout DƯƠNG → ta đang bắt được đúng phần thưởng của việc cung cấp thanh khoản.
+#:                   Nếu vẫn lỗ thì vấn đề là PHÍ, một bài toán khác hẳn.
+#:
+#: Một giây là mốc thường dùng: đủ dài để nhiễu vi cấu trúc lắng, đủ ngắn để chưa lẫn
+#: với xu hướng.
+MARKOUT_MS = 1000
+
+
+def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
+         markout_ms=MARKOUT_MS):
     """Chạy `doc` trên dòng sự kiện `p`. Trả `KetQua`.
 
     `gioi_han` > 0 thì dừng sau chừng ấy sự kiện — để thử nhanh mà không nạp cả ngày.
@@ -473,8 +541,11 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
     nh = Nhin()
     nhap = list(NHAP_GOC)
     kq = KetQua()
+    kq.markout_ms = markout_ms
     t0 = time.perf_counter()
     moc_sau = 0
+    cho_markout = deque()            # [(đáo_hạn, giá, bên, kl)]
+    mo_lo_hong = 0
 
     while True:
         loai = p.buoc()
@@ -486,10 +557,27 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
             kq.tu_ms = t
         kq.den_ms = t
 
+        if loai == phat_lai.MO_LO_HONG:
+            mo_lo_hong = t
+        elif loai == phat_lai.DONG_LO_HONG and mo_lo_hong:
+            kq.lo_hong.append((mo_lo_hong, t))
+            mo_lo_hong = 0
+
         # ---- 1. THỊ TRƯỜNG ĐI TRƯỚC ----
         moi = khop.buoc(p)
         if moi:
             kq.khop.extend(moi)
+            for f in moi:
+                cho_markout.append((t + markout_ms, f["gia"], f["ben"], f["kl"]))
+
+        # MARKOUT: lần khớp nào đủ tuổi thì chốt sổ với `mid` HIỆN TẠI.
+        if cho_markout and cho_markout[0][0] <= t:
+            m = (p.bid + p.ask) * 0.5
+            if m == m:               # `mid` NaN (đang mù) thì để đó, chờ có sổ lại
+                while cho_markout and cho_markout[0][0] <= t:
+                    _, gia, ben, kl = cho_markout.popleft()
+                    kq.markout_tong += (m - gia) * ben * kl
+                    kq.markout_kl += kl
 
         # ---- 2. chiến lược nhìn trạng thái MỚI ----
         nh.bid = p.bid
@@ -507,12 +595,22 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
 
         if t >= moc_sau:
             moc_sau = t + moc_von_ms
-            kq.duong_von.append((t, khop.gia_tri((nh.bid + nh.ask) * 0.5)))
+            kq.mau.append((t, khop.gia_tri((nh.bid + nh.ask) * 0.5),
+                           khop.ton_kho, khop.phi_da_tra, khop.so_tu_choi))
+            if len(kq.mau) > TOI_DA_MAU:
+                # Bỏ một nửa, giãn nhịp gấp đôi. Không cần biết trước lượt chạy dài
+                # bao nhiêu — cách này tự thích nghi với mọi độ dài.
+                del kq.mau[1::2]
+                moc_von_ms *= 2
 
     kq.giay_chay = time.perf_counter() - t0
     mid_cuoi = (nh.bid + nh.ask) * 0.5
     kq.tom_tat_khop = khop.tom_tat(mid_cuoi)
-    kq.duong_von.append((kq.den_ms, khop.gia_tri(mid_cuoi)))
+    kq.mau.append((kq.den_ms, khop.gia_tri(mid_cuoi), khop.ton_kho,
+                   khop.phi_da_tra, khop.so_tu_choi))
+    # ⚠ Lần khớp CHƯA ĐỦ TUỔI thì BỎ, không chốt bừa ở giá cuối. Chốt bừa là trộn một
+    # phép đo nửa vời vào trung bình rồi không ai biết. Số lot đo được nằm trong
+    # `markout_kl` — so với `kl_da_khop` là thấy ngay phần bị bỏ.
 
     # ⚠ NÓI RA CHỖ KHÔNG BIẾT. Ba con số dưới đây là ba cách một kết quả có thể đẹp mà
     # vô nghĩa, và không cái nào tự lộ ra trên đường vốn.
@@ -521,8 +619,8 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
         canh.append("kết thúc lúc đang MẤT sổ lệnh — tồn kho còn lại không định giá "
                     "được, `gia_tri` chỉ là tiền mặt")
     if khop.ton_kho:
-        canh.append(f"còn {khop.ton_kho:g} lot tồn kho — con số lãi lỗ chỉ chắc chắn "
-                    f"khi tồn kho về 0, vì xả thật còn phải trả spread và phí")
+        canh.append(f"còn {_so_vi(khop.ton_kho, 2)} lot tồn kho — con số lãi lỗ chỉ "
+                    f"chắc chắn khi tồn kho về 0, vì xả thật còn phải trả spread và phí")
     if khop.so_tu_choi:
         # NÓI THEO TỈ LỆ, không nói con số trần. "119.188 lần" nghe như nhiều; "99% số
         # sự kiện" thì nói ra đúng bản chất: chiến lược KẸT CỨNG, không phải thỉnh
@@ -534,10 +632,10 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS):
                         f"quá mạnh so với spread, hoặc hạn mức tồn kho tắt mất phía "
                         f"duy nhất còn đặt được")
         else:
-            canh.append(f"{khop.so_tu_choi:,} lần ({ti:.1%}) bị từ chối post-only — "
-                        f"báo giá có lúc lấn qua phía đối diện")
+            canh.append(f"{_so_vi(khop.so_tu_choi)} lần ({ti:.1%}) bị từ chối post-only "
+                        f"— báo giá có lúc lấn qua phía đối diện")
     if khop.giay_mu_co_lenh:
-        canh.append(f"{khop.giay_mu_co_lenh:,.0f} giây mù mà vẫn treo lệnh — sàn vẫn "
+        canh.append(f"{_khoang(khop.giay_mu_co_lenh)} MÙ mà vẫn treo lệnh — sàn vẫn "
                     f"khớp trong quãng đó, backtest thì không thấy")
     kq.loi = " · ".join(canh)
     return kq
