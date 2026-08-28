@@ -17,13 +17,15 @@ const TOI_DA_DONG = 6
  *
  * Một cái lợi kèm theo: cam đang mang hai nghĩa cùng lúc — "khối hành động" và "đang
  * chọn / số thứ tự". Đẩy khối hành động sang màu riêng thì cam chỉ còn nghĩa *của ta ·
- * đang chọn*, và viền chọn nổi hẳn lên. */
+ * đang chọn*, và viền chọn nổi hẳn lên.
+ *
+ * Khoá lạ rơi về `hoi` chứ không mất màu: thêm một khoá bên Python mà quên bảng này
+ * thì hộp vẫn vẽ ra, chỉ sai màu. */
 const MAU: Record<string, string> = {
   start: 'var(--action)',
   hoi: 'var(--khoi-hoi)',
-  mua: 'var(--ok)',
-  ban: 'var(--err)',
-  sua: 'var(--khoi-sua)',
+  gia: 'var(--khoi-gia)',
+  lot: 'var(--khoi-lot)',
 }
 
 const SIDES: [string, Position][] = [
@@ -44,9 +46,9 @@ export default function StepNode({ data, selected }: NodeProps) {
   const icon = laStart ? 'start' : (ICON_HANH_DONG[card.lines[0]?.type ?? ''] ?? 'action')
   const laVa = card.lines[0]?.type === 'check_cond'
   const mau = card.mau ?? (laStart ? 'start' : 'hoi')
-  /* Hướng dùng HÌNH chứ không chỉ dùng màu — cùng ngôn ngữ với chart (core.md §12.17),
-     và đọc được cả khi mù màu. */
-  const mui = mau === 'mua' ? '▲' : mau === 'ban' ? '▼' : ''
+  /* Ký hiệu ĐỌC ĐƯỢC CẢ KHI MÙ MÀU — cùng lý lẽ với cặp ▲▼ của bản cũ, chỉ đổi thứ nó
+     phân biệt: `$` số hạng động vào giá, `≡` động vào khối lượng. */
+  const mui = mau === 'gia' ? '$' : mau === 'lot' ? '≡' : ''
 
   return (
     <>

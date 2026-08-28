@@ -10,7 +10,10 @@ import Modal from './Modal'
  *  một cái kho mà phải cập nhật bằng tay thì sớm muộn nó nói khác thực tế.
  */
 
-const TEN_TAB: Record<string, string> = { entry: 'Entry', manage: 'Manage' }
+/** Nhãn sơ đồ. Bảng NHỎ và nằm ở đây thay vì lấy từ `bootstrap` vì hộp thoại Kho
+ *  không nhận `boot` — nó là bảng tra cứu tĩnh, mở ra đọc rồi đóng. Sai lệch với
+ *  `core.TAB_LABELS` thì chỉ lệch một cái nhãn trong bảng tra, không lệch hành vi. */
+const TEN_TAB: Record<string, string> = { bao_gia: 'Báo giá' }
 
 function Muc({ ten, phu, children }: {
   ten: string; phu?: string; children: React.ReactNode
@@ -105,7 +108,7 @@ export default function KhoDialog({ onDong }: { onDong: () => void }) {
               ))}
 
               {bang.map(b => (
-                <div key={b.key} className="kho-bang-tt">
+                <div key={b.key}>
                   <div className="kho-dau2">Bảng trạng thái · {b.nhan}</div>
                   <div className="kho-mota">{b.mo_ta}</div>
                   <table className="kho-bang">

@@ -1,4 +1,4 @@
-"""BIẾN CSS MA — `var(--khong-ton-tai)` hỏng LẶNG, và nó vừa hỏng thật hai lần.
+"""CSS HỎNG LẶNG — hai chiều: biến không tồn tại, và lớp không có luật.
 
 VÌ SAO BÀI NÀY PHẢI CÓ
 ----------------------
@@ -65,6 +65,51 @@ kiem("không còn biến ma nào", not ma, f"— {ma}" if ma else f"({len(dung_b
 for ten in ("--panel", "--line"):
     kiem(f"`{ten}` (từng hỏng lặng) không còn được dùng",
          ten not in dung_bien)
+
+print("\n▸ Mọi `className` phải có một luật CSS")
+# CHIỀU NGƯỢC LẠI của phép trên, và nó hỏng lặng y hệt: viết `className="nut do"` mà
+# không có luật `.do` nào thì nút hiện ra bình thường — chỉ là không đỏ. Không lỗi,
+# không cảnh báo, và không ai phát hiện cho tới khi nhìn đúng cái nút đó.
+#
+# Đã bắt được ba ca thật ngay lần đầu chạy:
+#   · `.nut.do`    nút ● Live — cái nút "tiêu tiền thật" trông y hệt mọi nút khác, đúng
+#                  thứ mà chú thích ngay cạnh nó bảo là KHÔNG được phép;
+#   · `.chu-dan.canh`  mọi lời cảnh báo hiện ra xám nhạt như chú thích thường;
+#   · `.cd-rong`   chỗ trống có lời giải thích, không có luật nào.
+#
+# HAI THỨ PHẢI LỌC RA, và cả hai đều sinh báo giả — mà một bài kiểm báo giả thì sớm
+# muộn bị tắt đi, nên phải lọc cho sạch:
+#
+#   · VẾ PHẢI CỦA PHÉP SO. `className={'tab' + (tab === 'chung' ? ' dang' : '')}` có ba
+#     chuỗi, nhưng `'chung'` là một GIÁ TRỊ đem ra so, không phải tên lớp. Bỏ hẳn cụm
+#     `=== '…'` trước khi moi.
+#   · TIỀN TỐ GHÉP LÚC CHẠY. `'dau mau-' + mau` cho ra `mau-`, một cái tên chưa hoàn
+#     chỉnh. Nhận ra bằng dấu `-` ở cuối.
+#
+# Sau hai phép lọc đó thì MỌI chuỗi còn lại trong `className` đều là tên lớp thật, kể
+# cả hai nhánh của một tam nguyên (`… ? 'loi' : 'canh-bao'`) — nên bài kiểm không bỏ
+# sót nhánh nào.
+VE_PHAI_PHEP_SO = re.compile(r"[=!]==?\s*[\"'][^\"']*[\"']")
+LOP_GHEP = re.compile(r"className=[\"']([^\"'{}]+)[\"']")
+tsx = []
+for goc, _, ds in os.walk(CSS):
+    tsx += [os.path.join(goc, t) for t in ds if t.endswith(".tsx")]
+
+co_luat = set(re.findall(r"\.([a-zA-Z][\w-]*)", bo_chu_thich(theme + app)))
+dang_dung = set()
+for duong in tsx:
+    with io.open(duong, encoding="utf-8") as f:
+        noi_dung = f.read()
+    for cum in LOP_GHEP.findall(noi_dung):
+        dang_dung |= set(cum.split())
+    # `className={'hop' + (x ? ' da-ghim' : '')}` — moi từng chuỗi con trong biểu thức.
+    for cum in re.findall(r"className=\{([^}]*)\}", noi_dung):
+        for chuoi in re.findall(r"[\"']([^\"'{}]*)[\"']", VE_PHAI_PHEP_SO.sub(" ", cum)):
+            dang_dung |= {x for x in chuoi.split() if x and not x.endswith("-")}
+
+# React Flow tự vẽ phần của nó và mang CSS riêng — không phải việc của `app.css`.
+thieu = sorted(x for x in dang_dung - co_luat if not x.startswith("react-flow"))
+kiem("mọi lớp đang dùng đều có luật", not thieu, f"— {thieu}" if thieu else "")
 
 # ⚠ HAI MỤC ĐÃ ĐI ở đợt 4, cùng đám CSS chúng canh:
 #

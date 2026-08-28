@@ -708,10 +708,12 @@ class Api(NenCuaSo):
         d["hanh_dong"] = [{"key": k, "nhan": core.ACTION_LABELS[k],
                            "tabs": list(core.ACTION_TABS[k])}
                           for k in core.ACTION_TYPES]
-        # ⚠ `don_vi` · `sua_che_do` · `phep_so` · `trang_thai_lenh` · `ly_do_dong` đã
-        # bỏ cùng từ vựng và cùng `so_lenh.py` (đợt 3). Hộp thoại Kho giờ chỉ còn ba
-        # danh sách RỖNG từ `kho.danh_muc()` cộng bảng hành động — nó phải NÓI RA rằng
-        # kho đang trống, chứ không vẽ một bảng không giải thích.
+        # ⚠ `sua_che_do` · `trang_thai_lenh` · `ly_do_dong` đã bỏ cùng `so_lenh.py`
+        # (đợt 3) và KHÔNG quay lại: market maker không có lệnh RỜI mang trạng thái
+        # riêng để mà liệt kê. Rủi ro nằm ở TỒN KHO, và tồn kho là một con số.
+        #
+        # `chi_bao` và `bang_trang_thai` thì vẫn rỗng vì chưa module nào nuôi chúng —
+        # hộp thoại phải NÓI RA điều đó chứ không vẽ một bảng trống không giải thích.
         return _ok(d)
 
     # ------------------------------------------------------------------ cài đặt

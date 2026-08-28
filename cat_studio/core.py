@@ -1388,20 +1388,28 @@ def _giu_chung(nguon, dich):
 
 
 def _chuan_dieu_kien(c):
-    """Một điều kiện → dạng chuẩn, hoặc `None` nếu không cứu được.
+    """Một điều kiện → dạng chuẩn, hoặc `None` nếu không còn gì để giữ.
 
-    KHÔNG bịa đại lượng: thiếu `trai` thì vứt cả điều kiện. Một cổng rỗng còn bị
-    `validate_actions` chỉ mặt; một cổng lặng lẽ so nhầm đại lượng thì không."""
+    ⚠ TOÁN HẠNG LẠ THÌ GIỮ NGUYÊN, không vứt cả điều kiện. Vứt đi thì cổng thành RỖNG,
+    và câu app nói ra là "cổng chưa có điều kiện nào" — đúng về hình thức nhưng lạc đề:
+    người dùng có viết điều kiện, chỉ là nó trỏ vào một đại lượng không còn tồn tại.
+    Giữ lại thì `validate_actions` nói đúng chuyện đó, và nói ra CÁI TÊN.
+
+    Nó không chỉ là chuyện thẩm mỹ của thông báo: đổi tên hay gỡ một module trong `kho/`
+    sẽ lặng lẽ ăn mất điều kiện của MỌI chiến lược đang dùng nó, mà sơ đồ nhìn vẫn
+    nguyên vẹn — chỉ có một cổng bỗng luôn khớp.
+
+    Vứt thật sự chỉ khi KHÔNG CÓ `trai` nào — lúc đó không còn gì để chỉ mặt."""
     if not isinstance(c, dict):
         return None
     ten = (c.get("trai") or {}).get("ten") if isinstance(c.get("trai"), dict) else None
-    if ten not in TOAN_HANG_KEYS:
+    if not ten:
         return None
     la_ds = ten in TOAN_HANG_DUNG_SAI
     phep = c.get("phep")
     if phep not in PHEP_SO:
         phep = "la_dung" if la_ds else ">="
-    ra = {"trai": {"ten": ten}, "phep": phep}
+    ra = {"trai": {"ten": str(ten)}, "phep": phep}
     if phep in PHEP_DUNG_SAI:
         return ra                       # không có vế phải, và đó là toàn bộ ý nghĩa
 
@@ -1450,8 +1458,15 @@ def _chuan_luong(l, dich):
     # Đại lượng giá tự mang đơn vị → ô thước đo phải TRỐNG, không phải mặc định.
     if th and TOAN_HANG_LOAI.get(th) in ("muc_gia", "khoang_cach"):
         return ra
+    # ⚠ KHÔNG ĐOÁN THƯỚC ĐO. `biên = 2` mà tự điền `tick` là tự chọn một CON SỐ KHÁC —
+    # 2 tick và 2 bps là hai lượng khác hẳn nhau. Để trống thì `validate_actions` nói
+    # "chưa chọn thước đo", và người dùng chọn cái họ định.
+    #
+    # Khác hẳn hai chỗ ngay trên, nơi chuẩn hoá SỬA thật: `lot` thì đơn vị chỉ có thể
+    # là lot, và đại lượng giá thì đã tự mang đơn vị. Ở đó không có gì để chọn nhầm,
+    # nên sửa là dọn rác chứ không phải đoán ý.
     dv = l.get("don_vi")
-    return dict(ra, don_vi=dv if dv in DON_VI else ("gia" if kieu == "muc_gia" else "tick"))
+    return dict(ra, don_vi=dv) if dv in DON_VI else ra
 
 
 def normalize_action(a):
@@ -1483,9 +1498,16 @@ def normalize_action(a):
 
     elif t == SO_HANG:
         dich = a.get("dich") if a.get("dich") in DICH else "cong_bang"
-        cho_phep = PHEP_CHO_DICH[DICH_KIEU[dich]]
         ra["dich"] = dich
-        ra["phep"] = a.get("phep") if a.get("phep") in cho_phep else cho_phep[0]
+        # PHÉP SAI THÌ GIỮ NGUYÊN, KHÔNG SỬA HỘ. `biên ×= 2` là câu không có nghĩa,
+        # nhưng lặng lẽ đổi nó thành `biên = 2` là đổi Ý NGHĨA của một khối rồi bày ra
+        # như thể người dùng viết vậy — mà `validate_actions` đã có sẵn câu "biên chỉ
+        # nhận = · +=, không nhận ×=" thì nó không bao giờ hiện được.
+        #
+        # Chỉ rơi về phép mặc định khi phép ấy KHÔNG PHẢI phép gán nào cả (file rác,
+        # trường thiếu) — lúc đó không có gì để bảo toàn.
+        phep = a.get("phep")
+        ra["phep"] = phep if phep in PHEP_GAN else PHEP_CHO_DICH[DICH_KIEU[dich]][0]
         ra["luong"] = _chuan_luong(a.get("luong"), dich)
         # `khi` VẮNG MẶT chứ không phải `None`: khối không điều kiện là trường hợp
         # thường, và một khoá luôn có mặt mang giá trị rỗng sẽ khiến mọi chỗ đọc phải

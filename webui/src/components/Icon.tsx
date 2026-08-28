@@ -22,11 +22,16 @@ const HINH: Record<string, React.ReactNode> = {
   /* --- loại hành động --- */
   /* Kiểm tra điều kiện: một đường vào, hai đường ra — đúng hình rẽ nhánh vẽ trên giấy. */
   'check-cond': <><path {...S} d="M1.8 8h3.9M5.7 8l3.1-3.1M5.7 8l3.1 3.1" /><circle {...S} cx="11.3" cy="4.9" r="1.8" /><circle {...S} cx="11.3" cy="11.1" r="1.8" /></>,
-  /* Vào lệnh: nến + mũi tên đâm ra khỏi vùng — hình "phá vùng". */
-  'vao-lenh': <><path {...S} d="M3.4 10.6V5.4M3.4 3.6v1.8M3.4 10.6v1.8" /><rect {...S} x="1.9" y="5.4" width="3" height="5.2" rx=".7" /><path {...S} d="M7.4 10.4l3.4-3.4M8.2 6.6h2.8v2.8" /><path {...S} d="M13.4 3.2v9.6" strokeDasharray="1.6 1.6" /></>,
-  /* Sửa lệnh: đường giá + tay kéo chốt SL/TP lên xuống. */
-  'sua-lenh': <><path {...S} d="M2 11.4h12" strokeDasharray="1.8 1.6" /><path {...S} d="M2 5.2h12" strokeDasharray="1.8 1.6" /><path {...S} d="M8 3.4v9.6" /><path {...S} d="M6.2 6.9L8 5.1l1.8 1.8M6.2 9.7L8 11.5l1.8-1.8" /></>,
-  /* ⚠ MƯỜI BỐN ICON ĐÃ ĐI ở đợt 4, cùng thứ chúng đứng trên:
+  /* Số hạng: hai bậc thang cộng dồn + dấu cộng — "góp thêm một tầng vào báo giá".
+     Không vẽ dấu `=` hay `+=` thành hình: phép nằm ngay trên dòng chữ của hộp rồi,
+     icon mà lặp lại nó thì tốn chỗ mà không thêm gì. */
+  'so-hang': <><path {...S} d="M1.9 12.4h3.4V9.2h3.4V6" /><path {...S} d="M1.9 12.4v-2" strokeDasharray="1.4 1.3" /><path {...S} d="M11.4 3.1v4.6M9.1 5.4h4.6" /></>,
+
+  /* ⚠ `vao-lenh` (nến + mũi tên phá vùng) và `sua-lenh` (đường giá + tay kéo chốt
+       SL/TP) đã đi cùng hai động từ ấy. Cả hai vẽ về một thế giới có LỆNH RỜI mang
+       SL/TP riêng — market maker không có thứ đó.
+
+     ⚠ MƯỜI BỐN ICON ĐÃ ĐI ở đợt 4, cùng thứ chúng đứng trên:
        kieu-nen · kieu-bar · kieu-line · ve-mau · zone · an-lenh · ve-nay   thanh công
          cụ chart của cửa sổ Tester (ba kiểu vẽ giá, ba nút xem, hộp zone);
        up · down · motSo · minus · dau · cuoi   nút xếp thứ tự bảng tham số, submenu
@@ -71,6 +76,5 @@ export default function Icon({ name, size = 14 }: { name: string; size?: number 
 /** Loại hành động -> tên icon. Web tự quyết VẼ GÌ; Python chỉ nói ĐÓ LÀ GÌ (`type`). */
 export const ICON_HANH_DONG: Record<string, string> = {
   check_cond: 'check-cond',
-  vao_lenh: 'vao-lenh',
-  sua_lenh: 'sua-lenh',
+  so_hang: 'so-hang',
 }

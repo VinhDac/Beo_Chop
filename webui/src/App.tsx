@@ -77,9 +77,12 @@ function rf_sang_edges(edges: Edge[]): ProcEdge[] {
 
 /* ---------------------------------- Undo ---------------------------------- */
 
-/** Ảnh chụp hoàn tác gom CẢ HAI sơ đồ + tab đang mở.
- *  Chụp riêng từng tab thì Ctrl+Z sau khi đổi tab sẽ hoàn tác nhầm sơ đồ. */
-interface Anh { tab: Tab; entry: DoThi; manage: DoThi; ten: string }
+/** Ảnh chụp hoàn tác gom MỌI sơ đồ + tab đang mở.
+ *  Chụp riêng từng tab thì Ctrl+Z sau khi đổi tab sẽ hoàn tác nhầm sơ đồ.
+ *
+ *  ⚠ `Record<Tab, …>` chứ không phải hai trường `entry`/`manage` viết cứng: hiện chỉ
+ *  còn MỘT sơ đồ (Báo giá), và ngày thêm sơ đồ thứ hai thì chỗ này không phải sửa. */
+interface Anh { tab: Tab; so_do: Record<Tab, DoThi>; ten: string }
 
 const TOI_DA_UNDO = 60
 
@@ -96,12 +99,27 @@ let boNhoKhoi: { steps: Step[]; edges: ProcEdge[] } = { steps: [], edges: [] }
 interface DoThi { nodes: Node[]; edges: Edge[] }
 const RONG: DoThi = { nodes: [], edges: [] }
 
+/** Sơ đồ mở ra đầu tiên. Viết ở ĐÚNG MỘT CHỖ thay vì rải chuỗi 'bao_gia' khắp file —
+ *  đây là thứ sẽ đổi ngày có sơ đồ thứ hai. */
+const TAB_DAU: Tab = 'bao_gia'
+
+/** So hai tab qua `string`.
+ *
+ *  ⚠ Nghe như thừa, nhưng không: `Tab` hiện là một literal DUY NHẤT, nên sau `if (a ===
+ *  b) return` TypeScript thu hẹp cả hai về `never` và mọi dòng phía dưới thành lỗi
+ *  biên dịch. Nó nói đúng — nhánh "sang tab KHÁC" hiện không chạy bao giờ.
+ *
+ *  Nhưng xoá cái nhánh đó đi thì mất luôn cơ chế nhiều sơ đồ, mà cơ chế ấy là thứ §3
+ *  sẽ cần. Đi qua `string` giữ mã sống và ĐỌC ĐƯỢC, đổi lại là mất phép kiểm kiểu ở
+ *  đúng ba chỗ so tab — cái giá rẻ hơn nhiều so với dựng lại từ đầu. */
+const khacTab = (a: Tab, b: Tab) => (a as string) !== (b as string)
+
 function Ung() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   /** Tab đang mở. `nodes`/`edges` LUÔN là đồ thị của tab này; tab kia nằm ở `kho`. */
-  const [tab, setTab] = useState<Tab>('entry')
-  const kho = useRef<Record<Tab, DoThi>>({ entry: RONG, manage: RONG })
+  const [tab, setTab] = useState<Tab>(TAB_DAU)
+  const kho = useRef<Record<Tab, DoThi>>({ [TAB_DAU]: RONG })
   const [ten, setTen] = useState('Chiến lược 1')
   const [symbol, setSymbol] = useState('XAUUSD')
   const [vanDe, setVanDe] = useState<Problem[]>([])
@@ -175,8 +193,7 @@ function Ung() {
   /** Trạng thái hiện tại của CẢ HAI sơ đồ — tab đang mở lấy từ `nodes`/`edges` sống. */
   const anhHienTai = useCallback((): Anh => ({
     tab, ten,
-    entry: tab === 'entry' ? { nodes, edges } : kho.current.entry,
-    manage: tab === 'manage' ? { nodes, edges } : kho.current.manage,
+    so_do: { ...kho.current, [tab]: { nodes, edges } },
   }), [tab, ten, nodes, edges])
 
   const chup = useCallback(() => {
@@ -187,9 +204,9 @@ function Ung() {
   }, [anhHienTai])
 
   const apDung = useCallback((a: Anh) => {
-    kho.current = { entry: a.entry, manage: a.manage }
+    kho.current = { ...a.so_do }
     setTab(a.tab)
-    setNodes(a[a.tab].nodes); setEdges(a[a.tab].edges); setTen(a.ten)
+    setNodes(a.so_do[a.tab].nodes); setEdges(a.so_do[a.tab].edges); setTen(a.ten)
   }, [setNodes, setEdges])
 
   const hoanTac = useCallback(() => {
@@ -296,9 +313,9 @@ function Ung() {
   }, [daDo, nodes, fitView])
 
   const nap = useCallback((doc: ProcessDoc, loi: string) => {
-    kho.current = { entry: so_do_sang_rf(doc.entry), manage: so_do_sang_rf(doc.manage) }
-    setTab('entry')
-    setNodes(kho.current.entry.nodes); setEdges(kho.current.entry.edges)
+    kho.current = { [TAB_DAU]: so_do_sang_rf(doc[TAB_DAU]) }
+    setTab(TAB_DAU)
+    setNodes(kho.current[TAB_DAU].nodes); setEdges(kho.current[TAB_DAU].edges)
     setTen(doc.name); setSymbol(doc.symbol)
     canFit.current = true
     ghi(loi)
@@ -307,7 +324,7 @@ function Ung() {
   /** Đổi tab: cất đồ thị đang mở vào kho, lấy đồ thị kia ra.
    *  KHÔNG chụp hoàn tác — đổi tab không sửa gì cả. */
   const doiTab = useCallback((t: Tab) => {
-    if (t === tab) return
+    if (!khacTab(t, tab)) return
     kho.current[tab] = { nodes, edges }
     setNodes(kho.current[t].nodes); setEdges(kho.current[t].edges)
     setTab(t)
@@ -316,12 +333,11 @@ function Ung() {
 
   /** Tài liệu đầy đủ: tab đang mở lấy từ node sống, tab kia lấy từ kho. */
   const layDoc = useCallback((): ProcessDoc => {
-    const g = (t: Tab) => (t === tab
-      ? { steps: rf_sang_steps(nodes), edges: rf_sang_edges(edges), cards: [] }
-      : { steps: rf_sang_steps(kho.current[t].nodes),
-          edges: rf_sang_edges(kho.current[t].edges), cards: [] })
-    return { name: ten, symbol, tham_so: [],
-             entry: g('entry'), manage: g('manage') }
+    const g = (t: Tab) => (khacTab(t, tab)
+      ? { steps: rf_sang_steps(kho.current[t].nodes),
+          edges: rf_sang_edges(kho.current[t].edges), cards: [] }
+      : { steps: rf_sang_steps(nodes), edges: rf_sang_edges(edges), cards: [] })
+    return { name: ten, symbol, tham_so: [], [TAB_DAU]: g(TAB_DAU) } as ProcessDoc
   }, [tab, nodes, edges, ten, symbol])
 
   /* --------------------------- soát liên tục -------------------------- */
@@ -616,7 +632,7 @@ function Ung() {
     if (!r.ok || !r.value) { ghi('không nhập được: ' + r.error, 'err'); return }
     const { steps: buoc, edges: canh, bo_start } = r.value
     if (!buoc.length) {
-      ghi(`"${ten}" không có khối nào ở sơ đồ ${tab === 'entry' ? 'Entry' : 'Manage'}`, 'err')
+      ghi(`"${ten}" không có khối nào ở sơ đồ ${boot?.tab_labels[tab] ?? tab}`, 'err')
       return
     }
     // ⚠ Phần GỘP BẢNG THAM SỐ đã đi ở đợt 3, và luật của nó đáng nhớ lại nguyên vẹn
@@ -821,12 +837,8 @@ function Ung() {
         { ngan: true },
         { ten: 'Thêm Kiểm tra điều kiện', icon: 'check-cond',
           onClick: () => themKhoi('action', 'check_cond', taiDay) },
-        // Entry chỉ TẠO lệnh, Manage chỉ SỬA lệnh — menu phải nói đúng như ribbon.
-        ...(tab === 'entry'
-          ? [{ ten: 'Thêm Vào lệnh', icon: 'vao-lenh',
-               onClick: () => themKhoi('action', 'vao_lenh', taiDay) }]
-          : [{ ten: 'Thêm Sửa lệnh', icon: 'sua-lenh',
-               onClick: () => themKhoi('action', 'sua_lenh', taiDay) }]),
+        { ten: 'Thêm Số hạng', icon: 'so-hang',
+          onClick: () => themKhoi('action', 'so_hang', taiDay) },
       ]
     }
 
@@ -1025,10 +1037,9 @@ function Ung() {
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
-  const tabCoLoi: Record<Tab, boolean> = {
-    entry: vanDe.some(v => v.tab === 'entry' && v.severity === 'error'),
-    manage: vanDe.some(v => v.tab === 'manage' && v.severity === 'error'),
-  }
+  const tabCoLoi: Record<string, boolean> = Object.fromEntries(
+    (boot?.tabs ?? []).map(t =>
+      [t, vanDe.some(v => v.tab === t && v.severity === 'error')]))
 
   return (
     <div className="khung">
@@ -1036,8 +1047,7 @@ function Ung() {
       <Ribbon
         tab={tab}
         themKiemTra={() => themKhoi('action', 'check_cond')}
-        themVaoLenh={() => themKhoi('action', 'vao_lenh')}
-        themSuaLenh={() => themKhoi('action', 'sua_lenh')}
+        themSoHang={() => themKhoi('action', 'so_hang')}
         sua={() => dangChon[0] && setDangSua(dangChon[0].id)}
         datBatDau={datBatDau} doiGhim={doiGhim}
         nhanBan={nhanBan} xoa={xoa}
@@ -1057,7 +1067,8 @@ function Ung() {
       <div className={'vung-canvas' + (dangNoi ? ' dang-noi' : '')}>
         {/* Pill NỔI TRÊN canvas, không chiếm một dải riêng: nó là câu trả lời cho
             "đang vẽ sơ đồ NÀO", nên nằm ngay trên chính cái đang vẽ là đúng chỗ. */}
-        <PillTab tab={tab} datTab={doiTab} tabCoLoi={tabCoLoi} />
+        <PillTab tab={tab} tabs={boot?.tabs ?? []} nhan={boot?.tab_labels ?? {}}
+                 datTab={doiTab} tabCoLoi={tabCoLoi} />
 
         {/* Dải SOI từng nổi ở đây, ngay cạnh pill tab — đã đi cùng cơ chế soi (đợt 2). */}
 
@@ -1144,20 +1155,27 @@ function Ung() {
                      className={'dong-van-de ' + (v.severity === 'error' ? 'loi' : 'canh-bao')}
                      title="Bấm để nhảy tới khối bị lỗi"
                      onClick={() => {
-                       // Lỗi có thể ở tab kia — nhảy tab trước rồi mới chọn khối.
-                       if (v.tab !== tab) doiTab(v.tab)
+                       // Lỗi có thể ở sơ đồ khác — nhảy sang đó trước rồi mới chọn khối.
+                       const xa = khacTab(v.tab, tab)
+                       if (xa) doiTab(v.tab)
                        const id = v.step as string | null | undefined
                        if (!id) return
                        setTimeout(() => {
                          setNodes(ds => ds.map(k => ({ ...k, selected: k.id === id })))
-                         const n = (v.tab === tab ? nodes : kho.current[v.tab].nodes)
+                         const n = (xa ? kho.current[v.tab].nodes : nodes)
                            .find(k => k.id === id)
                          if (n) setCenter(n.position.x + 150, n.position.y + 80,
                                           { zoom: mucZoom, duration: 350 })
-                       }, v.tab !== tab ? 60 : 0)
+                       }, xa ? 60 : 0)
                      }}>
                   <span className="muc">{v.severity === 'error' ? '●' : '▲'}</span>
-                  <span className={'nhan-tab t-' + v.tab}>{v.tab === 'entry' ? 'Entry' : 'Manage'}</span>
+                  {/* Nhãn sơ đồ chỉ hiện khi CÓ nhiều sơ đồ — một nhãn lặp ở mọi dòng
+                      thì không phân biệt được gì, chỉ tốn bề ngang. */}
+                  {(boot?.tabs.length ?? 0) > 1 && (
+                    <span className={'nhan-tab t-' + v.tab}>
+                      {boot?.tab_labels[v.tab] ?? v.tab}
+                    </span>
+                  )}
                   <span>{v.message}</span>
                 </div>
               ))

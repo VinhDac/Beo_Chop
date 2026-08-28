@@ -54,8 +54,18 @@ def sh(dich, phep, he_so, toan_hang=None, don_vi=None, khi=None):
 
 
 def loi(a):
+    """Soát MỘT hành động — đi qua ĐÚNG đường hộp thoại đi: chuẩn hoá rồi mới soát.
+
+    ⚠ Bản đầu của bài này gọi thẳng `validate_actions` trên dict thô, và nó BÁO XANH
+    trong khi đường thật hỏng: `normalize_action` lặng lẽ sửa `biên ×= 2` thành
+    `biên = 2` trước khi soát, nên câu lỗi "không nhận ×=" không bao giờ hiện. Bài kiểm
+    thì vẫn xanh vì nó không đi qua chỗ sửa hộ ấy.
+
+    Bài học chung: **kiểm trên đúng đường mà người dùng đi**, không kiểm trên một
+    đường tắt trông giống nó."""
     ra = []
-    core.validate_actions([a], lambda m, i=None: ra.append(m), core.TAB_BAO_GIA)
+    core.validate_actions([core.normalize_action(a) or a],
+                          lambda m, i=None: ra.append(m), core.TAB_BAO_GIA)
     return ra
 
 
@@ -124,17 +134,32 @@ kiem("`công bằng += spread` thì ĐƯỢC — cộng một bề rộng vào m
 kiem("`biên ×= 2` → lỗi: nhân một bề rộng giá không có nghĩa vật lý",
      any("chỉ nhận" in m for m in loi(sh("bien", "*=", 2, don_vi="tick"))))
 kiem("`lot ×= 2` thì ĐƯỢC — khối lượng nhân được", not loi(sh("lot", "*=", 2)))
+# Chuẩn hoá KHÔNG được sửa hộ một phép sai: sửa hộ là đổi ý nghĩa của khối rồi bày ra
+# như thể người dùng viết vậy, mà câu lỗi đã có sẵn thì không bao giờ hiện được.
+kiem("phép sai được GIỮ NGUYÊN qua chuẩn hoá, để soát còn tố cáo được",
+     core.normalize_action(sh("bien", "*=", 2, don_vi="tick"))["phep"] == "*=")
+kiem("phép KHÔNG PHẢI phép gán nào thì mới rơi về mặc định",
+     core.normalize_action(sh("bien", "???", 2, don_vi="tick"))["phep"] == "=")
 
-kiem("`lot = 500 tick` → lỗi: khối lượng đo bằng lot",
-     any("lot" in m for m in loi(sh("lot", "=", 500, don_vi="tick"))))
 kiem("`lot = 2 × mid` → lỗi: khối lượng chỉ nhân được với đại lượng ĐẾM",
      any("ĐẾM" in m for m in loi(sh("lot", "=", 2, "mid"))))
 kiem("`lot = 0,5 × KL bid` thì ĐƯỢC", not loi(sh("lot", "=", 0.5, "bid_kl")))
-
-kiem("`biên = spread × 2 tick` → lỗi: đại lượng giá đã tự mang đơn vị",
-     any("tự mang đơn vị" in m for m in loi(sh("bien", "=", 2, "spread", "tick"))))
 kiem("`biên = 2` thiếu thước đo → lỗi",
      any("thước đo" in m for m in loi(sh("bien", "=", 2))))
+
+# ---- RANH GIỚI GIỮA "SỬA" VÀ "ĐOÁN" ----
+# Chuẩn hoá được phép SỬA khi chỉ có đúng một khả năng, và bị CẤM đoán khi có nhiều
+# hơn một. Ranh giới ấy là thứ dễ trôi nhất về sau, nên chốt bằng bốn phép ở đây.
+kiem("SỬA: `lot = 500 tick` → đơn vị lot, vì lot không đo bằng gì khác được",
+     core.normalize_action(sh("lot", "=", 500, don_vi="tick"))["luong"]["don_vi"] == "lot")
+kiem("SỬA: `biên = spread × 2 tick` → bỏ thước thừa, spread đã tự mang đơn vị",
+     "don_vi" not in core.normalize_action(sh("bien", "=", 2, "spread", "tick"))["luong"])
+kiem("ĐOÁN: `biên = 2` KHÔNG được tự điền tick — 2 tick và 2 bps là hai lượng khác nhau",
+     "don_vi" not in core.normalize_action(sh("bien", "=", 2))["luong"])
+kiem("ĐOÁN: điều kiện trỏ vào đại lượng đã biến mất thì GIỮ, không nuốt cả điều kiện",
+     (core.normalize_action({"type": core.CHECK_COND, "conditions": [
+         {"trai": {"ten": "atr"}, "phep": ">", "phai": {"value": 1}}]})
+      ["conditions"] or [{}])[0].get("trai", {}).get("ten") == "atr")
 
 kiem("`công bằng = 65000 tick` → lỗi: đặt một MỨC thì phải là giá tuyệt đối",
      any("tuyệt đối" in m for m in loi(sh("cong_bang", "=", 65000, don_vi="tick"))))

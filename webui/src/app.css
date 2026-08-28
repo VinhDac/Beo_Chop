@@ -162,6 +162,12 @@ input, textarea { user-select: text; }
 .nut:disabled { opacity: .4; cursor: default; }
 .nut.chinh { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
 .nut.chinh:hover:not(:disabled) { filter: brightness(1.08); }
+/* ⚠ `.do` được DÙNG trên nút ● Live suốt nhiều bản mà không có luật nào — nên cái nút
+   "tiêu tiền thật" trông y hệt mọi nút khác, đúng thứ mà chú thích cạnh nó bảo là
+   không được phép. Chỉ VIỀN đỏ chứ không tô nền: nền đầy đủ sẽ tranh chỗ với `.chinh`
+   ngay bên phải, mà `.chinh` mới là nút bấm hằng ngày. */
+.nut.do { color: var(--err); border-color: var(--err); }
+.nut.do:hover:not(:disabled) { background: var(--err); color: #fff; }
 
 /* ---------------- Canvas ---------------- */
 .vung-canvas { flex: 1 1 auto; position: relative; min-height: 0; background: var(--canvas-bg); }
@@ -567,6 +573,28 @@ input, textarea { user-select: text; }
 select.o { cursor: pointer; }
 .mo { color: var(--dim); font-size: 11.5px; }
 
+/* --- HÀNG ĐIỀU KIỆN / SỐ HẠNG trong hộp thoại hành động ---
+   Bề rộng CỐ ĐỊNH cho từng vai ô, không để nội dung tự co: một hàng có 4-5 ô, mà mỗi
+   hàng lại rộng khác nhau thì cột không thẳng và mắt phải dò lại từ đầu ở mỗi dòng. */
+.o-dai  { flex: 1 1 190px; min-width: 150px; }
+.o-phep { flex: 0 0 88px; text-align: center; }
+.o-dv   { flex: 0 0 116px; }
+.o-so   { flex: 0 0 auto; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Bọc một hàng con (điều kiện của cổng, ô `khi` của số hạng) — thụt vào và có vạch
+   trái để thấy ngay nó THUỘC VỀ khối chứ không phải một trường ngang hàng. */
+.hang-boc {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 8px 2px; padding-left: 9px;
+  border-left: 2px solid var(--border-soft);
+}
+.hang-boc > .hang { flex: 1; margin-bottom: 0; }
+.hang-boc > .tick { margin-bottom: 0; flex: none; }
+
+.nut.nho { padding: 4px 8px; font-size: 11.5px; line-height: 1; }
+.nut.nho .icon { display: block; }
+.chu-mo { color: var(--dim); font-size: 11.5px; }
+
 .tick { display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-bottom: 8px; cursor: pointer; }
 .tick.ngang { margin-bottom: 0; margin-right: 12px; }
 .tick input { accent-color: var(--accent); cursor: pointer; }
@@ -740,6 +768,18 @@ select.o { cursor: pointer; }
 }
 .chu-dan b { color: var(--text); font-weight: 600; }
 .chu-dan code { font: 11px var(--mono); color: var(--accent); }
+/* ⚠ `.canh` được DÙNG ở hai chỗ suốt nhiều bản mà KHÔNG có luật nào — nên mọi lời
+   cảnh báo hiện ra xám nhạt y hệt một dòng chú thích bình thường. Đúng loại hỏng lặng
+   mà `tests/test_giao_dien.py` sinh ra để canh, chỉ là nó mới canh chiều biến CSS ma
+   chứ chưa canh chiều lớp không có luật. */
+.chu-dan.canh {
+  color: var(--err);
+  background: rgba(229, 83, 75, .1);
+  border-left-color: var(--err);
+}
+
+/* Chỗ trống có lời giải thích — mọi bảng/danh sách rỗng dùng chung. */
+.cd-rong { color: var(--dim); font-size: 11.5px; font-style: italic; }
 
 .loi-form {
   margin-top: 9px;
@@ -848,8 +888,10 @@ select.o { cursor: pointer; }
   background: var(--raised);
   color: var(--muted);
 }
-.dong-van-de .nhan-tab.t-entry { color: var(--start); }
-.dong-van-de .nhan-tab.t-manage { color: var(--group); }
+/* ⚠ `.t-entry` / `.t-manage` đã đi cùng hai sơ đồ Entry/Manage. Nhãn tab chỉ hiện khi
+   có NHIỀU HƠN một sơ đồ (xem `App.tsx`), nên hiện nó không được vẽ ra bao giờ — lớp
+   nền xám phía trên thì giữ, sẵn cho ngày có sơ đồ thứ hai. Màu riêng cho từng sơ đồ
+   sẽ đặt lại lúc đó, khi biết sơ đồ ấy là gì. */
 
 /* ==========================================================================
    Hộp thoại KHO + BẢNG THAM SỐ

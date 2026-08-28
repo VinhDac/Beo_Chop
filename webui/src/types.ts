@@ -30,7 +30,8 @@ export interface ProcEdge {
 
 /** Một dòng chữ trên hộp — do `api.describe()` sinh, không phải JS tự ghép.
  *  Khối "Kiểm tra điều kiện": mỗi dòng là MỘT điều kiện (nối nhau bằng VÀ).
- *  Khối "Vào lệnh" / "Sửa lệnh": mỗi dòng là MỘT TRƯỜNG (lot · đệm · SL · TP). */
+ *  Khối "Số hạng": dòng 1 là phát biểu, dòng 2 là ô `khi`, dòng 3 là HẬU QUẢ nếu có
+ *  ("→ rút hết báo giá"). */
 export interface CardLine {
   text: string
   /** Loại hành động — giao diện dùng để CHỌN ICON. Python không gắn emoji vào text. */
@@ -47,8 +48,8 @@ export interface Card {
   mo_ta: string
   ghim: boolean
   la_cong: boolean
-  /** Khoá màu NGỮ NGHĨA do Python suy ra: `start · hoi · mua · ban · sua`. Không phải mã
-   *  màu — giao diện tự ánh xạ sang biến CSS, nên đổi bảng màu không phải sửa Python. */
+  /** Khoá màu NGỮ NGHĨA do Python suy ra: `start · hoi · gia · lot`. Không phải mã màu
+   *  — giao diện tự ánh xạ sang biến CSS, nên đổi bảng màu không phải sửa Python. */
   mau?: string
 }
 
@@ -57,14 +58,19 @@ export interface Problem {
   message: string
   step?: string | null
   index?: number | null
-  /** Sơ đồ nào — bảng Vấn đề hiện lỗi của CẢ HAI tab, kèm nhãn. */
+  /** Sơ đồ nào — bảng Vấn đề gom lỗi của MỌI sơ đồ, kèm nhãn khi có nhiều hơn một. */
   tab: Tab
   // ⚠ `dat_ten` đã đi cùng bảng tham số (đợt 3).
 }
 
-/** Hai sơ đồ trong một chiến lược.
- *  `entry` đi săn (một lượt mỗi nến) · `manage` chạy một lượt cho MỖI lệnh đang sống. */
-export type Tab = 'entry' | 'manage'
+/** Sơ đồ trong một chiến lược. Hiện chỉ MỘT.
+ *
+ *  ⚠ Bản cũ có hai: `entry` đi săn (một lượt mỗi nến) và `manage` chạy một lượt cho MỖI
+ *  lệnh đang sống. Market maker không tách được như thế — mỗi sự kiện sổ lệnh, cả sơ đồ
+ *  chạy lại và phát biểu TOÀN BỘ báo giá, nên "vào lệnh" và "quản lệnh" là cùng một
+ *  lượt. Cơ chế nhiều sơ đồ thì giữ nguyên ở cả hai đầu (`core.TABS`, `PillTab`), sẵn
+ *  cho §3 — lớp khớp lệnh. */
+export type Tab = 'bao_gia'
 
 export interface SoDo {
   steps: Step[]
@@ -75,13 +81,11 @@ export interface SoDo {
 /** ⚠ `ThamSo` đã đi ở đợt 3 cùng bảng tham số. Khoá `tham_so` GIỮ LẠI trong
  *  `ProcessDoc` và luôn rỗng: `schema` không đổi, nên file lưu ra vẫn cùng hình dạng
  *  với file đọc vào và sơ đồ cũ mở lên không bị coi là hỏng. */
-export interface ProcessDoc {
+export type ProcessDoc = {
   name: string
   symbol: string
   tham_so: never[]
-  entry: SoDo
-  manage: SoDo
-}
+} & Record<Tab, SoDo>
 
 /** Danh mục kho — mọi thứ app tính được, do `kho/` tự gom từ các module con. */
 export interface KhoDanhMuc {
@@ -98,8 +102,8 @@ export interface KhoDanhMuc {
     luat: string[]
   }[]
   hanh_dong: { key: string; nhan: string; tabs: Tab[] }[]
-  // ⚠ `don_vi` · `sua_che_do` · `phep_so` · `trang_thai_lenh` · `ly_do_dong` đã đi
-  // cùng từ vựng và `so_lenh.py` (đợt 3). Ba danh sách trên hiện luôn RỖNG.
+  // ⚠ `sua_che_do` · `trang_thai_lenh` · `ly_do_dong` đã đi cùng `so_lenh.py` (đợt 3):
+  // market maker không có LỆNH RỜI mang trạng thái riêng để mà liệt kê.
   luu_tru: {
     goc: string
     muc: { ten: string; duong_dan: string; so_luong: number; danh_sach: string[] }[]
@@ -108,8 +112,16 @@ export interface KhoDanhMuc {
 
 export interface ToanHang {
   key: string
+  /** Tên ĐẦY ĐỦ kèm lời giải — cho dropdown, nơi người dùng đang CHỌN. */
   nhan: string
+  /** Tên TRẦN — cho chữ trên hộp. Thiếu thì rơi về `nhan` (xem `core.TOAN_HANG_NGAN`). */
+  ngan?: string
   nhom: string
+  /** `muc_gia` một MỨC · `khoang_cach` một BỀ RỘNG · `dem` số đếm · `dung_sai`. Quyết
+   *  ô đơn vị sáng hay mờ, và quyết luôn phép so nào hợp lệ. */
+  loai?: string
+  /** Chỉ đại lượng `dem` mới có: `bid_kl` và `ton_kho` cùng đếm lot nhưng khác nghĩa. */
+  don_vi?: string
   tham_so: string[]
   /** Module nào cung cấp: `nen_tang` · `chi_bao` · `d02` … */
   nguon?: string
@@ -131,22 +143,46 @@ export interface Bootstrap {
   tab_labels: Record<string, string>
   action_types: string[]
   action_labels: Record<string, string>
-  /** Hành động nào dùng được ở tab nào. Entry chỉ TẠO, Manage chỉ SỬA. */
+  /** Hành động nào dùng được ở sơ đồ nào. Hiện mọi hành động dùng được ở sơ đồ duy
+   *  nhất; cơ chế giữ nguyên cho ngày có sơ đồ thứ hai. */
   action_tabs: Record<string, Tab[]>
   /** Loại hành động đóng vai CỔNG rẽ nhánh. */
   branch_type: string
   huong: Record<string, string>
 
-  /* ⚠ HAI MƯƠI TƯ KHOÁ TỪ VỰNG ĐÃ ĐI ở đợt 3, khớp với `api.bootstrap`:
-   *   nhom_lenh_nay · toan_hang_dung_sai · timeframes · nhip_mac_dinh · ma_methods
-   *   toan_hang · phep_so · don_vi · don_vi_ngan · don_vi_cho · loai_lenh
-   *   moc_entry · moc_can_zone · nhan_don_vi · don_vi_dem · toan_hang_don_vi
-   *   toan_hang_loai · loai_co_don_vi · don_vi_chinh_no · toan_hang_can_zone
-   *   don_vi_can_zone · sua_che_do · sua_can_gia · don_vi_o
+  /* ---- TỪ VỰNG. Hợp đồng: JS KHÔNG viết cứng danh sách nào. ----
    *
-   * `Bootstrap` là hợp đồng "JS không viết cứng danh sách nào" — thêm một toán hạng ở
-   * `kho/` là giao diện có ngay. Hợp đồng GIỮ NGUYÊN, chỉ là bên trái chưa có gì để
-   * gửi. Bản cũ: `git show f1c90fb:webui/src/types.ts`. */
+   * Khoá của thế giới nến đã đi ở đợt 3 (`timeframes` · `ma_methods` · `moc_entry` ·
+   * `sua_che_do` · `don_vi_can_zone`…). Cái thay chúng ít hơn hẳn, vì từ vựng market
+   * maker vốn nhỏ hơn — nhưng cùng một hợp đồng: thả một module vào `kho.MODULE` là
+   * dropdown có ngay, không sờ vào TypeScript.
+   * Bản cũ: `git show f1c90fb:webui/src/types.ts`. */
+  toan_hang: ToanHang[]
+  toan_hang_loai: Record<string, string>
+  toan_hang_don_vi: Record<string, string>
+  toan_hang_dung_sai: string[]
+  phep_so: Record<string, string>
+  /** Phép KHÔNG có vế phải, và cũng là phép duy nhất cho đại lượng đúng/sai. */
+  phep_dung_sai: string[]
+  don_vi: Record<string, string>
+  don_vi_ngan: Record<string, string>
+  don_vi_dem: Record<string, string>
+  nhan_don_vi: Record<string, string>
+  /** Loại đại lượng DUY NHẤT được chọn đơn vị (`khoang_cach`). */
+  loai_co_don_vi: string
+  /** Loại đại lượng → đơn vị CỐ ĐỊNH của ô so với nó. `null` = không có vế phải. */
+  loai_don_vi: Record<string, string | null>
+
+  /* ---- SỐ HẠNG: đích · phép · lượng · khi ---- */
+  dich: Record<string, string>
+  /** Đích → kiểu (`muc_gia` · `khoang_cach` · `lot`). Quyết `lượng` nhận cái gì. */
+  dich_kieu: Record<string, string>
+  /** Đích nào sửa CẢ HAI phía cùng lúc: `bien` → `[bien_mua, bien_ban]`. */
+  dich_ca_hai: Record<string, string[]>
+  phep_gan: Record<string, string>
+  /** Kiểu đích → những phép nó nhận. Hộp thoại xổ đúng chừng ấy, không bày ra rồi
+   *  mới báo lỗi. */
+  phep_cho_dich: Record<string, string[]>
 
   // ⚠ `nguon` và `co_mt5` đã bỏ cùng nguồn nến MT5 (đợt 2).
 

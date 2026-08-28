@@ -97,8 +97,8 @@ const S = {
 const I = {
   /* Một đường vào, hai đường ra — đúng hình rẽ nhánh người dùng vẽ trên giấy. */
   branch: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M2.5 11h5M7.5 11l5-5M7.5 11l5 5" /><circle {...S} cx="15.5" cy="6" r="2.6" /><circle {...S} cx="15.5" cy="16" r="2.6" /></svg>,
-  vao: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="2.6" y="7.4" width="4" height="7.2" rx="1" /><path {...S} d="M4.6 4.8v2.6M4.6 14.6v2.6" /><path {...S} d="M10 14.6l4.8-4.8M11.2 9.2h3.8v3.8" /><path {...S} d="M18.6 4.4v13.2" strokeDasharray="2.2 2.2" /></svg>,
-  sua: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M3 15.6h16" strokeDasharray="2.4 2.2" /><path {...S} d="M3 6.4h16" strokeDasharray="2.4 2.2" /><path {...S} d="M11 4.6v12.8" /><path {...S} d="M8.6 9.2L11 6.8l2.4 2.4M8.6 12.8L11 15.2l2.4-2.4" /></svg>,
+  /* Số hạng: bậc thang cộng dồn + dấu cộng. Cùng hình với `Icon.tsx`, chỉ khác cỡ. */
+  soHang: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M2.8 17.2h4.8V12.8h4.8V8.4" /><path {...S} d="M2.8 17.2v-2.8" strokeDasharray="2 1.8" /><path {...S} d="M16.2 4.4v6.4M13 7.6h6.4" /></svg>,
   start: <svg viewBox="0 0 22 22" width="22" height="22"><circle {...S} cx="11" cy="11" r="8" /><path {...S} d="M11 5.4l3.6 5.6-3.6 5.6-3.6-5.6z" /></svg>,
   edit: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="3.5" y="3.5" width="15" height="15" rx="2" /><path {...S} d="M7.5 13.5l6-6M11 6.5l4 4" /></svg>,
   copy: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="7" y="7" width="11" height="11" rx="1.8" /><path {...S} d="M14.5 4.5H5.8A1.3 1.3 0 0 0 4.5 5.8v8.7" /></svg>,
@@ -117,8 +117,7 @@ const I = {
 export interface RibbonProps {
   tab: Tab
   themKiemTra: () => void
-  themVaoLenh: () => void
-  themSuaLenh: () => void
+  themSoHang: () => void
   sua: () => void
   datBatDau: () => void
   doiGhim: () => void
@@ -142,26 +141,30 @@ export interface RibbonProps {
   coTheLamLai: boolean
 }
 
-const TEN_TAB: Record<Tab, string> = { entry: 'Entry', manage: 'Manage' }
-const CHU_THICH_TAB: Record<Tab, string> = {
-  entry: 'Sơ đồ ĐI SĂN — chạy một lượt mỗi nhịp. Chỉ nó được TẠO lệnh.',
-  manage: 'Sơ đồ QUẢN LÝ — chạy một lượt cho MỖI lệnh đang sống. Chỉ nó được SỬA lệnh.',
-}
-
 /** Pill chuyển sơ đồ — nằm NGAY DƯỚI dải ribbon, sát mép trái.
  *
  *  Đặt ở đó vì nó không phải một nút trong ribbon mà là câu trả lời cho "mọi thứ phía
  *  trên đang tác động lên sơ đồ NÀO". Chấm đỏ trên tab kia để lỗi không trốn được sau
- *  lưng: bấm ▶ Chạy mới biết tab kia hỏng là quá muộn. */
-export function PillTab({ tab, datTab, tabCoLoi }: {
-  tab: Tab; datTab: (t: Tab) => void; tabCoLoi: Record<Tab, boolean>
+ *  lưng: bấm ▶ Chạy mới biết tab kia hỏng là quá muộn.
+ *
+ *  ⚠ Danh sách tab và nhãn của chúng giờ lấy từ `bootstrap`, không viết cứng ở đây.
+ *  Bản cũ khai `TEN_TAB` + `CHU_THICH_TAB` cho đúng hai tab Entry/Manage — mà tên tab
+ *  vốn là kiến thức của lõi (`core.TABS` / `TAB_LABELS`), nên chép sang JS là dựng hai
+ *  nguồn sự thật cho một thứ.
+ *
+ *  MỘT TAB THÌ KHÔNG VẼ GÌ: một cái pill đứng một mình không trả lời được câu hỏi nào
+ *  — không có lựa chọn nào để thấy — mà vẫn chiếm chỗ trên canvas. */
+export function PillTab({ tab, tabs, nhan, datTab, tabCoLoi }: {
+  tab: Tab; tabs: Tab[]; nhan: Record<string, string>
+  datTab: (t: Tab) => void; tabCoLoi: Record<string, boolean>
 }) {
+  if (tabs.length < 2) return null
   return (
     <div className="pill-tab">
-      {(['entry', 'manage'] as Tab[]).map(t => (
+      {tabs.map(t => (
         <button key={t} className={'pill' + (tab === t ? ' dang' : '')}
-                title={CHU_THICH_TAB[t]} onClick={() => datTab(t)}>
-          {TEN_TAB[t]}
+                onClick={() => datTab(t)}>
+          {nhan[t] ?? t}
           {tabCoLoi[t] && <span className="cham-loi" title="Sơ đồ này đang có lỗi" />}
         </button>
       ))}
@@ -172,21 +175,17 @@ export function PillTab({ tab, datTab, tabCoLoi }: {
 export default function Ribbon(p: RibbonProps) {
   return (
     <div className="ribbon">
-      {/* Nút nào hiện là do TAB quyết: Entry chỉ TẠO lệnh, Manage chỉ SỬA lệnh.
-          Làm mờ thì người dùng vẫn phải đoán vì sao; ẩn hẳn thì bảng chọn luôn đúng
-          với việc đang làm. */}
+      {/* ⚠ Bản cũ ẨN/HIỆN nút theo tab: Entry chỉ TẠO lệnh, Manage chỉ SỬA lệnh. Cả
+          hai nút và cả cái luật ấy đã đi cùng hai động từ — market maker chỉ có MỘT
+          sơ đồ, nên không còn gì để ẩn theo. Cơ chế `action_tabs` thì vẫn còn bên
+          Python, sẵn cho ngày có sơ đồ thứ hai. */}
       <Nhom ten="Thêm khối">
         <Nut ten="Kiểm tra ĐK" icon={I.branch} onClick={p.themKiemTra}
              title={'Thêm cổng "Kiểm tra điều kiện" — nối nhiều cổng vào cùng một khối '
                     + 'để chia nhánh. Khớp thì đi nhánh đó, không khớp thì thử nhánh dưới.'} />
-        {p.tab === 'entry' && (
-          <Nut ten="Vào lệnh" icon={I.vao} onClick={p.themVaoLenh}
-               title="Mở vị thế mới: Mua/Bán, loại lệnh, khối lượng, SL và TP ban đầu" />
-        )}
-        {p.tab === 'manage' && (
-          <Nut ten="Sửa lệnh" icon={I.sua} onClick={p.themSuaLenh}
-               title="Tác động lên lệnh ĐÃ CÓ: dời SL, dời TP, hoà vốn, trailing, đóng, huỷ chờ" />
-        )}
+        <Nut ten="Số hạng" icon={I.soHang} onClick={p.themSoHang}
+             title={'Góp một số hạng vào báo giá: đặt/cộng vào giá công bằng, nửa biên, '
+                    + 'lệch hoặc khối lượng. Kèm được một điều kiện "khi …".'} />
       </Nhom>
 
       <Nhom ten="Sửa">

@@ -69,7 +69,10 @@ export default function ContextMenu({ x, y, muc, onDong }: {
     return (
       <button
         key={i}
-        className={'muc-phai' + (coCon ? ' co-con' : '')}
+        // ⚠ Từng gắn thêm lớp `co-con` ở đây, mà `app.css` chưa bao giờ có luật cho
+        // nó — một cái móc treo suốt nhiều bản không móc gì. Dấu hiệu "có menu con"
+        // đã nằm ở mũi `▸` (`.mui-con`) phía dưới rồi.
+        className="muc-phai"
         disabled={m.tat}
         title={m.tat ? m.viSao : undefined}
         onMouseEnter={() => !trongCon && setMoCon(coCon ? i : null)}

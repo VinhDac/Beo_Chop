@@ -43,14 +43,21 @@
   --action: #a8a8a8;
 
   /* MÀU THEO MỤC ĐÍCH KHỐI (khoá do `api._mau_khoi` suy ra).
-     · Bắt đầu  -> `--action` xám: nó là ĐIỂM NEO, không phải hành động. Trước đây nó
-       xanh, mà `--start` và `--ok` trùng đúng một mã — để khối Mua màu xanh thì hai
-       loại khối nhìn y hệt nhau. Trả xanh về đúng một nghĩa: MUA.
+     · Bắt đầu  -> `--action` xám: nó là ĐIỂM NEO, không phải hành động.
      · Kiểm tra ĐK -> lam, một CÂU HỎI.
-     · Mua/Bán -> xanh/đỏ (`--ok`/`--err`), kèm ▲/▼ để không phải chỉ dựa vào màu.
-     · Sửa lệnh -> tím, không đụng warn/accent đã có nghĩa khác. */
+     · Số hạng -> chia theo thứ nó ĐỘNG VÀO: giá (tím) hay khối lượng (lục lam).
+
+     ⚠ KHÔNG còn chia màu theo MUA/BÁN, và mất luôn cặp xanh/đỏ + mũi ▲▼ đi kèm. Một
+     market maker đứng CẢ HAI PHÍA cùng lúc, nên "khối này mua hay bán" là câu hỏi
+     không có câu trả lời — mọi khối đều làm cả hai. Cái đáng phân biệt bằng mắt bây
+     giờ là số hạng dựng MỨC TREO hay dựng CỠ LỆNH: liếc cả chuỗi là thấy ngay đoạn
+     nào lo giá, đoạn nào lo khối lượng.
+
+     `--ok`/`--err` vì thế rút về đúng nghĩa gốc — xanh là ổn, đỏ là hỏng — và không
+     còn dính vào ngữ nghĩa giao dịch nữa. */
   --khoi-hoi: #6cb6ff;
-  --khoi-sua: #b892f0;
+  --khoi-gia: #b892f0;
+  --khoi-lot: #46c9c0;
 
   /* Ghim số ⟲ — dùng cho cả huy hiệu khối đã ghim lẫn đường nối quay lại.
      MỘT màu cho cả hai là cố ý: nhìn một cái là nối được "đường này quay về đâu". */
