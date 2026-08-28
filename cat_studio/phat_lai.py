@@ -38,7 +38,31 @@ thái CHƯA BIẾT** (`co_so = False`) cho tới bản ghi `so` kế tiếp — 
 đã đi đâu thì ta không biết.
 
 ════════════════════════════════════════════════════════════════════════════
-LUẬT BA — TẤT ĐỊNH
+LUẬT BA — HIỆU CHỈNH ĐỒNG HỒ, VÀ CHƯA ĐO THÌ KHÔNG ĐOÁN
+════════════════════════════════════════════════════════════════════════════
+`t_ta` đóng dấu bằng đồng hồ MÁY, `T` đến từ SÀN. Hai đồng hồ đó lệch nhau (đo được
+−121 ms ngày 2026-08-28), nên trừ thẳng `t_ta − T` là ra một độ trễ sai đúng chừng ấy.
+
+    thời điểm THẬT  =  t_ta − lệch          (`lệch` = giờ máy − giờ sàn)
+
+Bộ ghi đo độ lệch vài phút một lần và cất cạnh dữ liệu (`nguon_tick.bang_lech`). Ở đây
+tra bảng đó và trừ ra — dùng lần đo GẦN NHẤT TRƯỚC mỗi sự kiện, không nội suy: giữa hai
+lần đo, đồng hồ trôi từ từ chứ không nhảy, mà nội suy thì giả vờ biết một thứ không đo.
+
+⚠ SỬA CẢ CỘT MỘT LẦN, không sửa từng sự kiện. Bản đầu gọi một hàm tra bảng trong
+`buoc()` và tốc độ tụt từ 1,97 xuống 1,42 triệu/s — 28 % chỉ để trừ một con số. Giờ
+`np.searchsorted` chạy một phát trên cả cột lúc dựng, và `buoc()` không tốn thêm gì.
+Đúng bài học `a[k]["bid"]`: chỗ nào lặp mười triệu lần thì phải nằm trong numpy.
+
+Sửa cả cột còn ĐÚNG HƠN: thứ tự trộn cũng phải theo mốc ĐÃ hiệu chỉnh, không thì hai
+luồng xếp theo một trục thời gian mà chính nó đang lệch.
+
+⚠ **CHƯA ĐO LẦN NÀO → KHÔNG HIỆU CHỈNH GÌ**, và `co_dong_ho = False` nói ra điều đó.
+Không lấy 0 làm mặc định: "đo được là 0" nghĩa là đồng hồ đúng, còn "chưa đo" nghĩa là
+ta không biết — gộp hai thứ đó là biến một chỗ không biết thành một lời khẳng định.
+
+════════════════════════════════════════════════════════════════════════════
+LUẬT BỐN — TẤT ĐỊNH
 ════════════════════════════════════════════════════════════════════════════
 Cùng dữ liệu vào thì cùng thứ tự ra, mọi lần. Hoà `t_ta` thì phá hoà bằng `(T, loại,
 chỉ số trong luồng)` — cả ba đều có sẵn, không cái nào phụ thuộc thứ tự dict hay tốc
@@ -92,13 +116,26 @@ class PhatLai:
                  "t", "T", "loai", "bid", "bid_kl", "ask", "ask_kl", "co_so",
                  "gia", "kl", "mua_chu_dong", "_trong_lo_hong",
                  "_s_t", "_s_T", "_s_bid", "_s_bkl", "_s_ask", "_s_akl",
-                 "_k_t", "_k_T", "_k_gia", "_k_kl", "_k_mua", "_lh_moc")
+                 "_k_t", "_k_T", "_k_gia", "_k_kl", "_k_mua", "_lh_moc",
+                 "_dh_moc", "_dh_lech", "co_dong_ho", "lech_ms")
 
-    def __init__(self, so, khop, lo_hong=()):
+    def __init__(self, so, khop, lo_hong=(), dong_ho=None):
         self.so = so
         self.khop = khop
         self.lo_hong = list(lo_hong)
-        self._nguon, self._ki = _tron(so, khop, self.lo_hong)
+
+        # HIỆU CHỈNH ĐỒNG HỒ TRƯỚC KHI TRỘN. Thứ tự phát phải theo mốc ĐÃ sửa, không
+        # thì hai luồng được xếp theo một trục thời gian mà chính nó đang lệch.
+        moc, lech = dong_ho if dong_ho else ([], [])
+        self.co_dong_ho = bool(moc)
+        #: Lệch đồng hồ TRUNG VỊ đã áp, tính bằng ms. `co_dong_ho` mới là thứ phân
+        #: biệt "đo được đúng 0" với "chưa đo" — hai chuyện khác hẳn nhau.
+        self.lech_ms = float(np.median(lech)) if moc else 0.0
+        s_t = _sua_dong_ho(so["t_ta"], moc, lech)
+        k_t = _sua_dong_ho(khop["t_ta"], moc, lech)
+        self._lh_moc = [(int(l["tu"]), int(l["den"])) for l in self.lo_hong]
+
+        self._nguon, self._ki = _tron(s_t, so["T"], k_t, khop["T"], self._lh_moc)
         self._n = len(self._nguon)
         self._i = 0
 
@@ -113,13 +150,13 @@ class PhatLai:
         #                                            cho một ngày → cả GB, không đáng
         #
         # `so["bid"]` là một VIEW, không chép byte nào, nên tách cột không tốn bộ nhớ.
-        self._s_t, self._s_T = so["t_ta"], so["T"]
+        self._s_t, self._s_T = s_t, so["T"]
         self._s_bid, self._s_bkl = so["bid"], so["bid_kl"]
         self._s_ask, self._s_akl = so["ask"], so["ask_kl"]
-        self._k_t, self._k_T = khop["t_ta"], khop["T"]
+        self._k_t, self._k_T = k_t, khop["T"]
         self._k_gia, self._k_kl = khop["gia"], khop["kl"]
         self._k_mua = khop["mua_chu_dong"]
-        self._lh_moc = [(int(l["tu"]), int(l["den"])) for l in self.lo_hong]
+
 
         self.t = self.T = 0
         self.loai = 0
@@ -135,14 +172,16 @@ class PhatLai:
     # ------------------------------------------------------------------ dựng
     @classmethod
     def tu_file(cls, symbol, tu_ngay, den_ngay):
-        """Đọc từ đĩa. Gom cả sổ lỗ hổng của MỌI ngày trong dải — quên nó thì phát lại
-        chạy êm qua chỗ mù và không ai biết."""
+        """Đọc từ đĩa — dữ liệu, sổ lỗ hổng, VÀ bảng lệch đồng hồ.
+
+        Gom cả ba của MỌI ngày trong dải. Quên sổ lỗ hổng thì phát lại chạy êm qua chỗ
+        mù; quên bảng đồng hồ thì mọi mốc thời gian lệch đi mà không ai thấy."""
         so = nt.doc(symbol, tu_ngay, den_ngay, "so")
         khop = nt.doc(symbol, tu_ngay, den_ngay, "khop")
         lh = []
         for n in nt._dai_ngay(tu_ngay, den_ngay):
             lh += nt.doc_lo_hong(symbol, n)
-        return cls(so, khop, lh)
+        return cls(so, khop, lh, nt.bang_lech(symbol, tu_ngay, den_ngay))
 
     # ------------------------------------------------------------------ đi
     def buoc(self):
@@ -215,8 +254,27 @@ class PhatLai:
         }
 
 
-def _tron(so, khop, lo_hong):
+def _sua_dong_ho(t_may, moc, lech):
+    """Cột mốc máy → cột mốc THẬT, hiệu chỉnh bằng lần đo gần nhất TRƯỚC mỗi mốc.
+
+    `np.searchsorted(..., "right") - 1` cho chỉ số của lần đo lớn nhất ≤ mốc. Mốc nào
+    nằm TRƯỚC lần đo đầu tiên thì kẹp về lần đo đầu — không có gì tốt hơn để dùng, và
+    bỏ trống thì cột thời gian thủng lỗ.
+
+    Chưa đo lần nào → trả nguyên cột, KHÔNG chép: không hiệu chỉnh thì cũng không tốn
+    80 MB một ngày để giữ một bản sao y hệt."""
+    if not moc or not len(t_may):
+        return t_may
+    i = np.searchsorted(np.asarray(moc, dtype=np.int64), t_may, side="right") - 1
+    np.clip(i, 0, None, out=i)
+    return t_may - np.rint(np.asarray(lech, dtype=np.float64)[i]).astype(np.int64)
+
+
+def _tron(s_t, s_T, k_t, k_T, lh_moc):
     """Thứ tự phát lại — tính MỘT LẦN bằng numpy, rồi đi tuần tự.
+
+    Nhận thẳng bốn CỘT chứ không nhận hai mảng bản ghi: `s_t`/`k_t` là mốc ĐÃ hiệu
+    chỉnh đồng hồ, không còn nằm trong mảng gốc nữa.
 
     Trả mảng `(nguồn, chỉ_số)`: nguồn 0 = sổ, 1 = khớp, 2 = lỗ hổng (chỉ số chẵn là mở,
     lẻ là đóng).
@@ -229,8 +287,8 @@ def _tron(so, khop, lo_hong):
         nguồn    ← hoà cả hai thì sổ lệnh trước khớp lệnh (thấy giá mới rồi mới thấy ai ăn)
         chỉ số   ← chốt cuối, để KHÔNG BAO GIỜ có hai cách sắp cho cùng một bộ dữ liệu
     """
-    n_so, n_khop = len(so), len(khop)
-    n_lh = len(lo_hong) * 2
+    n_so, n_khop = len(s_t), len(k_t)
+    n_lh = len(lh_moc) * 2
 
     t = np.empty(n_so + n_khop + n_lh, dtype=np.int64)
     T = np.empty_like(t)
@@ -238,18 +296,18 @@ def _tron(so, khop, lo_hong):
     chi_so = np.empty_like(t)
 
     a, b = 0, n_so
-    t[a:b], T[a:b], nguon[a:b] = so["t_ta"], so["T"], 0
+    t[a:b], T[a:b], nguon[a:b] = s_t, s_T, 0
     chi_so[a:b] = np.arange(n_so)
 
     a, b = b, b + n_khop
-    t[a:b], T[a:b], nguon[a:b] = khop["t_ta"], khop["T"], 1
+    t[a:b], T[a:b], nguon[a:b] = k_t, k_T, 1
     chi_so[a:b] = np.arange(n_khop)
 
     if n_lh:
         a, b = b, b + n_lh
         moc = np.empty(n_lh, dtype=np.int64)
-        for i, lh in enumerate(lo_hong):
-            moc[2 * i], moc[2 * i + 1] = int(lh["tu"]), int(lh["den"])
+        for i, (tu, den) in enumerate(lh_moc):
+            moc[2 * i], moc[2 * i + 1] = tu, den
         t[a:b] = T[a:b] = moc
         nguon[a:b] = 2
         chi_so[a:b] = np.arange(n_lh)

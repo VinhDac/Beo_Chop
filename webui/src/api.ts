@@ -4,8 +4,8 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  BoNguon, Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply,
-  Step, Tab, TrangThaiGhi,
+  BoNguon, Bootstrap, CaiDatNguon, Card, DongThiTruong, KetQuaSoat, KhoDanhMuc,
+  ProcEdge, ProcessDoc, Reply, Step, Tab, TrangThaiGhi,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -113,8 +113,14 @@ export const py = {
   // ⚠ App KHÔNG sở hữu bộ ghi — nó là tiến trình riêng phải sống 24/7 kể cả khi app
   // đóng. `nguon_bat_dau` mở một tiến trình RỜI, `nguon_dung` chỉ ĐẶT CỜ chứ không
   // giết (giết là mất phần đệm chưa xả). Xem `cat_studio/api.py`.
-  nguon_liet_ke: () => goi<{ ds: BoNguon[]; ghi: TrangThaiGhi; thu_muc: string }>(
-    'nguon_liet_ke'),
+  nguon_liet_ke: () => goi<{ ds: BoNguon[]; ghi: TrangThaiGhi; thu_muc: string
+                             cai_dat: CaiDatNguon }>('nguon_liet_ke'),
+  nguon_luu_cai_dat: (cd: Partial<CaiDatNguon>) => goi<{
+    cai_dat: CaiDatNguon; can_khoi_dong_lai: boolean }>('nguon_luu_cai_dat', cd),
+  /** Quét bốn sàn. CHẬM (vài chục giây) — giao diện phải hiện trạng thái chờ. */
+  nguon_do_thi_truong: (klToiThieu: number, phi: number | null) => goi<{
+    ds: DongThiTruong[]; so: number; hong: string[]
+    phi_dang_dung: Record<string, number> }>('nguon_do_thi_truong', klToiThieu, phi),
   nguon_bat_dau: (symbols: string[]) => goi<{ symbols: string[] }>(
     'nguon_bat_dau', symbols),
   nguon_dung: () => goi<{ da_xin: boolean; pid: number | null }>('nguon_dung'),

@@ -112,8 +112,23 @@ LUONG = {"so": DT_SO, "khop": DT_KHOP}
 # ---------------------------------------------------------------------------
 # Đường dẫn — MỘT chỗ duy nhất
 # ---------------------------------------------------------------------------
+def goc_tick():
+    """Thư mục gốc của dữ liệu tick.
+
+    Đọc `cai_dat["nguon"]["thu_muc"]` mỗi lần thay vì nhớ vào một hằng số lúc import:
+    đổi thư mục trong app phải có tác dụng NGAY, không đợi khởi động lại. Rẻ — đọc một
+    file JSON vài trăm byte.
+
+    Đường dẫn TƯƠNG ĐỐI thì tính từ `du_lieu/`; tuyệt đối thì dùng nguyên. Nhờ vậy
+    `D:/tick` và `tick_ngoai` đều viết được, và không ai phải nhớ luật nào."""
+    d = ((luu_tru.doc_cai_dat().get("nguon") or {}).get("thu_muc") or "").strip()
+    if not d:
+        return os.path.join(luu_tru.goc(), THU_MUC_TICK)
+    return d if os.path.isabs(d) else os.path.join(luu_tru.goc(), d)
+
+
 def thu_muc(symbol):
-    d = os.path.join(luu_tru.goc(), THU_MUC_TICK, luu_tru._ten_an_toan(symbol.upper()))
+    d = os.path.join(goc_tick(), luu_tru._ten_an_toan(symbol.upper()))
     os.makedirs(d, exist_ok=True)
     return d
 
@@ -265,7 +280,7 @@ NHIP_QUA_HAN = 20.0
 
 
 def _duong_nhip():
-    return os.path.join(luu_tru.goc(), THU_MUC_TICK, FILE_NHIP)
+    return os.path.join(goc_tick(), FILE_NHIP)
 
 
 def dap_nhip(symbols, t_bat_dau):
@@ -306,6 +321,77 @@ def trang_thai_ghi():
     }
 
 
+# ---------------------------------------------------------------------------
+# LỆCH ĐỒNG HỒ — thứ hỏng VĨNH VIỄN nếu ghi chậm
+# ---------------------------------------------------------------------------
+#
+# `t_ta` được đóng dấu bằng ĐỒNG HỒ MÁY. Đo ngày 2026-08-28: máy chậm hơn sàn 121 ms.
+# Mà `t_ta` là TRỤC THỜI GIAN CỦA CẢ BACKTEST (xem `phat_lai`), nên sai số đó chui
+# thẳng vào mọi kết quả — và nó lệch một chiều, không tự triệt tiêu.
+#
+# Cụ thể: gói tới ở thời điểm thật X được máy đóng dấu `t_ta = X + lệch`. Nên
+#
+#     thời điểm THẬT  =  t_ta − lệch          (`lệch` = giờ máy − giờ sàn)
+#     độ trễ THẬT     =  (t_ta − lệch) − T
+#
+# Với lệch = −121 ms thì độ trễ đo được 207 ms hoá ra là **328 ms** thật. Không nhỏ.
+#
+# ⚠ VÌ SAO PHẢI GHI CÙNG LÚC VỚI DỮ LIỆU: độ lệch thay đổi theo thời gian (đồng hồ
+# trôi, NTP kéo về, máy ngủ dậy). Không ghi lại thì dữ liệu của hôm nay VĨNH VIỄN không
+# hiệu chỉnh được — không còn gì để suy ngược. Đây là lý do nó phải làm trước mọi thứ
+# khác trong phần cài đặt.
+#
+# Cất cạnh dữ liệu, một file mỗi ngày, JSON Lines — cùng hình dạng với sổ lỗ hổng.
+
+FILE_DONG_HO = ".dongho"
+
+
+def duong_dong_ho(symbol, ngay):
+    return os.path.join(thu_muc(symbol), f"{ngay}{FILE_DONG_HO}")
+
+
+def ghi_lech_dong_ho(symbol, ngay, t_ms, lech_ms, rtt_ms):
+    """Ghi thêm MỘT lần đo. Nối thêm, không đè: một ngày có nhiều lần đo, và chính
+    chuỗi đó cho biết đồng hồ có trôi hay không."""
+    try:
+        with open(duong_dong_ho(symbol, ngay), "a", encoding="utf-8") as f:
+            f.write(json.dumps({"t": int(t_ms), "lech": round(float(lech_ms), 1),
+                                "rtt": round(float(rtt_ms), 1)}) + "\n")
+    except OSError:
+        pass
+
+
+def doc_lech_dong_ho(symbol, ngay):
+    """Mọi lần đo của một ngày, theo thứ tự thời gian."""
+    ra = []
+    try:
+        with open(duong_dong_ho(symbol, ngay), encoding="utf-8") as f:
+            for dong in f:
+                dong = dong.strip()
+                if dong:
+                    try:
+                        ra.append(json.loads(dong))
+                    except ValueError:
+                        continue
+    except OSError:
+        pass
+    return sorted(ra, key=lambda x: x.get("t", 0))
+
+
+def bang_lech(symbol, tu_ngay, den_ngay):
+    """Gom mọi lần đo trong dải → `(mốc_ms, lệch_ms)` đã sắp, để `phat_lai` tra.
+
+    Trả `([], [])` khi chưa đo lần nào — và lúc đó `phat_lai` KHÔNG hiệu chỉnh gì, chứ
+    không đoán 0. Hai chuyện khác nhau: "đo được là 0" nghĩa là đồng hồ đúng, còn
+    "chưa đo" nghĩa là ta không biết, và phải nói ra."""
+    moc, lech = [], []
+    for n in _dai_ngay(tu_ngay, den_ngay):
+        for d in doc_lech_dong_ho(symbol, n):
+            moc.append(int(d["t"]))
+            lech.append(float(d["lech"]))
+    return moc, lech
+
+
 #: CỜ DỪNG. App ghi file này, bộ ghi thấy thì xả đệm rồi thoát sạch.
 #:
 #: Vì sao không giết bằng pid: `taskkill /F` cắt ngang giữa chừng, mất đúng phần đệm
@@ -318,7 +404,7 @@ FILE_DUNG = "_dung"
 
 
 def _duong_dung():
-    return os.path.join(luu_tru.goc(), THU_MUC_TICK, FILE_DUNG)
+    return os.path.join(goc_tick(), FILE_DUNG)
 
 
 def xin_dung():
@@ -392,7 +478,7 @@ def liet_ke():
     ⚠ RẺ CÓ CHỦ Ý. Số ngày và dung lượng lấy từ hệ thống file; lỗ hổng lấy từ mấy file
     `.loho` (nhỏ xíu); độ trễ đo trên MẪU của ngày mới nhất. Không hàm nào ở đây đọc
     hết một file 640 MB, vì nó chạy mỗi lần người dùng mở hộp thoại."""
-    goc = os.path.join(luu_tru.goc(), THU_MUC_TICK)
+    goc = goc_tick()
     ra = []
     try:
         ten = sorted(d for d in os.listdir(goc)
@@ -427,6 +513,38 @@ def liet_ke():
                            None),
         })
     return ra
+
+
+def cai_dat():
+    """Bốn con số của nguồn, đã trộn với mặc định. Thiếu khoá nào thì lấy mặc định —
+    file cài đặt của bản cũ không có mục `nguon` nào cả."""
+    d = dict(luu_tru.CAI_DAT_MAC_DINH["nguon"])
+    d.update(luu_tru.doc_cai_dat().get("nguon") or {})
+    return d
+
+
+def don_ngay_cu(symbol, giu_ngay):
+    """Xoá những ngày cũ hơn `giu_ngay` ngày GẦN NHẤT CÓ DỮ LIỆU. Trả danh sách đã xoá.
+
+    ⚠ Đếm theo NGÀY CÓ FILE, không theo lịch. Bộ ghi tắt một tuần rồi bật lại thì
+    "giữ 30 ngày" phải nghĩa là 30 ngày có dữ liệu, chứ không phải xoá sạch vì hôm nay
+    đã cách ngày cũ nhất hơn 30 hôm.
+
+    `giu_ngay <= 0` → KHÔNG xoá gì. Đó là mặc định, và cố ý: xoá dữ liệu là việc không
+    lùi được, app không được tự tiện làm khi chưa ai bảo."""
+    if not giu_ngay or giu_ngay <= 0:
+        return []
+    ngay = _ngay_co_san(symbol)
+    bo = ngay[:-int(giu_ngay)] if len(ngay) > giu_ngay else []
+    d = thu_muc(symbol)
+    for n in bo:
+        for f in os.listdir(d):
+            if f.startswith(n):
+                try:
+                    os.remove(os.path.join(d, f))
+                except OSError:
+                    pass
+    return bo
 
 
 def xoa(symbol):

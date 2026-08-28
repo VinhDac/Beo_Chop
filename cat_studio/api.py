@@ -26,6 +26,7 @@ from . import core
 from . import kho
 from . import khung_cua_so
 from . import luu_tru
+from . import do_thi_truong
 from . import nguon_tick
 
 
@@ -598,7 +599,8 @@ class Api(NenCuaSo):
         gọi thì có lúc lệch nhau nửa giây và bảng nói một đằng, đèn báo một nẻo."""
         return _ok({"ds": nguon_tick.liet_ke(),
                     "ghi": nguon_tick.trang_thai_ghi(),
-                    "thu_muc": os.path.join(luu_tru.goc(), nguon_tick.THU_MUC_TICK)})
+                    "cai_dat": nguon_tick.cai_dat(),
+                    "thu_muc": nguon_tick.goc_tick()})
 
     @_bat_loi
     def nguon_bat_dau(self, symbols):
@@ -627,7 +629,7 @@ class Api(NenCuaSo):
         if not os.path.exists(kich_ban):
             return _loi(f"Không thấy {kich_ban}")
         nguon_tick.xoa_co_dung()
-        thu_muc = os.path.join(luu_tru.goc(), nguon_tick.THU_MUC_TICK)
+        thu_muc = nguon_tick.goc_tick()
         os.makedirs(thu_muc, exist_ok=True)
         log = open(os.path.join(thu_muc, "_ghi.log"), "a", encoding="utf-8")
         co = 0
@@ -636,6 +638,9 @@ class Api(NenCuaSo):
         subprocess.Popen([sys.executable, kich_ban, *syms],
                          cwd=goc, stdout=log, stderr=subprocess.STDOUT,
                          stdin=subprocess.DEVNULL, creationflags=co, close_fds=True)
+        # NHỚ danh sách symbol. Bộ ghi khởi động lại thì phải biết ghi gì — bắt gõ
+        # tay mỗi lần thì một lần quên là mất cả ngày dữ liệu.
+        self._luu_nguon({"symbols": syms})
         return _ok({"symbols": syms})
 
     @_bat_loi
@@ -650,6 +655,60 @@ class Api(NenCuaSo):
             return _loi("Bộ ghi không chạy.")
         nguon_tick.xin_dung()
         return _ok({"da_xin": True, "pid": tt["pid"]})
+
+    def _luu_nguon(self, moi):
+        """Trộn vào mục `nguon` của cài đặt rồi ghi. Trộn chứ không đè: chỗ gọi chỉ gửi
+        khoá nó quan tâm, và mấy khoá kia không được biến mất theo."""
+        cd = dict(self._cai_dat)
+        ng = dict(luu_tru.CAI_DAT_MAC_DINH["nguon"])
+        ng.update(cd.get("nguon") or {})
+        ng.update(moi)
+        cd["nguon"] = ng
+        self._cai_dat = core.save_settings(cd)
+        return ng
+
+    @_bat_loi
+    def nguon_luu_cai_dat(self, cd):
+        """Bốn con số của nguồn. CHỈ bốn — mọi thứ khác về nguồn đều đo được, và hỏi
+        một thứ đo được là mời người ta gõ một con số sai rồi tin nó.
+
+        ⚠ Đổi `thu_muc` KHÔNG dời dữ liệu cũ. Cố ý: dời vài chục GB ngầm sau lưng người
+        dùng là việc không được phép làm im lặng, và nếu nửa chừng hết đĩa thì hỏng cả
+        hai đầu. Giao diện phải nói ra điều đó."""
+        cd = cd or {}
+        ra = {}
+        if "symbols" in cd:
+            ra["symbols"] = [str(x).strip().upper() for x in (cd["symbols"] or [])
+                             if str(x).strip()]
+        if "thu_muc" in cd:
+            ra["thu_muc"] = str(cd["thu_muc"] or "").strip()
+        for k, kieu, nho_nhat in (("giu_ngay", int, 0), ("im_lang_giay", float, 5.0),
+                                  ("giay_xa", float, 0.2)):
+            if k in cd:
+                try:
+                    v = kieu(cd[k])
+                except (TypeError, ValueError):
+                    return _loi(f'"{k}" phải là một con số.')
+                if v < nho_nhat:
+                    return _loi(f'"{k}" không được nhỏ hơn {nho_nhat:g}.')
+                ra[k] = v
+        ng = self._luu_nguon(ra)
+        # Ghi xong mới báo bộ ghi biết: ngưỡng và nhịp xả chỉ có tác dụng ở LẦN CHẠY
+        # SAU của bộ ghi, vì nó đọc cài đặt lúc khởi động. Nói ra chứ đừng để người
+        # dùng tưởng vừa đổi là ăn ngay.
+        return _ok({"cai_dat": ng,
+                    "can_khoi_dong_lai": nguon_tick.trang_thai_ghi()["song"]})
+
+    @_bat_loi
+    def nguon_do_thi_truong(self, kl_toi_thieu=200.0, phi=None):
+        """Quét sàn: `spread ÷ (2 × phí maker)`. Điều kiện CẦN của cả hệ.
+
+        Cùng lõi với `tools/do_spread.py` — một nguồn sự thật, không hai bản chép tay.
+        Chậm (vài chục giây, hỏi bốn sàn), nên giao diện phải hiện trạng thái chờ."""
+        du, hong = do_thi_truong.do(None, float(kl_toi_thieu),
+                                    None if phi is None else float(phi))
+        return _ok({"ds": du[:60], "so": len(du), "hong": hong,
+                    "phi_dang_dung": dict(do_thi_truong.PHI_MAKER)})
 
     @_bat_loi
     def nguon_xoa(self, symbol):

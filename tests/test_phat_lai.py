@@ -150,6 +150,52 @@ kiem("`tom_tat` đếm đủ ba nguồn và tổng thời gian mù",
      t["so_su_kien"] == 5 and t["so"] == 2 and t["khop"] == 1
      and t["lo_hong"] == 1 and t["ms_lo_hong"] == 4, f"— {t}")
 
+# ================= 5b. LỆCH ĐỒNG HỒ =================
+print("\n▸ Lệch đồng hồ — chưa đo thì KHÔNG đoán")
+
+# Chưa đo: mốc giữ nguyên, và cờ nói rõ là "không biết" chứ không phải "bằng 0".
+p = pl.PhatLai(so([100], [300]), khop([], []))
+p.buoc()
+kiem("chưa đo → không hiệu chỉnh, và `co_dong_ho` nói ra điều đó",
+     p.t == 300 and p.co_dong_ho is False and p.lech_ms == 0.0)
+
+# Máy CHẬM hơn sàn 120 ms (`lệch = -120`). Gói tới ở thời điểm thật X bị đóng dấu
+# X − 120, nên mốc thật = t_ta − lệch = t_ta + 120.
+p = pl.PhatLai(so([100], [300]), khop([], []), dong_ho=([0], [-120.0]))
+p.buoc()
+kiem("máy chậm 120 ms → mốc được ĐẨY LÊN 120 ms", p.t == 420, f"— {p.t}")
+kiem("và độ trễ thật lớn hơn độ trễ thô đúng 120 ms",
+     p.tre_ms == 420 - 100, f"— {p.tre_ms} ms")
+kiem("`co_dong_ho` bật, `lech_ms` là trung vị đã áp",
+     p.co_dong_ho and p.lech_ms == -120.0)
+
+# Nhiều lần đo trong ngày: mỗi mốc dùng lần đo GẦN NHẤT TRƯỚC nó, không nội suy.
+p = pl.PhatLai(so([1, 2, 3, 4], [1000, 2000, 3000, 4000]), khop([], []),
+               dong_ho=([0, 2500], [-100.0, -300.0]))
+ds = chay(p)
+kiem("mỗi mốc dùng lần đo gần nhất TRƯỚC nó, không nội suy",
+     [t for t, _ in ds] == [1100, 2100, 3300, 4300], f"— {[t for t, _ in ds]}")
+
+# Mốc nằm TRƯỚC lần đo đầu tiên thì mượn lần đo đầu — bỏ trống là thủng cột thời gian.
+p = pl.PhatLai(so([1], [500]), khop([], []), dong_ho=([9000], [-50.0]))
+p.buoc()
+kiem("mốc trước lần đo đầu tiên → mượn lần đo đầu, không bỏ trống", p.t == 550)
+
+# HIỆU CHỈNH PHẢI XẢY RA TRƯỚC KHI TRỘN, và đây là ca chứng minh nó ĐỔI THỨ TỰ thật.
+#
+# Dựng một cú NTP kéo đồng hồ về giữa chừng — chuyện có thật mỗi khi máy ngủ dậy:
+#   đo lúc 0     : lệch −1000 ms  (máy chậm 1 giây)
+#   đo lúc 1050  : lệch      0    (đã kéo về)
+# Bản ghi sổ tới lúc t_ta = 1000, tức TRƯỚC cú kéo → mốc thật 1000 + 1000 = 2000.
+# Cú khớp tới lúc t_ta = 1100, tức SAU cú kéo      → mốc thật 1100 + 0    = 1100.
+# Thô thì sổ trước khớp; sửa xong thì KHỚP TRƯỚC SỔ. Trộn trước rồi mới sửa là giữ
+# nguyên thứ tự sai.
+p = pl.PhatLai(so([10], [1000]), khop([20], [1100]),
+               dong_ho=([0, 1050], [-1000.0, 0.0]))
+kiem("hiệu chỉnh ĐỔI thứ tự trộn — nên phải sửa TRƯỚC khi trộn",
+     [l for _, l in chay(p)] == [pl.KHOP, pl.SO],
+     "— sổ 1000→2000, khớp 1100→1100")
+
 # ================= 6. TỐC ĐỘ =================
 print("\n▸ Tốc độ — một ngày thật là ~10 triệu sự kiện")
 import time  # noqa: E402

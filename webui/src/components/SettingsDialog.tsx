@@ -2,19 +2,22 @@ import { useState } from 'react'
 import { py } from '../api'
 import type { Bootstrap } from '../types'
 import Modal from './Modal'
+import NguonPanel from './NguonPanel'
 
-/** CÀI ĐẶT của app.
+/** CÀI ĐẶT của app — hai tab: **Chung** và **Nguồn dữ liệu**.
  *
  * ⚠ MỤC "STRATEGY TEST" ĐÃ ĐI HẲN (đợt 2 của lần dọn sang HFT market maker). Nó mang
  * bảng nguồn nến M1, nút kiểm kết nối MT5, và năm ô điều kiện chạy backtest — spread
  * tính bằng point, vốn, phí round-turn, đòn bẩy, nhịp phát lại. Cả năm ô đó là tham số
  * của một BỘ CHẠY THEO NẾN đã bị gỡ, nên để lại thì chúng cấu hình cho hư không.
  *
- * Cái thay thế chưa dựng được: một market maker cần đo phí maker/taker và độ trễ tới
- * sàn, mà chưa chọn xong sàn thì chưa biết hai thứ đó mang đơn vị gì. Xem
- * `tai_lieu/o_cam_trong.md`.
+ * Tab **Nguồn dữ liệu** thay chỗ ấy — nhưng nói về thứ khác hẳn: không phải "tải bao
+ * nhiêu nến" mà "bộ ghi còn sống không, dữ liệu dày lên tới đâu". Xem `NguonPanel`.
  *
- * Còn lại đúng hai thứ không phụ thuộc sàn nào: mã mặc định và màu nhấn.
+ * ⚠ CHÂN HỘP THOẠI ĐỔI THEO TAB, và đó là chủ ý. Tab Chung có Huỷ/Lưu vì nó sửa một
+ * bản nháp; tab Nguồn thì mọi nút đều tác động NGAY (bật ghi, dừng, xoá) nên một cái
+ * nút "Lưu" ở đó là lời hứa hão — không có gì để lưu, và nó gợi ý rằng bấm Huỷ sẽ
+ * hoàn tác được cái vừa xoá.
  */
 export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }: {
   boot: Bootstrap
@@ -24,6 +27,7 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   onDong: () => void
 }) {
   const s = boot.settings as Record<string, any>
+  const [tab, setTab] = useState<'chung' | 'nguon'>('chung')
   const [symbol, setSymbol] = useState(String(s.symbol ?? 'XAUUSD'))
   const [accent, setAccent] = useState(String(s.accent ?? '#ffa657'))
   const [loiLuu, setLoiLuu] = useState('')
@@ -42,38 +46,52 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   }
 
   return (
-    <Modal title="Cài đặt" width={620} onClose={onDong}
-           footer={
+    <Modal title="Cài đặt" width={tab === 'nguon' ? 740 : 620} onClose={onDong}
+           footer={tab === 'chung' ? (
              <>
                {loiLuu && <span className="loi-ghi">{loiLuu}</span>}
                <button className="nut" onClick={onDong}>Huỷ</button>
                <button className="nut chinh" onClick={luu}>Lưu</button>
              </>
-           }>
-      <label className="hang">
-        <span className="nhan-o">Mã mặc định</span>
-        <input className="o" value={symbol} spellCheck={false}
-               onChange={e => setSymbol(e.target.value.toUpperCase())} />
-      </label>
+           ) : (
+             <button className="nut" onClick={onDong}>Đóng</button>
+           )}>
 
-      <label className="hang">
-        <span className="nhan-o">Màu nhấn</span>
-        <div className="cum-mau">
-          {Object.entries(boot.accent_presets).map(([ten, mau]) => (
-            <button key={ten} title={ten}
-                    className={'o-mau' + (mau === accent ? ' dang-chon' : '')}
-                    style={{ background: mau }}
-                    /* Đổi ngay lúc bấm chứ không đợi Lưu: chọn màu mà không thấy nó
-                       trông thế nào thì chọn bằng gì. */
-                    onClick={() => { setAccent(mau); doiMauNgay(mau) }} />
-          ))}
-        </div>
-      </label>
-
-      <div className="chu-dan">
-        Cài đặt lưu vào <code>du_lieu/cai_dat.json</code> cạnh app, không nằm trong repo.
-        Phiên bản {boot.phien_ban} · {boot.app_dir}
+      <div className="hang-tab cd-tab">
+        <button className={'tab' + (tab === 'chung' ? ' dang' : '')}
+                onClick={() => setTab('chung')}>Chung</button>
+        <button className={'tab' + (tab === 'nguon' ? ' dang' : '')}
+                onClick={() => setTab('nguon')}>Nguồn dữ liệu</button>
       </div>
+
+      {tab === 'chung' ? (
+        <>
+          <label className="hang">
+            <span className="nhan-o">Mã mặc định</span>
+            <input className="o" value={symbol} spellCheck={false}
+                   onChange={e => setSymbol(e.target.value.toUpperCase())} />
+          </label>
+
+          <label className="hang">
+            <span className="nhan-o">Màu nhấn</span>
+            <div className="cum-mau">
+              {Object.entries(boot.accent_presets).map(([ten, mau]) => (
+                <button key={ten} title={ten}
+                        className={'o-mau' + (mau === accent ? ' dang-chon' : '')}
+                        style={{ background: mau }}
+                        /* Đổi ngay lúc bấm chứ không đợi Lưu: chọn màu mà không thấy nó
+                           trông thế nào thì chọn bằng gì. */
+                        onClick={() => { setAccent(mau); doiMauNgay(mau) }} />
+              ))}
+            </div>
+          </label>
+
+          <div className="chu-dan">
+            Cài đặt lưu vào <code>du_lieu/cai_dat.json</code> cạnh app, không nằm trong
+            repo. Phiên bản {boot.phien_ban} · {boot.app_dir}
+          </div>
+        </>
+      ) : <NguonPanel />}
     </Modal>
   )
 }

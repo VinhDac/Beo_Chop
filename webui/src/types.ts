@@ -179,6 +179,33 @@ export interface TrangThaiGhi {
   bat_dau: number | null
 }
 
+/** BỐN con số duy nhất của nguồn mà chỉnh vào là đổi thật. Mọi thứ khác đều ĐO ĐƯỢC
+ *  nên app tự đo — hỏi một thứ đo được là mời người ta gõ số sai rồi tin nó. */
+export interface CaiDatNguon {
+  /** Symbol đang ghi. Lưu lại vì bộ ghi khởi động lại thì phải nhớ ghi gì. */
+  symbols: string[]
+  /** Rỗng = `du_lieu/tick`. Tuyệt đối thì dùng nguyên; tương đối tính từ `du_lieu/`. */
+  thu_muc: string
+  /** 0 = giữ tất. Mặc định 0 vì xoá là việc không lùi được. */
+  giu_ngay: number
+  /** Thấp quá → lỗ hổng GIẢ. Cao quá → ngồi mù mà tưởng đang chạy. */
+  im_lang_giay: number
+  /** "Mất điện thì mất bao nhiêu". */
+  giay_xa: number
+}
+
+/** Một dòng của bảng `spread ÷ (2 × phí maker)`. Do Python đo, JS không tính lại. */
+export interface DongThiTruong {
+  san: string
+  ma: string
+  spread_bps: number
+  phi_bps: number
+  ti_le: number
+  /** Spread rộng mấy tick. 1 = không chen vào giữa được, chỉ xếp hàng. */
+  tick: number
+  kl_trieu: number
+}
+
 export interface Reply<T> {
   ok: boolean
   value?: T

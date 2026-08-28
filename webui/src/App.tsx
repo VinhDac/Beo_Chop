@@ -17,7 +17,6 @@ import ActionDialog from './components/ActionDialog'
 import SettingsDialog from './components/SettingsDialog'
 import TemplatePicker from './components/TemplatePicker'
 import KhoDialog from './components/KhoDialog'
-import NguonDialog from './components/NguonDialog'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import { useKhungCuaSo } from './useKhungCuaSo'
@@ -129,7 +128,6 @@ function Ung() {
   const [dangNoi, setDangNoi] = useState(false)
   const [moCaiDat, setMoCaiDat] = useState(false)
   const [moKho, setMoKho] = useState(false)
-  const [moNguon, setMoNguon] = useState(false)
   /** Bảng tham số của chiến lược — hằng số CÓ TÊN, dùng chung cho cả hai sơ đồ. */
   /** Tên tham số đang thật sự được khối nào đó dùng — Python tính, JS chỉ hiện. */
   /** Menu chuột phải đang mở.
@@ -985,7 +983,6 @@ function Ung() {
       { ten: 'Lưu thành template…', icon: 'save', onClick: luu },
       { ten: 'Lưu ra file khác…', onClick: luuRaFile },
       { ngan: true },
-      { ten: 'Nguồn dữ liệu…', icon: 'folder', onClick: () => setMoNguon(true) },
       { ten: 'Kho — app đang có những gì…', icon: 'folder',
         onClick: () => setMoKho(true) },
       { ngan: true },
@@ -1024,7 +1021,7 @@ function Ung() {
     ] },
   ], [soDoMoi, moFile, moMau, luu, luuRaFile, moChienLuoc, hoanTac, lamLai, coLui, coToi,
       chepKhoi, danKhoi, nhanBan, doiGhim, xoa, dangChon, zoomIn, zoomOut, fitView,
-      panelGap, boot, setMoKho, setMoNguon, chay, themKhoiTu])
+      panelGap, boot, setMoKho, chay, themKhoiTu])
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
@@ -1222,8 +1219,6 @@ function Ung() {
       </div>
 
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
-
-      {moNguon && <NguonDialog onDong={() => setMoNguon(false)} />}
 
       {moCaiDat && boot && (
         <SettingsDialog boot={boot} doiMauNgay={doiMauNgay}

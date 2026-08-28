@@ -897,6 +897,11 @@ select.o { cursor: pointer; }
    NGUỒN DỮ LIỆU  (`NguonDialog`)
    ========================================================================== */
 
+/* Hàng tab trong hộp thoại Cài đặt. Dùng LẠI `.hang-tab`/`.tab` của bảng dưới — cùng
+   một thứ thì phải trông y hệt, người dùng học một lần. Chỉ thêm khoảng đệm cho hợp
+   với thân hộp thoại. */
+.cd-tab { margin: -4px -2px 12px; }
+
 /* Dải trạng thái bộ ghi. Nó là thứ đầu tiên mắt phải chạm tới khi mở hộp thoại —
    mọi thứ khác chỉ có nghĩa nếu biết bộ ghi còn sống hay không. */
 .ng-ghi {
@@ -919,6 +924,16 @@ select.o { cursor: pointer; }
 .ng-ghi.song .ng-den { background: var(--ok); box-shadow: 0 0 0 3px rgba(63, 185, 80, .22); }
 
 .ng-bang { margin-top: 10px; }
+/* Danh sách symbol dạng chip — nhìn một cái là biết đang ghi mấy cái, và bỏ được
+   từng cái mà không phải sửa một chuỗi ngăn cách bằng dấu phẩy. */
+.ng-chip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex: 1; }
+.ng-chip .the { display: inline-flex; align-items: center; gap: 4px; }
+.ng-x {
+  background: none; border: none; padding: 0 0 0 2px;
+  color: var(--dim); cursor: pointer; font-size: 11px; line-height: 1;
+}
+.ng-x:hover:not(:disabled) { color: var(--err); }
+.ng-x:disabled { opacity: .3; cursor: default; }
 .ng-dau { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
 /* Lỗ hổng khác 0 phải NỔI LÊN: nó quyết định backtest có tin được không. */
 .ng-canh { color: var(--err); font-weight: 600; }

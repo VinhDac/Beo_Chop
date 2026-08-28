@@ -37,6 +37,37 @@ CAI_DAT_MAC_DINH = {
     "symbol": "XAUUSD",
     "accent": "#ffa657",
     "ui": {"panel_cao": 176, "panel_gap": False},
+
+    # NGUỒN DỮ LIỆU — bốn con số duy nhất trong cả app mà chỉnh vào là đổi thật.
+    #
+    # Mọi thứ khác về nguồn đều ĐO ĐƯỢC (độ trễ, spread, lệch đồng hồ) nên app tự đo,
+    # không hỏi. Hỏi một thứ đo được là mời người ta gõ một con số sai rồi tin nó —
+    # đúng cái bẫy ô `spread = 20 points` của bản MT5 cũ.
+    "nguon": {
+        # Symbol đang ghi. Lưu lại vì bộ ghi khởi động lại thì phải nhớ mình ghi gì —
+        # bản đầu bắt gõ tay mỗi lần, và một lần quên là mất cả ngày dữ liệu.
+        "symbols": [],
+
+        # ⚠ THƯ MỤC RIÊNG cho dữ liệu tick. Rỗng = nằm trong `du_lieu/tick` như thường.
+        #
+        # Phải chỉnh được vì đây là con số lớn nhất trong cả hệ: ~800 MB/ngày/symbol,
+        # tức 24 GB/tháng. Hai symbol chạy một quý là 150 GB — không phải ổ C: nào cũng
+        # chịu được, và ổ đầy thì bộ ghi chết lúc 3 giờ sáng, mất luôn cả những ngày sau.
+        "thu_muc": "",
+
+        # Giữ bao nhiêu ngày rồi xoá ngày cũ nhất. 0 = giữ tất, và đó là mặc định VÌ
+        # xoá dữ liệu là việc không lùi được — app không được tự tiện làm khi chưa ai
+        # bảo. Nhưng không đặt thì sớm muộn đĩa đầy, nên ô này phải HIỆN RA.
+        "giu_ngay": 0,
+
+        # Im lặng bao nhiêu giây thì coi luồng đã chết và nối lại.
+        # Thấp quá → đẻ lỗ hổng GIẢ trên một symbol vốn thưa giao dịch.
+        # Cao quá  → ngồi mù mà tưởng đang chạy.
+        "im_lang_giay": 45.0,
+
+        # Xả đệm xuống đĩa mỗi mấy giây. Đây là câu "mất điện thì mất bao nhiêu".
+        "giay_xa": 2.0,
+    },
 }
 
 

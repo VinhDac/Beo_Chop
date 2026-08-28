@@ -9,14 +9,52 @@
 # `app_web.py` báo mọi lỗi khởi động bằng HỘP THOẠI Windows.
 
 $goc  = Split-Path -Parent $PSScriptRoot
-$exe  = Join-Path $goc ".venv\Scripts\pythonw.exe"
 $icon = Join-Path $goc "assets\logo.ico"
 
-$thieu = @($exe, $icon, (Join-Path $goc "app_web.py")) | Where-Object { -not (Test-Path $_) }
+# ƯU TIÊN .venv, nhưng LÙI VỀ PYTHON HỆ THỐNG nếu chưa dựng venv.
+#
+# Bản trước chết thẳng với "Chạy tools\setup.bat trước đã" — đúng luật nhưng vô ích với
+# người đã có sẵn pywebview trong Python global và chỉ muốn mở app xem thử. Vẫn ưu tiên
+# venv (README giải thích: `quantconnect-stubs` trong Python global chiếm namespace
+# `Microsoft` và giết pywebview lúc khởi động), chỉ là không còn chặn đường.
+$exe = Join-Path $goc ".venv\Scripts\pythonw.exe"
+
+if (-not (Test-Path $exe)) {
+    # ⚠ HỎI THẲNG PYTHON NÓ NẰM ĐÂU, đừng tin `Get-Command pythonw.exe`.
+    #
+    # Đã dính bẫy thật ngay lần chạy đầu: `Get-Command` trả về
+    #     C:\Users\<tên>\AppData\Local\Microsoft\WindowsApps\pythonw.exe
+    # tức cái STUB của Microsoft Store, không phải Python thật — nó nằm trước trong
+    # PATH. Stub đó có thể mở Store thay vì chạy app, và shortcut thì im lặng không
+    # nói vì sao. `sys.executable` luôn trả về trình thông dịch ĐANG CHẠY, không đoán.
+    $that = $null
+    foreach ($ten in @("python.exe", "py.exe")) {
+        $c = Get-Command $ten -ErrorAction SilentlyContinue
+        if (-not $c) { continue }
+        try { $that = & $c.Source -c "import sys;print(sys.executable)" 2>$null } catch { }
+        if ($that -and (Test-Path $that) -and $that -notlike "*WindowsApps*") { break }
+        $that = $null
+    }
+    if ($that) { $exe = Join-Path (Split-Path $that) "pythonw.exe" }
+    if (-not $that -or -not (Test-Path $exe)) {
+        Write-Host "Khong tim thay pythonw.exe that (da bo qua stub WindowsApps)." -ForegroundColor Red
+        Write-Host "Chay tools\setup.bat truoc da." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "! Chua co .venv - dung Python he thong:" -ForegroundColor Yellow
+    Write-Host "  $exe"
+    Write-Host "  (nen dung .venv rieng - xem README)"
+}
+
+# Kiểm cả `webui\dist`: thiếu nó thì app mở ra một cửa sổ TRẮNG và không nói vì sao.
+$thieu = @($icon,
+           (Join-Path $goc "app_web.py"),
+           (Join-Path $goc "webui\dist\index.html")) |
+         Where-Object { -not (Test-Path $_) }
 if ($thieu) {
-    Write-Host "Thiếu:" -ForegroundColor Red
+    Write-Host "Thieu:" -ForegroundColor Red
     $thieu | ForEach-Object { Write-Host "  $_" }
-    Write-Host "`nChạy tools\setup.bat trước đã." -ForegroundColor Yellow
+    Write-Host "`nChay tools\setup.bat (hoac tools\build_ui.bat) truoc da." -ForegroundColor Yellow
     exit 1
 }
 
@@ -38,5 +76,8 @@ foreach ($d in $dich) {
     $lnk.Description      = "Cat Studio - trading strategy diagram editor"
     $lnk.WindowStyle      = 1
     $lnk.Save()
-    Write-Host "✔ $d" -ForegroundColor Green
+    Write-Host "OK  $d" -ForegroundColor Green
 }
+
+Write-Host ""
+Write-Host "Target: $exe" -ForegroundColor DarkGray

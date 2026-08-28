@@ -93,9 +93,14 @@ cho cả bản ghi). Tách cột một lần lúc dựng → nhanh gấp 5.
 
 ### Bảng điều khiển trong app — XONG
 
-Menu **File → Nguồn dữ liệu…** (`webui/src/components/NguonDialog.tsx`). Hộp thoại
-RIÊNG, không nhét vào Cài đặt: Cài đặt là thứ đặt một lần rồi quên, còn đây là một
-bảng điều khiển SỐNG — nó tự làm mới mỗi 3 giây, vì một bảng đứng hình là bảng nói dối.
+**Cài đặt → tab "Nguồn dữ liệu"** (`webui/src/components/NguonPanel.tsx`). Tự làm mới
+mỗi 3 giây — một bảng điều khiển đứng hình là bảng nói dối.
+
+> ⚠ Bản đầu làm nó thành hộp thoại RIÊNG ở File → Nguồn dữ liệu, lý lẽ là "Cài đặt để
+> đặt một lần rồi quên, còn đây là bảng điều khiển sống". Người dùng đi thẳng vào Cài
+> đặt tìm nó — và họ đúng: nguồn dữ liệu là một thiết lập, mắt tìm nó ở chỗ mọi thiết
+> lập khác nằm. Đã dời vào và **bỏ hẳn cửa cũ**; hai đường vào một thứ thì sớm muộn
+> một đường mục đi mà không ai biết.
 
 **APP KHÔNG SỞ HỮU BỘ GHI.** Bộ ghi là tiến trình riêng phải sống 24/7 kể cả khi app
 đóng — đúng bài học cửa sổ Live cũ đã trả giá: *"đóng cửa sổ không được dừng phiên"*.
@@ -111,6 +116,51 @@ Nên app chỉ **nhìn** và **xin**:
 Đã chạy đủ vòng đời qua API: bật → nhịp lên sau 2 s → **bật chồng bị từ chối** → **xoá
 khi đang ghi bị từ chối** → xin dừng → thoát sạch sau 10 s. Bằng chứng đệm được xả:
 sau khi dừng, số bản ghi **nhiều hơn** lúc trước khi dừng (3.006 vs 2.433).
+
+### Bốn con số CHỈNH ĐƯỢC — và chỉ bốn
+
+Cài đặt → **Nguồn dữ liệu**. Nguyên tắc: **đo được thì đừng hỏi.** Một ô cài đặt chỉ
+chính đáng khi con người phải phán đoán mà máy không đo được; hỏi một thứ đo được là
+mời người ta gõ số sai rồi tin nó — đúng cái bẫy ô `spread = 20 points` của bản MT5 cũ.
+
+| ô | vì sao chỉnh vào là đổi thật |
+|---|---|
+| **thư mục** | ~800 MB/ngày/symbol → 24 GB/tháng. Ổ C: không phải lúc nào cũng chịu nổi, mà ổ đầy thì bộ ghi chết lúc 3 giờ sáng |
+| **giữ N ngày** | không đặt thì sớm muộn đĩa đầy. Mặc định 0 = giữ tất, vì xoá là việc không lùi được |
+| **ngưỡng im lặng** | thấp quá → lỗ hổng GIẢ trên symbol thưa; cao quá → ngồi mù mà tưởng đang chạy |
+| **nhịp xả** | "mất điện thì mất bao nhiêu" |
+
+Cộng **danh sách symbol** (lưu lại — bộ ghi khởi động lại phải nhớ ghi gì) và nút **Đo
+thị trường** gọi thẳng `do_thi_truong.do()`, cùng lõi với `tools/do_spread.py` — bảng
+trên màn hình và bảng trong app là cùng con số, không hai bản chép tay.
+
+### Lệch đồng hồ — đã cắm, và nó là thứ gấp nhất
+
+`t_ta` đóng dấu bằng đồng hồ MÁY, `T` đến từ SÀN. Đo được: máy chậm hơn sàn **~90 ms**.
+Mà `t_ta` là trục thời gian của cả backtest, nên sai số đó chui thẳng vào mọi kết quả —
+và lệch một chiều, không tự triệt tiêu.
+
+    thời điểm THẬT = t_ta − lệch        độ trễ thô 248 ms  →  thật 342 ms
+
+Bộ ghi đo mỗi 5 phút (lấy mẫu **RTT nhỏ nhất**, kiểu NTP — không lấy trung bình, vì sai
+số một lần đo bị chặn bởi ±RTT/2) và cất cạnh dữ liệu. `phat_lai` sửa **cả cột một lần**
+bằng `np.searchsorted`, TRƯỚC khi trộn — sửa sau khi trộn là xếp hai luồng theo một trục
+đang lệch, và bài kiểm chứng minh nó đổi thứ tự thật.
+
+> **Chưa đo lần nào → KHÔNG hiệu chỉnh gì**, và `co_dong_ho = False` nói ra điều đó.
+> "Đo được là 0" nghĩa là đồng hồ đúng; "chưa đo" nghĩa là không biết. Gộp hai thứ đó
+> là biến một chỗ không biết thành một lời khẳng định.
+
+> ⚠ RTT tới Binance từ đây là **~240 ms**, nên chính con số hiệu chỉnh có sai số
+> **±120 ms**. Độ trễ "342 ms" thật ra là 342 ± 120. Ai đọc kết quả phải biết.
+
+### Ba con số đo được trong lúc dựng phần này
+
+| | |
+|---|---|
+| bắt tay đóng WebSocket | mặc định chờ **10 s** → dừng bộ ghi mất 10,7 s. Đặt `close_timeout=1` → **1,6 s** |
+| khởi động bộ ghi | đo đồng hồ 1,3 s + bắt tay WS 1,7 s = **3,0 s** trước byte đầu tiên |
+| `a[k]["field"]` vs cột tách sẵn | **5 lần** chênh lệch (xem `phat_lai`) |
 
 ### Việc còn lại của ổ cắm này
 
