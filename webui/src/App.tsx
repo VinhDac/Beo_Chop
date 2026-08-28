@@ -8,10 +8,11 @@ import {
 
 import { py, cho_cau_noi } from './api'
 import type {
-  Bootstrap, Card, KetQuaTest, ProcEdge, Problem, ProcessDoc, SoDo, Step, StepKind,
-  Tab,
+  Bootstrap, Card, KetQuaSoi, KetQuaTest, ProcEdge, Problem, ProcessDoc, SoDo, Step,
+  StepKind, Tab,
 } from './types'
 import KetQuaPanel from './components/KetQuaPanel'
+import SoiPanel from './components/SoiPanel'
 import Ribbon, { PillTab, type MucMenu } from './components/Ribbon'
 import StepNode from './components/StepNode'
 import ActionDialog from './components/ActionDialog'
@@ -108,6 +109,24 @@ const RONG: DoThi = { nodes: [], edges: [] }
  *  đây là thứ sẽ đổi ngày có sơ đồ thứ hai. */
 const TAB_DAU: Tab = 'bao_gia'
 
+/** Một điều kiện + số thật thay vào: `3 ≥ 5`, `ĐÚNG`.
+ *
+ *  Dựng lại ĐÚNG CÂU chứ không phải hai con số cạnh nhau: `3 / 5` bắt người đọc tự nhớ
+ *  khối đó so kiểu gì — mà lúc soi là lúc đang không nhớ nổi, nếu không đã chẳng mở
+ *  soi ra làm gì. Phép đúng/sai thì chỉ một chữ là đủ; câu trên hộp đã nói phần còn lại. */
+function dkChu(c: { trai: number; phai: number | null; phep: string }, boot: Bootstrap | null) {
+  if (c.phai === null) return c.trai ? 'ĐÚNG' : 'SAI'
+  return `${soNgan(c.trai)} ${boot?.phep_so[c.phep] ?? c.phep} ${soNgan(c.phai)}`
+}
+
+/** Số NGẮN cho nhãn soi trên hộp — chỗ đó rộng chừng 20 ký tự, không hơn. */
+function soNgan(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  const a = Math.abs(v)
+  const le = a >= 100 ? 0 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6
+  return v.toLocaleString('vi-VN', { maximumFractionDigits: le }).replace('-', '−')
+}
+
 /** So hai tab qua `string`.
  *
  *  ⚠ Nghe như thừa, nhưng không: `Tab` hiện là một literal DUY NHẤT, nên sau `if (a ===
@@ -136,6 +155,9 @@ function Ung() {
   /** Kết quả ▶ Test gần nhất. Chỉ giữ LẦN CUỐI — lịch sử nằm ở Nhật ký. */
   const [ketQua, setKetQua] = useState<KetQuaTest | null>(null)
   const [dangChay, setDangChay] = useState(false)
+  /** SOI MỘT LƯỢT: điểm mẫu đang xem, và ảnh chụp lượt chạy tại đó. */
+  const [soiIdx, setSoiIdx] = useState<number | null>(null)
+  const [soi, setSoi] = useState<KetQuaSoi | null>(null)
   const [nhatKy, setNhatKy] = useState<{ gio: string; msg: string; tag?: string | null }[]>([])
   const [sanSang, setSanSang] = useState(false)
   const [trangThai, setTrangThai] = useState('đang khởi động…')
@@ -782,6 +804,9 @@ function Ung() {
     const v = r.value!
     const b = v.bang
     setKetQua(v)
+    // Chạy lại thì ảnh soi cũ nói về một lượt chạy KHÁC — bỏ đi, đừng để nó nằm lại
+    // trông như vẫn thuộc về kết quả mới.
+    setSoiIdx(null); setSoi(null)
     const n = (x: number) => x.toLocaleString('vi-VN')
     ghi(`▶ ${v.symbol} ${v.tu_ngay}…${v.den_ngay} — ${n(b.so_su_kien)} sự kiện, `
         + `khớp ${n(b.so_lan_khop)}, ròng ${b.gia_tri.toFixed(2)}, `
@@ -789,6 +814,57 @@ function Ung() {
     if (b.loi) ghi('⚠ ' + b.loi, 'warn')
     setTrangThai(`đã chạy ${n(b.so_su_kien)} sự kiện trong ${b.giay_chay}s`)
   }, [layDoc, ghi])
+
+  /* ------------------------------ SOI MỘT LƯỢT ----------------------------
+   *
+   * Bấm một điểm trên biểu đồ Kết quả → sơ đồ SÁNG LÊN đúng đường lượt đó đã đi, mờ
+   * phần còn lại, kèm con số thật của từng điều kiện.
+   *
+   * ⚠ TỨC THÌ, không phát lại. `api.soi_luot` là hàm THUẦN: mọi thứ nó cần đã nằm sẵn
+   * trong điểm mẫu (`KetQuaTest.mau` chở cả ảnh chụp sổ lệnh lẫn tồn kho). Cách hiển
+   * nhiên — phát lại tới thời điểm T — mất tới hai phút cho một ngày dữ liệu, và không
+   * ai bấm lần thứ hai. Xem `bo_chay.KetQua.mau`.
+   *
+   * Gửi `layDoc()` chứ không gửi sơ đồ lúc chạy: người dùng SỬA sơ đồ rồi soi lại là
+   * việc rất thường — "đổi khối này thì lúc đó nó làm gì". Kết quả sẽ không còn khớp
+   * với bảng số, và đó đúng là điều họ muốn thấy. */
+  const soiTai = useCallback(async (i: number | null) => {
+    setSoiIdx(i)
+    if (i === null || !ketQua) { setSoi(null); return }
+    const m = ketQua.mau[i]
+    const r = await py.soi_luot(layDoc(), {
+      bid: m[5], ask: m[6], bid_kl: m[7], ask_kl: m[8], co_so: m[9], ton_kho: m[2],
+    }, ketQua.bang.gia_dinh.buoc_gia)
+    if (!r.ok) { ghi(r.error ?? 'không soi được', 'err'); setSoi(null); return }
+    setSoi(r.value ?? null)
+  }, [ketQua, layDoc, ghi])
+
+  /** {id khối → trạng thái} cho canvas. Khối KHÔNG có trong bảng này là khối lượt đó
+   *  chưa bao giờ chạy tới — canvas làm mờ hẳn. */
+  const soiKhoi = useMemo(() => {
+    if (!soi) return null
+    const ra: Record<string, { trang: string; chu: string }> = {}
+    for (const k of soi.khoi) {
+      const trang = k.bo ? 'bo' : k.loai === 'cong' ? (k.qua ? 'qua' : 'truot')
+        : k.ap_dung === false ? 'bo-qua' : 'qua'
+      let chu = ''
+      if (k.loai === 'cong' && k.dieu_kien?.length) {
+        chu = k.dieu_kien.map(c => dkChu(c, boot)).join('  ·  ')
+      } else if (k.khi && k.ap_dung === false) {
+        // `khi` trượt: hiện CHÍNH điều kiện đã trượt, không phải một câu chung chung.
+        // "không áp dụng" nói ra kết quả; con số mới nói ra vì sao.
+        chu = dkChu(k.khi, boot)
+      } else if (k.ap_dung === false) {
+        chu = 'không áp dụng'
+      } else if (k.luong !== undefined && k.sau?.length) {
+        // Số hạng: hiện LƯỢNG và KẾT QUẢ. Chỉ hiện lượng thì không thấy nó cộng dồn
+        // vào đâu; chỉ hiện kết quả thì không thấy nó góp bao nhiêu.
+        chu = `${soNgan(k.luong)} → ${soNgan(k.sau[0])}`
+      }
+      ra[k.id] = { trang, chu }
+    }
+    return ra
+  }, [soi, boot])
 
 
   /* -------------------------------- ● Live --------------------------------
@@ -952,10 +1028,14 @@ function Ung() {
       else if (ctrl && ev.key.toLowerCase() === 'l') { ev.preventDefault(); void moLive() }
       else if (ev.key === 'Delete') { ev.preventDefault(); xoa() }
       else if (ev.key === 'F2') { ev.preventDefault(); doiTen() }
+      // Esc THÔI SOI. Soi làm mờ gần hết sơ đồ, nên phải có một lối ra mà tay tìm được
+      // ngay — bấm lại đúng điểm cũ trên biểu đồ thì phải nhớ nó ở đâu.
+      else if (ev.key === 'Escape' && soi) { ev.preventDefault(); void soiTai(null) }
     }
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, chay])
+  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, chay,
+      soi, soiTai])
 
   /* Kéo hộp: chụp ảnh MỘT lần lúc bắt đầu kéo, không phải mỗi frame — nếu không thì một
      cú kéo tạo ra 60 bước undo và Ctrl+Z thành vô dụng. */
@@ -968,8 +1048,12 @@ function Ung() {
   /* Gắn số thứ tự vào node ngay trước khi vẽ. Không nhét vào state `nodes` để đừng làm
      bẩn dữ liệu khối — số thứ tự là thứ TÍNH RA, không phải thuộc tính. */
   const nodesCoSo = useMemo(
-    () => nodes.map(n => ({ ...n, data: { ...(n.data as object), thuTu: thuTu[n.id] } })),
-    [nodes, thuTu])
+    () => nodes.map(n => ({
+      ...n,
+      data: { ...(n.data as object), thuTu: thuTu[n.id], soi: soiKhoi?.[n.id] ?? null,
+              dangSoi: !!soiKhoi },
+    })),
+    [nodes, thuTu, soiKhoi])
 
   /* Cạnh quay lại vẽ NÉT ĐỨT màu khác: nhìn sơ đồ là thấy ngay chỗ nào lặp về đâu,
      không phải dò từng mũi tên. */
@@ -1020,7 +1104,7 @@ function Ung() {
       { ngan: true },
       // Trỏ thẳng về `chay` — đúng hàm mà nút ▶ trên ribbon gọi, nên hai lối vào không
       // thể lệch nhau (cùng luật với 4 menu còn lại).
-      { ten: 'Mở Strategy Tester', icon: 'chay', phim: 'Ctrl+R', onClick: chay },
+      { ten: '▶ Test — chạy backtest', icon: 'chay', phim: 'Ctrl+R', onClick: chay },
       { ten: 'Mở Live…', icon: 'chay', phim: 'Ctrl+L',
         onClick: moLive },
       { ngan: true },
@@ -1102,7 +1186,11 @@ function Ung() {
         <PillTab tab={tab} tabs={boot?.tabs ?? []} nhan={boot?.tab_labels ?? {}}
                  datTab={doiTab} tabCoLoi={tabCoLoi} />
 
-        {/* Dải SOI từng nổi ở đây, ngay cạnh pill tab — đã đi cùng cơ chế soi (đợt 2). */}
+        {soi && ketQua && soiIdx !== null && (
+          <SoiPanel soi={soi} onDong={() => void soiTai(null)}
+                    luc={new Date(ketQua.mau[soiIdx][0]).toISOString()
+                      .slice(0, 19).replace('T', ' ')} />
+        )}
 
         <ReactFlow
           nodes={nodesCoSo} edges={edgesCoNet}
@@ -1184,7 +1272,8 @@ function Ung() {
         </div>
         {!panelGap && <div className="noi-dung-tab">
           {tabDuoi === 'ket-qua' ? (
-            <KetQuaPanel kq={ketQua} dangChay={dangChay} />
+            <KetQuaPanel kq={ketQua} dangChay={dangChay}
+                         soiIdx={soiIdx} onSoi={soiTai} />
           ) : tabDuoi === 'van-de' ? (
             vanDe.length === 0
               ? <div className="trong">Không có vấn đề nào.</div>

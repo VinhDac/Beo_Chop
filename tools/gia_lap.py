@@ -15,7 +15,11 @@ khi trang đã tải vẫn kịp. Dán vào console:
     window.pywebview = {api: Object.fromEntries(
         Object.keys(kho).map(k => [k, tra(k)]).concat([
             ['describe', () => Promise.resolve({ok: true, value: []})],
-            ['save_ui',  () => Promise.resolve({ok: true})]]))}
+            ['save_ui',  () => Promise.resolve({ok: true})],
+            ['soi_luot', (doc, n) => Promise.resolve(
+                (kho._soi_mau.find(x => x.nhin.bid === n.bid
+                    && x.nhin.ask === n.ask && x.nhin.ton_kho === n.ton_kho) || {})
+                .kq ?? {ok: false, error: 'mốc này chưa sinh sẵn'})]]))}
 
 ⚠ PHẢN HỒI LÀ THẬT, chỉ dữ liệu là giả. Mọi bảng số đi qua đúng `bo_chay` · `khop_lenh`
 · `core` như lúc chạy thật — nên soi được cả những thứ chỉ lộ ra ở dữ liệu lớn (bảng
@@ -107,18 +111,38 @@ def main():
             "nguon_liet_ke": a.nguon_liet_ke(),
             "kho_danh_muc": a.kho_danh_muc(),
         }
+
+        # SOI MỘT LƯỢT không gọi giả được — nó cần Python thật. Nên sinh sẵn vài lượt
+        # rải đều dải thời gian, khoá theo chính bộ số `nhin` mà giao diện sẽ gửi lên.
+        # Kèm cả một mốc ĐANG MÙ nếu tìm được: đó là ca hiển thị khác hẳn, và cũng là
+        # ca dễ quên nhất khi soi bằng mắt.
+        v = kho["mo_tester"]["value"]
+        mau = v["mau"]
+        tick = v["bang"]["gia_dinh"]["buoc_gia"]
+        chon = [k * len(mau) // 9 for k in range(1, 9)]
+        chon += [i for i, m in enumerate(mau) if not m[9]][:2]
+        # ⚠ Là DANH SÁCH, khoá tra bằng SO SỐ — không phải dict khoá bằng chuỗi.
+        # Đã thử khoá chuỗi `"%s|%s|%s"` và trượt sạch: Python cho `1.0`, JavaScript
+        # cho `1`, nên không mốc nào tra ra. Cùng một con số, hai cách viết.
+        soi = []
+        for i in sorted(set(chon)):
+            m = mau[i]
+            nhin = {"bid": m[5], "ask": m[6], "bid_kl": m[7], "ask_kl": m[8],
+                    "co_so": m[9], "ton_kho": m[2]}
+            soi.append({"nhin": nhin, "kq": a.soi_luot(doc, nhin, tick), "mau": i})
+        kho["_soi_mau"] = soi
         duong = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                              "webui", "gia_lap.json")
         with io.open(duong, "w", encoding="utf-8") as f:
             json.dump(kho, f, ensure_ascii=False)
 
-        v = kho["mo_tester"]["value"]
         b = v["bang"]
         print(f"\n  {duong}   {os.path.getsize(duong) / 1024:,.0f} KB")
         print(f"  {b['so_su_kien']:,} sự kiện · {len(v['mau']):,} điểm mẫu · "
               f"{len(v['lo_hong'])} lỗ hổng")
         print(f"  khớp {b['so_lan_khop']:,} · ròng {b['gia_tri']:.2f} · "
               f"phí {b['phi_da_tra']:.2f} · markout {b['markout_tick']:+.3f} tick/lot")
+        print(f"  soi sẵn {len(soi)} mốc")
         print(f"  ⚠ {b['loi']}\n")
     finally:
         luu_tru.ghi_cai_dat(goc)

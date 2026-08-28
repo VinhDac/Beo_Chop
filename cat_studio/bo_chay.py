@@ -239,10 +239,11 @@ def _bien_dich_luong(l, dich, nhan):
 def bien_dich(doc, tab=None):
     """Sơ đồ → chương trình phẳng. Mọi lỗi "không hiểu" nổ RA ĐÂY, kèm nhãn khối.
 
-    Trả `(lenh, dau, nhan)`:
+    Trả `(lenh, dau, khoi)`:
       `lenh[i]`  = `(loại, dữ_liệu, [chỉ_số_nhánh…])` — nhánh đã theo đúng thứ tự ưu tiên
       `dau`      = chỉ số khối đầu tiên (`-1` nếu sơ đồ rỗng)
-      `nhan`     = chỉ số → nhãn (`1B.2`), để câu lỗi lúc chạy chỉ đúng khối"""
+      `khoi[i]`  = `{"id", "nhan"}` — để câu lỗi lúc chạy chỉ đúng khối, và để `soi_luot`
+                   trỏ được về đúng khối trên canvas"""
     doc = core.normalize_process(doc)
     tab = tab if tab in core.TABS else core.TAB_BAO_GIA
     g = doc.get(tab) or {}
@@ -287,8 +288,8 @@ def bien_dich(doc, tab=None):
             raise LoiChay(f'[{nhan}] loại khối "{t}" không chạy được.')
 
     dau = core.flow_entry(steps, edges)
-    return lenh, chi_so.get(dau, -1), {i: _nhan(doc_nhan, s["id"])
-                                       for i, s in enumerate(ds)}
+    return lenh, chi_so.get(dau, -1), [{"id": s["id"], "nhan": _nhan(doc_nhan, s["id"])}
+                                       for s in ds]
 
 
 # ---------------------------------------------------------------------------
@@ -446,6 +447,185 @@ def chot_bao_gia(nhap):
             goc + nhap[BIEN_BAN], nhap[LOT_BAN])
 
 
+def _ghi_dieu_kien(dk, nh, mid, spread, tick):
+    """Một điều kiện + CON SỐ hai vế. Vế phải `None` khi phép là đúng/sai.
+
+    Mang theo cả `phep` để giao diện dựng lại được ĐÚNG CÂU với số thật thay vào:
+    `3 ≥ 5` đọc ra ngay, còn `3 / 5` thì người đọc phải tự nhớ khối đó so kiểu gì —
+    mà lúc soi là lúc đang không nhớ nổi, nếu không đã chẳng phải mở soi."""
+    f, phep, _, _, _ = dk
+    trai = float(f(nh))
+    if phep in core.PHEP_DUNG_SAI:
+        return {"trai": trai, "phai": None, "phep": phep,
+                "dat": bool(trai) if phep == "la_dung" else not trai}
+    return {"trai": trai, "phep": phep,
+            "phai": float(_gia_tri_phai(dk, nh, mid, spread, tick)),
+            "dat": _khop_dk(dk, nh, mid, spread, tick)}
+
+
+def mot_luot_ghi(lenh, dau, khoi, nh, tick):
+    """Chạy MỘT lượt và GHI LẠI mọi thứ. Trả `(nhap, nhat_ky)`.
+
+    Bản SONG SINH của `mot_luot`, và khác nó đúng hai chỗ — cả hai đều cố ý:
+
+      1. **Tính ĐỦ mọi điều kiện của một cổng**, không ngắt ở cái sai đầu tiên. Ngắt
+         sớm thì soi xong vẫn không trả lời được câu *"ba điều kiện kia lúc đó bằng bao
+         nhiêu"* — mà đó chính là câu người ta mở soi ra để hỏi.
+      2. **Ghi lại cả khối đã THỬ RỒI BỎ.** Nhánh trượt cũng là một phần của câu trả
+         lời: không thấy nó thì người dùng tưởng nhánh đó chưa bao giờ được xét tới.
+
+    ⚠ HAI BẢN PHẢI LUÔN CHO CÙNG MỘT KẾT QUẢ. Đây là một nguồn sự thật bị chép làm hai,
+    tức đúng thứ file này vẫn cảnh báo ở mọi chỗ khác — nên nó được canh bằng một phép
+    kiểm chạy CẢ HAI trên hàng nghìn sơ đồ và trạng thái ngẫu nhiên rồi so từng ô
+    (`tests/test_soi.py`). Chép làm hai là cố ý: `mot_luot` chạy mười triệu lần một
+    ngày, còn bản này chạy mỗi lần người dùng bấm chuột.
+    """
+    nhap = list(NHAP_GOC)
+    nhat_ky = []
+    if dau < 0:
+        return nhap, nhat_ky
+
+    mid = (nh.bid + nh.ask) * 0.5
+    spread = nh.ask - nh.bid
+
+    i = dau
+    ngan_xep = []
+    while True:
+        loai, dl, nhanh = lenh[i]
+        ghi = {"id": khoi[i]["id"], "nhan": khoi[i]["nhan"]}
+
+        if loai == LENH_SO_HANG:
+            o, phep, lg, khi = dl
+            ghi["loai"] = "so_hang"
+            ap_dung = True
+            if khi is not None:
+                ghi["khi"] = _ghi_dieu_kien(khi, nh, mid, spread, tick)
+                ap_dung = ghi["khi"]["dat"]
+            ghi["ap_dung"] = ap_dung
+            if ap_dung:
+                v = _luong(lg, nh, mid, spread, tick)
+                ghi["luong"] = float(v)
+                ghi["truoc"] = [float(nhap[k]) for k in o]
+                if phep == "=":
+                    for k in o:
+                        nhap[k] = v
+                elif phep == "+=":
+                    for k in o:
+                        nhap[k] += v
+                else:
+                    for k in o:
+                        nhap[k] *= v
+                ghi["sau"] = [float(nhap[k]) for k in o]
+            qua = True
+        else:
+            ghi["loai"] = "cong"
+            # ⚠ ĐỦ MỌI ĐIỀU KIỆN. Đây là chỗ khác `mot_luot` nhiều nhất.
+            ds = [_ghi_dieu_kien(c, nh, mid, spread, tick) for c in dl]
+            ghi["dieu_kien"] = ds
+            qua = all(c["dat"] for c in ds)
+
+        ghi["qua"] = qua
+        nhat_ky.append(ghi)
+
+        if qua:
+            if not nhanh:
+                return nhap, nhat_ky
+            if len(nhanh) > 1:
+                ngan_xep.append((i, 1, tuple(nhap)))
+            i = nhanh[0]
+            continue
+
+        while ngan_xep:
+            j, k, chup = ngan_xep[-1]
+            _, _, nh_j = lenh[j]
+            if k < len(nh_j):
+                ngan_xep[-1] = (j, k + 1, chup)
+                nhap[:] = chup
+                # Đánh dấu khối BỊ BỎ: mọi thứ ghi từ ngã rẽ đó trở đi, TRỪ khối cuối.
+                # Không đánh dấu thì nhật ký đọc như thể số hạng của chúng vẫn có tác
+                # dụng, trong khi chúng vừa bị hoàn nguyên sạch.
+                #
+                # ⚠ Trừ khối cuối vì đó chính là khối vừa TRƯỢT — nó là NGUYÊN NHÂN
+                # phải lùi, không phải nạn nhân. Gộp nó vào nhóm "bị bỏ" là giấu mất
+                # đúng câu trả lời người ta mở soi ra để tìm.
+                for g in nhat_ky[_vi_tri(nhat_ky, khoi[j]["id"]) + 1:-1]:
+                    g["bo"] = True
+                i = nh_j[k]
+                break
+            ngan_xep.pop()
+        else:
+            return nhap, nhat_ky
+
+
+def _vi_tri(nhat_ky, sid):
+    """Vị trí GẦN NHẤT của khối `sid` trong nhật ký — điểm rẽ ta vừa lùi về."""
+    for k in range(len(nhat_ky) - 1, -1, -1):
+        if nhat_ky[k]["id"] == sid:
+            return k
+    return -1
+
+
+def _sach(x):
+    """Dọn cho JSON nuốt được: `NaN`/`inf` → `None`.
+
+    ⚠ `json.dumps` của Python phun ra `NaN` trần — mà đó KHÔNG phải JSON hợp lệ, và
+    `JSON.parse` bên trình duyệt nổ ngay. Cầu nối pywebview đi qua đúng đường đó, nên
+    một ô `cong_bang` chưa đặt (khởi điểm là NaN, xem `NHAP_GOC`) là đủ làm vỡ cả lời
+    gọi — mà lỗi hiện ra lại là "không đọc được phản hồi", không ai lần ra nổi.
+
+    `None` chứ không phải `0`: giao diện phải phân biệt được *chưa đặt* với *đặt bằng
+    không*. Hai chuyện khác hẳn nhau, và với `cong_bang` thì một cái là không có báo
+    giá còn cái kia là báo giá quanh mốc 0."""
+    if isinstance(x, float):
+        return x if x == x and x not in (float("inf"), float("-inf")) else None
+    if isinstance(x, dict):
+        return {k: _sach(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_sach(v) for v in x]
+    return x
+
+
+def soi_luot(doc, nhin, tick, tab=None):
+    """Chụp MỘT lượt chạy tại một trạng thái cho sẵn. HÀM THUẦN — xem `KetQua.mau`.
+
+    `nhin` là dict sáu số (`bid` · `ask` · `bid_kl` · `ask_kl` · `co_so` · `ton_kho`),
+    lấy thẳng từ một điểm mẫu. Không phát lại, không đọc file, không giữ trạng thái —
+    nên bấm bao nhiêu lần cũng tức thì, và bấm lại đúng mốc đó luôn ra đúng một kết quả.
+    """
+    lenh, dau, khoi = bien_dich(doc, tab)
+    nh = Nhin()
+    nh.bid = float(nhin.get("bid", NAN))
+    nh.ask = float(nhin.get("ask", NAN))
+    nh.bid_kl = float(nhin.get("bid_kl", 0.0))
+    nh.ask_kl = float(nhin.get("ask_kl", 0.0))
+    nh.co_so = bool(nhin.get("co_so", False))
+    nh.ton_kho = float(nhin.get("ton_kho", 0.0))
+
+    nhap, nhat_ky = mot_luot_ghi(lenh, dau, khoi, nh, tick)
+    gm, lm, gb, lb = chot_bao_gia(nhap)
+    mo_hinh = khop_lenh.MoHinh(tick)
+    mid = (nh.bid + nh.ask) * 0.5
+    return _sach({
+        "nhin": {"bid": nh.bid, "ask": nh.ask, "bid_kl": nh.bid_kl,
+                 "ask_kl": nh.ask_kl, "co_so": nh.co_so, "ton_kho": nh.ton_kho,
+                 "mid": mid if mid == mid else None,
+                 "spread": (nh.ask - nh.bid) if nh.co_so else None},
+        "nhap": {"cong_bang": nhap[CONG_BANG], "bien_mua": nhap[BIEN_MUA],
+                 "bien_ban": nhap[BIEN_BAN], "lech": nhap[LECH],
+                 "lot_mua": nhap[LOT_MUA], "lot_ban": nhap[LOT_BAN]},
+        # Giá ĐÃ LÀM TRÒN về tick — đúng con số sẽ gửi đi, không phải con số trong đầu
+        # sơ đồ. Hai cái lệch nhau tới nửa tick, và đó đúng là chỗ đáng nhìn.
+        "bao_gia": {
+            "mua_gia": mo_hinh.lam_tron(gm, khop_lenh.MUA) if lm > 0 and gm == gm else None,
+            "mua_lot": lm,
+            "ban_gia": mo_hinh.lam_tron(gb, khop_lenh.BAN) if lb > 0 and gb == gb else None,
+            "ban_lot": lb,
+        },
+        "khoi": nhat_ky,
+        "tick": tick,
+    })
+
+
 # ---------------------------------------------------------------------------
 # Chạy TOÀN BỘ
 # ---------------------------------------------------------------------------
@@ -462,9 +642,29 @@ class KetQua:
         self.so_su_kien = 0
         self.so_luot = 0
         self.khop = []
-        #: `[(t, giá_trị, tồn_kho, phí_đã_trả, số_lần_từ_chối)]` — lấy mẫu, xem `chay()`.
-        #: Năm số CÙNG MỘT TRỤC thời gian, để biểu đồ chồng được lên nhau: nhìn một chỗ
-        #: là thấy vốn tụt lúc nào, tồn kho phình lúc nào, bị từ chối dồn ở đâu.
+        #: MỘT ĐIỂM MẪU = MỘT ẢNH CHỤP ĐỦ DÙNG, mười số:
+        #:
+        #:     t · giá_trị · tồn_kho · phí_đã_trả · số_lần_từ_chối        ← để VẼ
+        #:     bid · ask · bid_kl · ask_kl · có_sổ                        ← để SOI
+        #:
+        #: Năm số đầu cùng một trục thời gian nên biểu đồ chồng được lên nhau: nhìn một
+        #: chỗ là thấy vốn tụt lúc nào, tồn kho phình lúc nào, bị từ chối dồn ở đâu.
+        #:
+        #: ⚠ NĂM SỐ SAU LÀ THỨ LÀM "SOI MỘT LƯỢT" CHẠY ĐƯỢC, và đây là quyết định thiết
+        #: kế đắt nhất của mục đó. Cách hiển nhiên là *phát lại tới thời điểm T rồi
+        #: chụp* — nhưng bộ chạy đi 0,08 triệu sự kiện/giây, nên một ngày dữ liệu mất
+        #: ~2 phút. Bấm vào biểu đồ rồi ngồi chờ một phút thì không ai soi lần thứ hai.
+        #:
+        #: Mà điểm mẫu vốn được lấy ĐÚNG LÚC sơ đồ vừa chạy xong lượt đó: `ton_kho` ở
+        #: đây chính là con số sơ đồ vừa đọc, `bid`/`ask` chính là sổ lệnh nó vừa nhìn.
+        #: Cho mẫu chở thêm năm số ấy thì soi thành một HÀM THUẦN — không phát lại,
+        #: không đọc file, không giữ trạng thái. Tức thì, và chính xác tuyệt đối tại
+        #: những mốc đã lấy mẫu.
+        #:
+        #: Cái giá: mẫu phình gấp đôi (~160 KB cho hai ngày). Rẻ hơn hai phút chờ rất
+        #: nhiều lần. Đổi lại chỉ soi được ĐÚNG những mốc đã lấy mẫu — giao diện bám
+        #: vào mốc gần nhất và nói rõ đang xem mốc nào, chứ không giả vờ soi được mọi
+        #: mili-giây.
         self.mau = []
         self.lo_hong = []            # [(tu, den)] — quãng MÙ, kết quả không đáng tin
         self.loi = ""
@@ -596,7 +796,9 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
         if t >= moc_sau:
             moc_sau = t + moc_von_ms
             kq.mau.append((t, khop.gia_tri((nh.bid + nh.ask) * 0.5),
-                           khop.ton_kho, khop.phi_da_tra, khop.so_tu_choi))
+                           khop.ton_kho, khop.phi_da_tra, khop.so_tu_choi,
+                           float(nh.bid), float(nh.ask),
+                           float(nh.bid_kl), float(nh.ask_kl), bool(nh.co_so)))
             if len(kq.mau) > TOI_DA_MAU:
                 # Bỏ một nửa, giãn nhịp gấp đôi. Không cần biết trước lượt chạy dài
                 # bao nhiêu — cách này tự thích nghi với mọi độ dài.
@@ -607,7 +809,9 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
     mid_cuoi = (nh.bid + nh.ask) * 0.5
     kq.tom_tat_khop = khop.tom_tat(mid_cuoi)
     kq.mau.append((kq.den_ms, khop.gia_tri(mid_cuoi), khop.ton_kho,
-                   khop.phi_da_tra, khop.so_tu_choi))
+                   khop.phi_da_tra, khop.so_tu_choi,
+                   float(nh.bid), float(nh.ask),
+                   float(nh.bid_kl), float(nh.ask_kl), bool(nh.co_so)))
     # ⚠ Lần khớp CHƯA ĐỦ TUỔI thì BỎ, không chốt bừa ở giá cuối. Chốt bừa là trộn một
     # phép đo nửa vời vào trung bình rồi không ai biết. Số lot đo được nằm trong
     # `markout_kl` — so với `kl_da_khop` là thấy ngay phần bị bỏ.

@@ -67,13 +67,17 @@ function duong(ds: number[], lo: number, hi: number): string {
 }
 
 /** Một biểu đồ. Chữ nằm NGOÀI svg — svg bị kéo giãn phi tỉ lệ nên chữ trong đó sẽ méo. */
-function BieuDo({ ten, duongs, lo, hi, moc0, mu, dinhDang }: {
+function BieuDo({ ten, duongs, lo, hi, moc0, mu, dinhDang, conTro, bam }: {
   ten: string
   duongs: { d: string; mau: string; to?: boolean; nhan: string }[]
   lo: number; hi: number
   moc0?: boolean
   mu: { x: number; w: number }[]
   dinhDang: (v: number) => string
+  /** Vị trí 0…1 của mốc đang soi, hoặc `null`. */
+  conTro: number | null
+  /** Bấm vào biểu đồ → tỉ lệ 0…1 theo bề ngang. */
+  bam: (ti: number) => void
 }) {
   const y0 = CAO_BD - ((0 - lo) / (hi - lo || 1)) * CAO_BD
   return (
@@ -94,7 +98,11 @@ function BieuDo({ ten, duongs, lo, hi, moc0, mu, dinhDang }: {
         <span className="kq-truc kq-truc-tren">{dinhDang(hi)}</span>
         <span className="kq-truc kq-truc-duoi">{dinhDang(lo)}</span>
       <svg className="kq-svg" viewBox={`0 0 ${RONG_BD} ${CAO_BD}`}
-           preserveAspectRatio="none">
+           preserveAspectRatio="none"
+           onClick={e => {
+             const r = e.currentTarget.getBoundingClientRect()
+             bam(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)))
+           }}>
         {/* Dải MÙ vẽ TRƯỚC để nằm dưới đường — nó là nền, không phải dữ liệu. */}
         {mu.map((m, i) => (
           <rect key={i} x={m.x} y={0} width={Math.max(m.w, 1.5)} height={CAO_BD}
@@ -108,6 +116,12 @@ function BieuDo({ ten, duongs, lo, hi, moc0, mu, dinhDang }: {
           <path key={x.nhan} d={x.d} fill="none" stroke={x.mau}
                 strokeWidth={x.to ? 1.6 : 1.1} vectorEffect="non-scaling-stroke" />
         ))}
+        {/* Con trỏ soi vẽ SAU CÙNG để nằm trên mọi đường — nó là thứ đang được hỏi. */}
+        {conTro !== null && (
+          <line x1={conTro * RONG_BD} y1={0} x2={conTro * RONG_BD} y2={CAO_BD}
+                stroke="var(--accent)" strokeWidth="1.4"
+                vectorEffect="non-scaling-stroke" />
+        )}
       </svg>
       </div>
     </div>
@@ -131,9 +145,12 @@ function gio(ms: number) {
   return d.toISOString().slice(0, 16).replace('T', ' ')
 }
 
-export default function KetQuaPanel({ kq, dangChay }: {
+export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
   kq: KetQuaTest | null
   dangChay: boolean
+  /** Chỉ số điểm mẫu đang soi, hoặc `null`. */
+  soiIdx: number | null
+  onSoi: (i: number | null) => void
 }) {
   if (dangChay) return <div className="trong">Đang chạy backtest…</div>
   if (!kq) {
@@ -168,6 +185,18 @@ export default function KetQuaPanel({ kq, dangChay }: {
   const phi = b.phi_da_tra
   const rong = b.gia_tri
   const truocPhi = rong + phi
+
+  /* Bấm vào biểu đồ → BÁM VÀO ĐIỂM MẪU GẦN NHẤT, không nội suy.
+     Chỉ những mốc đã lấy mẫu mới có ảnh chụp đầy đủ để soi (xem `bo_chay.KetQua.mau`);
+     nội suy giữa hai mốc là bịa ra một trạng thái chưa từng tồn tại. Con trỏ nhảy về
+     đúng mốc nên người dùng THẤY được chuyện đó, không phải đoán. */
+  const bamBieuDo = (ti: number) => {
+    if (!mau.length) return
+    const i = Math.min(mau.length - 1, Math.max(0, Math.round(ti * (mau.length - 1))))
+    onSoi(i === soiIdx ? null : i)
+  }
+  const conTro = soiIdx === null || !mau.length
+    ? null : (mau[soiIdx][0] - t0) / beRong
 
   return (
     <div className="kq">
@@ -237,6 +266,7 @@ export default function KetQuaPanel({ kq, dangChay }: {
       {b.loi && <div className="chu-dan canh">⚠ {b.loi}</div>}
 
       <BieuDo ten="Vốn" moc0 mu={mu} lo={vLo} hi={vHi} dinhDang={v => so(v, 0)}
+              conTro={conTro} bam={bamBieuDo}
               duongs={[
                 { nhan: 'gộp (trước phí)', mau: 'var(--dim)',
                   d: duong(nen(gop, soNhom), vLo, vHi) },
@@ -245,11 +275,17 @@ export default function KetQuaPanel({ kq, dangChay }: {
               ]} />
 
       <BieuDo ten="Tồn kho" moc0 mu={mu} lo={kLo} hi={kHi} dinhDang={v => so(v, 0)}
+              conTro={conTro} bam={bamBieuDo}
               duongs={[{ nhan: '±lot', mau: 'var(--khoi-lot)', to: true,
                          d: duong(nen(tonKho, soNhom), kLo, kHi) }]} />
 
       <div className="kq-chan">
         <span>{gio(t0)}</span>
+        <span className="kq-chu-giai">
+          {soiIdx === null
+            ? 'Bấm vào biểu đồ để SOI sơ đồ tại thời điểm đó'
+            : <b className="kq-dang-soi">đang soi {gio(mau[soiIdx][0])} — bấm lại để bỏ</b>}
+        </span>
         {mu.length > 0 && (
           <span className="kq-chu-giai">
             <i style={{ background: 'var(--err)', opacity: .4 }} />

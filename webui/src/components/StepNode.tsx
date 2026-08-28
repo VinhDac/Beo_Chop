@@ -35,9 +35,29 @@ const SIDES: [string, Position][] = [
   ['left', Position.Left],
 ]
 
+/** SOI MỘT LƯỢT — bốn trạng thái một khối có thể mang, và ký hiệu của từng cái.
+ *
+ *  Ký hiệu CHỨ KHÔNG CHỈ MÀU: bốn trạng thái mà phân biệt bằng bốn sắc độ thì mù màu
+ *  đọc không ra, mà sơ đồ hai mươi khối thì cũng chẳng ai đối chiếu nổi bảng màu.
+ *
+ *  `bo-qua` là ca tinh nhất và cũng dễ hiểu nhầm nhất: khối CÓ chạy tới, nhưng ô `khi`
+ *  của nó trượt nên số hạng không được cộng vào. Khác hẳn `bo` (nhánh bị lùi, số hạng
+ *  đã cộng rồi bị hoàn nguyên) và khác hẳn "không chạy tới". */
+const SOI_KY_HIEU: Record<string, string> = {
+  qua: '✓', truot: '✗', bo: '↩', 'bo-qua': '⊘',
+}
+const SOI_GIAI_THICH: Record<string, string> = {
+  qua: 'Lượt này chạy qua khối này',
+  truot: 'Cổng TRƯỢT — điều kiện không khớp, nên phải lùi tìm nhánh khác',
+  bo: 'Nhánh này đã thử rồi BỎ — số hạng của nó đã bị hoàn nguyên',
+  'bo-qua': 'Có chạy tới, nhưng ô "khi" trượt nên số hạng KHÔNG được áp dụng',
+}
+
 export default function StepNode({ data, selected }: NodeProps) {
   const card = (data as { card: Card }).card
   const thuTu = (data as { thuTu?: string }).thuTu
+  const soi = (data as { soi?: { trang: string; chu: string } | null }).soi
+  const dangSoi = (data as { dangSoi?: boolean }).dangSoi
   const hien = card.lines.slice(0, TOI_DA_DONG)
   const con = card.lines.length - hien.length
   const laStart = card.kind === 'start'
@@ -74,6 +94,9 @@ export default function StepNode({ data, selected }: NodeProps) {
         + (laStart ? ' la-start' : '')
         + (card.ghim ? ' da-ghim' : '')
         + (card.la_cong ? ' la-cong' : '')
+        // Đang soi mà khối KHÔNG có trong nhật ký = lượt đó không chạy tới nó. Làm mờ
+        // hẳn, vì "phần còn lại của sơ đồ" mới là thứ cần biến đi để đường đã đi nổi lên.
+        + (dangSoi ? (soi ? ' soi soi-' + soi.trang : ' soi-ngoai') : '')
         }>
 
         {/* Số THỨ TỰ CHẠY THẬT, do Python tính bằng chính phép duyệt của bộ máy.
@@ -97,6 +120,12 @@ export default function StepNode({ data, selected }: NodeProps) {
           {mui ? <span className="mui-huong" aria-hidden>{mui}</span>
                : <IconNet name={icon} size={13} />}
           <span className="ten" title={card.title}>{card.title}</span>
+          {soi && (
+            <span className={'soi-dau soi-dau-' + soi.trang}
+                  title={SOI_GIAI_THICH[soi.trang]} aria-hidden>
+              {SOI_KY_HIEU[soi.trang]}
+            </span>
+          )}
         </div>
 
         {hien.length > 0 && (
@@ -122,6 +151,14 @@ export default function StepNode({ data, selected }: NodeProps) {
             {con > 0 && (
               <div className="dong con-nua">
                 <span className="danh" /><span>… còn {con} dòng nữa</span>
+              </div>
+            )}
+            {/* CON SỐ THẬT của lượt đang soi, ngay dưới câu mô tả của khối. Đây mới là
+                thứ trả lời "vì sao": biết cổng trượt thì chưa đủ, phải thấy tồn kho lúc
+                đó bằng bao nhiêu so với ngưỡng nào. */}
+            {soi?.chu && (
+              <div className={'dong soi-so soi-so-' + soi.trang}>
+                <span className="danh" /><span>{soi.chu}</span>
               </div>
             )}
           </div>

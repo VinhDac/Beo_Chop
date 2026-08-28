@@ -47,6 +47,7 @@ BAI = [
     ("test_phat_lai.py", "Phát lại — trục thời gian là `t_ta`, lỗ hổng là SỰ KIỆN"),
     ("test_khop_lenh.py", "Mô hình khớp — chạm ≠ khớp · hàng đợi · giá của việc requote"),
     ("test_bo_chay.py", "Bộ chạy — thứ tự một nhịp · luật lùi · vòng phản hồi"),
+    ("test_soi.py", "Soi một lượt — hai bản cài đặt KHÔNG được lệch nhau"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
 ]

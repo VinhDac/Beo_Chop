@@ -80,6 +80,9 @@ print("\n▸ Mọi `className` phải có một luật CSS")
 # HAI THỨ PHẢI LỌC RA, và cả hai đều sinh báo giả — mà một bài kiểm báo giả thì sớm
 # muộn bị tắt đi, nên phải lọc cho sạch:
 #
+#   · CHÚ THÍCH nằm TRONG biểu thức. Một dòng `// vì "phần còn lại của sơ đồ" mới là…`
+#     kẹp giữa hai nhánh của `className={…}` sẽ cho ra sáu "tên lớp" tiếng Việt. Đã bắt
+#     giả đúng như vậy ngay lần đầu chạy sau khi thêm mục soi.
 #   · VẾ PHẢI CỦA PHÉP SO. `className={'tab' + (tab === 'chung' ? ' dang' : '')}` có ba
 #     chuỗi, nhưng `'chung'` là một GIÁ TRỊ đem ra so, không phải tên lớp. Bỏ hẳn cụm
 #     `=== '…'` trước khi moi.
@@ -90,6 +93,7 @@ print("\n▸ Mọi `className` phải có một luật CSS")
 # cả hai nhánh của một tam nguyên (`… ? 'loi' : 'canh-bao'`) — nên bài kiểm không bỏ
 # sót nhánh nào.
 VE_PHAI_PHEP_SO = re.compile(r"[=!]==?\s*[\"'][^\"']*[\"']")
+CHU_THICH_JS = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 LOP_GHEP = re.compile(r"className=[\"']([^\"'{}]+)[\"']")
 tsx = []
 for goc, _, ds in os.walk(CSS):
@@ -104,7 +108,8 @@ for duong in tsx:
         dang_dung |= set(cum.split())
     # `className={'hop' + (x ? ' da-ghim' : '')}` — moi từng chuỗi con trong biểu thức.
     for cum in re.findall(r"className=\{([^}]*)\}", noi_dung):
-        for chuoi in re.findall(r"[\"']([^\"'{}]*)[\"']", VE_PHAI_PHEP_SO.sub(" ", cum)):
+        cum = CHU_THICH_JS.sub(" ", VE_PHAI_PHEP_SO.sub(" ", cum))
+        for chuoi in re.findall(r"[\"']([^\"'{}]*)[\"']", cum):
             dang_dung |= {x for x in chuoi.split() if x and not x.endswith("-")}
 
 # React Flow tự vẽ phần của nó và mang CSS riêng — không phải việc của `app.css`.

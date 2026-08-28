@@ -193,40 +193,7 @@ thôi là "sức khoẻ", nó thành tham số của chiến lược.
 
 ---
 
-## 3. Cửa sổ Tester — CÒN THIẾU THANG BÁO GIÁ
-
-**Nằm ở đâu** — `webui/src/components/KetQuaPanel.tsx`, tab **Kết quả** của bảng dưới.
-
-Đã cắm bốn trong năm thứ đáng nhìn: tách **gộp ⟷ phí** thành một phép cộng thật, chỉ số
-**markout** (bị chọn ngược bao nhiêu tick mỗi lot), **tồn kho theo thời gian**, và dải
-**MÙ** đỏ ngay trên trục thời gian. Bốn giả định hiện cạnh kết quả, không giấu trong
-Cài đặt.
-
-⚠ Cửa sổ cũ (`webui/src/tester/` 2.033 dòng + `api.ApiTester` ~720) vẽ NẾN và hộp zone.
-Không một dòng nào dùng lại được — đó là lý do bản này viết mới ~230 dòng chứ không
-phải cứu bản cũ.
-
-**Phải cắm gì** — hai thứ, và cả hai đều cần một CON TRỎ THỜI GIAN:
-
-| còn thiếu | vì sao nó là thứ phải nhìn |
-|---|---|
-| **thang báo giá hai bên** — bid/ask của ta cạnh bid/ask thị trường tại một thời điểm | thấy ngay ta đang treo TRONG sổ hay NGOÀI sổ. Đây là câu hỏi mà mọi con số tổng hợp đều trả lời gián tiếp |
-| **tua tới một thời điểm** — bấm vào biểu đồ để nhảy tới đó | tồn kho phình lúc 14:32 thì lúc đó chuyện gì xảy ra? Không tua được thì chỉ đoán |
-
-Cả hai chung một cơ chế với §5 *soi một lượt*, nên nên làm cùng lúc: cần phát lại được
-tới đúng một sự kiện và giữ trạng thái ở đó.
-
-> **Ba chỗ đã cân nhắc rồi bỏ, ghi ra để khỏi bàn lại:**
-> · *Đếm số lần bị từ chối theo thời gian* — `mau` đã chở sẵn cột đó (cột thứ 5), chỉ
->   chưa vẽ. Rẻ, thêm lúc nào cũng được.
-> · *Biểu đồ phân bố markout* — thú vị nhưng một con số trung bình đã đủ để quyết định,
->   và phân bố cần chỗ bằng cả hai biểu đồ hiện có.
-> · *So hai lượt chạy cạnh nhau* — đúng là thứ người ta muốn khi vặn `phan_huy_truoc`
->   qua ba mức. Đợi tới khi có ai thật sự làm việc đó nhiều lần.
-
----
-
-## 4. Cửa sổ Live
+## 3. Cửa sổ Live
 
 **Nằm ở đâu** — không còn.
 
@@ -239,32 +206,54 @@ dở và một kết nối tiêu tiền thật. Không có đường tắt — �
 
 ---
 
-## 5. Soi một lượt trên sơ đồ
+## 4. Soi một lượt — CÒN THIẾU THANG BÁO GIÁ
 
-**Nằm ở đâu** — `webui/src/App.tsx`, chỗ khối `SOI MỘT LƯỢT` từng đứng (giờ là chú
-thích). Đường ống còn sống nửa dưới: `api.Api._ban` và `window.__su_kien` trong
-`api.ts` đều giữ lại, hiện không ai gọi.
+**Nằm ở đâu** — `bo_chay.mot_luot_ghi` + `soi_luot` · `api.soi_luot` ·
+`webui/src/components/SoiPanel.tsx` · phần soi trong `StepNode` và `App`.
 
-**Trước cắm gì** — chuột phải một dòng nhật ký ở cửa sổ tester → cửa sổ vẽ nhảy lên
-trước, tô đúng đường lượt đó đã đi, mờ phần còn lại, kèm dấu đạt/trượt trên **từng
-dòng** điều kiện.
+Bấm một điểm trên biểu đồ Kết quả → sơ đồ sáng lên đúng đường lượt đó đã đi, mờ phần
+còn lại, kèm CON SỐ THẬT của từng điều kiện (`−0,05 ≥ 5`). Thẻ nổi chở hai đầu của lượt
+chạy: sổ lệnh + tồn kho lúc đó, và báo giá đã làm tròn về tick.
 
-> ⚠ Làm mục này thì làm CÙNG LÚC với hai thứ còn thiếu ở §3 (thang báo giá · tua tới
-> một thời điểm): cả ba đều cần đúng một cơ chế — phát lại tới một sự kiện rồi DỪNG ở
-> đó. Và bộ chạy hiện NGẮT SỚM ở điều kiện sai đầu tiên, nên soi một lượt sẽ cần một
-> `mot_luot_ghi()` chạy đủ mọi điều kiện; xem §12.
+> ⭐ **Cách nó chạy được là điều đáng nhớ nhất của mục này.** Cách hiển nhiên — *phát
+> lại tới thời điểm T rồi chụp* — mất tới hai phút cho một ngày dữ liệu, tức bấm xong
+> ngồi chờ một phút và không ai bấm lần thứ hai.
+>
+> Mà điểm mẫu vốn được lấy ĐÚNG LÚC sơ đồ vừa chạy xong lượt đó. Cho mẫu chở thêm năm
+> số nữa (sổ lệnh + có_sổ) thì soi thành một **hàm THUẦN**: không phát lại, không đọc
+> file, không giữ trạng thái. Tức thì, và bấm lại đúng mốc đó luôn ra đúng một kết quả.
+> Giá phải trả: mẫu phình gấp đôi (~160 KB), và chỉ soi được đúng những mốc đã lấy mẫu.
 
-**Phải cắm gì** — chính nó, khi có bộ chạy mới nhả ra cùng hình dạng (`duong` · `cong` ·
-`ve`). Ba cái bẫy đã trả giá, đừng gặp lại: kẹp `soi.tab === tab` ở **nơi tiêu thụ** chứ
-đừng rải `setSoi(null)` khắp nơi; chỉ tô từng dòng khi **số dòng còn khớp**; phải có dải
-nổi + nút ✕ chứ không chỉ phím Esc.
+**Ba cái bẫy của bản cũ, đã tránh được cả ba:** kẹp `soi.tab === tab` ở nơi tiêu thụ
+(giờ chỉ còn một sơ đồ nên chưa cần); chỉ tô khi số dòng còn khớp (giờ tô theo `id`
+khối, không theo chỉ số dòng, nên sửa sơ đồ xong soi lại vẫn trỏ đúng); có nút ✕ chứ
+không chỉ phím Esc — **cả hai đều có**.
 
-Lớp CSS của nó (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-truot`) đã đi ở
-đợt 4.
+**Phải cắm gì** — hai thứ, chung một cơ chế, nên làm cùng lúc:
+
+| còn thiếu | vì sao |
+|---|---|
+| **thang báo giá hai bên** — vẽ bid/ask của ta CẠNH bid/ask thị trường | thẻ hiện bốn con số, nhưng "ta đang treo trong hay ngoài sổ" là một câu hỏi HÌNH HỌC. Bốn số bắt người đọc tự dựng hình trong đầu |
+| **soi được lúc ĐANG MÙ** | lỗ hổng không sinh sự kiện nào nên KHÔNG có điểm mẫu nào rơi vào trong nó — đúng quãng đáng ngờ nhất lại là quãng soi không tới. Cần một mẫu ép ở mốc mở lỗ hổng |
+
+> ⚠ **Và bộ chạy vẫn NGẮT SỚM ở điều kiện sai đầu tiên** (`mot_luot`), trong khi
+> `mot_luot_ghi` tính đủ. Hai bản này là MỘT NGUỒN SỰ THẬT BỊ CHÉP LÀM HAI — cố ý, vì
+> một bản chạy mười triệu lần một ngày còn bản kia chạy mỗi lần bấm chuột. Cái giá trả
+> bằng `tests/test_soi.py`: 3.000 lượt trên 120 sơ đồ ngẫu nhiên, so từng ô. **Sửa một
+> bản thì phải sửa bản kia**, và bài kiểm sẽ nói ngay nếu quên.
+
+
+> **Ba chỗ đã cân nhắc rồi bỏ, ghi ra để khỏi bàn lại:**
+> · *Đếm số lần bị từ chối theo thời gian* — `mau` đã chở sẵn cột đó (cột thứ 5), chỉ
+>   chưa vẽ. Rẻ, thêm lúc nào cũng được.
+> · *Biểu đồ phân bố markout* — thú vị nhưng một con số trung bình đã đủ để quyết định,
+>   và phân bố cần chỗ bằng cả hai biểu đồ hiện có.
+> · *So hai lượt chạy cạnh nhau* — đúng là thứ người ta muốn khi vặn `phan_huy_truoc`
+>   qua ba mức. Đợi tới khi có ai thật sự làm việc đó nhiều lần.
 
 ---
 
-## 6. Điều kiện chạy trong Cài đặt
+## 5. Điều kiện chạy trong Cài đặt
 
 **Nằm ở đâu** — `webui/src/components/SettingsDialog.tsx` giờ chỉ còn mã mặc định và
 màu nhấn. Khoá `test` trong `luu_tru.CAI_DAT_MAC_DINH` và hàm `api.save_test_settings`
@@ -284,7 +273,7 @@ nghĩa được sau khi chọn sàn.
 
 ---
 
-## 7. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
+## 6. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
 
 Bộ test đi từ **4.213 dòng xuống 663**, và phần lớn là đúng — một bài kiểm không còn
 đối tượng thì là rác, không phải độ phủ. Nhưng **ba nhóm dưới đây kiểm CƠ CHẾ chứ không
@@ -309,7 +298,7 @@ lại ngay.
 
 ---
 
-## 8. Bảng tham số — hằng số CÓ TÊN
+## 7. Bảng tham số — hằng số CÓ TÊN
 
 **Nằm ở đâu** — `core.normalize_process` giữ khoá `tham_so` và luôn trả `[]`;
 `api.bootstrap` không gửi gì; `types.ts` khai `tham_so: never[]`.
@@ -337,7 +326,7 @@ sớm muộn hai bên hiểu khác nhau, và cái lệch thì im lặng.
 
 ---
 
-## 9. Bốn toán hạng còn thiếu của market maker
+## 8. Bốn toán hạng còn thiếu của market maker
 
 **Nằm ở đâu** — `cat_studio/kho/nen_tang.py` khai tám toán hạng; docstring của nó liệt
 kê bốn cái tiếp theo.
@@ -360,7 +349,7 @@ Cả bốn đều là **module mới thả vào `kho.MODULE`**, không sửa `co
 
 ---
 
-## 10. Động từ thứ ba — LỆNH CHỦ ĐỘNG
+## 9. Động từ thứ ba — LỆNH CHỦ ĐỘNG
 
 **Nằm ở đâu** — `core.ACTION_TYPES` có đúng hai động từ: `check_cond` · `so_hang`.
 
@@ -392,7 +381,7 @@ không thoát bằng mọi giá được. Đó chính xác là chỗ động t�
 
 ---
 
-## 11. Sổ lệnh
+## 10. Sổ lệnh
 
 **Nằm ở đâu** — không còn file nào.
 
@@ -414,7 +403,7 @@ bằng mili-giây, và theo dõi từng phía bid/ask riêng.
 
 ---
 
-## 12. Nhật ký và lịch sử
+## 11. Nhật ký và lịch sử
 
 **Nằm ở đâu** — không còn file nào. Thư mục `du_lieu/nhat_ky/` vẫn được liệt kê trong
 hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
@@ -446,7 +435,7 @@ kết quả: nhờ vậy chạy lại được, và so được hai lần chạy
 
 ---
 
-## 13. Nhật ký thiết kế đã cắt khỏi `core.md`
+## 12. Nhật ký thiết kế đã cắt khỏi `core.md`
 
 **Nằm ở đâu** — `tai_lieu/core.md`, mỗi chỗ cắt để lại một dòng `<!-- ĐÃ CẮT (đợt 4): …
 -->` nói rõ mất gì.
@@ -475,48 +464,52 @@ một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược 
 
 ## Trạng thái — đã cắm được gì
 
-**Bốn đợt dọn xong.** Từ đó đã cắm được năm mảng, và mỗi mảng xoá một mục khỏi sổ này:
+**Bốn đợt dọn xong.** Từ đó đã cắm được bảy mảng, và mỗi mảng xoá một mục khỏi sổ này:
 
 | đã cắm | thay cho mục nào |
 |---|---|
-| **nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn §1 (còn lại: xem cuối §1) |
+| **nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn *Nguồn dữ liệu* (còn lại: xem cuối §1) |
 | **kho `nen_tang`** — 8 toán hạng, mỗi cái tự khai công thức của nó | *Kho toán hạng* |
 | **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu | *Từ vựng của khối hành động* |
 | **mô hình khớp** — `khop_lenh.py` + tab Cài đặt · 58 phép kiểm | *Mô hình khớp* |
 | **bộ chạy** — `bo_chay.py`, vòng phản hồi khép kín · 45 phép kiểm | *Bộ chạy* |
-| **bảng Kết quả** — tách gộp/phí · markout · tồn kho · dải mù · giả định | phần lớn *Cửa sổ Strategy Tester* |
+| **bảng Kết quả** — tách gộp/phí · markout · tồn kho · dải mù · giả định | *Cửa sổ Strategy Tester* |
+| **soi một lượt** — bấm biểu đồ → sơ đồ sáng lên kèm số thật · 23 phép kiểm | phần lớn *Soi một lượt* |
 
-**Backtest chạy được từ đầu đến cuối.** ▶ Test đọc tick đã ghi, chạy sơ đồ mỗi sự kiện,
-khớp lệnh, và trả về bảng số kèm bốn giả định.
+**VÒNG ĐÃ KHÉP: vẽ → chạy → hiểu vì sao → sửa.** Vẽ sơ đồ, soát tĩnh, chạy trên tick
+đã ghi, đọc kết quả tách gộp/phí/markout, rồi bấm vào chỗ bất thường để thấy sơ đồ lúc
+đó nghĩ gì. Đó là toàn bộ vòng làm việc, và nó chạy được từ đầu đến cuối.
 
-### Ba điều bộ chạy nói ra ngay khi chạy lần đầu
+### Bốn điều bộ máy TỰ NÓI RA, không phải ta suy đoán
 
-Đây là lý do phải làm §3 trước cửa sổ: cho nó chạy là nó tự chỉ ra chỗ thiếu.
+Đây là lý do phải dựng bộ chạy trước cửa sổ: cho nó chạy là nó chỉ ra chỗ thiếu.
 
 1. **Sơ đồ mẫu requote gần như mỗi sự kiện** (399k lần / 400k sự kiện), vì
    `công bằng = mid`. Mà đổi giá là **về cuối hàng đợi** — nên ba mức `phan_huy_truoc`
    chỉ chênh nhau ~2,5%: vị trí hàng đợi chưa kịp có nghĩa thì đã bị vứt. Giữ báo giá
-   cho tới khi nó lệch quá N tick thì cần một toán hạng kho CHƯA CÓ — xem §9.
-2. **Sơ đồ mẫu từng KẸT CỨNG** ở hạn mức tồn kho: 99% số sự kiện bị post-only từ chối,
-   một phía bị hạn mức tắt, phía kia bị sàn từ chối. Nguyên nhân là một bất đẳng thức
-   không ai viết ra: treo ở đúng đỉnh thì `hạn_mức × hệ_số_lệch < spread`. Đã sửa, và
-   ghi lại trong `Api.demo_process`.
+   cho tới khi nó lệch quá N tick thì cần một toán hạng kho CHƯA CÓ — xem §8.
+2. **Sơ đồ mẫu từng KẸT CỨNG** ở hạn mức tồn kho: 99% số sự kiện bị post-only từ chối.
+   Nguyên nhân là một bất đẳng thức không ai viết ra: treo ở đúng đỉnh thì
+   `hạn_mức × hệ_số_lệch < spread`. Đã sửa, ghi lại trong `Api.demo_process`.
 3. **Chỗ để lệch gần như không có trên thị trường spread hẹp**, nên tồn kho phải quản
-   chủ yếu bằng KHỐI LƯỢNG chứ không bằng giá. Đó là bản chất của market making, không
-   phải hạn chế của app.
+   chủ yếu bằng KHỐI LƯỢNG chứ không bằng giá. Bản chất market making, không phải hạn
+   chế của app.
+4. **Markout −0,52 tick/lot** — chiến lược sơ cấp bị chọn ngược đều đặn. Đây là con số
+   nói rằng **nới spread không cứu được**: vấn đề là báo giá đứng im khi chợ đã đi, chứ
+   không phải treo chưa đủ rộng.
 
 ### Thứ tự cắm tiếp
 
-**Ổ cắm gấp nhất giờ là §5 soi một lượt** — và nó kéo theo hai thứ còn thiếu của §3
-(thang báo giá, tua tới một thời điểm), vì cả ba dùng chung một cơ chế. Làm xong bộ ba
-đó thì vòng *vẽ → chạy → hiểu vì sao → sửa* mới thật sự khép lại: hiện tại xem được
-KẾT QUẢ nhưng chưa xem được NGUYÊN NHÂN.
+**§8 — bốn toán hạng còn thiếu** (`microprice` · `bien_dong` · `tuoi_bao_gia` ·
+`lech_luong`). Điều 1 và điều 4 ở trên đều trỏ về đúng chỗ này: sơ đồ hiện không có
+cách nào diễn tả *"giữ báo giá cho tới khi nó cũ quá"* hay *"giãn biên khi chợ động"*.
+Cắm chúng vào là ngữ pháp có đủ từ để viết một chiến lược không ngây thơ nữa — và bộ
+máy đo được ngay là có khá hơn không.
 
-Rồi: §2 kết nối sàn (backtest phải sạch trước khi có gì đáng chạy thật) → §11 sổ lệnh →
-§12 nhật ký → §4 cửa sổ Live → §6 cài đặt.
+Sau đó mới tới **§2 kết nối sàn**, và chỉ khi đã có DỮ LIỆU THẬT cùng một chiến lược ra
+số dương trên đó. Cả hai đều chưa có: **repo chưa từng chạy trên một byte dữ liệu thật
+nào** — mọi con số trong sổ này đến từ `tools/gia_lap.py`.
 
-**§8 bảng tham số · §9 bốn toán hạng · §10 động từ taker** thì độc lập. Riêng §10 giờ đã
-có **con số** chứ không còn là suy đoán: bộ chạy đo được đúng chỗ chiến lược muốn thoát
-hàng mà lệnh thụ động không thoát nổi.
+Rồi: §10 sổ lệnh → §11 nhật ký → §3 cửa sổ Live → §5 cài đặt.
 
 Mỗi ổ cắm xong thì **xoá khỏi sổ này**, không đánh dấu ✔. Sổ cạn tới rỗng là xong.

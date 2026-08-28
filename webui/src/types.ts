@@ -252,10 +252,16 @@ export interface KetQuaTest {
     /** Bốn giả định của mô hình khớp. Kết quả không được rời khỏi giả định của nó. */
     gia_dinh: CaiDatKhop & { buoc_gia: number }
   }
-  /** `[t, giá_trị, tồn_kho, phí, số_lần_từ_chối]` — năm số trên CÙNG trục thời gian,
-   *  lấy mẫu ~1 điểm/giây. Chồng được lên nhau nên nhìn một chỗ là thấy vốn tụt lúc
-   *  nào, tồn kho phình lúc nào, bị từ chối dồn ở đâu. */
-  mau: [number, number, number, number, number][]
+  /** MỘT ĐIỂM MẪU = MỘT ẢNH CHỤP ĐỦ DÙNG, mười số:
+   *
+   *      t · giá_trị · tồn_kho · phí · số_lần_từ_chối     ← để VẼ
+   *      bid · ask · bid_kl · ask_kl · có_sổ              ← để SOI
+   *
+   *  Năm số đầu cùng một trục thời gian nên biểu đồ chồng lên nhau được. Năm số sau là
+   *  thứ làm `soi_luot` thành hàm THUẦN — bấm vào biểu đồ là ra ngay, không phát lại
+   *  hai phút. Xem `bo_chay.KetQua.mau`. */
+  mau: [number, number, number, number, number,
+        number, number, number, number, boolean][]
   /** `[tu, den]` — quãng MÙ. Trong đó sàn vẫn khớp mà backtest không thấy. */
   lo_hong: [number, number][]
   khop: { t: number; ben: number; gia: number; kl: number; phi: number
@@ -263,6 +269,43 @@ export interface KetQuaTest {
   symbol: string
   tu_ngay: string
   den_ngay: string
+}
+
+/** SOI MỘT LƯỢT — sơ đồ đã làm gì tại một thời điểm, và vì sao. */
+export interface KetQuaSoi {
+  /** Trạng thái sơ đồ NHÌN THẤY lúc đó. `mid`/`spread` là `null` khi đang mất sổ. */
+  nhin: {
+    bid: number | null; ask: number | null; bid_kl: number; ask_kl: number
+    co_so: boolean; ton_kho: number; mid: number | null; spread: number | null
+  }
+  /** Sáu ô của bản nháp báo giá. `null` = CHƯA ĐẶT, khác hẳn với đặt bằng 0. */
+  nhap: {
+    cong_bang: number | null; bien_mua: number; bien_ban: number
+    lech: number; lot_mua: number; lot_ban: number
+  }
+  /** Giá ĐÃ LÀM TRÒN về tick — con số sẽ gửi đi, không phải con số trong đầu sơ đồ. */
+  bao_gia: {
+    mua_gia: number | null; mua_lot: number
+    ban_gia: number | null; ban_lot: number
+  }
+  /** Theo ĐÚNG thứ tự đã đi, kể cả khối thử rồi bỏ. */
+  khoi: {
+    id: string; nhan: string; loai: 'cong' | 'so_hang'
+    /** Cổng: mọi điều kiện có khớp không. Số hạng: luôn `true`. */
+    qua: boolean
+    /** Nhánh này bị BỎ khi lùi — số hạng của nó đã hoàn nguyên. */
+    bo?: boolean
+    /** Cổng: con số hai vế + PHÉP của TỪNG điều kiện, tính ĐỦ không ngắt sớm.
+     *  Có `phep` để dựng lại đúng câu với số thật thay vào (`3 ≥ 5`). */
+    dieu_kien?: { trai: number; phai: number | null; phep: string; dat: boolean }[]
+    /** Số hạng: ô `khi` (nếu có), có áp dụng không, lượng, và trước/sau. */
+    khi?: { trai: number; phai: number | null; phep: string; dat: boolean }
+    ap_dung?: boolean
+    luong?: number
+    truoc?: (number | null)[]
+    sau?: (number | null)[]
+  }[]
+  tick: number
 }
 
 /** BỐN núm vặn của mô hình khớp, và BA TRONG BỐN là thứ dữ liệu L1 không bao giờ trả

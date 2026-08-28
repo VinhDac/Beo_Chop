@@ -4,8 +4,8 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  BoNguon, Bootstrap, CaiDatNguon, Card, DongThiTruong, KetQuaSoat, KetQuaTest,
-  KhoDanhMuc,
+  BoNguon, Bootstrap, CaiDatNguon, Card, DongThiTruong, KetQuaSoat, KetQuaSoi,
+  KetQuaTest, KhoDanhMuc,
   ProcEdge, ProcessDoc, Reply, Step, Tab, TrangThaiGhi,
 } from './types'
 
@@ -135,10 +135,13 @@ export const py = {
   // MT5 (đợt 2). Giữ nguyên chữ ký ở đây chứ không xoá — `App.tsx` đã sẵn nhánh
   // `if (!r.ok) alert(r.error)`, nên nút vẫn nói được thành lời thay vì trông như hỏng.
   // Xem `tai_lieu/o_cam_trong.md`.
-  /** ▶ Test — chạy backtest trên dữ liệu tick đã ghi. Trả BẢNG SỐ; cửa sổ Tester
-   *  (biểu đồ, tua, soi từng lượt) là ổ cắm còn trống. */
+  /** ▶ Test — chạy backtest trên dữ liệu tick đã ghi. */
   mo_tester: (doc: ProcessDoc, symbol?: string) =>
     goi<KetQuaTest>('mo_tester', doc, symbol),
+  /** SOI MỘT LƯỢT tại một điểm mẫu. Hàm THUẦN bên Python — không phát lại, nên tức
+   *  thì. `nhin` lấy thẳng từ `KetQuaTest.mau`. */
+  soi_luot: (doc: ProcessDoc, nhin: Record<string, unknown>, tick: number) =>
+    goi<KetQuaSoi>('soi_luot', doc, nhin, tick),
   mo_live: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_live', doc),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---

@@ -302,8 +302,12 @@ kiem("bảng mang theo CẢ BỐN giả định — kết quả không được 
                             "phan_huy_truoc", "phan_muc_sau"})
 kiem("mẫu có LẤY THƯA, không phải mỗi sự kiện một điểm",
      0 < len(kq.mau) < kq.so_su_kien, f"— {len(kq.mau)} điểm")
-kiem("mỗi điểm mẫu mang đủ NĂM số trên CÙNG một trục thời gian",
-     all(len(x) == 5 for x in kq.mau))
+# MỘT ĐIỂM MẪU = MỘT ẢNH CHỤP ĐỦ DÙNG: năm số để VẼ, năm số để SOI. Nhờ năm số sau
+# mà `soi_luot` thành hàm THUẦN — không phát lại, không đọc file. Xem `KetQua.mau`.
+kiem("mỗi điểm mẫu mang đủ MƯỜI số trên CÙNG một trục thời gian",
+     all(len(x) == 10 for x in kq.mau))
+kiem("và ảnh chụp thị trường trong mẫu KHỚP với thứ sơ đồ đã nhìn — soi mới đúng được",
+     all(m[5] == m[5] or not m[9] for m in kq.mau))
 
 # MARKOUT — con số nói ra ta có đang bị chọn ngược hay không.
 kiem("markout đo được, và chỉ đo phần khớp ĐỦ TUỔI",

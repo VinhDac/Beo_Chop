@@ -167,6 +167,38 @@ Chỉ những lần khớp ĐỦ TUỔI mới được tính; số lot đo đư�
 `kl_da_khop` là thấy ngay phần bị bỏ. Chốt bừa ở giá cuối là trộn một phép đo nửa vời
 vào trung bình rồi không ai biết.
 
+### ⭐ SOI MỘT LƯỢT — vì sao nó là một HÀM THUẦN
+
+Bấm một điểm trên biểu đồ Kết quả → sơ đồ sáng lên đúng đường lượt đó đã đi, kèm con số
+thật của từng điều kiện (`−0,05 ≥ 5`). Cái đáng ghi lại là **cách nó chạy được**.
+
+Cách hiển nhiên là *phát lại tới thời điểm T rồi chụp*. Bộ chạy đi 0,08 triệu sự
+kiện/giây, nên một ngày dữ liệu mất **~2 phút** — bấm xong ngồi chờ một phút thì không
+ai bấm lần thứ hai, và một tính năng không ai dùng lần thứ hai thì coi như không có.
+
+Nhưng điểm mẫu vốn được lấy **đúng lúc sơ đồ vừa chạy xong lượt đó**: `ton_kho` ở đó
+chính là con số sơ đồ vừa đọc. Cho mẫu chở thêm năm số nữa (sổ lệnh + `co_so`) thì
+`soi_luot` thành một hàm thuần — không phát lại, không đọc file, không giữ trạng thái.
+
+| | phát lại tới T | mẫu CHỞ SẴN ảnh chụp |
+|---|---|---|
+| thời gian | tới ~2 phút | tức thì |
+| bộ nhớ | 0 | +160 KB / hai ngày |
+| soi được ở đâu | mọi mili-giây | **chỉ những mốc đã lấy mẫu** |
+
+Hạn chế ở dòng cuối là thật, và giao diện **nói ra** thay vì giấu: bấm vào biểu đồ thì
+con trỏ NHẢY VỀ mốc gần nhất, chân bảng ghi rõ đang soi mốc nào.
+
+> ⚠ **`mot_luot` và `mot_luot_ghi` là MỘT NGUỒN SỰ THẬT BỊ CHÉP LÀM HAI.** Bản chạy
+> ngắt sớm ở điều kiện sai đầu tiên (mười triệu lượt một ngày); bản ghi tính đủ mọi
+> điều kiện, vì soi xong mà không biết *"ba điều kiện kia lúc đó bằng bao nhiêu"* thì
+> soi để làm gì.
+>
+> Chép làm hai là cố ý, nhưng cái giá phải trả bằng phép kiểm: `tests/test_soi.py` chạy
+> **cả hai** trên 3.000 lượt của 120 sơ đồ ngẫu nhiên rồi so từng ô báo giá, và tự
+> chứng minh bộ sinh có chạm rẽ nhánh · luật lùi · `khi` trượt · ca mất sổ. **Sửa một
+> bản thì phải sửa bản kia.**
+
 ### Vì sao `so_lenh.py` dùng id của ta
 
 D_02 **không có** id nối lệnh chờ với vị thế sinh ra từ nó, nên `CheckPendingActivation`

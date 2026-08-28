@@ -780,6 +780,30 @@ class Api(NenCuaSo):
                     "tu_ngay": tu, "den_ngay": den})
 
     @_bat_loi
+    def soi_luot(self, doc, nhin, tick=None):
+        """SOI MỘT LƯỢT — sơ đồ đã làm gì tại một thời điểm, và VÌ SAO.
+
+        `nhin` là sáu số lấy thẳng từ MỘT ĐIỂM MẪU của kết quả (`KetQuaTest.mau`), nên
+        hàm này **thuần**: không phát lại, không đọc file, không giữ trạng thái.
+
+        ⚠ Đó là toàn bộ điều làm mục này dùng được. Cách hiển nhiên — *phát lại tới
+        thời điểm T* — mất tới hai phút cho một ngày dữ liệu, tức bấm xong ngồi chờ một
+        phút và không ai bấm lần thứ hai. Xem `bo_chay.KetQua.mau`.
+
+        Đổi lại chỉ soi được ĐÚNG những mốc đã lấy mẫu; giao diện bám vào mốc gần nhất
+        và nói rõ đang xem mốc nào."""
+        try:
+            t = float(tick) if tick else 0.0
+        except (TypeError, ValueError):
+            t = 0.0
+        if not (t > 0):
+            return _loi("Chưa biết bước giá — chạy ▶ Test một lần trước đã.")
+        try:
+            return _ok(bo_chay.soi_luot(doc, nhin or {}, t))
+        except bo_chay.LoiChay as e:
+            return _loi(str(e))
+
+    @_bat_loi
     def mo_live(self, doc=None):
         """● Live — CHƯA CÓ KẾT NỐI SÀN."""
         return {"ok": False,

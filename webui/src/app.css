@@ -811,6 +811,78 @@ select.o { cursor: pointer; }
 .k-the.doan { color: var(--warn); border-color: var(--warn); }
 
 /* ==========================================================================
+   SOI MỘT LƯỢT
+   ==========================================================================
+   Nguyên tắc: **làm mờ phần KHÔNG chạy, đừng tô sáng phần có chạy.** Sơ đồ hai mươi
+   khối mà tô năm màu thì thành một cây thông; làm mờ mười lăm khối còn lại thì đường
+   đã đi tự nổi lên mà không thêm một màu nào.
+
+   Bốn trạng thái dùng KÝ HIỆU (✓ ✗ ↩ ⊘) chứ không chỉ dùng màu — xem `StepNode`. */
+.hop.soi-ngoai { opacity: .22; filter: grayscale(1); }
+.hop.soi { box-shadow: var(--shadow), 0 0 0 1px var(--border) inset; }
+.hop.soi-qua    { box-shadow: var(--shadow), 0 0 0 1.5px var(--ok) inset; }
+.hop.soi-truot  { box-shadow: var(--shadow), 0 0 0 1.5px var(--err) inset; }
+.hop.soi-bo     { opacity: .6; box-shadow: var(--shadow), 0 0 0 1.5px var(--ghim) inset; }
+.hop.soi-bo-qua { opacity: .75; box-shadow: var(--shadow), 0 0 0 1.5px var(--dim) inset; }
+
+.soi-dau {
+  flex: none; margin-left: 4px;
+  font-size: 12px; font-weight: 700; line-height: 1;
+}
+.soi-dau-qua { color: var(--ok); }
+.soi-dau-truot { color: var(--err); }
+.soi-dau-bo { color: var(--ghim); }
+.soi-dau-bo-qua { color: var(--dim); }
+
+/* Con số THẬT của lượt đang soi, dưới câu mô tả của khối. Dùng phông đơn cách để hai
+   vế của một phép so thẳng cột với nhau. */
+.dong.soi-so { font-family: var(--mono); font-size: 10.5px; margin-top: 2px; }
+.soi-so-qua { color: var(--ok); }
+.soi-so-truot { color: var(--err); }
+.soi-so-bo, .soi-so-bo-qua { color: var(--dim); }
+
+/* ---- thẻ nổi trên canvas ---- */
+.soi-the {
+  position: absolute; top: 10px; right: 10px; z-index: 6;
+  width: 236px; padding: 8px 10px 10px;
+  background: var(--raised); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  font-size: 11.5px;
+}
+.soi-dau-the { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.soi-tieu-de { font-weight: 600; color: var(--text); }
+.soi-luc { flex: 1; color: var(--dim); font-size: 10.5px; font-family: var(--mono); }
+.soi-dong {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; padding: 0 2px; font-size: 12px; line-height: 1;
+}
+.soi-dong:hover { color: var(--err); }
+
+.soi-muc {
+  color: var(--muted); font-size: 10px; letter-spacing: .04em;
+  margin: 7px 0 3px; text-transform: uppercase;
+}
+/* Ba cột: nhãn · số chính · số phụ. Số chính thẳng cột nên liếc dọc là so được. */
+.soi-luoi {
+  display: grid; grid-template-columns: 52px 1fr auto;
+  gap: 1px 8px; align-items: baseline;
+}
+.soi-luoi > span:first-child, .soi-luoi > span:nth-child(3n + 1) { color: var(--muted); }
+.soi-luoi > b { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.soi-kl { color: var(--dim); font-size: 10.5px; font-family: var(--mono); }
+.soi-nong { color: var(--khoi-lot); }
+.soi-bao-gia > b { color: var(--accent); }
+
+.soi-mu, .soi-rut {
+  margin: 6px 0 0; padding: 4px 6px; border-radius: var(--radius-sm);
+  background: rgba(229, 83, 75, .12); color: var(--err); font-size: 10.5px;
+  line-height: 1.45;
+}
+.soi-rut { background: var(--field); color: var(--muted); }
+
+.kq-dang-soi { color: var(--accent); }
+
+/* ==========================================================================
    KẾT QUẢ ▶ Test — tab thứ ba của bảng dưới
    ==========================================================================
    Bảng dưới vốn cao 176px; chạy xong ▶ Test thì App nới ra 340px (`CAO_KET_QUA`).
