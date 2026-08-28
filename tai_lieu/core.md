@@ -15,13 +15,18 @@
 >
 > **Cái ở lại là phần KHÔNG dính sàn nào và cũng KHÔNG dính chiến lược nào** — và đó
 > đúng là phần đã sống sót qua cả D_02 lẫn MT5:
-> §3 cơ chế đánh số · §4 ghim số ⟲ và khối Bắt đầu · §5 luật rẽ nhánh · §6.0–6.3 hai
-> sơ đồ · mỗi sơ đồ là một vòng lặp · hai loại khối · ba động từ · §8 giao diện ·
-> §9 định dạng file · §10 môi trường.
+> §3 cơ chế đánh số · §4 ghim số ⟲ và khối Bắt đầu · §5 luật rẽ nhánh · §6.1 mỗi sơ đồ
+> là một vòng lặp · §6.2 hai loại khối · §8 giao diện · §9 định dạng file · §10 môi
+> trường.
+>
+> **§6.0 và §6.3 thì viết lại hẳn**, không phải cắt: hai sơ đồ Entry/Manage thành MỘT sơ
+> đồ Báo giá, ba động từ thành HAI (`check_cond` · `so_hang`), và từ vựng nến/ATR/R
+> thành từ vựng spread/tồn kho. Bản cũ đọc ở cùng chỗ.
 >
 > Ổ cắm nào đang trống thì xem `tai_lieu/o_cam_trong.md`.
 
-Cập nhật: 2026-08-28 · Trạng thái: **trình soạn thảo sơ đồ, chưa có sàn** · test 4 bài
+Cập nhật: 2026-08-28 · Trạng thái: **vẽ và soát được chiến lược MM, chưa chạy được** ·
+test 7 bài
 
 ---
 
@@ -273,7 +278,7 @@ mà số cũ vẫn hợp lệ."*
    nghĩa của nó vốn đã là *"không nhánh nào khớp thì quay về trên"*. Bắt nó viết điều
    kiện phủ định của tất cả các nhánh trên là thừa và dễ sai.
 3. **Không còn cảnh báo "nhánh nào cũng có điều kiện".** Đã bỏ hẳn: cả sơ đồ là một
-   vòng lặp chạy lại mỗi nến (§6.1), nên không khớp nhánh nào = **hết lượt**, nến sau
+   vòng lặp chạy lại mỗi sự kiện (§6.1), nên không khớp nhánh nào = **hết lượt**, lượt sau
    chạy lại từ đầu. Đó là cách "chờ" được diễn tả, và là trường hợp thường gặp nhất.
 
 > **Ghi chú:** sơ đồ mẫu Compress **không dùng ghim số một lần nào** — đúng như nó
@@ -323,69 +328,107 @@ Một khối `check_cond` chỉ **đọc** dữ liệu thị trường nên lùi
 |---|---|---|
 | `check_cond` làm **cổng** | đi tiếp nhánh này | **chết nhánh** này, thử nhánh dưới |
 
-Không nhánh nào khớp thì **hết lượt** — nến sau chạy lại từ khối Bắt đầu. Đó là cách
+Không nhánh nào khớp thì **hết lượt** — sự kiện sau chạy lại từ khối Bắt đầu. Đó là cách
 "chờ" được diễn tả, và là trường hợp thường gặp nhất, KHÔNG phải lỗi.
 
 ---
 
 ## 6. Bộ khối & hành động của Cat_Studio
 
-### 6.0 ⭐⭐ MỘT CHIẾN LƯỢC = HAI SƠ ĐỒ
+### 6.0 ⭐⭐ MỘT CHIẾN LƯỢC = MỘT SƠ ĐỒ
 
 ```
-   ┌── Tab ENTRY ────────────────────┐     ┌── Tab MANAGE ───────────────────┐
-   │  con trỏ ĐI SĂN                 │     │  chạy MỘT LƯỢT CHO MỖI LỆNH     │
-   │  một lượt mỗi nến               │     │  đang sống, cũng mỗi nến        │
-   │  chỉ nó được TẠO lệnh           │     │  chỉ nó được SỬA lệnh           │
-   └─────────────────────────────────┘     └─────────────────────────────────┘
+   ┌── Sơ đồ BÁO GIÁ ────────────────────────────────────┐
+   │  chạy MỘT LƯỢT mỗi SỰ KIỆN sổ lệnh                  │
+   │  phát biểu lại TOÀN BỘ báo giá: bid · ask · lot     │
+   │  chốt ở cuối lượt, không phát biểu gì thì giữ nguyên │
+   └─────────────────────────────────────────────────────┘
 ```
 
-**Thứ tự trong một nến:**
+> ⚠ **Bản D_02 có HAI sơ đồ: ENTRY đi săn và MANAGE quản từng lệnh đang sống**, với
+> luật *Entry chỉ TẠO · Manage chỉ SỬA* soát tĩnh được — món quà lớn nhất của việc
+> tách tab, và là loại lỗi MQL5 không bao giờ bắt.
+>
+> **Nó không bị bỏ vì lười — nó mất ĐỐI TƯỢNG.** Market maker không "vào lệnh" rồi
+> "quản lệnh" ở hai nhịp khác nhau: mỗi sự kiện, cả sơ đồ chạy lại và phát biểu lại
+> báo giá từ đầu. Cái vừa treo bị huỷ, cái mới treo lên — không có "lệnh đang sống"
+> nào để chạy một vòng riêng cho nó.
+>
+> Cơ chế nhiều sơ đồ thì **giữ nguyên ở cả hai đầu** (`core.TABS` · `ACTION_TABS` ·
+> `PillTab`, và pill tự ẩn khi chỉ có một). §3 — lớp khớp lệnh — có thể cần sơ đồ thứ
+> hai; lúc đó không phải dựng lại.
+
+**MỘT LƯỢT PHÁT BIỂU = MỘT TRẠNG THÁI ĐẦY ĐỦ.** Sơ đồ dựng dần năm ô rồi chốt:
 
 ```
-0.  runtime cập nhật vùng nén · xu hướng · chỉ báo      ← không phải khối
-1.  với MỖI lệnh đang sống → chạy MANAGE từ khối 1
-2.  chạy ENTRY từ khối 1                                ← có thể sinh một lệnh mới
+   cong_bang                giá công bằng — gốc để đo mọi thứ khác
+   bien_mua · bien_ban      treo cách công bằng bao xa, mỗi phía
+   lech                     dịch CẢ HAI phía để đẩy tồn kho về 0
+   lot_mua  · lot_ban       khối lượng mỗi phía
+
+   bid = cong_bang − lech − bien_mua       (lot_mua)
+   ask = cong_bang − lech + bien_ban       (lot_ban)
 ```
 
-**Manage TRƯỚC Entry** — đúng `OnTick`: `CheckPendingActivation` → `ManageBreakEven` →
-rồi mới tới phần quyết định. Chạy ngược lại thì lệnh vừa sinh bị quản lý ngay trong
-chính nến đẻ ra nó.
+**KHỚP LỆNH KHÔNG CẦN XỬ LÝ RIÊNG** — và đây là chỗ mô hình này gọn hơn hẳn bản cũ.
+Lệnh khớp thì tồn kho đổi; sự kiện kế tiếp chạy lại sơ đồ, `lệch` đọc tồn kho mới và
+báo giá tự dịch theo. Không có "sau khi khớp thì làm gì" để vẽ, vì không có trạng thái
+nào cần nhớ giữa hai lượt.
 
-**Manage KHÔNG giữ con trỏ giữa các nến.** Nó tính lại từ trạng thái quan sát được, y
-như D_02 làm mỗi tick. Nhờ vậy mấy câu guard kiểu `if(sl >= entry) continue` **hiện ra
-thành cổng** trên sơ đồ thay vì chôn trong C++.
+### 6.0b ⭐ TẦNG CỔNG VÀ TẦNG TÍNH — vì sao KHÔNG phải cây quyết định
 
-**Ranh giới khoá được — đây là món quà của việc tách tab:**
+Đây là quyết định thiết kế đắt nhất của cả phần từ vựng, nên phải ghi rõ.
 
-| | Entry | Manage |
+Một cây quyết định sạch (rẽ nhánh cho từng tình huống) **không mở rộng được**: k yếu tố
+độc lập cần **2^k nhánh**. Chợ động thì giãn biên · đang ôm hàng thì lệch · sổ lệnh mất
+cân thì dịch công bằng — ba yếu tố đã là tám nhánh, mà chúng có gì loại trừ nhau đâu.
+
+Chuỗi số hạng cộng dồn thì cần **k dòng**:
+
+```
+   [2]  công bằng  =   mid
+   [3]  biên       =   1 × spread
+   [4]  lệch      +=   tồn kho × 0,5 tick/lot
+   [5]  lot        =   500
+```
+
+Nên chia làm hai tầng, theo đúng bản chất của thứ đang hỏi:
+
+| tầng | dùng khi | hình dạng |
 |---|---|---|
-| Kiểm tra ĐK | ✔ | ✔ |
-| **Vào lệnh** | ✔ | ✘ |
-| **Sửa lệnh** | ✘ | ✔ |
-| Toán hạng nhóm **"Lệnh này"** | ✘ **báo lỗi** | ✔ |
+| **cổng** | trạng thái **loại trừ nhau**, hiếm — mù thì rút, không tính gì nữa | rẽ nhánh |
+| **tính** | thứ **chồng lên nhau**, đường thường | chuỗi số hạng |
 
-> **Entry chỉ TẠO. Manage chỉ SỬA.** Một câu, và `validate_actions(…, tab)` soát tĩnh
-> được — chỉ thẳng vào khối sai. Đây là loại lỗi MQL5 không bao giờ bắt.
+Và điều kiện gắn lên **chính khối số hạng** (ô `khi`) chứ không thành cổng riêng: hai
+hạn mức tồn kho làm bằng cổng là bốn nhánh, làm bằng `khi` là hai dòng và chuỗi vẫn
+thẳng.
 
-Ribbon **ẩn hẳn** nút không thuộc tab (không làm mờ): làm mờ thì người dùng vẫn phải
-đoán vì sao.
+**Cái giá phải trả, ghi ra để không quên:** thứ tự trong chuỗi **LÀ ngữ nghĩa** — đổi
+chỗ hai khối là đổi kết quả.
 
-Pill `Entry | Manage` là một **chip nổi ở góc trên-trái CANVAS**, không chiếm dải
-ngang riêng. Nó trả lời câu "đang vẽ sơ đồ NÀO", nên nằm ngay trên chính cái đang vẽ
-là đúng chỗ — và lấy lại được ~34px chiều cao. Có **chấm đỏ khi tab kia đang lỗi**, để
-lỗi không trốn được sau lưng.
+```
+   biên = 1 × spread   rồi   biên += 2 tick     → 1 spread + 2 tick
+   biên += 2 tick      rồi   biên = 1 × spread  → 1 spread. Hai tick BỐC HƠI.
+```
+
+Không chỗ nào khác lộ ra điều đó: sơ đồ nhìn vẫn hợp lý, chỉ có một số hạng lặng lẽ
+không bao giờ có tác dụng, mà bảng lãi lỗ thì không biết kêu. Nên `core._soat_ghi_de`
+**cảnh báo** (không chặn — đặt lại giữa chừng vẫn có thể là cố ý).
 
 ### 6.1 ⭐ MỖI SƠ ĐỒ LÀ MỘT VÒNG LẶP
 
-> Sơ đồ chạy lại **từ khối Bắt đầu ở MỖI NẾN MỚI** — đúng như `OnTick` của MQL5 chạy
-> lại từ đầu mỗi tick. D_02 không có gì chạy nền cả.
+> Sơ đồ chạy lại **từ khối Bắt đầu ở MỖI SỰ KIỆN SỔ LỆNH** — không có gì chạy nền cả.
+>
+> ⚠ Bản D_02 nói "mỗi NẾN MỚI", đúng như `OnTick` của MQL5 chạy lại từ đầu mỗi tick.
+> Đổi nhịp chứ không đổi cơ chế: nhịp giờ là một bản ghi `bookTicker` hoặc một lệnh
+> khớp (`cat_studio/phat_lai.py`), tức nhanh hơn nhiều bậc, nhưng luật *chạy lại từ
+> đầu, không nhớ gì giữa hai lượt* thì y nguyên. Đó là lý do cả §6.1 này sống sót.
 
 Hệ quả, và nó gỡ được rất nhiều thứ:
 
-- **"Chờ tới khi" KHÔNG phải vẽ.** Không cổng nào khớp → hết lượt → nến sau tự chạy
-  lại. Bản vẽ tay đầu tiên của sơ đồ mẫu có **5 vòng tự-lặp + 3 mũi tên "quay lại 1"**;
-  cả 8 cạnh đó biến mất.
+- **"Chờ tới khi" KHÔNG phải vẽ.** Không cổng nào khớp → hết lượt → sự kiện sau tự chạy
+  lại. Bản vẽ tay đầu tiên của sơ đồ mẫu D_02 có **5 vòng tự-lặp + 3 mũi tên "quay lại
+  1"**; cả 8 cạnh đó biến mất.
 - **Không cần loại khối "Vòng theo dõi".** Nó chỉ là cái vòng lặp lớn vẽ lại lần nữa
   ở bên trong.
 - **Trạng thái không cần khối.** `IDLE / COUNTING / CONFIRMED / PENDING / CONSUMED` của
@@ -397,7 +440,7 @@ Hệ quả, và nó gỡ được rất nhiều thứ:
 
 | kind | Nghĩa |
 |---|---|
-| `start` — **Bắt đầu** | Điểm neo: mỗi nến chạy lại từ đây. Đúng một cái, không xoá được, không nhận đường vào (§4.2). |
+| `start` — **Bắt đầu** | Điểm neo: mỗi sự kiện chạy lại từ đây. Đúng một cái, không xoá được, không nhận đường vào (§4.2). |
 | `action` — **Khối** | Đúng một hành động. Mang `check_cond` thì nó là **cổng rẽ nhánh**. |
 
 **Đã bỏ `Vòng theo dõi` và `Nhóm 1 lần`:**
@@ -409,121 +452,116 @@ Hệ quả, và nó gỡ được rất nhiều thứ:
   cụm khối rời mở ra là một mớ khối lạc không có đường vào, dán xong vẫn phải nối lại
   từ đầu. `TEMPLATE_KINDS` chỉ còn `strategy`.
 
-### 6.3 BA HÀNH ĐỘNG — đọc · tạo · sửa
+### 6.3 HAI ĐỘNG TỪ — hỏi · góp một số hạng
 
-> **Chốt sau khi bàn lại.** Ban đầu định 8 hành động (3 hiện, 5 ẩn). Khi làm rõ rằng
-> SL/TP là thao tác **sửa lệnh đã có** chứ không phải hành động riêng, cả 5 cái định
-> ẩn đều tan vào ba việc cơ bản — không cái nào bị mất đi, chỉ là không cần khối riêng.
+> **Bản D_02 có BA:** `check_cond` · `vao_lenh` (tạo vị thế: Mua/Bán · Market/Stop/Limit
+> · lot · SL & TP ban đầu) · `sua_lenh` (dời SL · dời TP · hoà vốn · trailing · đóng một
+> phần · đóng hẳn · huỷ chờ). Cả hai động từ sau nói về một thế giới có **LỆNH RỜI mang
+> SL/TP riêng**, nên chúng không dịch sang market maker được — không phải đổi tên.
+> Bảng đối chiếu đầy đủ: `git show f1c90fb:tai_lieu/o_cam_trong.md` §11.
 
 | key | Nhãn | Việc |
 |---|---|---|
-| `check_cond` | **Kiểm tra điều kiện** | ĐỌC thị trường + tài khoản rồi quyết đi nhánh nào. **Đây là CỔNG rẽ nhánh.** |
-| `vao_lenh` | **Vào lệnh** | TẠO vị thế mới: Mua/Bán · Market/Stop/Limit · lot · **SL & TP ban đầu** |
-| `sua_lenh` | **Sửa lệnh** | SỬA lệnh ĐÃ CÓ. Chế độ: `dời SL` · `dời TP` · `hoà vốn` · `trailing` · `đóng một phần` · `đóng hẳn` · `huỷ lệnh chờ` |
+| `check_cond` | **Kiểm tra điều kiện** | ĐỌC thị trường + tồn kho rồi quyết đi nhánh nào. **Đây là CỔNG rẽ nhánh.** |
+| `so_hang` | **Số hạng** | Góp MỘT số hạng vào báo giá: `đích` · `phép` · `lượng` · `khi` (tuỳ chọn) |
 
-**Năm khái niệm cũ đi đâu:**
+**KHÔNG CÓ động từ "rút" hay "tắt một phía"** — chúng chỉ là `lot = 0` và `lot_mua = 0`.
+Đây chính là lãi của việc tách `lot_mua`/`lot_ban` ngay từ đầu: hai động từ nữa biến
+mất, và hộp vẫn nói rõ hậu quả (`→ rút hết báo giá`) nên không ai phải nhớ luật.
 
-| Định làm khối riêng | Thật ra là |
+**Động từ thứ ba CÒN THIẾU và nó có thật:** tồn kho chạm hạn mức CỨNG thì phải đóng
+chủ động bằng lệnh taker, không chờ ai lấy hàng. Nó không nhét vào ngữ pháp số hạng
+được — một số hạng *góp vào* báo giá, còn cái này *vứt* báo giá đi và bắn một lệnh ăn
+ngay. Xem `o_cam_trong.md` §12; phải đợi §3 mô hình khớp.
+
+#### Bốn trường của một số hạng
+
+| trường | nhận gì |
 |---|---|
-| `cầu dao` (chặn rủi ro) | toán hạng `số_lệnh_mở`, `drawdown_%`, `giờ` trong **Kiểm tra điều kiện** |
-| `cổng` | chính là **Kiểm tra điều kiện** đứng đầu một nhánh |
-| `kích hoạt` (chờ khớp) | không cần gì cả — cả sơ đồ chạy lại mỗi nến (§6.1), nên "chờ" là hết lượt |
-| `vào` | **Vào lệnh** |
-| `thoát` | chế độ `đóng hẳn` / `huỷ lệnh chờ` của **Sửa lệnh** |
+| `đích` | `công bằng` · `biên` (tách được `biên mua`/`biên bán`) · `lệch` · `lot` (tách được `lot mua`/`lot bán`) |
+| `phép` | `=` · `+=` · `×=` — `×=` **chỉ** cho `lot` |
+| `lượng` | `hệ_số × toán_hạng`, kèm thước đo |
+| `khi` | một điều kiện, cùng hình dạng với điều kiện của cổng |
 
-*(Từng có `dat_co` — Đặt cờ — để dành làm bộ nhớ. Bỏ: D_02 không cần, và giữ một cơ
-chế không ai dùng chỉ tổ rác. Cần thì thêm lại lúc có ca dùng thật.)*
+**`×=` chỉ cho `lot`** vì nhân một mức giá hay một bề rộng với hệ số không có nghĩa vật
+lý nào — *"gấp đôi giá công bằng"* là gì?
 
-**Toán hạng của `check_cond`** — 32 cái, 6 nhóm, đủ tái lập Compress EA 100%:
+**Tách mua/bán NGAY TỪ ĐẦU** dù chiến lược sơ cấp chưa dùng: miễn phí bây giờ, đắt về
+sau. Ngày muốn biên lệch hai phía thì không phải đổi mô hình.
+
+#### Toán hạng — 8 cái, và vì sao đúng 8
+
+Suy thẳng từ bản chất một market maker, không thêm cái nào cho đẹp
+(`cat_studio/kho/nen_tang.py`):
 
 | Nhóm | Toán hạng |
 |---|---|
-| Giá | `Close[n]`, `Open[n]`, `High[n]`, `Low[n]`, `Bid`, `Ask`, `Spread` |
-| Chỉ báo | `ATR(tf, period)`, `MA(tf, period, method)`, `Donchian(tf, period).upper/lower`, `Volume_MA(tf, period)` |
-| Chuẩn hoá | `ATR_bps = ATR/Close × 10000`, `X theo bội ATR`, `X theo R` |
-| Vùng nén | `số_nến_nén`, `đỉnh_vùng`, `đáy_vùng`, `bề_rộng_vùng÷ATR`, `ATR_TB_vùng`, **`vùng_này_đã_sinh_lệnh`** |
-| Tài khoản | `số_vị_thế`, `số_lệnh_chờ`, `số_lệnh_hôm_nay`, `drawdown_%` |
-| **Lệnh này** *(chỉ Manage)* | `đã_khớp`, `là_lệnh_Mua`, `SL_đã_ở_hoà_vốn`, `lãi (×R)`, `số_nến_đã_sống`, `giá_vào` |
-| Thời gian | `giờ`, `thứ` |
+| Sổ lệnh | `bid` · `ask` · `bid_kl` · `ask_kl` · `mid` · `spread` |
+| Của ta | **`ton_kho` (±lot, CÓ DẤU)** |
+| Sức khoẻ | `co_so` — có nhìn thấy sổ lệnh không |
 
-**Phép so dùng KÝ HIỆU, không dùng chữ:**
-`<` `≤` `>` `≥` `=` `≠` · `cắt lên ↗` · `cắt xuống ↘` · `trong khoảng`.
-Một cổng của Compress mang 4–5 điều kiện; viết *"lớn hơn hoặc bằng"* thì mỗi dòng dài
-gấp đôi và mắt phải **đọc chữ** thay vì **liếc thấy quan hệ**.
+`bid_kl`/`ask_kl` **chính là hàng đợi** — khối lượng đang đứng TRƯỚC ta ở đỉnh, thứ
+duy nhất quyết định có được khớp hay không. Dấu của `ton_kho` là toàn bộ ý nghĩa của
+nó: bỏ dấu đi thì không lệch báo giá được, mà lệch theo tồn kho là thứ quan trọng nhất
+của quản trị rủi ro market making.
 
-**`vùng_này_đã_sinh_lệnh` thay cho `COMP_CONSUMED`** — và nó KHÔNG phải cờ ẩn: lệnh
-mang `vùng_id`, nên câu hỏi chỉ là một phép tra bảng *"có lệnh nào trỏ về vùng hiện
-hành không"*.
+⚠ **KHÔNG có SL, TP, R, ATR, zone.** Market maker quản rủi ro ở mức **TỒN KHO**, không
+ở từng lệnh — nên cả cụm từ vựng đó không có chỗ đứng, không phải "chưa làm".
 
-Toán hạng vốn đã **đúng/sai** (`đang_có_vị_thế`, `cờ`…) không có vế phải — hộp thoại
-đổi sang một ô tick **KHÔNG**. *"Đang có vị thế bằng 1"* là câu không ai đọc được.
+Bốn cái đáng thêm ngay sau (`microprice` · `bien_dong` · `tuoi_bao_gia` · `lech_luong`):
+`o_cam_trong.md` §11.
 
-**Mọi khoảng cách giá** (SL, TP, đệm vào lệnh, mốc hoà vốn) dùng chung một kiểu
-`{tinh, value}`. **Không có đơn vị pip hay đô** — đúng hợp đồng chuẩn hoá của
-Compress EA (§7.1):
+#### Đơn vị — ba thước, và một thước GHÉP được suy ra
 
 | `tinh` | Nghĩa |
 |---|---|
-| `atr` | × **ATR hiện tại** |
-| `atr_zone` | × **ATR trung bình của zone** |
-| `R` | × R (rủi ro) |
-| `bien_zone` | mép zone đối diện |
-| `bps` | bps của giá (1 bps = 1/10 000) |
-| `gia` | giá tuyệt đối |
+| `tick` | bước giá NHỎ NHẤT của sàn. Bắt buộc phải có: không treo được lệnh ở giá tuỳ ý |
+| `spread` | thước TỰ NHIÊN của nửa biên — đúng nghĩa trên mọi symbol, mọi thang giá |
+| `bps` | phổ quát, để so giữa các symbol khác thang giá |
+| `gia` | số tuyệt đối. Giữ vì đôi khi cần gõ thẳng, nhưng nó KHÔNG chuẩn hoá |
 
-⚠ **`pt` ("% của giá") đã bỏ.** Nó là `bps` chia 100 — hai cái tên cho đúng một phép
-chuẩn hoá, nên người dùng phải đoán xem chúng khác nhau chỗ nào (không khác). Không có
-phép chuyển tự động: đổi sang `bps` phải **nhân giá trị với 100**, mà giá trị có thể là
-một *tên tham số* — lúc đó không nhân được. Một phép đổi đúng-một-nửa là loại hỏng tệ
-nhất (file vẫn chạy, chỉ sai 100 lần), nên gặp `pt` thì soát tĩnh nói to.
+**Đơn vị ghép thì SUY RA, không bảng nào khai nó.** Khi lượng nhân với một toán hạng,
+hệ số mang đơn vị `<đơn vị đích>/<đơn vị toán hạng>`:
 
-⚠ **`bps` từng được bày ra cho SL/TP/đệm mà `bo_chay._khoang` CHƯA CÀI** — chọn vào là
-ném `LoiChay` giữa lúc backtest. Nay đã cài (`v / 10⁴ × neo`), và `tests/test_zone.py`
-canh đúng chỗ đó.
+```
+   lệch += tồn kho × 0,5 tick/lot     ← "mỗi lot tồn kho thì dịch nửa tick"
+```
 
-⚠ **`bien_zone` KHÔNG dùng con số bạn gõ.** `_khoang` tính `v` rồi vứt — nó trả thẳng
-khoảng cách tới mép zone đối diện, nên `SL = 1 [mép zone đối diện]` và `SL = 99 […]` ra y
-hệt. Hộp thoại **khoá ô số** khi chọn đơn vị đó, thay vì để một con số vô nghĩa nằm đó.
+Suy chứ không khai vì một bảng đơn vị ghép sẽ phình theo **tích số** của hai danh sách,
+và mỗi lần thêm một toán hạng lại phải nhớ thêm mấy dòng vào đó.
 
-#### CHỈ BÀY RA THỨ DÙNG ĐƯỢC
+#### CHỈ BÀY RA THỨ DÙNG ĐƯỢC — luật cũ, đối tượng mới
 
-Luật chung, đã ghi sẵn trong `core.DON_VI_CHO`: *"bày ra một lựa chọn vô nghĩa rồi soát
-tĩnh mắng là tệ hơn không bày — nên lọc ngay tại nguồn."* Bốn nhát cắt:
+Luật chung giữ nguyên từ bản D_02: *"bày ra một lựa chọn vô nghĩa rồi soát tĩnh mắng là
+tệ hơn không bày — nên lọc ngay tại nguồn."* Bốn nhát cắt của D_02 (theo chỗ dùng · theo
+loại đại lượng · không đo bằng chính nó · theo zone) rút còn ba, và cả ba đều bắt loại
+lỗi **CHẠY ĐƯỢC MÀ SAI** — thứ backtest không tố cáo, vì backtest chỉ biết lãi hay lỗ
+chứ không biết câu lệnh có nghĩa hay không:
 
 | Cắt gì | Vì sao | Bảng |
 |---|---|---|
-| Theo **chỗ dùng** | `R` ở SL là vòng tròn (đo rủi ro bằng chính rủi ro); `bien_zone` ở đệm không có mốc để đo tới | `DON_VI_CHO` |
-| Theo **loại đại lượng** | chỉ **bề rộng** giá mới chuẩn hoá được; `close / close × 10⁴` luôn ra 10000 | `TOAN_HANG_LOAI` |
-| **Không đo bằng chính nó** | `zone_atr_tb` với `× ATR zone` ⇒ luôn = 1 | `DON_VI_CHINH_NO` |
-| Theo **zone** | trước cổng zone thì `× ATR zone` không có mẫu số ⇒ NaN ⇒ cổng luôn trượt | `khoi_sau_cong_zone` |
+| **MỨC giá ⟷ BỀ RỘNG giá** | `công bằng = spread` là đặt giá công bằng bằng bề rộng spread. `mid / mid × 10⁴` luôn ra 10000 | `TOAN_HANG_LOAI` · `DICH_KIEU` |
+| Theo **loại đại lượng** | `tồn kho ≥ 2 tick` — so một số ĐẾM với một bề rộng GIÁ | `TOAN_HANG_DON_VI` |
+| **Đại lượng giá tự mang đơn vị** | `spread × 2 tick` không quy được về đâu | `_soat_luong` |
 
-Nhát cuối cũng lọc **danh sách toán hạng**: khối chưa đi qua cổng zone thì không thấy
-`Zone — số nến / đỉnh / đáy / bề rộng / ATR trung bình / đã sinh lệnh` — thay vì thấy rồi
-bị `_soat_cong_zone` báo lỗi đỏ. Cùng một luật mà dropdown toán hạng vốn đã áp cho nhóm
-*"Lệnh này"* ở Entry; đây là áp nốt cho zone.
+Đúng/sai là **một PHÉP SO** (`là ĐÚNG` / `là SAI`), không phải một ô tick riêng — nhờ
+vậy mọi điều kiện có cùng một hình dạng `[đại lượng] [phép] [lượng]`, hết ngoại lệ.
+*"Có thấy sổ lệnh bằng 1"* là câu không ai đọc được.
 
-`core.khoi_sau_cong_zone()` là **một** phép duyệt, dùng chung cho cả soát tĩnh lẫn giao
-diện (gửi kèm `validate.luong[tab].sau_cong_zone`). TypeScript **không** tự đi lại đồ
-thị — hai đoạn mã duyệt cùng một sơ đồ là hai luật, và chúng sẽ lệch nhau.
+#### CHUẨN HOÁ ĐƯỢC SỬA, KHÔNG ĐƯỢC ĐOÁN
 
-> ⚠ **`atr` và `atr_zone` là HAI THỨ KHÁC NHAU, tách ra là có chủ ý.**
-> Đệm vào lệnh đo bằng ATR *hiện tại* — tấm khiên mỏng ngoài mép zone, đủ lọc một nhịp
-> phá giả. Rủi ro đo bằng ATR *trung bình cả cú nén* — lấy mức nhiễu thật suốt đợt nén,
-> nên mỗi lệnh rủi ro một R tương đương bất kể zone rộng hẹp. Gộp làm một là mất đúng
-> cái làm cho 1R nhất quán giữa các tín hiệu.
+Ranh giới này dễ trôi nhất về sau, nên chốt ở đây và chốt bằng bài kiểm
+(`tests/test_ngu_phap.py`):
 
-**Toán hạng giá không còn `shift`.** Nó là ô số **thứ ba** trên hàng điều kiện — cùng
-chỗ, cùng hình dạng với ô *chu kỳ* của ATR/MA, nhưng nghĩa khác hẳn; một ô trắng không
-nhãn mang hai nghĩa tuỳ toán hạng thì không ai đọc ra. Bỏ được vì nó chưa từng khác 1
-(mẫu, cả 10 file đã lưu), và `doc_cot` hiểu *thiếu shift* **đúng bằng** `shift = 1`
-(`i -= max(0, shift - 1)`) — `tests/test_bo_chay.py` canh chuyện đó bằng backtest, không
-bằng đọc lại công thức. Giờ ô thứ ba chỉ còn **một** nghĩa (chu kỳ) và nghĩa đó được viết
-ra thành chữ. Với D_02 thì đây là bám sát **hơn**: EA luôn dùng `iClose(tf, 1)` và không
-có tuỳ chọn nào khác.
+| tình huống | chuẩn hoá làm gì | vì sao |
+|---|---|---|
+| `lot = 500 tick` | **SỬA** → đơn vị `lot` | lot không đo bằng gì khác được — không có gì để chọn nhầm |
+| `biên = spread × 2 tick` | **SỬA** → bỏ thước thừa | `spread` đã tự mang đơn vị |
+| `biên ×= 2` | **GIỮ NGUYÊN** | phép sai, và câu lỗi đã có sẵn. Lặng lẽ đổi thành `biên = 2` là đổi Ý NGHĨA rồi bày ra như thể người dùng viết vậy |
+| `biên = 2` (thiếu thước) | **GIỮ TRỐNG** | 2 tick và 2 bps là hai lượng khác nhau — điền hộ là tự chọn một con số khác |
+| điều kiện trỏ vào đại lượng đã biến mất | **GIỮ** | vứt đi thì cổng thành rỗng và app nói "chưa có điều kiện nào" — đúng hình thức, lạc đề. Gỡ một module trong `kho/` sẽ lặng lẽ ăn mất điều kiện của MỌI chiến lược |
 
-**Neo lệnh chờ:** lệnh Stop **luôn** neo vào mép vùng nén thuận chiều (đỉnh cho Mua,
-đáy cho Bán) — đó là chỗ duy nhất Compress EA đặt lệnh. Nên **không có tham số "neo
-vào đâu"**; `dem` chỉ là khoảng đẩy ra ngoài mép đó.
+> Một câu: **sửa khi chỉ có đúng MỘT khả năng, giữ nguyên khi có nhiều hơn một.**
 
 <!-- ĐÃ CẮT (đợt 4): §6.4 BẢNG THAM SỐ — hằng số có tên, cảnh báo "số gõ tay hai chỗ", nút đặt tên. -->
 
@@ -572,13 +610,13 @@ Cat_Studio thêm: `--start: #4ec96a` (khối Bắt đầu) · `--ghim: #d9a441` 
 
 | Nhóm | Auto_Clicker | → Cat_Studio |
 |---|---|---|
-| **Thêm khối** | Loop · Nhóm · HĐ lẻ · Rẽ nhánh · Delay | **Kiểm tra ĐK** + (**Vào lệnh** ở Entry / **Sửa lệnh** ở Manage) |
+| **Thêm khối** | Loop · Nhóm · HĐ lẻ · Rẽ nhánh · Delay | **Kiểm tra ĐK** · **Số hạng** |
 | **Template** | Lưu ▾ (Process/Loop/Nhóm) · Mở ▾ | Lưu ▾ · Mở ▾ — **chỉ cả chiến lược**, không lưu cụm khối rời |
 | **Sửa** | Sửa · Nhân bản · Xoá | *(y hệt)* |
 | **Luồng** | Đặt số ① · Xem điểm | Đặt số ① · **Ghim số ⟲** · Vừa khung |
 | **Hoàn tác** | Hoàn tác · Làm lại | *(y hệt)* |
 | **Template** | Lưu ▾ · Mở ▾ | *(y hệt)* |
-| *(mép phải)* | Tên Process · Chờ Ns · ▶ Chạy / ■ Dừng | Tên chiến lược · Symbol · TF · **▶ Chạy → Strategy Tester** |
+| *(mép phải)* | Tên Process · Chờ Ns · ▶ Chạy / ■ Dừng | Tên chiến lược · Symbol · **● Live** · **▶ Test** |
 
 ### 8.4 Menu chuột phải
 
@@ -588,7 +626,7 @@ Hỗ trợ sẵn: menu con (`con`), vạch ngăn (`ngan`), mục mờ **kèm lý
 
 | Bấm phải vào | Mục |
 |---|---|
-| **Nền** | Dán · ─ · Thêm Kiểm tra ĐK + (Vào lệnh **hoặc** Sửa lệnh, theo tab) |
+| **Nền** | Dán · ─ · Thêm Kiểm tra ĐK · Thêm Số hạng |
 | **Khối** | Sửa · Đổi tên… · ─ · **Ghim số ⟲** 🆕 · Nối tới ▸ · Ngắt hết kết nối · ─ · Chép · Dán · Nhân bản · ─ · Xoá |
 | **Dây** | Xoá kết nối |
 
@@ -702,8 +740,11 @@ nên ▶ Chạy vẫn bấm được. Nối vào là số hiện ra ngay.
 **Hai thứ bị lọc, cả hai đều là luật:**
 
 - **Bỏ khối Bắt đầu của nguồn** — sơ đồ đang mở đã có một cái, hai khối Bắt đầu là sơ đồ hỏng.
-- **Chỉ nhập CÙNG TAB** — toán hạng nhóm "Lệnh này" chỉ tồn tại ở Manage, nên bê một khối Manage
-  sang Entry là tạo ra khối không soát nổi. Đây là luật, không phải làm cho gọn.
+- **Chỉ nhập CÙNG SƠ ĐỒ** — một khối chỉ soát nổi trong sơ đồ nhận nó (`ACTION_TABS`). Đây là
+  luật, không phải làm cho gọn. Hiện chỉ có một sơ đồ nên nó chưa lọc gì; giữ vì cơ chế nhiều sơ
+  đồ còn nguyên, và ngày có sơ đồ thứ hai thì nó chặn được ngay.
+  *(Ca thật của bản D_02: toán hạng nhóm "Lệnh này" chỉ tồn tại ở Manage, nên bê một khối Manage
+  sang Entry là tạo ra khối không soát nổi.)*
 
 **⚠ THAM SỐ PHẢI ĐI THEO.** Khối tham chiếu tham số bằng **TÊN**. Nhập một khối dùng
 `nguong_nen_bps` vào chiến lược không có tham số đó thì khối trông vẫn bình thường trên canvas,
@@ -730,28 +771,32 @@ thêm chưa nằm trong `thamSo` của lần render đang chạy — gộp trư�
 Trước đây `dai-mau` chỉ có hai màu: xanh cho Bắt đầu, **cam cho MỌI khối hành động** — nhìn xa thì
 Kiểm tra ĐK, Vào lệnh, Sửa lệnh giống hệt nhau.
 
-`api._mau_khoi(st)` gắn vào thẻ một **khoá ngữ nghĩa**, không phải mã màu: `start · hoi · mua ·
-ban · sua`. Suy từ `type` + `huong` — phạm trù của chính app, không phải khái niệm riêng của một
-chiến lược, nên chiến lược nào sau này cũng ra màu đúng. Giao diện ánh xạ khoá → biến CSS, nên đổi
-bảng màu là việc của CSS.
+`api._mau_khoi(st)` gắn vào thẻ một **khoá ngữ nghĩa**, không phải mã màu: `start · hoi · gia ·
+lot`. Suy từ `type` + `đích` — phạm trù của chính app, không phải khái niệm riêng của một chiến
+lược, nên chiến lược nào sau này cũng ra màu đúng. Giao diện ánh xạ khoá → biến CSS, nên đổi bảng
+màu là việc của CSS.
 
 | khối | màu | vì sao |
 |---|---|---|
 | Bắt đầu | xám `--action` | ĐIỂM NEO, không phải hành động |
 | Kiểm tra ĐK | lam `--khoi-hoi` | một câu hỏi |
-| Vào lệnh · Mua | xanh `--ok` + ▲ | |
-| Vào lệnh · Bán | đỏ `--err` + ▼ | |
-| Sửa lệnh | tím `--khoi-sua` | không đụng `--warn`/`--accent` đã có nghĩa khác |
+| Số hạng · giá | tím `--khoi-gia` + `$` | dựng MỨC TREO |
+| Số hạng · khối lượng | lục lam `--khoi-lot` + `≡` | dựng CỠ LỆNH |
 
-**Khối Bắt đầu phải bỏ màu xanh.** `--start` và `--ok` trùng đúng một mã `#4ec96a`, nên để khối Mua
-màu xanh mà giữ nguyên Bắt đầu thì hai loại khối nhìn y hệt nhau. Trả xanh về đúng MỘT nghĩa: mua.
+> ⚠ **Bản D_02 chia theo MUA/BÁN** — xanh `--ok` + ▲ cho Mua, đỏ `--err` + ▼ cho Bán, tím cho Sửa
+> lệnh. Bỏ vì market maker **đứng cả hai phía cùng lúc**: "khối này mua hay bán" là câu hỏi không
+> có câu trả lời, mọi khối đều làm cả hai.
+>
+> Thứ đáng phân biệt bằng mắt bây giờ là số hạng động vào GIÁ hay động vào KHỐI LƯỢNG — liếc cả
+> chuỗi là thấy ngay đoạn nào lo mức treo, đoạn nào lo cỡ lệnh. `--ok`/`--err` vì thế rút về đúng
+> nghĩa gốc (xanh là ổn, đỏ là hỏng) và không còn dính ngữ nghĩa giao dịch nào.
 
 **Nền dải tiêu đề nhuộm 10% mới là thứ quyết định, không phải cái thanh.** Ở mức thu phóng 67% —
 mức hay dùng để nhìn cả sơ đồ — thanh 3px chỉ còn 2px và gần như biến mất; một dải nhuộm thì vẫn
 quét mắt ra được. Thanh cũng được kéo cao hết dải tiêu đề thay vì 15px giữa chừng.
 
-**Hướng dùng HÌNH ▲/▼ chứ không chỉ dùng màu** — cùng ngôn ngữ với chart (§12.17), và đọc được cả
-khi mù màu.
+**Dùng KÝ HIỆU chứ không chỉ dùng màu** (`$` / `≡`) — đọc được cả khi mù màu. Cùng lý lẽ với cặp
+▲/▼ của bản cũ, chỉ đổi thứ nó phân biệt.
 
 Cái lợi kèm theo: cam đang mang hai nghĩa cùng lúc — "khối hành động" và "đang chọn · số thứ tự".
 Đẩy khối hành động sang màu riêng thì **cam chỉ còn nghĩa *của ta · đang chọn***, viền chọn nổi hẳn.

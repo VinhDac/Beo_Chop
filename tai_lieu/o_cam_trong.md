@@ -310,61 +310,95 @@ kiểm D_02**, nên chúng là nợ thật, phải trả khi cơ chế tương �
 | `test_bo_chay.py` (425) | thứ tự trong một nhịp · **luật lùi** · tính XÁC ĐỊNH (chạy lại ra kết quả y hệt) |
 | 5 mục cuối `test_danh_so.py` (~160) | mô tả hành động đọc được · soát thiếu SL / thiếu mốc neo · cơ chế "so hai đại lượng" |
 
-Còn lại **4 bài, 663 dòng**, phủ đúng thứ đang tồn tại: đánh số phân cấp · ghim số ⟲ ·
-luật rẽ nhánh · ranh giới Entry/Manage · cơ chế kho · lưu trữ · biến CSS ma · ô số.
+**Dòng cuối bảng ĐÃ TRẢ**, bằng một bộ luật khác hẳn: `test_ngu_phap.py` phủ mô tả
+hành động, luật kiểu, và ranh giới *sửa hộ ⟷ đoán ý* của chuẩn hoá. Cơ chế "so hai đại
+lượng" thì không trả mà **bỏ hẳn** — nó là một cờ tách rời khỏi dữ liệu, tức một nguồn
+sự thật thứ hai, và nó đã lệch một lần rồi. Giờ chế độ so suy thẳng từ `!!phai.ten`,
+không còn gì để lệch.
 
 Giữ một `bo_chay` rỗng ruột chỉ để nuôi fixture thì đuôi vẫy được cả con chó — nên
-chúng đi. Nhưng đây là **nợ**, không phải dọn xong: có bộ chạy mới thì viết lại ngay.
+chúng đi. Nhưng phần còn lại là **nợ**, không phải dọn xong: có bộ chạy mới thì viết
+lại ngay.
 
 ---
 
-## 10. Kho toán hạng
+## 10. Bảng tham số — hằng số CÓ TÊN
 
-**Nằm ở đâu** — `cat_studio/kho/__init__.py`, `MODULE = []`.
+**Nằm ở đâu** — `core.normalize_process` giữ khoá `tham_so` và luôn trả `[]`;
+`api.bootstrap` không gửi gì; `types.ts` khai `tham_so: never[]`.
 
-**Trước cắm gì** — ba module (312 dòng): `nen_tang` (giá · thời gian · tài khoản ·
-"lệnh này"), `chi_bao` (ATR · MA, tính thẳng từ nến), `engine_d02` (bảng vùng nén và
-máy nuôi nó).
+**Trước cắm gì** — ~60 dòng ở `core.py` cộng bảng bên `ActionDialog.tsx`: mỗi tham số
+là một hằng số có TÊN, khối tham chiếu bằng tên, cộng phép quét
+`_tham_so_dang_dung` để biết khối nào đọc tham số nào, cảnh báo **"số gõ tay hai chỗ"**
+kèm nút đặt tên ngay tại đó, và luật *"nhập chiến lược khác thì tên đã có GIỮ NGUYÊN
+giá trị hiện tại"* — đè lên là lặng lẽ đổi hành vi của cả chiến lược đang làm dở.
 
-**Phải cắm gì** — cơ chế ở lại nguyên vẹn, chỉ thiếu nội dung: thả một module vào
-`MODULE` là hộp thoại Kho, dropdown toán hạng và `api.bootstrap` có ngay. Một market
-maker cần ít nhất `bid` · `ask` · `mid` · `spread` · **tồn kho CÓ DẤU** · tuổi quote ·
-lệch giá quote so với mid, cộng biến động thực và nhịp tick.
+**Phải cắm gì** — sơ đồ mẫu đang có ba con số trần mà mỗi con đều đáng có tên:
 
-> Phép `_soat_trung` là thứ đáng giữ nhất ở đây: hai engine cùng khai `atr` với hai
-> nghĩa khác nhau thì mọi chiến lược dùng nó đều sai mà **không báo gì**. Nó nổ ngay
-> lúc import, không đợi tới lúc chạy.
-
----
-
-## 11. Từ vựng của khối hành động
-
-**Nằm ở đâu** — `core.py`, khối `# ---- TỪ VỰNG — Ổ CẮM TRỐNG`. Phía giao diện:
-`ActionDialog.tsx` (735 → 120 dòng) và `Bootstrap` trong `types.ts`.
-
-**Trước cắm gì** — 17 toán hạng · 8 phép so (`< ≤ > ≥ = ≠` · `là ĐÚNG` / `là SAI`) ·
-6 đơn vị (`giá` · `bps` · `× ATR` · `× ATR zone` · `× R` · `mép zone đối diện`) cùng
-mười bảng phụ · mốc neo · loại lệnh · 4 chế độ sửa · **bảng tham số** (hằng số CÓ TÊN
-+ cảnh báo "số gõ tay hai chỗ" + nút đặt tên) · khung thời gian và nhịp M5/M1.
-
-**Phải cắm gì** — thước của market maker, không phải thước cũ đổi tên:
-
-| bỏ | thay bằng |
+| số trần | tên nó muốn mang |
 |---|---|
-| `× ATR` · `× ATR zone` | `× spread` — bội của spread hiện tại |
-| `× R` (rủi ro theo SL) | tồn kho, vì SL từng lệnh không còn là trục rủi ro |
-| khung nến M1…MN1 | cửa sổ tick / mili-giây |
-| mốc neo `zone_HH` · `zone_LL` | `mid` · `bid` · `ask` · microprice |
-| loại lệnh `Chờ Stop` | **`Limit`** — và đệm phải ĐẢO DẤU: lùi vào trong, không nhô ra |
-| chế độ sửa `dời SL` · `hoà vốn` | **`dời giá`** (requote) — động tác thường xuyên nhất |
+| `lệch += tồn kho × 0,5 tick/lot` | `độ_lệch_theo_tồn_kho` |
+| `lot = 500` | `cỡ_lệnh_gốc` |
+| `khi tồn kho ≥ 2000` | `hạn_mức_tồn_kho` |
 
-**Còn lại ba thứ, và chúng là NGỮ PHÁP chứ không phải từ vựng** — đã đứng vững qua cả
-D_02 lẫn MT5 và sẽ đứng tiếp: ba động từ `check_cond` · `vao_lenh` · `sua_lenh`; ranh
-giới **Entry chỉ TẠO · Manage chỉ SỬA**; và hai phía **Mua · Bán**.
+Hai con số cuối xuất hiện ở **hai khối khác nhau** (`lot mua` và `lot bán` cùng đọc
+`hạn_mức`), nên đây đúng là ca mà cảnh báo "số gõ tay hai chỗ" sinh ra để bắt — sửa
+một chỗ quên chỗ kia thì báo giá lệch hẳn một phía và nhìn sơ đồ không thấy gì lạ.
+
+Phép quét thì **cố ý dùng LẠI đúng bộ quét của validator**: viết bộ quét thứ hai là
+sớm muộn hai bên hiểu khác nhau, và cái lệch thì im lặng.
 
 ---
 
-## 12. Sổ lệnh
+## 11. Bốn toán hạng còn thiếu của market maker
+
+**Nằm ở đâu** — `cat_studio/kho/nen_tang.py` khai tám toán hạng; docstring của nó liệt
+kê bốn cái tiếp theo.
+
+**Trước cắm gì** — không phải "trước": bốn cái này CHƯA từng có. Ghi vào sổ vì tám
+toán hạng hiện tại đủ dựng một market maker sơ cấp nhưng **không đủ để nó kiếm ra
+tiền**, và khoảng cách đó phải nhìn thấy được.
+
+**Phải cắm gì**
+
+| toán hạng | vì sao thiếu nó là mù |
+|---|---|
+| `microprice` | giá công bằng có trọng số theo khối lượng phía ĐỐI DIỆN. Bid chất 40.000 lot mà ask chỉ 200 thì giá thật nằm sát ask — `mid` mù đúng chỗ đó, và đó là chỗ hay bị chọn ngược nhất |
+| `bien_dong` | biến động thực trên cửa sổ N giây → giãn biên khi chợ động. Không có nó thì biên cố định, và chợ động là lúc bị chọn ngược nhiều nhất |
+| `tuoi_bao_gia` | quote đã nằm trong hàng bao lâu — thứ thay thế được cho vị trí hàng đợi, cái mà L1 không bao giờ nhìn thấy |
+| `lech_luong` | lệch dòng lệnh chủ động mua/bán, để đoán hướng ngắn hạn |
+
+Cả bốn đều là **module mới thả vào `kho.MODULE`**, không sửa `core.py`, không sửa
+`api.py`, không sửa hộp thoại — cơ chế đã chịu được điều đó (`vi_cau_truc.py`).
+
+---
+
+## 12. Động từ thứ ba — LỆNH CHỦ ĐỘNG
+
+**Nằm ở đâu** — `core.ACTION_TYPES` có đúng hai động từ: `check_cond` · `so_hang`.
+
+**Trước cắm gì** — `vao_lenh` và `sua_lenh` của D_02, nhưng chúng KHÔNG phải thứ thiếu
+ở đây. Cả hai nói về một thế giới có LỆNH RỜI mang SL/TP riêng; market maker phát biểu
+lại toàn bộ báo giá mỗi sự kiện, nên chúng không dịch sang được. Xem mục 11 cũ trong
+`git show f1c90fb:tai_lieu/o_cam_trong.md` nếu cần đọc lại bảng đối chiếu.
+
+**Phải cắm gì** — một động từ **taker**, và chỉ một chỗ thật sự cần nó:
+
+> Tồn kho chạm hạn mức CỨNG thì phải ĐÓNG chủ động, không chờ ai lấy hàng.
+
+Sơ đồ mẫu hiện xử lý hạn mức bằng cách tắt một phía (`lot mua = 0`), tức chỉ *ngừng
+nhồi thêm* rồi chờ phía kia xả dần. Đủ cho trường hợp thường, nhưng khi giá chạy một
+chiều thì phía kia không bao giờ khớp và tồn kho đứng nguyên ở hạn mức — lúc đó chỉ
+lệnh thị trường mới cắt được.
+
+Nó **không nhét vào ngữ pháp số hạng được**, và đó là lý do phải ghi ra: một số hạng
+góp vào báo giá, còn cái này VỨT báo giá đi và bắn một lệnh ăn ngay. Hai việc khác
+loại. Chờ tới khi có §3 (mô hình khớp) mới làm được, vì trước đó chưa có gì mô phỏng
+nổi cái giá phải trả cho một lệnh taker.
+
+---
+
+## 13. Sổ lệnh
 
 **Nằm ở đâu** — không còn file nào.
 
@@ -386,7 +420,7 @@ bằng mili-giây, và theo dõi từng phía bid/ask riêng.
 
 ---
 
-## 13. Nhật ký và lịch sử
+## 14. Nhật ký và lịch sử
 
 **Nằm ở đâu** — không còn file nào. Thư mục `du_lieu/nhat_ky/` vẫn được liệt kê trong
 hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
@@ -412,7 +446,7 @@ kết quả: nhờ vậy chạy lại được, và so được hai lần chạy
 
 ---
 
-## 14. Nhật ký thiết kế đã cắt khỏi `core.md`
+## 15. Nhật ký thiết kế đã cắt khỏi `core.md`
 
 **Nằm ở đâu** — `tai_lieu/core.md`, mỗi chỗ cắt để lại một dòng `<!-- ĐÃ CẮT (đợt 4): …
 -->` nói rõ mất gì.
@@ -439,17 +473,36 @@ một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược 
 
 ---
 
-## Xong phần dọn — việc còn lại
+## Trạng thái — đã cắm được gì
 
-**Bốn đợt đã xong. Lần dọn kết thúc ở đây.**
+**Bốn đợt dọn xong.** Từ đó đã cắm được ba mảng, và mỗi mảng xoá vài mục khỏi sổ này:
 
-Repo giờ là một trình soạn thảo sơ đồ sạch: vẽ · nối · đánh số · ghim số ⟲ · soát cấu
-trúc · lưu/mở. Khối mang TÊN · ĐỘNG TỪ · (với `Vào lệnh`) HƯỚNG. Không còn một dòng mã,
-một lớp CSS, một icon, một biến theme hay một đoạn tài liệu nào mô tả thứ không tồn tại.
+| đã cắm | thay cho mục nào |
+|---|---|
+| **§1 nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn §1 (còn lại: xem cuối §1) |
+| **kho `nen_tang`** — 8 toán hạng của market maker | §10 cũ *Kho toán hạng* |
+| **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu 7 khối | §11 cũ *Từ vựng của khối hành động* |
 
-Việc tiếp theo **không phải dọn nữa mà là chọn sàn** — mọi ổ cắm trong sổ này đều chờ
-đúng một quyết định đó. Cắm theo thứ tự phụ thuộc: nguồn dữ liệu (§1) → kết nối sàn
-(§2) → mô hình khớp (§3) → bộ chạy (§4) → kho toán hạng (§10) → từ vựng (§11) → sổ lệnh
-(§12) → nhật ký (§13) → hai cửa sổ (§5, §6) → soi lượt (§7) → cài đặt (§8).
+Repo giờ **vẽ được một chiến lược market maker và soát được nó**, nhưng chưa CHẠY được
+nó: không có mô hình khớp, không có bộ chạy, không có kết nối sàn. Sơ đồ mẫu là một
+phát biểu đúng cú pháp mà chưa ai đọc ra số.
+
+### Thứ tự cắm tiếp
+
+Ba mục đầu **phụ thuộc nhau chặt**, phải theo đúng thứ tự:
+
+1. **§3 mô hình khớp** — trước cả bộ chạy. Nó trả lời câu hỏi khó nhất và cũng là câu
+   duy nhất phân biệt backtest thật với ảo tưởng: *quote của ta xếp thứ mấy trong hàng
+   đợi?* Dữ liệu L1 không bao giờ nhìn thấy điều đó, nên nó phải là một **giả định
+   chỉnh được**, không phải một hằng số giấu trong mã.
+2. **§4 bộ chạy** — đọc `PhatLai`, chạy sơ đồ mỗi sự kiện, chốt báo giá cuối lượt, hỏi
+   §3 xem có khớp không. Ở đây mới biết được ngữ pháp số hạng có đủ dùng thật không.
+3. **§2 kết nối sàn** — sau cùng, vì backtest phải sạch trước khi có gì đáng chạy thật.
+
+Rồi mới tới: §13 sổ lệnh → §14 nhật ký → §5/§6 hai cửa sổ → §7 soi lượt → §8 cài đặt.
+
+**§10 bảng tham số · §11 bốn toán hạng · §12 động từ taker** thì độc lập, cắm lúc nào
+cũng được — nhưng §12 phải đợi §3, vì trước đó không có gì mô phỏng nổi cái giá phải
+trả cho một lệnh ăn ngay.
 
 Mỗi ổ cắm xong thì **xoá khỏi sổ này**, không đánh dấu ✔. Sổ cạn tới rỗng là xong.
