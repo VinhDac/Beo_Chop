@@ -181,6 +181,53 @@ kiem("`_dai_ngay` gồm CẢ HAI đầu",
      nt._dai_ngay("2026-08-28", "2026-08-30")
      == ["2026-08-28", "2026-08-29", "2026-08-30"])
 
+# ================= 7. NHỊP TIM + CỜ DỪNG =================
+print("\n▸ Nhịp tim và cờ dừng — app NHÌN bộ ghi, không SỞ HỮU nó")
+import time  # noqa: E402
+
+kiem("chưa có nhịp nào → coi như bộ ghi đã chết",
+     nt.trang_thai_ghi()["song"] is False)
+
+nt.dap_nhip(["AUSDT", "BUSDT"], 1_787_000_000_000)
+tt = nt.trang_thai_ghi()
+kiem("vừa đập → còn sống, và nói rõ đang ghi gì",
+     tt["song"] and tt["symbols"] == ["AUSDT", "BUSDT"] and tt["pid"] == os.getpid())
+
+# NHỊP CŨ = ĐÃ CHẾT. Đây là phép quan trọng nhất của cả mục: nếu `song` suy từ việc
+# pid có tồn tại hay không thì hệ điều hành cấp lại pid cho tiến trình khác là app
+# báo "còn sống" trên một tiến trình chẳng ghi gì cả.
+import json as _json  # noqa: E402
+with open(nt._duong_nhip(), encoding="utf-8") as f:
+    d = _json.load(f)
+d["nhip"] = time.time() - nt.NHIP_QUA_HAN - 1
+luu_tru.ghi_json_nguyen_tu(nt._duong_nhip(), d)
+kiem("nhịp quá hạn → CHẾT, dù pid vẫn tồn tại thật",
+     nt.trang_thai_ghi()["song"] is False)
+
+kiem("chưa xin dừng → cờ không có", not nt.da_xin_dung())
+nt.xin_dung()
+kiem("xin dừng → bộ ghi thấy cờ", nt.da_xin_dung())
+nt.xoa_co_dung()
+kiem("dọn cờ → hết. Cờ cũ sót lại sẽ giết lần chạy sau ngay khi vừa mở",
+     not nt.da_xin_dung())
+
+# ================= 8. LIỆT KÊ =================
+print("\n▸ Liệt kê — rẻ có chủ ý, không đọc hết file nào")
+ds = nt.liet_ke()
+mine = [d for d in ds if d["symbol"] == MA]
+kiem("thấy symbol đã ghi, kèm số ngày và dải", len(mine) == 1
+     and mine[0]["so_ngay"] == 2 and mine[0]["tu_ngay"] == NGAY, f"— {mine}")
+kiem("đếm bản ghi từ KÍCH THƯỚC FILE, không mở file",
+     mine[0]["so_ban_ghi"]["so"] == 800 and mine[0]["so_ban_ghi"]["khop"] == 350,
+     f"— {mine[0]['so_ban_ghi']}")
+kiem("gom lỗ hổng của MỌI ngày trong dải", mine[0]["so_lo_hong"] == 2)
+kiem("độ trễ đo trên MẪU, ra đúng con số đã dựng", mine[0]["tre_ms"] == 200.0,
+     f"— {mine[0]['tre_ms']} ms")
+
+n = nt.xoa(MA)
+kiem("xoá trả về số byte đã xoá, và symbol biến mất khỏi bảng",
+     n > 0 and not [d for d in nt.liet_ke() if d["symbol"] == MA])
+
 shutil.rmtree(TAM, ignore_errors=True)
 print(f"\n{'=' * 56}\n  {dung} đúng, {sai} sai\n{'=' * 56}")
 sys.exit(1 if sai else 0)

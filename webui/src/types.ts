@@ -155,6 +155,30 @@ export interface Bootstrap {
   max_process_steps: number
 }
 
+/** Một symbol đã có dữ liệu tick trên đĩa. Mọi con số do Python đo, JS không tự tính. */
+export interface BoNguon {
+  symbol: string
+  so_ngay: number
+  tu_ngay: string
+  den_ngay: string
+  mb: number
+  so_ban_ghi: { so: number; khop: number }
+  so_lo_hong: number
+  ms_lo_hong: number
+  /** Trung vị độ trễ, đo trên MẪU của ngày mới nhất. `null` = chưa đo được. */
+  tre_ms: number | null
+}
+
+/** Bộ ghi còn sống không. `song` suy từ TUỔI NHỊP TIM, không từ việc pid có tồn tại —
+ *  pid bị cấp lại cho tiến trình khác là chuyện thường. */
+export interface TrangThaiGhi {
+  song: boolean
+  symbols: string[]
+  pid: number | null
+  tuoi_nhip: number | null
+  bat_dau: number | null
+}
+
 export interface Reply<T> {
   ok: boolean
   value?: T

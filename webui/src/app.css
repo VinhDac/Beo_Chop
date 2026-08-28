@@ -891,3 +891,34 @@ select.o { cursor: pointer; }
 .kho-luat li { margin-bottom: 2px; line-height: 1.5; }
 
 /* ⚠ `.bang-tham-so` đã đi cùng bảng tham số (đợt 3–4). */
+
+
+/* ==========================================================================
+   NGUỒN DỮ LIỆU  (`NguonDialog`)
+   ========================================================================== */
+
+/* Dải trạng thái bộ ghi. Nó là thứ đầu tiên mắt phải chạm tới khi mở hộp thoại —
+   mọi thứ khác chỉ có nghĩa nếu biết bộ ghi còn sống hay không. */
+.ng-ghi {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 11px; margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+.ng-ghi .phu { color: var(--muted); font-size: 11.5px; }
+.ng-ghi .mono { font: 11.5px var(--mono); color: var(--accent); }
+.ng-ghi .nut { margin-left: auto; }
+/* Đèn: xám khi chết, xanh + quầng khi sống. Quầng chứ không nhấp nháy — nhấp nháy
+   kéo mắt về liên tục trong khi trạng thái bình thường là "đang chạy". */
+.ng-den {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dim); flex: 0 0 auto;
+}
+.ng-ghi.song { border-color: var(--ok); }
+.ng-ghi.song .ng-den { background: var(--ok); box-shadow: 0 0 0 3px rgba(63, 185, 80, .22); }
+
+.ng-bang { margin-top: 10px; }
+.ng-dau { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+/* Lỗ hổng khác 0 phải NỔI LÊN: nó quyết định backtest có tin được không. */
+.ng-canh { color: var(--err); font-weight: 600; }

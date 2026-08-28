@@ -17,6 +17,7 @@ import functools
 import inspect
 import json
 import os
+import sys
 import threading
 import time
 import traceback
@@ -25,6 +26,7 @@ from . import core
 from . import kho
 from . import khung_cua_so
 from . import luu_tru
+from . import nguon_tick
 
 
 def _bat_loi(fn):
@@ -580,6 +582,83 @@ class Api(NenCuaSo):
             cd["accent"] = str(s["accent"])
         self._cai_dat = core.save_settings(cd)
         return _ok(self._cai_dat)
+
+    # ---------------------------------------------------------- NGUỒN DỮ LIỆU
+    #
+    # ⚠ APP KHÔNG SỞ HỮU BỘ GHI. Nó là một tiến trình riêng phải sống 24/7, kể cả khi
+    # app đóng — đúng bài học mà cửa sổ Live cũ đã trả giá: "đóng cửa sổ không được
+    # dừng phiên". App chỉ NHÌN (qua nhịp tim) và XIN (qua cờ dừng).
+    #
+    # Vì thế `dong_app` không đụng gì tới bộ ghi, và đó là chủ ý chứ không phải quên.
+    @_bat_loi
+    def nguon_liet_ke(self):
+        """Đang có dữ liệu gì, và bộ ghi còn sống không.
+
+        Trả cả hai trong MỘT lời gọi: hộp thoại luôn cần cả hai cùng lúc, mà hai lời
+        gọi thì có lúc lệch nhau nửa giây và bảng nói một đằng, đèn báo một nẻo."""
+        return _ok({"ds": nguon_tick.liet_ke(),
+                    "ghi": nguon_tick.trang_thai_ghi(),
+                    "thu_muc": os.path.join(luu_tru.goc(), nguon_tick.THU_MUC_TICK)})
+
+    @_bat_loi
+    def nguon_bat_dau(self, symbols):
+        """Mở bộ ghi trong một TIẾN TRÌNH RỜI.
+
+        `DETACHED_PROCESS` chứ không phải tiến trình con: tiến trình con chết theo cha,
+        mà cha ở đây là một app người ta đóng vào mở ra suốt ngày. Dữ liệu thì không
+        chấp nhận chuyện đó.
+
+        stdout đổ vào `_ghi.log` — tiến trình rời không có console, nên không hứng thì
+        mọi lời than của nó rơi vào hư không, kể cả câu giải thích vì sao nó chết."""
+        syms = [str(x).strip().upper() for x in (symbols or []) if str(x).strip()]
+        if not syms:
+            return _loi("Chưa chọn symbol nào.")
+        tt = nguon_tick.trang_thai_ghi()
+        if tt["song"]:
+            return _loi(f"Bộ ghi đang chạy rồi (pid {tt['pid']}, "
+                        f"{', '.join(tt['symbols'])}). Dừng nó trước.")
+        if getattr(sys, "frozen", False):
+            return _loi("Bản đóng gói chưa mở được bộ ghi — nó cần Python. "
+                        f"Chạy tay:  python tools/ghi_tick.py {' '.join(syms)}")
+
+        import subprocess
+        goc = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        kich_ban = os.path.join(goc, "tools", "ghi_tick.py")
+        if not os.path.exists(kich_ban):
+            return _loi(f"Không thấy {kich_ban}")
+        nguon_tick.xoa_co_dung()
+        thu_muc = os.path.join(luu_tru.goc(), nguon_tick.THU_MUC_TICK)
+        os.makedirs(thu_muc, exist_ok=True)
+        log = open(os.path.join(thu_muc, "_ghi.log"), "a", encoding="utf-8")
+        co = 0
+        if os.name == "nt":
+            co = 0x00000008 | 0x00000200      # DETACHED_PROCESS | NEW_PROCESS_GROUP
+        subprocess.Popen([sys.executable, kich_ban, *syms],
+                         cwd=goc, stdout=log, stderr=subprocess.STDOUT,
+                         stdin=subprocess.DEVNULL, creationflags=co, close_fds=True)
+        return _ok({"symbols": syms})
+
+    @_bat_loi
+    def nguon_dung(self):
+        """XIN bộ ghi dừng — đặt cờ, không giết.
+
+        Giết bằng `taskkill /F` là cắt ngang giữa chừng, mất đúng phần đệm chưa xả.
+        Cờ thì bộ ghi thấy ở nhịp kế, xả hết rồi mới thoát. Đổi lại mất tối đa vài
+        giây — rẻ hơn nhiều so với một lỗ hổng tự tay tạo ra."""
+        tt = nguon_tick.trang_thai_ghi()
+        if not tt["song"]:
+            return _loi("Bộ ghi không chạy.")
+        nguon_tick.xin_dung()
+        return _ok({"da_xin": True, "pid": tt["pid"]})
+
+    @_bat_loi
+    def nguon_xoa(self, symbol):
+        """Xoá HẲN dữ liệu một symbol. Giao diện PHẢI hỏi trước — xoá là không lùi được."""
+        tt = nguon_tick.trang_thai_ghi()
+        if tt["song"] and str(symbol).upper() in tt["symbols"]:
+            return _loi(f"{symbol} đang được ghi. Dừng bộ ghi trước khi xoá.")
+        byte = nguon_tick.xoa(symbol)
+        return _ok({"mb": round(byte / 1e6, 1), "ds": nguon_tick.liet_ke()})
 
     @_bat_loi
     def save_ui(self, state):

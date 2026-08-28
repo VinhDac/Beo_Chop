@@ -69,12 +69,55 @@ liên tiếp cùng giá, mà thứ ta cần là đúng chuỗi để trừ dần
 symbol còn cửa — không có chỗ chen vào giữa, ta chỉ xếp hàng ở đỉnh. Ngày nào spread
 rộng ra nhiều tick thì phải xem lại.
 
+### Lớp phát lại — XONG
+
+`cat_studio/phat_lai.py` + `tests/test_phat_lai.py` (21 phép). Ba luật đã cài và có
+bài kiểm riêng cho từng cái:
+
+1. **Trục thời gian là `t_ta`, không phải `T`.** Một cú khớp xảy ra ở sàn *trước* một
+   thay đổi sổ vẫn được phát *sau*, nếu gói của nó tới muộn hơn. Xếp theo `T` là cho
+   chiến lược thấy tương lai — lỗi nhìn trước ở dạng tinh vi nhất: mọi con số đều có
+   thật, chỉ thứ tự là bịa.
+2. **Lỗ hổng là SỰ KIỆN** (`MO_LO_HONG` / `DONG_LO_HONG`), không phải khoảng trống. Ra
+   khỏi vùng mù thì sổ lệnh trở lại **chưa biết** (`co_so = False`, `mid = NaN`) cho
+   tới bản ghi `so` kế tiếp.
+3. **Tất định.** Hoà `t_ta` thì phá hoà bằng `(T, nguồn, chỉ số)`.
+
+Tốc độ **1,97 triệu sự kiện/giây** — một ngày ~5 s, một tháng ~2,5 phút. Bản đầu chạy
+0,40 triệu/s; chỗ mất thời gian là `a[k]["bid"]` (numpy dựng một `np.void` trung gian
+cho cả bản ghi). Tách cột một lần lúc dựng → nhanh gấp 5.
+
+> ⚠ Một điều người đọc kết quả backtest phải biết: trong **cùng một mili giây** ta
+> không biết thứ tự thật. `t_ta` chỉ mịn tới ms mà nhịp là ~150 sự kiện/giây, nên đụng
+> nhau thường xuyên. Phá hoà bằng `T` là phỏng đoán tốt nhất có thể, không phải sự thật.
+
+### Bảng điều khiển trong app — XONG
+
+Menu **File → Nguồn dữ liệu…** (`webui/src/components/NguonDialog.tsx`). Hộp thoại
+RIÊNG, không nhét vào Cài đặt: Cài đặt là thứ đặt một lần rồi quên, còn đây là một
+bảng điều khiển SỐNG — nó tự làm mới mỗi 3 giây, vì một bảng đứng hình là bảng nói dối.
+
+**APP KHÔNG SỞ HỮU BỘ GHI.** Bộ ghi là tiến trình riêng phải sống 24/7 kể cả khi app
+đóng — đúng bài học cửa sổ Live cũ đã trả giá: *"đóng cửa sổ không được dừng phiên"*.
+Nên app chỉ **nhìn** và **xin**:
+
+| cơ chế | vì sao không làm cách khác |
+|---|---|
+| **nhịp tim** — file `_dang_ghi.json`, đập mỗi 5 s | `song` suy từ TUỔI NHỊP, không từ pid: hệ điều hành cấp lại pid cho tiến trình khác là app báo "còn sống" trên một tiến trình chẳng ghi gì |
+| **cờ dừng** — file `_dung` | `taskkill /F` cắt ngang, mất phần đệm chưa xả. Tín hiệu Ctrl+Break thì phụ thuộc tiến trình được sinh kiểu gì — đúng máy này, sai máy khác. File thì luôn đúng |
+| **`DETACHED_PROCESS`** khi mở | tiến trình con chết theo cha, mà cha là một app người ta đóng/mở suốt ngày |
+| stdout → `_ghi.log` | tiến trình rời không có console; không hứng thì mọi lời than của nó rơi vào hư không |
+
+Đã chạy đủ vòng đời qua API: bật → nhịp lên sau 2 s → **bật chồng bị từ chối** → **xoá
+khi đang ghi bị từ chối** → xin dừng → thoát sạch sau 10 s. Bằng chứng đệm được xả:
+sau khi dừng, số bản ghi **nhiều hơn** lúc trước khi dừng (3.006 vs 2.433).
+
 ### Việc còn lại của ổ cắm này
 
-- chạy bộ ghi liên tục (một máy 24/7, ~24 GB/tháng/symbol);
+- **chạy bộ ghi liên tục** — một máy 24/7, ~24 GB/tháng/symbol. Đây là thứ duy nhất
+  không rút ngắn được bằng cách viết code nhanh hơn;
 - chốt danh sách symbol — lấy từ `tools/do_spread.py`;
-- viết lớp phát lại: một `Su_kien` duy nhất cho cả backtest lẫn live, và **cho chiến
-  lược thấy dữ liệu ở `t_ta`, không phải ở `T`** — nhìn ở `T` là cho nó thấy tương lai.
+- lớp live cùng bề mặt `buoc()` — thuộc về ổ cắm §2.
 
 ---
 

@@ -70,6 +70,10 @@ IM_LANG_TOI_DA = 45.0
 #: Chờ bao lâu trước mỗi lần nối lại — tăng dần rồi chặn trần.
 CHO_NOI_LAI = (1, 2, 5, 10, 20, 30)
 
+#: Đập nhịp tim mỗi ngần này giây để app biết bộ ghi còn sống. Xem
+#: `nguon_tick.trang_thai_ghi` — app KHÔNG sở hữu tiến trình này, nó chỉ nhìn.
+GIAY_NHIP = 5.0
+
 
 def _ngay_utc(ms):
     return datetime.fromtimestamp(ms / 1000, timezone.utc).strftime("%Y-%m-%d")
@@ -111,8 +115,16 @@ class Ghi:
             ds.clear()
 
 
+class _XinDung(Exception):
+    """App đặt cờ dừng. Không phải lỗi — là một lối ra sạch."""
+
+
 async def chay(symbols, im_lang=IM_LANG_TOI_DA):
     ghi = {s.upper(): Ghi(s) for s in symbols}
+    t_bat_dau = int(time.time() * 1000)
+    # Cờ dừng CŨ còn sót lại thì lần chạy này chết ngay khi vừa mở. Dọn trước.
+    nt.xoa_co_dung()
+    nt.dap_nhip(sorted(ghi), t_bat_dau)
     luong = "/".join(f"{s.lower()}@{k}" for s in symbols
                      for k in ("bookTicker", "trade"))
     url = GOC_WS + luong
@@ -134,13 +146,21 @@ async def chay(symbols, im_lang=IM_LANG_TOI_DA):
                     t_dut = None
                 lan = 0
                 print(f"  ● đã nối · {len(symbols)} symbol · {len(symbols) * 2} luồng")
-                await _doc(ws, ghi, im_lang)
+                await _doc(ws, ghi, im_lang, t_bat_dau)
+        except _XinDung:
+            for g in ghi.values():
+                g.xa()
+            nt.xoa_co_dung()
+            nt.xoa_nhip()
+            print("  ■ dừng theo yêu cầu của app — đã xả hết đệm")
+            return
         except asyncio.CancelledError:
             # Ctrl+C. Xả nốt phần đã nhận RỒI mới đi — mất hai giây dữ liệu vì một
             # dòng thiếu thì đúng loại mất mát khó chịu nhất: nhỏ, âm thầm, lặp lại
             # mỗi lần khởi động lại.
             for g in ghi.values():
                 g.xa()
+            nt.xoa_nhip()
             raise
         except Exception as e:                                       # noqa: BLE001
             if t_dut is None:
@@ -150,12 +170,16 @@ async def chay(symbols, im_lang=IM_LANG_TOI_DA):
             cho = CHO_NOI_LAI[min(lan, len(CHO_NOI_LAI) - 1)]
             lan += 1
             print(f"  ✘ {type(e).__name__}: {str(e)[:80]} — nối lại sau {cho}s")
+            # Vẫn đập nhịp trong lúc chờ nối lại: bộ ghi CÒN SỐNG, chỉ là đang mù.
+            # Ngừng đập ở đây thì app báo "đã chết" trong khi nó sắp nối lại được.
+            nt.dap_nhip(sorted(ghi), t_bat_dau)
             await asyncio.sleep(cho)
 
 
-async def _doc(ws, ghi, im_lang):
+async def _doc(ws, ghi, im_lang, t_bat_dau):
     t_xa = time.time()
     t_in = time.time()
+    t_nhip = 0.0
     while True:
         try:
             tho = await asyncio.wait_for(ws.recv(), timeout=im_lang)
@@ -186,6 +210,11 @@ async def _doc(ws, ghi, im_lang):
             for g in ghi.values():
                 g.xa()
             t_xa = gio
+        if gio - t_nhip >= GIAY_NHIP:
+            if nt.da_xin_dung():
+                raise _XinDung()
+            nt.dap_nhip(sorted(ghi), t_bat_dau)
+            t_nhip = gio
         if gio - t_in >= 60:
             _in_trang_thai(ghi)
             t_in = gio

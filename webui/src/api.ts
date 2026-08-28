@@ -4,7 +4,8 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab,
+  BoNguon, Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply,
+  Step, Tab, TrangThaiGhi,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -106,6 +107,18 @@ export const py = {
     goi<Record<string, unknown>>('save_ui', state),
   // ⚠ `save_test_settings` ĐÃ BỎ cùng mục "Strategy Test" trong Cài đặt — nó lưu
   // spread/vốn/phí/đòn bẩy của một bộ chạy theo nến không còn tồn tại.
+
+  // --- NGUỒN DỮ LIỆU (ổ cắm §1) ---
+  //
+  // ⚠ App KHÔNG sở hữu bộ ghi — nó là tiến trình riêng phải sống 24/7 kể cả khi app
+  // đóng. `nguon_bat_dau` mở một tiến trình RỜI, `nguon_dung` chỉ ĐẶT CỜ chứ không
+  // giết (giết là mất phần đệm chưa xả). Xem `cat_studio/api.py`.
+  nguon_liet_ke: () => goi<{ ds: BoNguon[]; ghi: TrangThaiGhi; thu_muc: string }>(
+    'nguon_liet_ke'),
+  nguon_bat_dau: (symbols: string[]) => goi<{ symbols: string[] }>(
+    'nguon_bat_dau', symbols),
+  nguon_dung: () => goi<{ da_xin: boolean; pid: number | null }>('nguon_dung'),
+  nguon_xoa: (symbol: string) => goi<{ mb: number; ds: BoNguon[] }>('nguon_xoa', symbol),
 
   // --- ▶ Chạy · ● Live — HAI Ổ CẮM TRỐNG ---
   //

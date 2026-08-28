@@ -38,8 +38,12 @@ MẤT GÓI PHẢI NÓI RA, KHÔNG ĐƯỢC IM
 Cả hai luồng đều mang số thứ tự của sàn (`u` cho sổ lệnh, `a` cho khớp lệnh). Nhảy số
 = mất gói. Mạng rớt = mất một quãng. **Một lỗ hổng không được ghi lại là một lời nói
 dối**: bộ chạy sẽ phát qua nó như thể thị trường liền mạch, và mọi con số sau đó sai mà
-không có dấu vết. Nên lỗ hổng nằm trong một file riêng `.loho` cạnh dữ liệu, và
-`doc()` từ chối trả về một dải có lỗ hổng nếu không được nói rõ là chấp nhận.
+không có dấu vết. Nên lỗ hổng nằm trong một file riêng `.loho` cạnh dữ liệu.
+
+⚠ `doc()` ở đây KHÔNG kiểm lỗ hổng — nó chỉ đọc byte. Việc bắt bộ chạy nhìn thấy lỗ
+hổng thuộc về `phat_lai.py`, chỗ biến mỗi lỗ hổng thành một cặp sự kiện `MO_LO_HONG` /
+`DONG_LO_HONG`. Tách như vậy vì đọc và diễn giải là hai việc: ai muốn xem dữ liệu thô
+thì cứ xem, còn ai chạy chiến lược thì bắt buộc đi qua `phat_lai` và không thể bỏ sót.
 """
 import json
 import os
@@ -239,3 +243,201 @@ def tom_tat(symbol, ngay):
             "tre_ms_p99": (float(np.percentile(a["t_ta"] - a["T"], 99)) if len(a) else None),
         }
     return ra
+
+
+# ---------------------------------------------------------------------------
+# NHỊP TIM của bộ ghi — app nhìn vào đây để biết nó còn sống không
+# ---------------------------------------------------------------------------
+#
+# Bộ ghi là một TIẾN TRÌNH RIÊNG, không nằm trong app, và đó là quyết định chứ không
+# phải tiện tay: nó phải chạy 24/7 kể cả khi app đóng. Cùng bài học mà cửa sổ Live cũ
+# đã trả giá — "đóng cửa sổ không được dừng phiên".
+#
+# Nên app không SỞ HỮU bộ ghi, nó chỉ NHÌN. Cách nhìn: một file nhịp tim ghi lại mỗi
+# vài giây. Chọn file chứ không chọn socket hay pid: file đọc được từ bất cứ tiến
+# trình nào, sống qua lần khởi động lại của app, và xem bằng mắt cũng được.
+
+FILE_NHIP = "_dang_ghi.json"
+
+#: Nhịp tim cũ hơn ngần này giây thì coi như bộ ghi đã chết. Bộ ghi đập mỗi 5 s, nên
+#: 20 s là đã lỡ bốn nhịp — đủ để chắc, đủ nhanh để hữu ích.
+NHIP_QUA_HAN = 20.0
+
+
+def _duong_nhip():
+    return os.path.join(luu_tru.goc(), THU_MUC_TICK, FILE_NHIP)
+
+
+def dap_nhip(symbols, t_bat_dau):
+    """Bộ ghi gọi. KHÔNG BAO GIỜ ném — một cái đĩa đầy không được giết bộ ghi."""
+    import time
+    try:
+        os.makedirs(os.path.dirname(_duong_nhip()), exist_ok=True)
+        luu_tru.ghi_json_nguyen_tu(_duong_nhip(), {
+            "pid": os.getpid(),
+            "symbols": list(symbols),
+            "bat_dau": int(t_bat_dau),
+            "nhip": time.time(),
+        })
+    except Exception:                                            # noqa: BLE001
+        pass
+
+
+def trang_thai_ghi():
+    """Bộ ghi còn sống không, đang ghi gì.
+
+    `song` suy từ TUỔI NHỊP TIM, không từ việc pid có tồn tại hay không: pid bị hệ
+    điều hành cấp lại cho tiến trình khác là chuyện thường, và lúc đó câu trả lời sẽ
+    là "còn sống" trên một tiến trình chẳng ghi gì cả."""
+    import time
+    try:
+        with open(_duong_nhip(), encoding="utf-8") as f:
+            d = json.load(f)
+    except Exception:                                            # noqa: BLE001
+        return {"song": False, "symbols": [], "pid": None,
+                "tuoi_nhip": None, "bat_dau": None}
+    tuoi = time.time() - float(d.get("nhip") or 0)
+    return {
+        "song": tuoi < NHIP_QUA_HAN,
+        "symbols": d.get("symbols") or [],
+        "pid": d.get("pid"),
+        "tuoi_nhip": round(tuoi, 1),
+        "bat_dau": d.get("bat_dau"),
+    }
+
+
+#: CỜ DỪNG. App ghi file này, bộ ghi thấy thì xả đệm rồi thoát sạch.
+#:
+#: Vì sao không giết bằng pid: `taskkill /F` cắt ngang giữa chừng, mất đúng phần đệm
+#: chưa xả (tới 2 giây dữ liệu). Còn tín hiệu Ctrl+Break thì phụ thuộc tiến trình được
+#: sinh ra kiểu gì — có console hay không, cùng nhóm hay không — tức là một thứ đúng
+#: trên máy này và sai trên máy khác. Một file thì luôn đúng, và đọc bằng mắt cũng được.
+#:
+#: Giá phải trả: dừng mất tối đa `GIAY_NHIP` giây. Rẻ.
+FILE_DUNG = "_dung"
+
+
+def _duong_dung():
+    return os.path.join(luu_tru.goc(), THU_MUC_TICK, FILE_DUNG)
+
+
+def xin_dung():
+    """App gọi. Đặt cờ để bộ ghi tự thoát sạch."""
+    os.makedirs(os.path.dirname(_duong_dung()), exist_ok=True)
+    with open(_duong_dung(), "w", encoding="utf-8") as f:
+        f.write("dung\n")
+
+
+def da_xin_dung():
+    """Bộ ghi gọi mỗi nhịp."""
+    return os.path.exists(_duong_dung())
+
+
+def xoa_co_dung():
+    """Gọi lúc bộ ghi KHỞI ĐỘNG và lúc nó thoát — cờ cũ còn sót lại sẽ làm lần chạy
+    sau chết ngay khi vừa mở, và không ai hiểu vì sao."""
+    try:
+        os.remove(_duong_dung())
+    except OSError:
+        pass
+
+
+def xoa_nhip():
+    """Gọi lúc bộ ghi thoát — để app biết ngay là đã dừng, khỏi chờ hết hạn nhịp."""
+    try:
+        os.remove(_duong_nhip())
+    except OSError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Liệt kê — app hỏi "đang có dữ liệu gì"
+# ---------------------------------------------------------------------------
+#: Lấy mẫu bao nhiêu bản ghi khi đo độ trễ. ĐỌC MẪU chứ không đọc cả file: một ngày là
+#: ~640 MB, mà `liet_ke` chạy mỗi lần mở hộp thoại. Trung vị trên 20.000 mẫu rải đều đã
+#: sát tới mức không ai phân biệt được.
+SO_MAU_TRE = 20_000
+
+
+def _ngay_co_san(symbol):
+    """Ngày nào đã có file, suy từ TÊN FILE — không mở một byte nào."""
+    ra = set()
+    try:
+        for f in os.listdir(thu_muc(symbol)):
+            if f.endswith(".bin") and "." in f:
+                ra.add(f.split(".")[0])
+    except OSError:
+        pass
+    return sorted(ra)
+
+
+def _tre_mau(symbol, ngay, luong):
+    """Trung vị độ trễ, đo trên MẪU rải đều cả ngày. None nếu chưa có gì."""
+    p = duong(symbol, ngay, luong)
+    try:
+        n = os.path.getsize(p) // LUONG[luong].itemsize
+        if n <= 0:
+            return None
+        a = np.memmap(p, dtype=LUONG[luong], mode="r")
+        buoc = max(1, n // SO_MAU_TRE)
+        m = a[::buoc]
+        return float(np.median(m["t_ta"].astype(np.int64) - m["T"].astype(np.int64)))
+    except (OSError, ValueError):
+        return None
+
+
+def liet_ke():
+    """Mọi symbol đã có dữ liệu, kèm số đo — hộp thoại Nguồn vẽ thẳng từ cái này.
+
+    ⚠ RẺ CÓ CHỦ Ý. Số ngày và dung lượng lấy từ hệ thống file; lỗ hổng lấy từ mấy file
+    `.loho` (nhỏ xíu); độ trễ đo trên MẪU của ngày mới nhất. Không hàm nào ở đây đọc
+    hết một file 640 MB, vì nó chạy mỗi lần người dùng mở hộp thoại."""
+    goc = os.path.join(luu_tru.goc(), THU_MUC_TICK)
+    ra = []
+    try:
+        ten = sorted(d for d in os.listdir(goc)
+                     if os.path.isdir(os.path.join(goc, d)))
+    except OSError:
+        return ra
+    for symbol in ten:
+        ngay = _ngay_co_san(symbol)
+        if not ngay:
+            continue
+        byte = {}
+        for luong in LUONG:
+            byte[luong] = sum(
+                os.path.getsize(duong(symbol, n, luong))
+                for n in ngay if os.path.exists(duong(symbol, n, luong)))
+        lh = [x for n in ngay for x in doc_lo_hong(symbol, n)]
+        ra.append({
+            "symbol": symbol,
+            "so_ngay": len(ngay),
+            "tu_ngay": ngay[0],
+            "den_ngay": ngay[-1],
+            "mb": round(sum(byte.values()) / 1e6, 1),
+            "so_ban_ghi": {k: int(v // LUONG[k].itemsize) for k, v in byte.items()},
+            "so_lo_hong": len(lh),
+            "ms_lo_hong": int(sum(x.get("ms") or 0 for x in lh)),
+            # ⚠ ĐI NGƯỢC TÌM NGÀY CÓ FILE `so`, không cắm đầu vào `ngay[-1]`.
+            # Bản đầu lấy thẳng ngày mới nhất và trả `None` khi ngày đó tình cờ chỉ
+            # có file `khop` — mà `None` thì hiện ra bảng là một dấu gạch, trông y
+            # như "chưa đo được" trong khi dữ liệu đo được nằm ngay ngày hôm trước.
+            "tre_ms": next((x for x in (_tre_mau(symbol, n, "so")
+                                        for n in reversed(ngay)) if x is not None),
+                           None),
+        })
+    return ra
+
+
+def xoa(symbol):
+    """Xoá HẲN dữ liệu của một symbol. Trả số byte đã xoá.
+
+    Tải thì tự động được, xoá thì không — cùng luật `nguon_nen` cũ đã chốt: tải là an
+    toàn và đảo ngược được, xoá thì mất là mất. Chỗ gọi phải hỏi người dùng trước."""
+    import shutil
+    d = thu_muc(symbol)
+    n = 0
+    for f in os.listdir(d):
+        n += os.path.getsize(os.path.join(d, f))
+    shutil.rmtree(d, ignore_errors=True)
+    return n
