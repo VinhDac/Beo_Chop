@@ -18,21 +18,63 @@ lấy: `git show f1c90fb:<đường dẫn>`.
 
 ---
 
-## 1. Nguồn dữ liệu
+## 1. Nguồn dữ liệu — ĐÃ CẮM MỘT NỬA
 
-**Nằm ở đâu** — không còn file nào. `cat_studio/__init__.py` liệt kê chỗ trống trong
-bản đồ module.
+**Nằm ở đâu** — `cat_studio/nguon_tick.py` (định dạng · đọc · dò mất gói · sổ lỗ hổng)
+và `tools/ghi_tick.py` (bộ ghi 24/7). Bài kiểm: `tests/test_nguon_tick.py`.
 
-**Trước cắm gì** — `nguon_nen.py` (527 dòng): kéo nến M1 từ MT5 theo lô 30 ngày, cất
-`.npy` 48 byte/nến, luật **một dải liền** (chọn khoảng rời thì tải luôn phần ở giữa),
-`khoang_thieu()` + `uoc_tinh()` để không bao giờ tải lén, ghi nguyên tử chống file cụt.
+**Còn trống** — **lịch sử**. Bộ ghi vừa xong, nên hôm nay chưa có gì để backtest. Đây
+là ổ cắm duy nhất không rút ngắn được bằng cách viết code nhanh hơn: **phải chạy và
+phải chờ.**
 
-**Phải cắm gì** — nguồn tick, không phải nến. Ba cái bẫy đã trả giá để biết và sẽ gặp
-lại ở bất kỳ sàn nào — đọc docstring cũ trước khi viết:
+### Vì sao tự ghi, không tải về
 
-- thời gian là **giờ SERVER**, đừng "sửa cho đúng UTC";
-- xin một dải dài một phát thì API có thể trả **thiếu mà không báo lỗi** — phải chia lô;
-- dữ liệu thật **đầy lỗ hổng**; gộp theo biên thời gian tuyệt đối, không đếm phần tử.
+Đo kho miễn phí của Binance ngày **2026-08-28**:
+
+| luồng | phủ |
+|---|---|
+| `aggTrades` · `trades` | 996 symbol · 2019-12-31 → **2026-08-27** ✔ |
+| `bookTicker` | 315 symbol · 2023-05-16 → **2024-03-30** ✘ ngừng hẳn |
+| `bookDepth` | hiện hành, nhưng **không phải sổ lệnh** — thanh khoản ở ±1…5 % quanh mid, mẫu 2,5 s |
+
+Và 315 symbol có sổ lệnh đúng là nhóm **BTC/ETH/SOL** mà `tools/do_spread.py` đã loại.
+Nhóm còn cửa thì `bookTicker` **rỗng hoàn toàn**. Hyperliquid có kho nhưng
+**requester-pays** — 403 nếu không có tài khoản AWS.
+
+Đổi lại được thứ đắt hơn dữ liệu: **backtest và live đọc cùng một luồng byte từ cùng
+một ổ cắm.**
+
+### Bốn con số đã đo, không phải ước lượng
+
+Chạy thật 60 giây trên TRUMPUSDT + PUMPUSDT:
+
+| | |
+|---|---|
+| **độ trễ** | trung vị **207 ms**, p99 **350 ms** — đồng hồ máy chỉ lệch −121 ms nên đây là mạng thật |
+| **nhịp** | ~115 bản ghi sổ/s · ~33 khớp/s cho một symbol tầm trung |
+| **dung lượng** | ~**800 MB/ngày/symbol** (sổ 640 + khớp 160) → ~24 GB/tháng |
+| **mất gói** | 0 · lỗ hổng 0 |
+
+Độ trễ 207 ms là **ràng buộc thiết kế, không phải chi tiết**: nó nói cuộc chơi không
+phải tốc độ mà là bề rộng báo giá và quản tồn kho.
+
+### Hai phát hiện phải nhớ
+
+**`@aggTrade` chết.** Trả **0 gói trong 10 giây** cho cả `trumpusdt` lẫn `btcusdt`,
+trong khi `@trade` cùng lúc trả 944 và `@bookTicker` trả 1.259. Không lỗi, không đóng
+kết nối — chỉ im lặng. Dùng `@trade`, và nó hợp hơn thật: `aggTrade` gộp các cú khớp
+liên tiếp cùng giá, mà thứ ta cần là đúng chuỗi để trừ dần hàng đợi.
+
+**Chỉ ghi ĐỈNH sổ lệnh, không ghi cả cuốn.** Vì spread đúng một tick trên gần như mọi
+symbol còn cửa — không có chỗ chen vào giữa, ta chỉ xếp hàng ở đỉnh. Ngày nào spread
+rộng ra nhiều tick thì phải xem lại.
+
+### Việc còn lại của ổ cắm này
+
+- chạy bộ ghi liên tục (một máy 24/7, ~24 GB/tháng/symbol);
+- chốt danh sách symbol — lấy từ `tools/do_spread.py`;
+- viết lớp phát lại: một `Su_kien` duy nhất cho cả backtest lẫn live, và **cho chiến
+  lược thấy dữ liệu ở `t_ta`, không phải ở `T`** — nhìn ở `T` là cho nó thấy tương lai.
 
 ---
 

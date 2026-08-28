@@ -17,3 +17,14 @@ pywebview
 # trước khi thêm lại — dependency nặng mà không ai dùng là thứ dễ mọc lại nhất.
 #
 # Sàn mới chưa chọn. Xem `tai_lieu/o_cam_trong.md`.
+
+# ---- ĐO VÀ GHI THỊ TRƯỜNG (ổ cắm §1) ----
+
+# Bộ ghi tick (`tools/ghi_tick.py`) — WebSocket tới sàn, chạy 24/7.
+websockets
+
+# Mảng tick. `numpy` từng bị gỡ ở đợt 2 vì nó vào repo gián tiếp qua MetaTrader5 và
+# không module nào còn dùng. Giờ quay lại vì lý do CỦA CHÍNH NÓ: một ngày dữ liệu của
+# một symbol là ~10 triệu bản ghi × 64 byte, không có kiểu dữ liệu Python thuần nào
+# cầm nổi. Xem `cat_studio/nguon_tick.py`.
+numpy
