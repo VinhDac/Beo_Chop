@@ -71,16 +71,19 @@ def _loi(chu):
 def _hanh_dong_mac_dinh(loai):
     """Giá trị khởi điểm của một hành động mới.
 
-    ⚠ Bản cũ trả về những con số DÙNG ĐƯỢC NGAY chứ không phải 0 — mặc định của
-    Compress EA (ATR 14, ngưỡng 7 bps, SL 1.5×ATR, TP 2R) — để người dùng mới có thứ
-    hợp lý mà sửa chứ không phải bịa từ số không.
+    Nguyên tắc: trả về thứ DÙNG ĐƯỢC NGAY, không phải một khối rỗng bắt người dùng
+    bịa từ số không. Nhưng "dùng được ngay" ở đây KHÔNG có nghĩa là đoán ý:
 
-    Nguyên tắc đó ĐÚNG và nên giữ khi từ vựng quay lại. Chỉ là hiện không còn trường
-    nào để đặt mặc định: một khối mang đúng TÊN · ĐỘNG TỪ · (với `vao_lenh`) HƯỚNG.
-    Xem `tai_lieu/o_cam_trong.md`."""
-    if loai == core.VAO_LENH:
-        return {"type": loai, "huong": "mua"}
-    return {"type": loai if loai in core.ACTION_TYPES else core.CHECK_COND}
+      · `số hạng` mặc định `công bằng = mid` — câu đầu tiên của mọi market maker, và
+        là số hạng duy nhất mà đặt nhầm chỗ cũng không gây hại;
+      · `kiểm tra điều kiện` mặc định RỖNG. Bịa sẵn một điều kiện là bịa một ngưỡng,
+        mà ngưỡng sai thì nhìn không ra — `validate_actions` sẽ nhắc ngay là cổng rỗng
+        thì luôn khớp, và đó là lời nhắc đúng."""
+    if loai == core.SO_HANG:
+        return {"type": loai, "dich": "cong_bang", "phep": "=",
+                "luong": {"he_so": 1, "toan_hang": "mid"}}
+    return {"type": loai if loai in core.ACTION_TYPES else core.CHECK_COND,
+            "conditions": []}
 
 
 # ---------------------------------------------------------------------------
@@ -92,15 +95,17 @@ def _mau_khoi(st):
     """Khoá MÀU của khối — ngữ nghĩa, không phải mã màu. Giao diện tự ánh xạ sang biến
     CSS, nên đổi bảng màu là việc của CSS, không phải sửa Python.
 
-    Suy từ `type` + `huong` — đều là phạm trù của chính app (không phải khái niệm riêng
-    của một chiến lược), nên chiến lược nào sau này cũng ra màu đúng."""
+    Suy từ `type` + `đích` — đều là phạm trù của chính app (không phải khái niệm riêng
+    của một chiến lược), nên chiến lược nào sau này cũng ra màu đúng.
+
+    ⚠ Không tô theo MUA/BÁN nữa, vì một market maker đứng cả hai phía cùng lúc — chia
+    màu theo hướng là chia một thứ không chia được. Thứ đáng phân biệt bằng mắt bây
+    giờ là số hạng này động vào GIÁ hay động vào KHỐI LƯỢNG: nhìn cả chuỗi là thấy
+    ngay phần nào dựng mức treo, phần nào dựng cỡ lệnh."""
     if core.is_start_step(st):
         return "start"
-    t = st.get("type")
-    if t == core.VAO_LENH:
-        return "ban" if st.get("huong") == "ban" else "mua"
-    if t == core.SUA_LENH:
-        return "sua"
+    if st.get("type") == core.SO_HANG:
+        return "lot" if core.DICH_KIEU.get(st.get("dich")) == "lot" else "gia"
     return "hoi"
 
 
@@ -276,6 +281,72 @@ class NenCuaSo:
         if self._window:
             self._window.set_title(f"{ten} — {self._HAU_TO}" if ten else self._HAU_TO)
         return _ok(True)
+# ---------------------------------------------------------------------------
+# Sơ đồ mẫu
+# ---------------------------------------------------------------------------
+
+
+def _so_do_mau():
+    """Market maker sơ cấp — xem `Api.demo_process` để biết vì sao đúng bảy khối.
+
+    Dựng bằng dict thô chứ không bằng hàm dựng: đây là DỮ LIỆU, phải giống hệt thứ
+    người dùng tự vẽ ra rồi lưu. Ngày nào file mẫu lệch khỏi file người dùng là ngày
+    "▶ Mẫu" hết dùng được làm chuẩn đối chiếu."""
+
+    def so_hang(sid, y, dich, phep, he_so, toan_hang=None, don_vi=None, khi=None, x=340.0):
+        luong = {"he_so": he_so}
+        if toan_hang:
+            luong["toan_hang"] = toan_hang
+        if don_vi:
+            luong["don_vi"] = don_vi
+        ra = {"id": sid, "kind": core.KIND_ACTION, "type": core.SO_HANG,
+              "dich": dich, "phep": phep, "luong": luong, "pos": [x, y]}
+        if khi:
+            ra["khi"] = khi
+        return ra
+
+    def han_muc(phep, gt):
+        return {"trai": {"ten": "ton_kho"}, "phep": phep,
+                "phai": {"value": gt, "tinh": "lot"}}
+
+    # Nhánh MÙ nằm CAO HƠN nhánh chính, và đó không phải chuyện thẩm mỹ: thứ tự thử
+    # nhánh lấy từ VỊ TRÍ trên canvas (`core._khoa_nhanh`), nên cổng phải ở trên thì
+    # mới được thử trước. Kéo nó xuống dưới là đổi ngữ nghĩa.
+    Y, DY = 300.0, 116.0
+    steps = [
+        dict(core.make_start_step("Mỗi sự kiện"), id="s_bd", pos=[90.0, Y + DY * 2]),
+
+        # Cổng DUY NHẤT của sơ đồ. Không có vế phải — `co_so` vốn đã đúng/sai.
+        {"id": "s_mu", "kind": core.KIND_ACTION, "type": core.CHECK_COND,
+         "name": "Mất sổ lệnh?", "pos": [340.0, Y - DY],
+         "conditions": [{"trai": {"ten": "co_so"}, "phep": "la_sai"}]},
+        so_hang("s_rut", Y - DY, "lot", "=", 0, don_vi="lot", x=620.0),
+
+        so_hang("s_cb", Y, "cong_bang", "=", 1, "mid"),
+        so_hang("s_bien", Y + DY, "bien", "=", 1, "spread"),
+        # Dấu của `ton_kho` làm hết việc: ôm hàng mua (dương) thì lệch dương, tức cả
+        # hai chân dịch XUỐNG. Không cần nhánh nào cho hai chiều.
+        so_hang("s_lech", Y + DY * 2, "lech", "+=", 0.5, "ton_kho", "tick"),
+        so_hang("s_lot", Y + DY * 3, "lot", "=", 500, don_vi="lot"),
+        so_hang("s_tran", Y + DY * 4, "lot_mua", "=", 0, don_vi="lot",
+                khi=han_muc(">=", 2000)),
+        so_hang("s_san", Y + DY * 5, "lot_ban", "=", 0, don_vi="lot",
+                khi=han_muc("<=", -2000)),
+    ]
+    # Khối Bắt đầu rẽ HAI nhánh: cổng "mất sổ lệnh" và chuỗi chính. Nhánh mù đi sang
+    # phải rồi DỪNG — rút hết là hết lượt, không còn gì để tính.
+    canh = [("s_bd", "s_mu"), ("s_mu", "s_rut"),
+            ("s_bd", "s_cb"), ("s_cb", "s_bien"), ("s_bien", "s_lech"),
+            ("s_lech", "s_lot"), ("s_lot", "s_tran"), ("s_tran", "s_san")]
+    return {
+        "schema": core.SCHEMA, "type": "strategy",
+        "name": "Market maker sơ cấp", "symbol": "BTCUSDT", "tham_so": [],
+        core.TAB_BAO_GIA: {
+            "steps": steps,
+            "edges": [{"from": a, "to": b, "port": "out"} for a, b in canh]},
+    }
+
+
 
 
 class Api(NenCuaSo):
@@ -315,18 +386,36 @@ class Api(NenCuaSo):
             "branch_type": core.CHECK_COND,
             "huong": core.HUONG,
 
-            # ⚠ MƯỜI CHÍN KHOÁ TỪ VỰNG ĐÃ BỎ ở đợt 3, và giao diện phải chịu được
-            # thiếu hết chúng: `toan_hang` · `phep_so` · `don_vi` · `don_vi_ngan` ·
-            # `don_vi_cho` · `nhan_don_vi` · `don_vi_dem` · `don_vi_o` ·
-            # `toan_hang_don_vi` · `toan_hang_loai` · `toan_hang_dung_sai` ·
-            # `toan_hang_can_zone` · `don_vi_can_zone` · `don_vi_chinh_no` ·
-            # `loai_co_don_vi` · `nhom_lenh_nay` · `loai_lenh` · `moc_entry` ·
-            # `moc_can_zone` · `sua_che_do` · `sua_can_gia`, cộng `timeframes` ·
-            # `nhip_mac_dinh` · `ma_methods`.
+            # ---- TỪ VỰNG. Hợp đồng: **JS không viết cứng danh sách nào.** ----
             #
-            # `bootstrap` là hợp đồng "JS không viết cứng danh sách nào" — thêm một
-            # toán hạng ở `kho/` là giao diện có ngay. Hợp đồng đó GIỮ NGUYÊN; chỉ có
-            # điều bên trái hiện chưa có gì để gửi. Xem `tai_lieu/o_cam_trong.md`.
+            # Mười chín khoá của thế giới nến đã đi ở đợt 3 (`moc_entry`, `sua_che_do`,
+            # `don_vi_can_zone`, `timeframes`, `ma_methods`…). Cái thay chúng ít hơn
+            # hẳn về số lượng, vì từ vựng market maker vốn nhỏ hơn — nhưng cùng một
+            # hợp đồng: thả một module vào `kho/MODULE` là dropdown toán hạng có ngay,
+            # không sờ vào JS.
+            "toan_hang": core.TOAN_HANG,
+            "toan_hang_loai": core.TOAN_HANG_LOAI,
+            "toan_hang_don_vi": core.TOAN_HANG_DON_VI,
+            "toan_hang_dung_sai": list(core.TOAN_HANG_DUNG_SAI),
+            "phep_so": core.PHEP_SO,
+            "phep_dung_sai": list(core.PHEP_DUNG_SAI),
+            "don_vi": core.DON_VI,
+            "don_vi_ngan": core.DON_VI_NGAN,
+            "don_vi_dem": core.DON_VI_DEM,
+            "nhan_don_vi": core.NHAN_DON_VI,
+            # Loại đại lượng nào ĐƯỢC chọn đơn vị, và loại nào có đơn vị CỐ ĐỊNH. Hai
+            # bảng này quyết ô thước đo mờ hay sáng — luật nằm ở Python, JS chỉ đọc.
+            "loai_co_don_vi": core.LOAI_CO_DON_VI,
+            "loai_don_vi": core.LOAI_DON_VI,
+
+            # ---- SỐ HẠNG ----
+            "dich": core.DICH,
+            "dich_kieu": core.DICH_KIEU,
+            "dich_ca_hai": {k: list(v) for k, v in core.DICH_CA_HAI.items()},
+            "phep_gan": core.PHEP_GAN,
+            # Đích nào nhận phép nào — hộp thoại xổ đúng những phép hợp lệ thay vì bày
+            # cả ba rồi để `validate_actions` mắng sau.
+            "phep_cho_dich": {k: list(v) for k, v in core.PHEP_CHO_DICH.items()},
 
             "template_kinds": core.TEMPLATE_KINDS,
             "accent_presets": core.ACCENT_PRESETS,
@@ -417,17 +506,69 @@ class Api(NenCuaSo):
 
     @_bat_loi
     def demo_process(self):
-        """Ổ CẮM TRỐNG — chưa có sơ đồ mẫu.
+        """Sơ đồ MẪU — market maker sơ cấp nhất còn chạy đúng.
 
-        Sơ đồ mẫu cũ là chiến lược Compress (D_02): nén biến động rồi phá vùng, dựng
-        trên nến M5 và lệnh chờ stop. Nó đi cùng D_02 trong đợt 2 của lần dọn sang
-        HFT market maker.
+        Bảy khối, và không khối nào bỏ được. Đây là bài kiểm tra thật của cả bộ từ
+        vựng: nếu một chiến lược market maker tối thiểu mà đã phải thêm động từ hay
+        thêm loại khối, thì ngữ pháp sai chứ không phải chiến lược thiếu.
 
-        Trả lỗi chứ KHÔNG trả sơ đồ rỗng: một sơ đồ trắng mở ra trông y hệt "▶ Mẫu"
-        vừa chạy xong mà chẳng có gì — người dùng sẽ tưởng nút hỏng. Nói thẳng là chưa
-        có thì hơn. Xem `tai_lieu/o_cam_trong.md`."""
-        return {"ok": False,
-                "error": "Chưa có sơ đồ mẫu — chiến lược cũ đã gỡ cùng MT5."}
+            [1] Mỗi sự kiện
+             ├─ [1A] cổng   có thấy sổ lệnh là SAI
+             │        └─ [1A.1]  lot        =  0            → rút hết
+             └─ [1B] (mặc định)
+                    [2]  công bằng  =  mid
+                    [3]  biên       =  1 × spread
+                    [4]  lệch      +=  tồn kho × 0,5 tick/lot
+                    [5]  lot        =  500 lot
+                    [6]  lot mua    =  0 lot   khi  tồn kho ≥  2000
+                    [7]  lot bán    =  0 lot   khi  tồn kho ≤ −2000
+
+        Đọc theo BA TẦNG, và ba tầng đó chính là ba việc một market maker làm:
+
+        [1A] MÙ THÌ RÚT. Cổng, không phải số hạng — vì nó không góp một số hạng nào
+             vào báo giá, nó VỨT cả báo giá. Đây là chỗ duy nhất trong sơ đồ cần rẽ
+             nhánh, và nó rẽ vì trạng thái "không nhìn thấy sổ lệnh" loại trừ mọi thứ
+             còn lại, chứ không phải vì ta muốn hai kiểu hành xử.
+
+        [2][3] BÁO GIÁ GỐC. Treo quanh `mid`, cách nửa spread mỗi phía. Ngây thơ có
+             chủ ý: nó KHÔNG kiếm ra tiền trên một symbol có phí maker chuẩn — treo
+             ngay ở bid/ask hiện tại thì phần lớn thời gian là đứng cuối hàng đợi và
+             chỉ khớp khi giá sắp đi ngược. Nhưng nó là mốc số 0 đúng đắn: mọi thứ
+             tinh vi hơn sau này đều là SỬA hai con số này, và có mốc thì mới đo được
+             sửa ấy đáng bao nhiêu.
+
+        [4] LỆCH THEO TỒN KHO — số hạng quan trọng nhất trong sơ đồ, và là lý do cả
+             ngữ pháp này tồn tại. Ôm 1000 lot mua thì `lệch` = +500 tick, tức CẢ HAI
+             chân dịch xuống nửa nghìn tick: giá mua của ta xấu đi nên ít bị nhồi
+             thêm, giá bán của ta đẹp lên nên dễ xả bớt. Không có nó, tồn kho đi lang
+             thang cho tới khi một cú giá quét sạch tài khoản — market maker chết vì
+             tồn kho chứ không chết vì spread hẹp.
+
+             ⚠ `+=` chứ không phải `=`. Ở sơ đồ này hai phép cho cùng kết quả (chưa ai
+             cộng vào `lệch` trước đó), nhưng viết `=` là dựng sẵn một cái bẫy: số
+             hạng lệch thứ hai thêm vào sau sẽ lặng lẽ bị xoá. `_soat_ghi_de` bắt đúng
+             trường hợp đó.
+
+        [5] CỠ LỆNH cố định — chỗ nông nhất của chiến lược này, và cố ý để nông. Cỡ
+             lệnh đúng phải nhìn hàng đợi (`bid_kl`) và biến động; cả hai đều là số
+             hạng thêm vào chuỗi, không phải sửa cấu trúc.
+
+        [6][7] HẠN MỨC TỒN KHO, làm bằng `khi` chứ không bằng cổng — và đây là điều
+             người dùng chốt khi bảo *gắn điều kiện lên chính khối số hạng*. Làm bằng
+             cổng thì hai hạn mức là bốn nhánh, thêm một điều kiện nữa là tám. Làm
+             bằng `khi` thì mỗi điều kiện là MỘT dòng, và chuỗi vẫn thẳng.
+
+             Chú ý nó chỉ TẮT một phía chứ không đóng vị thế: quá hạn mức mua thì
+             ngừng mua thêm, còn phía bán vẫn treo để xả dần. Đóng chủ động cần một
+             lệnh taker — một động từ thứ ba mà ngữ pháp này chưa có, và chưa cần.
+
+        Không có SL, không có TP, không có "thoát lệnh": rủi ro nằm ở [4] và [6][7],
+        tức ở mức TỒN KHO. Xem `kho/nen_tang.py`.
+
+        ⚠ Số trong sơ đồ (0,5 tick/lot · 500 lot · 2000 lot) là số MINH HOẠ đọc được
+        bằng mắt, không phải số đã đo trên symbol nào. Chúng sẽ thành tham số có tên
+        khi bảng tham số quay lại — xem `tai_lieu/o_cam_trong.md`."""
+        return _ok(_kem_the(_so_do_mau()))
 
     @_bat_loi
     def load_process(self, name):
@@ -456,7 +597,7 @@ class Api(NenCuaSo):
         Bảng tham số đi ở đợt 3, nên `tham_so` giờ luôn rỗng. Cả hai luật lọc phía
         trên thì không đổi — chúng là luật về CẤU TRÚC. Xem `tai_lieu/o_cam_trong.md`."""
         d = core.normalize_process(core.load_template("strategy", ten))
-        tab = tab if tab in core.TABS else core.TAB_ENTRY
+        tab = tab if tab in core.TABS else core.TAB_BAO_GIA
         g = d.get(tab) or {}
         goc = g.get("steps") or []
         buoc = [s for s in goc if not core.is_start_step(s)]

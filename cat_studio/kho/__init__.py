@@ -1,18 +1,16 @@
 """KHO — danh mục mọi thứ app tính được, gom từ các module con.
 
-⚠ KHO ĐANG RỖNG, và đó là trạng thái CÓ CHỦ Ý (đợt 3 của lần dọn sang HFT market
-maker). Ba module con đã đi cùng thế giới nến:
+    nen_tang.py     sổ lệnh · tồn kho · sức khoẻ — không thuộc engine nào
 
-    nen_tang.py     giá · thời gian · tài khoản · lệnh này        (75 dòng)
-    chi_bao.py      ATR · MA — tính thẳng từ nến                  (46)
-    engine_d02.py   atr_bps · bảng vùng nén — ý tưởng riêng D_02  (191)
+Kho từng RỖNG HOÀN TOÀN sau đợt 3 của lần dọn sang HFT market maker: ba module cũ
+(`nen_tang` giá/nến, `chi_bao` ATR/MA, `engine_d02` vùng nén) đều đọc từ một cây nến
+hoặc từ một bộ chạy không còn tồn tại. Giữ lại một danh mục mà không gì tính ra được
+giá trị cho nó thì hộp thoại "Kho" vẫn bày ra đủ thứ, và mỗi dòng là một lời hứa suông.
 
-Mọi toán hạng trong đó đều đọc từ một cây nến (`close(M5)`, `atr(M15, 50)`,
-`zone_dem`) hoặc từ sổ lệnh của một bộ chạy không còn tồn tại. Giữ lại một danh mục
-mà không gì tính ra được giá trị cho nó thì hộp thoại "Kho" vẫn bày ra đủ thứ, và mỗi
-dòng trong đó là một lời hứa suông.
+Giờ `nen_tang` quay lại với TÁM toán hạng suy thẳng từ bản chất market making — xem
+docstring của nó để biết vì sao đúng tám, và bốn cái đáng thêm ngay sau.
 
-CƠ CHẾ THÌ Ở LẠI NGUYÊN VẸN, vì nó không dính chiến lược nào:
+CƠ CHẾ KHÔNG ĐỔI MỘT CHỮ qua cả hai lần, vì nó không dính chiến lược nào:
 
   · `_gom` gắn `nguon` = mã module vào từng mục, nên hộp thoại chia mục được mà không
     ai phải chép tay một danh sách thứ hai;
@@ -20,19 +18,19 @@ CƠ CHẾ THÌ Ở LẠI NGUYÊN VẸN, vì nó không dính chiến lược nà
     lỗi im lặng tệ nhất — hai engine cùng khai `atr` với hai nghĩa khác nhau thì mọi
     chiến lược dùng nó đều sai mà không báo gì.
 
-CẮM LẠI: thêm module vào `MODULE` là xong, không sửa `core.py`, không sửa `api.py`,
-không sửa hộp thoại. Mỗi module khai `TEN` · `MA_SO` · `MO_TA` và tuỳ ý
-`CHI_BAO` / `TOAN_HANG` / `BANG_TRANG_THAI`. Một market maker sẽ cần ít nhất:
+THÊM MODULE: thả vào `MODULE` là xong — không sửa `core.py`, không sửa `api.py`, không
+sửa hộp thoại. Mỗi module khai `TEN` · `MA_SO` · `MO_TA` và tuỳ ý `CHI_BAO` /
+`TOAN_HANG` / `BANG_TRANG_THAI`. Hai module còn thiếu:
 
-    nen_tang.py      bid · ask · mid · spread · TỒN KHO CÓ DẤU · tuổi quote
-    vi_cau_truc.py   biến động thực · nhịp tick · trôi mid
-    engine_mm.py     nửa-spread mục tiêu · lệch báo giá theo tồn kho
+    vi_cau_truc.py   biến động thực · nhịp tick · lệch dòng lệnh · microprice
+    engine_mm.py     nửa-biên mục tiêu · lệch báo giá theo tồn kho
 
 Xem `tai_lieu/o_cam_trong.md`. Bản cũ: `git show f1c90fb:cat_studio/kho/`.
 """
+from . import nen_tang
 
 #: Thứ tự CÓ Ý NGHĨA: dropdown toán hạng xổ ra theo đúng thứ tự này.
-MODULE = []
+MODULE = [nen_tang]
 
 #: Module nào là ENGINE (mang ý tưởng chiến lược) — dùng để chia mục trong hộp thoại Kho.
 ENGINE = []

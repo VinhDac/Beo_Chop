@@ -41,6 +41,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 #    Giữ một `bo_chay` rỗng ruột chỉ để nuôi fixture thì đuôi vẫy được cả con chó.
 BAI = [
     ("test_danh_so.py", "Đánh số phân cấp · ghim số · ba trường hợp gặp lại khối cũ"),
+    ("test_ngu_phap.py", "Ngữ pháp báo giá — chuỗi số hạng · luật kiểu · thứ tự"),
     ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
     ("test_nguon_tick.py", "Nguồn tick — định dạng, mất gói, sổ lỗ hổng (không chạm mạng)"),
     ("test_phat_lai.py", "Phát lại — trục thời gian là `t_ta`, lỗ hổng là SỰ KIỆN"),

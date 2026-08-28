@@ -1,10 +1,12 @@
 """Cơ chế KHO và cơ sở lưu trữ.
 
-  kho/       phân loại theo NGUỒN. Kho HIỆN RỖNG (đợt 3), nên bài này canh đúng thứ
-             còn lại: **cơ chế**. Quan trọng nhất là `_soat_trung` — trùng khoá giữa
-             hai module là lỗi im lặng tệ nhất (hai engine cùng khai `atr` với hai
-             nghĩa thì mọi chiến lược dùng nó đều sai mà không báo gì), nên nó phải nổ
-             NGAY LÚC IMPORT chứ không đợi tới lúc chạy.
+  kho/       phân loại theo NGUỒN. Bài này canh **cơ chế**, không canh nội dung: đếm
+             đúng tám toán hạng là ràng buộc sai — thêm `microprice` vào là bài đỏ dù
+             chẳng có gì hỏng. Cái phải canh là những thứ hỏng LẶNG.
+             Quan trọng nhất là `_soat_trung` — trùng khoá giữa hai module là lỗi im
+             lặng tệ nhất (hai engine cùng khai `atr` với hai nghĩa thì mọi chiến lược
+             dùng nó đều sai mà không báo gì), nên nó phải nổ NGAY LÚC IMPORT chứ
+             không đợi tới lúc chạy.
   luu_tru.py mọi đường dẫn ở đúng MỘT chỗ, có di cư từ bố cục cũ.
 
 ⚠ HAI MỤC ĐÃ ĐI. **Sổ lệnh** (~55 dòng) canh `so_lenh.py`: lệnh mang id CỦA TA
@@ -41,13 +43,29 @@ def kiem(ten, dk, chi_tiet=""):
 # ================= 1. KHO =================
 print("\n▸ Kho backend — cơ chế, không phải nội dung")
 d = kho.danh_muc()
-kiem("kho RỖNG: không module nào đang nạp", d["module"] == [], f"— {d['module']}")
-kiem("ba danh sách đều rỗng, và `danh_muc()` vẫn trả đủ hình dạng",
-     d["chi_bao"] == [] and d["toan_hang"] == [] and d["bang_trang_thai"] == [])
-kiem("`_gom` chịu được danh sách module rỗng", kho._gom("TOAN_HANG") == [])
-kiem("bảng tra nhanh dựng từ kho rỗng vẫn dùng được",
-     kho.TOAN_HANG_KEYS == [] and kho.THEO_KEY == {}
+kiem("`danh_muc()` trả đủ hình dạng, mọi module đều khai đủ ba khoá bắt buộc",
+     bool(d["module"]) and all(m.get("ma_so") and m.get("ten") is not None
+                               and m.get("mo_ta") is not None for m in d["module"]))
+kiem("`_gom` gắn `nguon` vào TỪNG mục — thiếu nó thì hộp thoại không chia mục được",
+     bool(kho.TOAN_HANG) and all(t.get("nguon") for t in kho.TOAN_HANG))
+kiem("bảng tra nhanh khớp với danh sách, và khoá lạ rơi về chính nó",
+     kho.TOAN_HANG_KEYS == [t["key"] for t in kho.TOAN_HANG]
+     and len(kho.THEO_KEY) == len(kho.TOAN_HANG)
      and kho.nhan("khong_co") == "khong_co" and kho.tham_so("khong_co") == [])
+
+# MỖI TOÁN HẠNG PHẢI KHAI ĐỦ THỨ `core` SẼ ĐỌC. Thiếu `loai` thì ô đơn vị suy sai;
+# thiếu `don_vi` trên một đại lượng ĐẾM thì `bid_kl` và `ton_kho` gộp chung đơn vị và
+# nút chọn tham số mời nhầm. Cả hai đều KHÔNG nổ — chúng chỉ cho ra một câu vô nghĩa
+# mà vẫn chạy, đúng loại lỗi bài này sinh ra để chặn.
+LOAI = ("muc_gia", "khoang_cach", "dem", "dung_sai")
+thieu = [t["key"] for t in kho.TOAN_HANG if t.get("loai") not in LOAI]
+kiem("mọi toán hạng khai `loai` hợp lệ", not thieu, f"— thiếu: {thieu}")
+thieu = [t["key"] for t in kho.TOAN_HANG
+         if t.get("loai") == "dem" and not t.get("don_vi")]
+kiem("đại lượng ĐẾM nào cũng nói rõ đếm bằng gì", not thieu, f"— thiếu: {thieu}")
+thieu = [t["key"] for t in kho.TOAN_HANG
+         if (t.get("loai") == "dung_sai") != bool(t.get("dung_sai"))]
+kiem("cờ `dung_sai` và `loai` không nói ngược nhau", not thieu, f"— lệch: {thieu}")
 
 
 # TRÙNG KHOÁ PHẢI NỔ NGAY — phép quan trọng nhất của cả bài.

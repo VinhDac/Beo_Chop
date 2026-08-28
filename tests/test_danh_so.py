@@ -55,8 +55,8 @@ def cong(nguong, x, y, ten=None):
     s = core.make_action_step({
         "type": core.CHECK_COND,
         "name": ten or f"ĐK {nguong}",
-        "conditions": [{"trai": {"ten": "atr", "tf": "M5", "period": 14}, "don_vi": "bps",
-                        "phep": "<", "phai": {"value": nguong}}],
+        "conditions": [{"trai": {"ten": "spread"}, "phep": "<",
+                        "phai": {"value": nguong, "tinh": "tick"}}],
     })
     s["pos"] = [x, y]
     return s
@@ -65,8 +65,8 @@ def cong(nguong, x, y, ten=None):
 def viec(ten, x, y):
     """Một khối KHÔNG phải cổng — dùng làm mắt xích thường trên chuỗi."""
     s = core.make_action_step({
-        "type": core.SUA_LENH, "che_do": "hoa_von", "muc_tieu": "vi_the",
-        "khoang": {"tinh": "R", "value": 1}, "name": ten})
+        "type": core.SO_HANG, "dich": "lech", "phep": "+=",
+        "luong": {"he_so": 1, "don_vi": "tick"}, "name": ten})
     s["pos"] = [x, y]
     return s
 
@@ -303,26 +303,28 @@ kiem("khối kiểu cũ trong file cũ bị bỏ qua, không làm hỏng cả s�
      core.normalize_step({"kind": "loop", "id": "sxxx", "actions": []}) is None)
 kiem("template chỉ còn loại 'chiến lược', không lưu cụm khối rời",
      list(core.TEMPLATE_KINDS) == ["strategy"], f"— {list(core.TEMPLATE_KINDS)}")
-kiem("đúng BA hành động, không còn Đặt cờ",
-     core.ACTION_TYPES == [core.CHECK_COND, core.VAO_LENH, core.SUA_LENH],
-     f"— {core.ACTION_TYPES}")
+kiem("đúng HAI động từ: hỏi, và góp một số hạng",
+     core.ACTION_TYPES == [core.CHECK_COND, core.SO_HANG], f"— {core.ACTION_TYPES}")
+kiem("lõi không còn biết Vào lệnh / Sửa lệnh — market maker không có lệnh RỜI",
+     not any(hasattr(core, t)
+             for t in ("VAO_LENH", "SUA_LENH", "TAB_ENTRY", "TAB_MANAGE")))
 
-# ================= 8d. Entry chỉ TẠO, Manage chỉ SỬA =================
-print("\n▸ Ranh giới Entry / Manage")
-kiem("Vào lệnh chỉ ở Entry", core.ACTION_TABS[core.VAO_LENH] == (core.TAB_ENTRY,))
-kiem("Sửa lệnh chỉ ở Manage", core.ACTION_TABS[core.SUA_LENH] == (core.TAB_MANAGE,))
-kiem("Kiểm tra ĐK dùng ở cả hai",
-     set(core.ACTION_TABS[core.CHECK_COND]) == set(core.TABS))
-kiem("đặt lệnh trong Manage → báo lỗi",
+# ================= 8d. MỘT sơ đồ =================
+print("\n▸ Một sơ đồ Báo giá")
+# Ranh giới **Entry chỉ TẠO · Manage chỉ SỬA** từng là luật quan trọng nhất của app,
+# và bốn phép kiểm nó từng nằm đúng chỗ này. Nó KHÔNG bị bỏ vì lười — nó mất ĐỐI
+# TƯỢNG: market maker không "vào lệnh" rồi "quản lệnh" ở hai nhịp khác nhau, mỗi sự
+# kiện phát biểu lại TOÀN BỘ báo giá. Một sơ đồ, một nhịp.
+#
+# Cơ chế `ACTION_TABS` thì giữ nguyên và vẫn được canh ở đây: ngày có sơ đồ thứ hai
+# là nó chặn được ngay, không phải dựng lại từ đầu.
+kiem("đúng MỘT sơ đồ", core.TABS == [core.TAB_BAO_GIA], f"— {core.TABS}")
+kiem("cả hai động từ đều dùng được ở sơ đồ đó",
+     all(set(core.ACTION_TABS[t]) == set(core.TABS) for t in core.ACTION_TYPES))
+kiem("khối lạc sang sơ đồ không nhận nó → báo lỗi",
      any("chỉ thuộc về" in m for m in loi_hd_tab(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "market", "lot": 0.01,
-          "sl": {"tinh": "atr_zone", "value": 1.5}}, core.TAB_MANAGE)))
-kiem("sửa lệnh trong Entry → báo lỗi",
-     any("chỉ thuộc về" in m for m in loi_hd_tab(
-         {"type": core.SUA_LENH, "che_do": "hoa_von"}, core.TAB_ENTRY)))
-
-# ⚠ 'hỏi "lệnh này" trong Entry → báo lỗi' đã đi cùng nhóm toán hạng "Lệnh này".
-# Ranh giới Entry/Manage thì CÒN NGUYÊN — bốn phép ngay trên vẫn canh nó.
+         {"type": core.SO_HANG, "dich": "lech", "phep": "+=",
+          "luong": {"he_so": 1, "don_vi": "tick"}}, "so_do_chua_co")))
 
 # ================= Ổ CẮM TRỐNG — năm mục cuối =================
 #
