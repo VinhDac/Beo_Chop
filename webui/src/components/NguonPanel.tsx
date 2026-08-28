@@ -29,7 +29,7 @@ const NHIP_LAM_MOI = 3000
 
 function gio(ms: number | null) {
   if (!ms) return '—'
-  return new Date(ms).toLocaleString('vi', { hour12: false })
+  return new Date(ms).toLocaleString('en-US', { hour12: false })
 }
 
 /** `2026-08-28` → `28/08`. Bảng hẹp, mà năm thì gần như luôn giống nhau. */
@@ -59,7 +59,7 @@ export default function NguonPanel() {
 
   const lamMoi = useCallback(async () => {
     const r = await py.nguon_liet_ke()
-    if (!r.ok || !r.value) { setLoi(r.error ?? 'không đọc được nguồn'); return }
+    if (!r.ok || !r.value) { setLoi(r.error ?? 'could not read the data source'); return }
     setDs(r.value.ds)
     setGhi(r.value.ghi)
     setThuMuc(r.value.thu_muc)
@@ -81,14 +81,15 @@ export default function NguonPanel() {
     setLoi(''); setTin(''); setDangCho(true)
     const r = await py.nguon_luu_cai_dat(nhap)
     setDangCho(false)
-    if (!r.ok) { setLoi(r.error ?? 'không lưu được'); return }
+    if (!r.ok) { setLoi(r.error ?? 'could not save'); return }
     setNhap({})
     setCd(r.value?.cai_dat ?? null)
     setTin(r.value?.can_khoi_dong_lai
       // Bộ ghi đọc cài đặt LÚC KHỞI ĐỘNG. Không nói ra thì người dùng đổi ngưỡng rồi
       // tưởng ăn ngay, và mấy tiếng sau vẫn thấy hành vi cũ.
-      ? 'Đã lưu. Ngưỡng và nhịp xả chỉ ăn ở lần chạy sau của bộ ghi — dừng rồi bật lại.'
-      : 'Đã lưu.')
+      ? 'Saved. The silence threshold and flush interval only take effect on the '
+        + 'recorder\'s next run — stop it and start it again.'
+      : 'Saved.')
   }
 
   function themSym(s: string) {
@@ -106,11 +107,11 @@ export default function NguonPanel() {
 
   async function batDau() {
     const syms = o('symbols') ?? []
-    if (!syms.length) { setLoi('Chưa có symbol nào trong danh sách.'); return }
+    if (!syms.length) { setLoi('No symbols in the list yet.'); return }
     setLoi(''); setTin(''); setDangCho(true)
     const r = await py.nguon_bat_dau(syms)
     setDangCho(false)
-    if (!r.ok) { setLoi(r.error ?? 'không mở được bộ ghi'); return }
+    if (!r.ok) { setLoi(r.error ?? 'could not start the recorder'); return }
     setNhap(x => { const { symbols: _bo, ...con } = x; return con })
     // Bộ ghi cần một nhịp mới đập lần đầu — đợi rồi hãy hỏi, không thì bảng báo "chưa
     // chạy" ngay sau khi vừa bấm và trông như nút hỏng.
@@ -121,15 +122,16 @@ export default function NguonPanel() {
     setLoi(''); setDangCho(true)
     const r = await py.nguon_dung()
     setDangCho(false)
-    if (!r.ok) { setLoi(r.error ?? 'không dừng được'); return }
-    setTin('Đã xin dừng — bộ ghi xả nốt đệm rồi thoát, mất vài giây.')
+    if (!r.ok) { setLoi(r.error ?? 'could not stop it'); return }
+    setTin('Stop requested — the recorder flushes its buffer and exits, a few seconds.')
   }
 
   async function xoa(sym: string, mb: number) {
-    if (!confirm(`Xoá HẲN ${mb} MB dữ liệu của ${sym}?\n\n`
-                 + 'Ghi lại thì phải chờ từ đầu — dữ liệu quá khứ không mua lại được.')) return
+    if (!confirm(`PERMANENTLY delete ${mb} MB of data for ${sym}?\n\n`
+                 + 'Recording it again means waiting from scratch — past data cannot '
+                 + 'be bought back.')) return
     const r = await py.nguon_xoa(sym)
-    if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
+    if (!r.ok) { setLoi(r.error ?? 'could not delete'); return }
     setDs(r.value?.ds ?? [])
   }
 
@@ -137,7 +139,7 @@ export default function NguonPanel() {
     setDangDo(true); setLoi(''); setTtPhi0(phi0)
     const r = await py.nguon_do_thi_truong(200, phi0 ? 0 : null)
     setDangDo(false)
-    if (!r.ok) { setLoi(r.error ?? 'không đo được'); return }
+    if (!r.ok) { setLoi(r.error ?? 'could not measure'); return }
     setTt(r.value?.ds ?? [])
   }
 
@@ -151,19 +153,19 @@ export default function NguonPanel() {
         <span className="ng-den" />
         {dangGhi ? (
           <>
-            <b>Đang ghi</b>
+            <b>Recording</b>
             <span className="mono">{ghi!.symbols.join(' · ')}</span>
-            <span className="phu">từ {gio(ghi!.bat_dau)} · nhịp {ghi!.tuoi_nhip}s trước</span>
+            <span className="phu">since {gio(ghi!.bat_dau)} · heartbeat {ghi!.tuoi_nhip}s ago</span>
             <button className="nut nho" onClick={dung} disabled={dangCho}>Dừng</button>
           </>
         ) : (
           <>
-            <b>Bộ ghi không chạy</b>
+            <b>Recorder stopped</b>
             <span className="phu">
-              {sanSang ? 'Mỗi giờ không ghi là một giờ lịch sử không lấy lại được.' : '…'}
+              {sanSang ? 'Every hour not recorded is an hour of history you cannot get back.' : '…'}
             </span>
             <button className="nut nho chinh" onClick={batDau}
-                    disabled={dangCho || !(o('symbols') ?? []).length}>Bắt đầu ghi</button>
+                    disabled={dangCho || !(o('symbols') ?? []).length}>Start recording</button>
           </>
         )}
       </div>
@@ -175,11 +177,11 @@ export default function NguonPanel() {
           {(o('symbols') ?? []).map(s => (
             <span key={s} className="the">
               {s}
-              <button className="ng-x" title="bỏ khỏi danh sách"
+              <button className="ng-x" title="remove from the list"
                       onClick={() => boSym(s)} disabled={dangGhi}>✕</button>
             </span>
           ))}
-          {!(o('symbols') ?? []).length && <span className="cd-rong">chưa chọn cái nào</span>}
+          {!(o('symbols') ?? []).length && <span className="cd-rong">none selected yet</span>}
         </div>
       </div>
       <div className="hang">
@@ -188,10 +190,10 @@ export default function NguonPanel() {
                disabled={dangGhi}
                onChange={e => setSymMoi(e.target.value.toUpperCase())}
                onKeyDown={e => { if (e.key === 'Enter') themSym(symMoi) }} />
-        <button className="nut" onClick={() => themSym(symMoi)} disabled={dangGhi}>Thêm</button>
+        <button className="nut" onClick={() => themSym(symMoi)} disabled={dangGhi}>Add</button>
         <button className="nut" onClick={() => void doThiTruong(false)} disabled={dangDo}
-                title="spread ÷ (2 × phí maker) — điều kiện CẦN của cả hệ">
-          {dangDo ? 'đang hỏi 4 sàn…' : 'Đo thị trường'}
+                title="spread ÷ (2 × maker fee) — the NECESSARY condition for all of this">
+          {dangDo ? 'asking 4 exchanges…' : 'Scan the market'}
         </button>
       </div>
 
@@ -199,17 +201,17 @@ export default function NguonPanel() {
       {tt && (
         <div className="ng-bang">
           <div className="ng-dau">
-            spread ÷ (2 × phí maker) · khối lượng ≥ 200 triệu $/ngày
-            {ttPhi0 && <b className="ng-canh"> · ÉP phí = 0, đây là giả định</b>}
+            spread ÷ (2 × maker fee) · volume ≥ $200M/day
+            {ttPhi0 && <b className="ng-canh"> · FORCING fee = 0, this is an assumption</b>}
             <button className="nut nho" style={{ marginLeft: 8 }}
                     onClick={() => void doThiTruong(!ttPhi0)} disabled={dangDo}>
-              {ttPhi0 ? 'về phí thật' : 'thử phí = 0'}
+              {ttPhi0 ? 'back to real fees' : 'try fee = 0'}
             </button>
           </div>
-          {tt.length === 0 ? <div className="cd-rong">không symbol nào qua ngưỡng</div> : (
+          {tt.length === 0 ? <div className="cd-rong">no symbol clears the bar</div> : (
             <table className="kho-bang">
               <thead><tr>
-                <th>Sàn</th><th>Symbol</th><th>spread</th><th>phí</th>
+                <th>Venue</th><th>Symbol</th><th>spread</th><th>fee</th>
                 <th>TỈ LỆ</th><th>tick</th><th>KL 24h</th><th />
               </tr></thead>
               <tbody>
@@ -224,12 +226,12 @@ export default function NguonPanel() {
                       {d.ti_le.toFixed(2)}
                     </td>
                     <td className="mono">{d.tick ? d.tick.toFixed(0) : '—'}</td>
-                    <td className="mono">{d.kl_trieu.toLocaleString('vi', {
+                    <td className="mono">{d.kl_trieu.toLocaleString('en-US', {
                       maximumFractionDigits: 0 })}</td>
                     <td>
                       {d.san.startsWith('binance') && (
                         <button className="nut nho" disabled={dangGhi}
-                                onClick={() => themSym(d.ma)}>Thêm</button>
+                                onClick={() => themSym(d.ma)}>Add</button>
                       )}
                     </td>
                   </tr>
@@ -238,59 +240,59 @@ export default function NguonPanel() {
             </table>
           )}
           <div className="chu-dan">
-            Tỉ lệ &gt; 1 là điều kiện <b>CẦN</b>, không phải đủ — nó giả định bạn ăn
-            trọn spread. Chỉ thêm được symbol Binance: bộ ghi hiện chỉ nói chuyện với
-            sàn đó.
+            A ratio &gt; 1 is a <b>NECESSARY</b> condition, not a sufficient one — it
+            assumes you capture the whole spread. Only Binance symbols can be added: the
+            recorder currently speaks to that venue only.
           </div>
         </div>
       )}
 
       {/* ---- BỐN Ô CÀI ĐẶT ---- */}
-      <div className="ng-dau" style={{ marginTop: 14 }}>Cài đặt</div>
+      <div className="ng-dau" style={{ marginTop: 14 }}>Settings</div>
       <div className="hang">
-        <span className="nhan-o">Thư mục</span>
+        <span className="nhan-o">Folder</span>
         <input className="o" value={o('thu_muc') ?? ''} spellCheck={false}
-               placeholder="(để trống = du_lieu/tick)"
+               placeholder="(blank = du_lieu/tick)"
                onChange={e => setNhap(x => ({ ...x, thu_muc: e.target.value }))} />
       </div>
       <div className="hang">
-        <span className="nhan-o">Giữ</span>
+        <span className="nhan-o">Keep</span>
         <input className="o nho" type="number" min={0} value={o('giu_ngay') ?? 0}
                onChange={e => setNhap(x => ({ ...x, giu_ngay: +e.target.value }))} />
-        <span className="phu">ngày · 0 = giữ tất</span>
-        <span className="nhan-o phu">Ngưỡng im lặng</span>
+        <span className="phu">days · 0 = keep everything</span>
+        <span className="nhan-o phu">Silence threshold</span>
         <input className="o nho" type="number" min={5} value={o('im_lang_giay') ?? 45}
                onChange={e => setNhap(x => ({ ...x, im_lang_giay: +e.target.value }))} />
-        <span className="phu">giây</span>
-        <span className="nhan-o phu">Nhịp xả</span>
+        <span className="phu">seconds</span>
+        <span className="nhan-o phu">Flush every</span>
         <input className="o nho" type="number" min={0.2} step={0.5}
                value={o('giay_xa') ?? 2}
                onChange={e => setNhap(x => ({ ...x, giay_xa: +e.target.value }))} />
-        <span className="phu">giây</span>
+        <span className="phu">seconds</span>
       </div>
       <div className="hang">
         <span className="nhan-o" />
         <button className="nut chinh" onClick={luuCaiDat} disabled={!banNhap || dangCho}>
-          Lưu cài đặt
+          Save settings
         </button>
-        {banNhap && <button className="nut" onClick={() => setNhap({})}>Bỏ sửa</button>}
+        {banNhap && <button className="nut" onClick={() => setNhap({})}>Discard edits</button>}
         <span className="phu">
-          Đổi thư mục <b>không dời</b> dữ liệu cũ — dời vài chục GB ngầm sau lưng là
-          việc không được phép làm im lặng.
+          Changing the folder <b>does not move</b> existing data — shifting tens of
+          gigabytes behind your back is not something to do silently.
         </span>
       </div>
 
       {/* ---- DỮ LIỆU ĐÃ CÓ ---- */}
       <div className="ng-bang">
-        <div className="ng-dau">Đã có trên đĩa</div>
-        {!sanSang ? <div className="cd-rong">đang đọc…</div>
+        <div className="ng-dau">Already on disk</div>
+        {!sanSang ? <div className="cd-rong">loading…</div>
           : ds.length === 0 ? (
-            <div className="cd-rong">chưa có dữ liệu nào — chưa backtest được gì</div>
+            <div className="cd-rong">no data yet — nothing can be backtested</div>
           ) : (
             <table className="kho-bang">
               <thead><tr>
-                <th>Symbol</th><th>Ngày</th><th>Dải</th><th>Sổ lệnh</th><th>Khớp</th>
-                <th>Dung lượng</th><th>Lỗ hổng</th><th>Trễ</th><th />
+                <th>Symbol</th><th>Days</th><th>Range</th><th>Book</th><th>Trades</th>
+                <th>Size</th><th>Gaps</th><th>Latency</th><th />
               </tr></thead>
               <tbody>
                 {ds.map(d => (
@@ -298,9 +300,9 @@ export default function NguonPanel() {
                     <td><b>{d.symbol}</b></td>
                     <td className="mono">{d.so_ngay}</td>
                     <td className="mono">{ngay(d.tu_ngay)} → {ngay(d.den_ngay)}</td>
-                    <td className="mono">{d.so_ban_ghi.so.toLocaleString('vi')}</td>
-                    <td className="mono">{d.so_ban_ghi.khop.toLocaleString('vi')}</td>
-                    <td className="mono">{d.mb.toLocaleString('vi')} MB</td>
+                    <td className="mono">{d.so_ban_ghi.so.toLocaleString('en-US')}</td>
+                    <td className="mono">{d.so_ban_ghi.khop.toLocaleString('en-US')}</td>
+                    <td className="mono">{d.mb.toLocaleString('en-US')} MB</td>
                     {/* Lỗ hổng quyết định backtest có tin được không. 0 thì mờ, khác 0 đỏ. */}
                     <td className={'mono' + (d.so_lo_hong ? ' ng-canh' : '')}>
                       {d.so_lo_hong === 0 ? '—'
@@ -311,8 +313,9 @@ export default function NguonPanel() {
                       <button className="nut nho" onClick={() => xoa(d.symbol, d.mb)}
                               disabled={dangGhi && ghi!.symbols.includes(d.symbol)}
                               title={dangGhi && ghi!.symbols.includes(d.symbol)
-                                ? 'đang ghi symbol này — dừng bộ ghi trước' : 'xoá hẳn'}>
-                        Xoá
+                                ? 'this symbol is being recorded — stop the recorder first'
+                                : 'delete permanently'}>
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -326,9 +329,9 @@ export default function NguonPanel() {
       {tin && !loi && <div className="chu-dan">{tin}</div>}
 
       <div className="chu-dan">
-        <code>{thuMuc}</code> · {tongMb.toLocaleString('vi')} MB · ước tính
-        <b> ~800 MB/ngày</b> cho mỗi symbol tầm trung. Bộ ghi chạy trong một tiến trình
-        <b> riêng</b>: đóng app nó vẫn ghi tiếp.
+        <code>{thuMuc}</code> · {tongMb.toLocaleString('en-US')} MB · roughly
+        <b> ~800 MB/day</b> for a mid-sized symbol. The recorder runs in its own
+        <b> separate</b> process: closing the app does not stop it.
       </div>
     </>
   )

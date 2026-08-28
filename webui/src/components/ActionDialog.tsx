@@ -107,7 +107,7 @@ function HangDK({ dk, boot, dat }: {
     <div className="hang">
       <select className="o o-dai" value={ten}
               onChange={e => doiToanHang(e.target.value)}>
-        <option value="">— chọn đại lượng —</option>
+        <option value="">— pick an operand —</option>
         {[...new Set(boot.toan_hang.map(t => t.nhom))].map(nhom => (
           <optgroup key={nhom} label={nhom}>
             {boot.toan_hang.filter(t => t.nhom === nhom).map(t => (
@@ -150,13 +150,13 @@ function HangDK({ dk, boot, dat }: {
           )}
           {/* Đổi qua lại số ⇄ đại lượng. Nút chứ không phải hai radio: nó chỉ có hai
               trạng thái và trạng thái hiện tại đã nhìn thấy ngay bên trái. */}
-          <button className="nut nho" title="So với một CON SỐ, hay với một ĐẠI LƯỢNG khác"
+          <button className="nut nho" title="Compare against a NUMBER, or against another OPERAND"
                   onClick={() => dat(soVoiDaiLuong
                     ? { ...dk, phai: { value: 0, tinh: loai === boot.loai_co_don_vi
                         ? 'tick' : (boot.loai_don_vi[loai] ?? '') } }
                     : { ...dk, phai: { ten: boot.toan_hang
                         .find(t => boot.toan_hang_loai[t.key] === loai)?.key ?? '' } })}>
-            {soVoiDaiLuong ? '↔ số' : '↔ đại lượng'}
+            {soVoiDaiLuong ? '↔ number' : '↔ operand'}
           </button>
         </>
       )}
@@ -189,7 +189,7 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
         setXem(r.value?.display ?? '')
         setLoi(((r as any).loi as string[]) ?? [])
       } else {
-        setXem(''); setLoi([r.error ?? 'không đọc được hành động'])
+        setXem(''); setLoi([r.error ?? 'could not read the action'])
       }
     }, 200)
     return () => clearTimeout(h)
@@ -236,26 +236,26 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
   }
 
   return (
-    <Modal title={`Hành động — ${boot.action_labels[a.type] ?? a.type}`} width={700}
+    <Modal title={`Action — ${boot.action_labels[a.type] ?? a.type}`} width={700}
            onClose={onDong}
            footer={
              <>
-               <div className="xem-truoc" title="Đúng câu mà lõi hiểu về hành động này">
+               <div className="xem-truoc" title="Exactly how the core reads this action">
                  {xem || '…'}
                </div>
-               <button className="nut" onClick={onDong}>Huỷ</button>
-               <button className="nut chinh" onClick={() => onLuu(a)}>Lưu</button>
+               <button className="nut" onClick={onDong}>Cancel</button>
+               <button className="nut chinh" onClick={() => onLuu(a)}>Save</button>
              </>
            }>
 
       <div className="hang">
-        <span className="nhan-o">Loại</span>
+        <span className="nhan-o">Type</span>
         <select className="o" value={a.type} onChange={e => doiLoai(e.target.value)}>
           {loaiChoPhep.map(t =>
             <option key={t} value={t}>{boot.action_labels[t]}</option>)}
         </select>
-        <span className="nhan-o phu">Tên</span>
-        <input className="o" value={a.name ?? ''} placeholder="(để trống = tên tự sinh)"
+        <span className="nhan-o phu">Name</span>
+        <input className="o" value={a.name ?? ''} placeholder="(blank = name it automatically)"
                onChange={e => dat('name', e.target.value)} />
       </div>
 
@@ -264,11 +264,11 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
         <>
           {((a.conditions ?? []) as DK[]).map((c, i) => (
             <div key={i} className="hang-boc">
-              <span className="nhan-o">{i === 0 ? 'Khi' : 'VÀ'}</span>
+              <span className="nhan-o">{i === 0 ? 'When' : 'AND'}</span>
               <HangDK dk={c} boot={boot} dat={d => {
                 const ds = [...(a.conditions ?? [])]; ds[i] = d; dat('conditions', ds)
               }} />
-              <button className="nut nho" title="Bỏ điều kiện này"
+              <button className="nut nho" title="Remove this condition"
                       onClick={() => dat('conditions',
                         (a.conditions as DK[]).filter((_, k) => k !== i))}>
                 <Icon name="trash" />
@@ -279,10 +279,10 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
             <button className="nut" onClick={() => dat('conditions',
               [...(a.conditions ?? []), { trai: { ten: '' }, phep: '>=',
                                           phai: { value: 0, tinh: 'tick' } }])}>
-              <Icon name="plus" /> Thêm điều kiện
+              <Icon name="plus" /> Add condition
             </button>
             <span className="chu-mo">
-              Nhiều điều kiện nối nhau bằng VÀ — phải khớp HẾT thì cổng mới mở.
+              Conditions join with AND — the gate opens only if ALL of them match.
             </span>
           </div>
         </>
@@ -292,7 +292,7 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
       {a.type === 'so_hang' && (
         <>
           <div className="hang">
-            <span className="nhan-o">Sửa</span>
+            <span className="nhan-o">Set</span>
             <select className="o o-dai" value={a.dich ?? ''}
                     onChange={e => doiDich(e.target.value)}>
               {Object.entries(boot.dich).map(([k, v]) =>
@@ -310,7 +310,7 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
             <span className="chu-mo">×</span>
             <select className="o o-dai" value={luong.toan_hang ?? ''}
                     onChange={e => doiToanHangLuong(e.target.value)}>
-              <option value="">(không nhân với gì)</option>
+              <option value="">(no operand)</option>
               {[...new Set(boot.toan_hang.map(t => t.nhom))].map(nhom => (
                 <optgroup key={nhom} label={nhom}>
                   {boot.toan_hang
@@ -330,7 +330,7 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
                 ? Object.entries(boot.don_vi).map(([k, v]) =>
                     <option key={k} value={k}>{v}</option>)
                 : <option value={luong.don_vi ?? ''}>
-                    {tuMangDonVi ? '(theo đại lượng)'
+                    {tuMangDonVi ? '(from the operand)'
                       : (boot.nhan_don_vi[luong.don_vi] ?? '—')}
                   </option>}
             </select>
@@ -347,15 +347,15 @@ export default function ActionDialog({ action, boot, tab, onLuu, onDong }: {
                        return { ...x, khi: { trai: { ten: '' }, phep: '>=',
                                              phai: { value: 0, tinh: 'tick' } } }
                      })} />
-              Chỉ áp dụng khi…
+              Only apply when…
             </label>
             {a.khi && <HangDK dk={a.khi} boot={boot} dat={d => dat('khi', d)} />}
           </div>
 
           <div className="chu-dan">
-            Thứ tự trên chuỗi LÀ ngữ nghĩa: các số hạng cộng dồn theo đúng thứ tự đánh
-            số, nên một phép <b>=</b> đứng sau một phép <b>+=</b> trên cùng ô sẽ xoá
-            sạch thứ vừa cộng vào.
+            Order along the chain IS meaning: terms accumulate in numbering order, so
+            an <b>=</b> placed after a <b>+=</b> on the same target wipes out whatever
+            was just added.
           </div>
         </>
       )}

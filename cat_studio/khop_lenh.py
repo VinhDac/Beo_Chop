@@ -83,12 +83,12 @@ _huu_han = math.isfinite
 #: Hai phía. Số chứ không phải chuỗi — so sánh trong vòng lặp mười triệu lần.
 MUA = 1
 BAN = -1
-TEN_BEN = {MUA: "MUA", BAN: "BÁN"}
+TEN_BEN = {MUA: "BUY", BAN: "SELL"}
 
 #: Vì sao lệnh rời sổ — cho nhật ký, và cho việc đếm xem chiến lược đang hỏng kiểu gì.
-KHOP_HET = "khớp hết"
-BI_HUY = "bị huỷ"
-TU_CHOI = "bị từ chối"
+KHOP_HET = "filled"
+BI_HUY = "cancelled"
+TU_CHOI = "rejected"
 
 NAN = float("nan")
 RONG = ()
@@ -240,7 +240,7 @@ class Lenh:
 
     def __repr__(self):
         return (f"<{TEN_BEN[self.ben]} {self.con_lai:g}/{self.kl:g} @ {self.gia:g} "
-                f"hàng đợi {self.hang_doi:g}>")
+                f"queue {self.hang_doi:g}>")
 
 
 class SoKhop:

@@ -160,12 +160,12 @@ def _the_buoc(st, ts=None, tab=None):
                     for x in core.dong_khoi(st, ts, tab)]
 
     if core.is_start_step(st):
-        the["badges"] = ["chạy lại từ đây"]
+        the["badges"] = ["restarts here"]
         # ⚠ `nhip` đã đi cùng khung thời gian (đợt 3), nên câu mô tả không còn nói
         # "mỗi nến M5" được nữa. Cái nó KHẲNG ĐỊNH thì không đổi và vẫn là điều quan
         # trọng nhất của khối này: cả sơ đồ là một vòng lặp.
-        the["mo_ta"] = ("Điểm neo đánh số. Cả sơ đồ là một vòng lặp — mỗi lượt nó chạy "
-                        "lại từ khối này.")
+        the["mo_ta"] = ("The numbering anchor. The whole diagram is a loop — every "
+                        "turn starts again from this block.")
         return the
 
     # Bỏ `name` trước khi sinh câu đầy đủ: tiêu đề hộp ĐÃ hiện tên rồi.
@@ -174,7 +174,7 @@ def _the_buoc(st, ts=None, tab=None):
 
     if st.get("type") == core.CHECK_COND:
         # Huy hiệu "N điều kiện · VÀ" và "so hai đại lượng" đã đi cùng điều kiện.
-        the["badges"].append("cổng rẽ nhánh" if core.is_branch_gate(st) else "kiểm tra")
+        the["badges"].append("branch gate" if core.is_branch_gate(st) else "check")
     return the
 
 
@@ -348,11 +348,11 @@ def _so_do_mau():
     # mới được thử trước. Kéo nó xuống dưới là đổi ngữ nghĩa.
     Y, DY = 300.0, 116.0
     steps = [
-        dict(core.make_start_step("Mỗi sự kiện"), id="s_bd", pos=[90.0, Y + DY * 2]),
+        dict(core.make_start_step("Every event"), id="s_bd", pos=[90.0, Y + DY * 2]),
 
         # Cổng DUY NHẤT của sơ đồ. Không có vế phải — `co_so` vốn đã đúng/sai.
         {"id": "s_mu", "kind": core.KIND_ACTION, "type": core.CHECK_COND,
-         "name": "Mất sổ lệnh?", "pos": [340.0, Y - DY],
+         "name": "Book lost?", "pos": [340.0, Y - DY],
          "conditions": [{"trai": {"ten": "co_so"}, "phep": "la_sai"}]},
         so_hang("s_rut", Y - DY, "lot", "=", 0, don_vi="lot", x=620.0),
 
@@ -374,7 +374,7 @@ def _so_do_mau():
             ("s_lech", "s_lot"), ("s_lot", "s_tran"), ("s_tran", "s_san")]
     return {
         "schema": core.SCHEMA, "type": "strategy",
-        "name": "Market maker sơ cấp", "symbol": "BTCUSDT", "tham_so": [],
+        "name": "Primitive market maker", "symbol": "BTCUSDT", "tham_so": [],
         core.TAB_BAO_GIA: {
             "steps": steps,
             "edges": [{"from": a, "to": b, "port": "out"} for a, b in canh]},
@@ -472,7 +472,7 @@ class Api(NenCuaSo):
         thô sang đây, để luật hợp lệ chỉ nằm ở đúng một chỗ."""
         a = core.normalize_action(draft)
         if a is None:
-            return {"ok": False, "error": "Loại hành động không hợp lệ."}
+            return {"ok": False, "error": "Invalid action type."}
         ts = {t["ten"]: t["gia_tri"] for t in (tham_so or [])}
         loi = []
         core.validate_actions([a], lambda m, i=None: loi.append(m), tab, set(ts))
@@ -481,7 +481,7 @@ class Api(NenCuaSo):
     # ------------------------------------------------------------------ khối
     @_bat_loi
     def new_step(self, kind="action", action_type=None, tab=None):
-        st = (core.make_start_step("Chạy lại từ đây")
+        st = (core.make_start_step("Restart here")
               if kind == core.KIND_START
               else core.make_action_step(
                   _hanh_dong_mac_dinh(action_type or core.CHECK_COND)))
@@ -703,7 +703,7 @@ class Api(NenCuaSo):
     #: hộp thoại kịp mở — nên "Mở từ file khác…", "Duyệt file khác…" và "Lưu ra file
     #: khác…" đều bấm mà không thấy gì. Lỗi có được báo, nhưng vào bảng Nhật ký ở dưới,
     #: chỗ người dùng đang không mở.
-    _LOC = "Chiến lược Cat_Studio (*.json)"
+    _LOC = "Cat_Studio strategy (*.json)"
 
     @_bat_loi
     def open_process_file(self):
@@ -757,15 +757,16 @@ class Api(NenCuaSo):
         probs = core.validate_process(doc)
         loi = [p for p in probs if p["severity"] == "error"]
         if loi:
-            return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
+            return {"ok": False, "error": "The diagram still has errors.", "loi": loi}
 
         symbol = (symbol or (doc or {}).get("symbol") or "").strip().upper()
         ds = nguon_tick.liet_ke()
         bo = next((x for x in ds if x["symbol"] == symbol), None)
         if bo is None:
-            co = ", ".join(x["symbol"] for x in ds) or "(chưa có gì)"
-            return _loi(f"Chưa có dữ liệu tick cho {symbol}.\n\nĐang có: {co}\n\n"
-                        f"Bật bộ ghi ở Cài đặt → Nguồn dữ liệu rồi để nó chạy một lúc.")
+            co = ", ".join(x["symbol"] for x in ds) or "(nothing yet)"
+            return _loi(f"No tick data for {symbol}.\n\nAvailable: {co}\n\n"
+                        f"Start the recorder in Settings → Data source and let it run "
+                        f"for a while.")
         tu = tu_ngay or bo["tu_ngay"]
         den = den_ngay or bo["den_ngay"]
 
@@ -797,7 +798,7 @@ class Api(NenCuaSo):
         except (TypeError, ValueError):
             t = 0.0
         if not (t > 0):
-            return _loi("Chưa biết bước giá — chạy ▶ Test một lần trước đã.")
+            return _loi("Tick size unknown — run ▶ Test once first.")
         try:
             return _ok(bo_chay.soi_luot(doc, nhin or {}, t))
         except bo_chay.LoiChay as e:
@@ -807,8 +808,8 @@ class Api(NenCuaSo):
     def mo_live(self, doc=None):
         """● Live — CHƯA CÓ KẾT NỐI SÀN."""
         return {"ok": False,
-                "error": "Chưa có kết nối sàn.\n\n"
-                         "Tầng đặt lệnh cũ là MT5 và đã gỡ."}
+                "error": "No exchange connection yet.\n\n"
+                         "The old order layer was MT5 and has been removed."}
 
 
     # ------------------------------------------------------------------ kho
@@ -886,20 +887,21 @@ class Api(NenCuaSo):
         mọi lời than của nó rơi vào hư không, kể cả câu giải thích vì sao nó chết."""
         syms = [str(x).strip().upper() for x in (symbols or []) if str(x).strip()]
         if not syms:
-            return _loi("Chưa chọn symbol nào.")
+            return _loi("No symbol selected.")
         tt = nguon_tick.trang_thai_ghi()
         if tt["song"]:
-            return _loi(f"Bộ ghi đang chạy rồi (pid {tt['pid']}, "
-                        f"{', '.join(tt['symbols'])}). Dừng nó trước.")
+            return _loi(f"The recorder is already running (pid {tt['pid']}, "
+                        f"{', '.join(tt['symbols'])}). Stop it first.")
         if getattr(sys, "frozen", False):
-            return _loi("Bản đóng gói chưa mở được bộ ghi — nó cần Python. "
-                        f"Chạy tay:  python tools/ghi_tick.py {' '.join(syms)}")
+            return _loi("The packaged build cannot start the recorder — it needs "
+                        "Python. Run it by hand:  python tools/ghi_tick.py "
+                        f"{' '.join(syms)}")
 
         import subprocess
         goc = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         kich_ban = os.path.join(goc, "tools", "ghi_tick.py")
         if not os.path.exists(kich_ban):
-            return _loi(f"Không thấy {kich_ban}")
+            return _loi(f"Not found: {kich_ban}")
         nguon_tick.xoa_co_dung()
         thu_muc = nguon_tick.goc_tick()
         os.makedirs(thu_muc, exist_ok=True)
@@ -924,7 +926,7 @@ class Api(NenCuaSo):
         giây — rẻ hơn nhiều so với một lỗ hổng tự tay tạo ra."""
         tt = nguon_tick.trang_thai_ghi()
         if not tt["song"]:
-            return _loi("Bộ ghi không chạy.")
+            return _loi("The recorder is not running.")
         nguon_tick.xin_dung()
         return _ok({"da_xin": True, "pid": tt["pid"]})
 
@@ -960,9 +962,9 @@ class Api(NenCuaSo):
                 try:
                     v = kieu(cd[k])
                 except (TypeError, ValueError):
-                    return _loi(f'"{k}" phải là một con số.')
+                    return _loi(f'"{k}" must be a number.')
                 if v < nho_nhat:
-                    return _loi(f'"{k}" không được nhỏ hơn {nho_nhat:g}.')
+                    return _loi(f'"{k}" cannot be less than {nho_nhat:g}.')
                 ra[k] = v
         ng = self._luu_nguon(ra)
         # Ghi xong mới báo bộ ghi biết: ngưỡng và nhịp xả chỉ có tác dụng ở LẦN CHẠY
@@ -987,7 +989,8 @@ class Api(NenCuaSo):
         """Xoá HẲN dữ liệu một symbol. Giao diện PHẢI hỏi trước — xoá là không lùi được."""
         tt = nguon_tick.trang_thai_ghi()
         if tt["song"] and str(symbol).upper() in tt["symbols"]:
-            return _loi(f"{symbol} đang được ghi. Dừng bộ ghi trước khi xoá.")
+            return _loi(f"{symbol} is being recorded. Stop the recorder before "
+                        f"deleting.")
         byte = nguon_tick.xoa(symbol)
         return _ok({"mb": round(byte / 1e6, 1), "ds": nguon_tick.liet_ke()})
 

@@ -35,7 +35,7 @@ function O({ nhan, don_vi, gt, dat, doan, mo_ta, buoc, min, max }: {
                }} />
         <span className="chu-mo">{don_vi}</span>
         <span className={'k-the' + (doan ? ' doan' : '')}>
-          {doan ? 'PHẢI ĐOÁN' : 'TRA ĐƯỢC'}
+          {doan ? 'A GUESS' : 'LOOK IT UP'}
         </span>
       </div>
       <div className="k-mo-ta">{mo_ta}</div>
@@ -62,59 +62,66 @@ export default function KhopPanel({ khop, dat }: {
   return (
     <div className="khop-panel">
       <div className="chu-dan">
-        Câu hỏi mà mô hình khớp phải trả lời là <b>“lệnh của ta xếp thứ mấy trong hàng
-        đợi?”</b> — và dữ liệu đỉnh sổ lệnh <b>không chứa câu trả lời</b>. Bốn ô dưới
-        đây là toàn bộ phần app phải đoán. Chúng in kèm mọi kết quả backtest.
+        The question the fill model has to answer is <b>“where does our order sit in
+        the queue?”</b> — and top-of-book data <b>does not contain the answer</b>. The
+        four fields below are everything the app has to guess. They are printed
+        alongside every backtest result.
       </div>
 
-      <O nhan="Phí maker" don_vi="bps" gt={khop.phi_maker_bps} buoc={0.1}
+      <O nhan="Maker fee" don_vi="bps" gt={khop.phi_maker_bps} buoc={0.1}
          dat={v => dat('phi_maker_bps', v)}
          mo_ta={<>
-           2,0 bps = 0,02%, biểu phí chuẩn của Binance · Bybit · OKX. <b>Số ÂM là
-           rebate</b> — sàn trả cho ta, và đó thường là thứ duy nhất làm market making
-           có lãi được; phải vào chương trình Market Maker mới có, không phải hạng VIP
-           thường. Đối chiếu với spread thật bằng <code>tools/do_spread.py</code>:
-           spread phải hơn <b>hai lần</b> con số này.
+           2.0 bps = 0.02%, the standard schedule on Binance · Bybit · OKX. <b>A
+           NEGATIVE number is a rebate</b> — the exchange pays you, and that is often
+           the only thing that makes market making profitable; it comes from a Market
+           Maker programme, not from an ordinary VIP tier. Compare against the real
+           spread with <code>tools/do_spread.py</code>: the spread must beat <b>twice</b>
+           this number.
          </>} />
 
-      <O nhan="Độ trễ ra" don_vi="ms" gt={khop.tre_ra_ms} buoc={0.5} min={0} doan
+      <O nhan="Outbound latency" don_vi="ms" gt={khop.tre_ra_ms} buoc={0.5} min={0} doan
          dat={v => dat('tre_ra_ms', v)}
          mo_ta={<>
-           Từ lúc chiến lược quyết tới lúc lệnh <b>nằm ở sàn</b>. Không đo được nếu chưa
-           từng gửi lệnh thật. Mọi thứ xảy ra trong quãng này là cơ hội ta không với
-           tới — đặt quá thấp là tự cho mình phản xạ nhanh hơn thực tế.
+           From the moment the strategy decides to the moment the order <b>rests at
+           the exchange</b>. It cannot be measured until you have sent real orders.
+           Everything that happens in that window is an opportunity out of reach —
+           setting it too low grants yourself reflexes you do not have.
          </>} />
 
-      <O nhan="Huỷ ở TRƯỚC ta" don_vi="tỉ lệ 0–1" gt={khop.phan_huy_truoc}
+      <O nhan="Cancels AHEAD of us" don_vi="ratio 0–1" gt={khop.phan_huy_truoc}
          buoc={0.1} min={0} max={1} doan
          dat={v => dat('phan_huy_truoc', v)}
          mo_ta={<>
-           <b>Núm quan trọng nhất.</b> Khi khối lượng ở mức của ta biến mất mà không có
-           lệnh khớp nào giải thích, tức người ta huỷ — họ đứng trước hay sau ta?
+           <b>The dial that matters most.</b> When size vanishes from our price level
+           with no trade to explain it, someone cancelled — were they ahead of us or
+           behind us?
            <br />
-           <b>0</b> bi quan: huỷ đều ở sau, vị trí của ta không bao giờ tự tốt lên ·
-           <b> 0,5</b> rải đều · <b>1</b> lạc quan: ta tiến lên đầu hàng rất nhanh.
+           <b>0</b> pessimistic: every cancel is behind us, our position never
+           improves on its own · <b>0.5</b> evenly spread · <b>1</b> optimistic: we
+           advance to the front of the queue quickly.
            <br />
-           Chạy lại cả ba mức rồi nhìn khoảng cách — <b>đó chính là phần backtest không
-           biết</b>. Vặn về phía lạc quan là đem tiền thật ra trả học phí.
+           Run all three and look at the gap — <b>that gap is exactly what the
+           backtest does not know</b>. Turning it optimistic means paying the tuition
+           with real money.
          </>} />
 
-      <O nhan="Mức sâu đứng trước ta" don_vi="tỉ lệ 0–1" gt={khop.phan_muc_sau}
+      <O nhan="Deep level ahead of us" don_vi="ratio 0–1" gt={khop.phan_muc_sau}
          buoc={0.1} min={0} max={1} doan
          dat={v => dat('phan_muc_sau', v)}
          mo_ta={<>
-           Treo <b>sâu hơn đỉnh</b> thì bao nhiêu phần của mức đó nằm trước ta? Đỉnh sổ
-           lệnh không thấy tầng dưới, nên đây là con số mượn tạm của tầng trên. 1 = cả
-           mức đứng trước ta. Chiến lược treo cách công bằng nửa spread rơi vào ca này
-           thường xuyên.
+           Resting <b>deeper than the touch</b>, how much of that level sits ahead of
+           us? Top-of-book data cannot see the levels below, so this number is borrowed
+           from the level above. 1 = the whole level is ahead of us. A strategy quoting
+           half a spread away from fair value lands here constantly.
          </>} />
 
       <div className="hang">
         <button className="nut" onClick={veMacDinh} disabled={dangTra}>
-          Về mặc định (bi quan)
+          Reset to defaults (pessimistic)
         </button>
         <span className="chu-mo">
-          Vặn thử rồi quên vặn về thì mọi kết quả sau đó lạc quan hơn sự thật.
+          Turn a dial to try something, forget to turn it back, and every result
+          after that is rosier than the truth.
         </span>
       </div>
     </div>

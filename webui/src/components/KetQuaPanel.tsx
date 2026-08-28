@@ -130,15 +130,18 @@ function BieuDo({ ten, duongs, lo, hi, moc0, mu, dinhDang, conTro, bam }: {
 
 /** ⚠ `toLocaleString` cho ra gạch nối ASCII `-`, mà cả app dùng dấu TRỪ thật `−`
  *  (`core._so`, `bo_chay._so_vi`). Trộn hai ký tự trong cùng một bảng số thì cột không
- *  thẳng hàng và mắt vấp — gạch nối hẹp hơn dấu trừ. Đổi tại đây, một chỗ. */
+ *  thẳng hàng và mắt vấp — gạch nối hẹp hơn dấu trừ. Đổi tại đây, một chỗ.
+ *
+ *  ⚠ Và locale là `en-US`: giao diện tiếng Anh mà số kiểu Việt (`1.234,5`) thì người
+ *  đọc hiểu sai đúng một nghìn lần. Python phía kia cũng đã đổi (`core._so`). */
 const truVi = (chu: string) => chu.replace('-', '−')
 const so = (v: number, le = 2) =>
-  truVi(v.toLocaleString('vi-VN', { minimumFractionDigits: le, maximumFractionDigits: le }))
-const nguyen = (v: number) => truVi(v.toLocaleString('vi-VN'))
+  truVi(v.toLocaleString('en-US', { minimumFractionDigits: le, maximumFractionDigits: le }))
+const nguyen = (v: number) => truVi(v.toLocaleString('en-US'))
 /** Số "tự nhiên" — bao nhiêu chữ số thập phân cũng được, miễn đúng quy ước Việt.
  *  Dùng cho những con số mà ta KHÔNG biết trước độ lớn: bước giá (`0,001`), độ trễ,
  *  thời gian chạy. Ép cứng 2 chữ số ở đó là làm `0,001` thành `0,00`. */
-const tuNhien = (v: number) => truVi(v.toLocaleString('vi-VN', { maximumFractionDigits: 8 }))
+const tuNhien = (v: number) => truVi(v.toLocaleString('en-US', { maximumFractionDigits: 8 }))
 
 function gio(ms: number) {
   const d = new Date(ms)
@@ -152,11 +155,12 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
   soiIdx: number | null
   onSoi: (i: number | null) => void
 }) {
-  if (dangChay) return <div className="trong">Đang chạy backtest…</div>
+  if (dangChay) return <div className="trong">Running backtest…</div>
   if (!kq) {
     return (
       <div className="trong">
-        Chưa chạy lần nào. Bấm <b>▶ Test</b> để chạy sơ đồ trên dữ liệu tick đã ghi.
+        Nothing has been run yet. Press <b>▶ Test</b> to run the diagram over the
+        tick data you have recorded.
       </div>
     )
   }
@@ -204,11 +208,11 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
       <div className="kq-tren">
         <div className="kq-tach">
           <div className="kq-dong">
-            <span>Gộp (trước phí)</span>
+            <span>Gross (before fees)</span>
             <b className={truocPhi >= 0 ? 't-ok' : 't-err'}>{so(truocPhi)}</b>
           </div>
           <div className="kq-dong">
-            <span>Phí maker</span>
+            <span>Maker fees</span>
             {/* Phí luôn hiện dấu TRỪ dù `phi_da_tra` là số dương: ở phép cộng này nó là
                 khoản BỊ TRỪ ĐI. Trừ khi có rebate (phí âm) — lúc đó nó cộng vào, và
                 phải hiện đúng như vậy chứ không được nuốt dấu. */}
@@ -217,7 +221,7 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
             </b>
           </div>
           <div className="kq-dong kq-cong">
-            <span>Ròng</span>
+            <span>Net</span>
             <b className={rong >= 0 ? 't-ok' : 't-err'}>{so(rong)}</b>
           </div>
         </div>
@@ -225,39 +229,40 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
         <div className="kq-so">
           {/* MARKOUT đứng riêng và to hơn: nó là câu trả lời cho "gộp âm vì sao". */}
           <div className="kq-noi-bat" title={
-            'Sau khi khớp ' + b.markout_ms + ' ms thì giá đi đâu, tính trung bình mỗi '
-            + 'lot. ÂM = bị chọn ngược: người khớp vào ta biết thứ ta không biết. '
-            + 'Nới spread không cứu được nếu nguyên nhân là báo giá đứng im khi chợ '
-            + 'đã đi.'}>
+            'Where the price went ' + b.markout_ms + ' ms after each fill, averaged '
+            + 'per lot. NEGATIVE = adverse selection: whoever hit you knew something '
+            + 'you did not. Widening the spread will not save you if the cause is a '
+            + 'quote standing still while the market moved.'}>
             <span className="kq-nhan">Markout {b.markout_ms} ms</span>
             <b className={b.markout_tick >= 0 ? 't-ok' : 't-err'}>
               {b.markout_tick >= 0 ? '+' : ''}{so(b.markout_tick, 3)} tick/lot
             </b>
             <span className="kq-phu">
-              {b.markout_tick < 0 ? 'bị chọn ngược' : 'bắt được phần thưởng thanh khoản'}
+              {b.markout_tick < 0 ? 'adversely selected' : 'earning the liquidity premium'}
             </span>
           </div>
-          <div><span className="kq-nhan">Khớp</span> {nguyen(b.so_lan_khop)} lần ·{' '}
-            {so(b.kl_da_khop, 0)} lot</div>
-          <div><span className="kq-nhan">Tồn kho cuối</span> {so(b.ton_kho, 2)}</div>
-          <div><span className="kq-nhan">Đặt / huỷ / từ chối</span>{' '}
+          <div><span className="kq-nhan">Fills</span> {nguyen(b.so_lan_khop)} ·{' '}
+            {so(b.kl_da_khop, 0)} lots</div>
+          <div><span className="kq-nhan">Final inventory</span> {so(b.ton_kho, 2)}</div>
+          <div><span className="kq-nhan">Posted / cancelled / rejected</span>{' '}
             {nguyen(b.so_dat)} · {nguyen(b.so_huy)} ·{' '}
             <span className={b.so_tu_choi ? 't-err' : ''}>{nguyen(b.so_tu_choi)}</span>
           </div>
         </div>
 
         <div className="kq-so">
-          <div><span className="kq-nhan">Dữ liệu</span> {kq.symbol} ·{' '}
+          <div><span className="kq-nhan">Data</span> {kq.symbol} ·{' '}
             {kq.tu_ngay}…{kq.den_ngay}</div>
-          <div><span className="kq-nhan">Sự kiện</span> {nguyen(b.so_su_kien)} trong{' '}
+          <div><span className="kq-nhan">Events</span> {nguyen(b.so_su_kien)} in{' '}
             {tuNhien(b.giay_chay)}s</div>
           {/* GIẢ ĐỊNH nằm NGAY CẠNH kết quả, không giấu trong Cài đặt. */}
-          <div className="kq-gia-dinh" title="Bốn con số app phải ĐOÁN. Sửa ở Cài đặt → Mô hình khớp.">
-            <span className="kq-nhan">Giả định</span>{' '}
-            phí {tuNhien(b.gia_dinh.phi_maker_bps)} bps ·
-            trễ ra {tuNhien(b.gia_dinh.tre_ra_ms)} ms ·
-            huỷ trước {tuNhien(b.gia_dinh.phan_huy_truoc)} ·
-            mức sâu {tuNhien(b.gia_dinh.phan_muc_sau)} ·
+          <div className="kq-gia-dinh"
+               title="The four numbers the app has to GUESS. Change them in Settings → Fill model.">
+            <span className="kq-nhan">Assumptions</span>{' '}
+            fee {tuNhien(b.gia_dinh.phi_maker_bps)} bps ·
+            latency {tuNhien(b.gia_dinh.tre_ra_ms)} ms ·
+            cancels ahead {tuNhien(b.gia_dinh.phan_huy_truoc)} ·
+            deep level {tuNhien(b.gia_dinh.phan_muc_sau)} ·
             tick {tuNhien(b.gia_dinh.buoc_gia)}
           </div>
         </div>
@@ -265,31 +270,32 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
 
       {b.loi && <div className="chu-dan canh">⚠ {b.loi}</div>}
 
-      <BieuDo ten="Vốn" moc0 mu={mu} lo={vLo} hi={vHi} dinhDang={v => so(v, 0)}
+      <BieuDo ten="Equity" moc0 mu={mu} lo={vLo} hi={vHi} dinhDang={v => so(v, 0)}
               conTro={conTro} bam={bamBieuDo}
               duongs={[
-                { nhan: 'gộp (trước phí)', mau: 'var(--dim)',
+                { nhan: 'gross (before fees)', mau: 'var(--dim)',
                   d: duong(nen(gop, soNhom), vLo, vHi) },
-                { nhan: 'ròng', mau: rong >= 0 ? 'var(--ok)' : 'var(--err)', to: true,
+                { nhan: 'net', mau: rong >= 0 ? 'var(--ok)' : 'var(--err)', to: true,
                   d: duong(nen(von, soNhom), vLo, vHi) },
               ]} />
 
-      <BieuDo ten="Tồn kho" moc0 mu={mu} lo={kLo} hi={kHi} dinhDang={v => so(v, 0)}
+      <BieuDo ten="Inventory" moc0 mu={mu} lo={kLo} hi={kHi} dinhDang={v => so(v, 0)}
               conTro={conTro} bam={bamBieuDo}
-              duongs={[{ nhan: '±lot', mau: 'var(--khoi-lot)', to: true,
+              duongs={[{ nhan: '±lots', mau: 'var(--khoi-lot)', to: true,
                          d: duong(nen(tonKho, soNhom), kLo, kHi) }]} />
 
       <div className="kq-chan">
         <span>{gio(t0)}</span>
         <span className="kq-chu-giai">
           {soiIdx === null
-            ? 'Bấm vào biểu đồ để SOI sơ đồ tại thời điểm đó'
-            : <b className="kq-dang-soi">đang soi {gio(mau[soiIdx][0])} — bấm lại để bỏ</b>}
+            ? 'Click the chart to INSPECT the diagram at that moment'
+            : <b className="kq-dang-soi">inspecting {gio(mau[soiIdx][0])} — click again to stop</b>}
         </span>
         {mu.length > 0 && (
           <span className="kq-chu-giai">
             <i style={{ background: 'var(--err)', opacity: .4 }} />
-            {mu.length} quãng mù — sàn vẫn khớp trong đó, backtest không thấy
+            {mu.length} blind window{mu.length > 1 ? 's' : ''} — the exchange kept
+            matching in there, the backtest could not see it
           </span>
         )}
         <span className="day" />

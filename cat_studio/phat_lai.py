@@ -82,8 +82,8 @@ KHOP = 2          #: có người khớp
 MO_LO_HONG = 3    #: mất dữ liệu từ đây
 DONG_LO_HONG = 4  #: dữ liệu trở lại — nhưng sổ lệnh CHƯA BIẾT tới bản ghi `so` kế
 
-TEN_LOAI = {SO: "sổ lệnh", KHOP: "khớp", MO_LO_HONG: "mở lỗ hổng",
-            DONG_LO_HONG: "đóng lỗ hổng"}
+TEN_LOAI = {SO: "book", KHOP: "trade", MO_LO_HONG: "gap opens",
+            DONG_LO_HONG: "gap closes"}
 
 NAN = float("nan")
 

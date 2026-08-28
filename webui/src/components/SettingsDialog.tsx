@@ -44,7 +44,7 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
     // ⚠ PHẢI xem kết quả. Trước đây bỏ qua rồi `onDong()` vô điều kiện, nên đĩa đầy hay
     // mất quyền ghi thì hộp thoại vẫn đóng như đã lưu xong — im lặng, không dấu vết.
     const r = await py.save_settings({ symbol, accent, khop })
-    if (!r.ok) return setLoiLuu(r.error ?? 'không lưu được cài đặt')
+    if (!r.ok) return setLoiLuu(r.error ?? 'could not save settings')
     // ⚠ NẠP LẠI `boot` rồi mới đóng. `boot` vốn chỉ nạp MỘT LẦN lúc mở app, mà hộp thoại
     // này lấy giá trị ban đầu từ đó — nên lưu xong, mở lại là thấy y nguyên số CŨ, và
     // người dùng kết luận "bấm lưu không lưu được" (thật ra đĩa đã ghi đúng).
@@ -53,36 +53,36 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   }
 
   return (
-    <Modal title="Cài đặt" width={tab === 'chung' ? 620 : 740} onClose={onDong}
+    <Modal title="Settings" width={tab === 'chung' ? 620 : 740} onClose={onDong}
            footer={banNhap ? (
              <>
                {loiLuu && <span className="loi-ghi">{loiLuu}</span>}
-               <button className="nut" onClick={onDong}>Huỷ</button>
-               <button className="nut chinh" onClick={luu}>Lưu</button>
+               <button className="nut" onClick={onDong}>Cancel</button>
+               <button className="nut chinh" onClick={luu}>Save</button>
              </>
            ) : (
-             <button className="nut" onClick={onDong}>Đóng</button>
+             <button className="nut" onClick={onDong}>Close</button>
            )}>
 
       <div className="hang-tab cd-tab">
         <button className={'tab' + (tab === 'chung' ? ' dang' : '')}
-                onClick={() => setTab('chung')}>Chung</button>
+                onClick={() => setTab('chung')}>General</button>
         <button className={'tab' + (tab === 'nguon' ? ' dang' : '')}
-                onClick={() => setTab('nguon')}>Nguồn dữ liệu</button>
+                onClick={() => setTab('nguon')}>Data source</button>
         <button className={'tab' + (tab === 'khop' ? ' dang' : '')}
-                onClick={() => setTab('khop')}>Mô hình khớp</button>
+                onClick={() => setTab('khop')}>Fill model</button>
       </div>
 
       {tab === 'chung' ? (
         <>
           <label className="hang">
-            <span className="nhan-o">Mã mặc định</span>
+            <span className="nhan-o">Default symbol</span>
             <input className="o" value={symbol} spellCheck={false}
                    onChange={e => setSymbol(e.target.value.toUpperCase())} />
           </label>
 
           <label className="hang">
-            <span className="nhan-o">Màu nhấn</span>
+            <span className="nhan-o">Accent colour</span>
             <div className="cum-mau">
               {Object.entries(boot.accent_presets).map(([ten, mau]) => (
                 <button key={ten} title={ten}
@@ -96,8 +96,8 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
           </label>
 
           <div className="chu-dan">
-            Cài đặt lưu vào <code>du_lieu/cai_dat.json</code> cạnh app, không nằm trong
-            repo. Phiên bản {boot.phien_ban} · {boot.app_dir}
+            Settings are stored in <code>du_lieu/cai_dat.json</code> next to the app,
+            not in the repo. Version {boot.phien_ban} · {boot.app_dir}
           </div>
         </>
       ) : tab === 'nguon' ? <NguonPanel /> : (

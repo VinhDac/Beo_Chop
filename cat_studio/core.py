@@ -33,8 +33,8 @@ save_settings = luu_tru.ghi_cai_dat
 SETTINGS_DEFAULT = luu_tru.CAI_DAT_MAC_DINH
 
 ACCENT_PRESETS = {
-    "Cam": "#ffa657", "Xanh dương": "#4a9eff", "Lục": "#3fb950", "Tím": "#a371f7",
-    "Đỏ": "#f85149", "Vàng": "#d29922", "Hồng": "#db61a2", "Xanh ngọc": "#39c5cf",
+    "Orange": "#ffa657", "Blue": "#4a9eff", "Green": "#3fb950", "Purple": "#a371f7",
+    "Red": "#f85149", "Yellow": "#d29922", "Pink": "#db61a2", "Teal": "#39c5cf",
 }
 
 
@@ -72,8 +72,8 @@ KIND_START = "start"     # điểm neo đánh số — mỗi nến chạy lại 
 KIND_ACTION = "action"   # đúng một hành động
 
 KIND_LABELS = {
-    KIND_START: "Bắt đầu",
-    KIND_ACTION: "Khối",
+    KIND_START: "Start",
+    KIND_ACTION: "Block",
 }
 
 
@@ -131,8 +131,8 @@ ACTION_TYPES = [CHECK_COND, SO_HANG]
 # Nhãn THUẦN CHỮ, không emoji: chúng hiện ở dropdown "Loại:" của hộp thoại, và giao
 # diện tự vẽ icon nét theo `type` cho khớp phần còn lại.
 ACTION_LABELS = {
-    CHECK_COND: "Kiểm tra điều kiện",
-    SO_HANG: "Số hạng",
+    CHECK_COND: "Check condition",
+    SO_HANG: "Term",
 }
 
 
@@ -157,7 +157,7 @@ ACTION_LABELS = {
 # thì thêm một dòng, không phải dựng lại.
 TAB_BAO_GIA = "bao_gia"
 TABS = [TAB_BAO_GIA]
-TAB_LABELS = {TAB_BAO_GIA: "Báo giá"}
+TAB_LABELS = {TAB_BAO_GIA: "Quote"}
 
 #: Động từ nào dùng được ở sơ đồ nào. Còn đúng một sơ đồ nên cả hai đều được — nhưng
 #: giữ bảng này chứ không xoá: nó là chỗ ranh giới Entry/Manage từng sống, và là chỗ
@@ -197,7 +197,7 @@ TOAN_HANG_DUNG_SAI = tuple(t["key"] for t in TOAN_HANG if t.get("dung_sai"))
 
 #: HAI PHÍA. Không phải tham số chiến lược — đây là bản chất của một lệnh, và là trục
 #: mà cả báo giá xoay quanh. Nó cũng quyết màu khối (`api._mau_khoi`).
-HUONG = {"mua": "Mua", "ban": "Bán"}
+HUONG = {"mua": "Buy", "ban": "Sell"}
 
 # ---- PHÉP SO ---------------------------------------------------------------
 # KÝ HIỆU, không phải chữ. Một cổng mang 3–4 điều kiện; viết "lớn hơn hoặc bằng" thì
@@ -206,7 +206,7 @@ PHEP_SO = {
     "<": "<", "<=": "≤", ">": ">", ">=": "≥", "==": "=", "!=": "≠",
     # ĐÚNG/SAI là một PHÉP SO, không phải một ô tick riêng. Nhờ vậy mọi điều kiện có
     # cùng một hình dạng `[đại lượng] [phép] [lượng]` — hết ngoại lệ.
-    "la_dung": "là ĐÚNG", "la_sai": "là SAI",
+    "la_dung": "is TRUE", "la_sai": "is FALSE",
 }
 #: Phép nào KHÔNG có vế phải, và cũng là phép DUY NHẤT dùng cho toán hạng đúng/sai.
 PHEP_DUNG_SAI = ("la_dung", "la_sai")
@@ -225,10 +225,10 @@ PHEP_DUNG_SAI = ("la_dung", "la_sai")
 DON_VI = {
     "tick": "× tick",
     "spread": "× spread",
-    "bps": "bps của giá",
-    "gia": "giá tuyệt đối",
+    "bps": "bps of price",
+    "gia": "absolute price",
 }
-DON_VI_NGAN = {"tick": "tick", "spread": "× spread", "bps": "bps", "gia": "giá"}
+DON_VI_NGAN = {"tick": "tick", "spread": "× spread", "bps": "bps", "gia": "price"}
 
 #: ĐƠN VỊ ĐẾM — ô số KHÔNG quy đổi gì, nhưng con số trong đó vẫn đo một thứ cụ thể.
 DON_VI_DEM = {"lot": "lot"}
@@ -263,23 +263,24 @@ LOAI_DON_VI = {"muc_gia": "gia", "dung_sai": None}
 # về sau. Ngày muốn biên lệch hai phía thì không phải đổi mô hình. Và nhờ tách `lot`,
 # KHÔNG CẦN động từ "rút" hay "tắt một phía" — chúng chỉ là `lot = 0`, `lot_mua = 0`.
 DICH = {
-    "cong_bang": "Giá công bằng",
-    "bien": "Nửa biên (cả hai phía)",
-    "bien_mua": "Nửa biên — phía MUA",
-    "bien_ban": "Nửa biên — phía BÁN",
-    "lech": "Lệch báo giá",
-    "lot": "Khối lượng (cả hai phía)",
-    "lot_mua": "Khối lượng — phía MUA",
-    "lot_ban": "Khối lượng — phía BÁN",
+    "cong_bang": "Fair value",
+    "bien": "Half-spread (both sides)",
+    "bien_mua": "Half-spread — BUY side",
+    "bien_ban": "Half-spread — SELL side",
+    "lech": "Quote skew",
+    "lot": "Size (both sides)",
+    "lot_mua": "Size — BUY side",
+    "lot_ban": "Size — SELL side",
 }
 
 #: Tên NGẮN của đích — cùng lý lẽ với `TOAN_HANG_NGAN`: dropdown cần rõ, hộp cần gọn.
 #: Đây chính là mấy chữ trong sơ đồ tay mà cả ngữ pháp này dựng theo.
 DICH_NGAN = {
-    "cong_bang": "công bằng",
-    "bien": "biên", "bien_mua": "biên mua", "bien_ban": "biên bán",
-    "lech": "lệch",
-    "lot": "lot", "lot_mua": "lot mua", "lot_ban": "lot bán",
+    "cong_bang": "fair",
+    "bien": "half-spread", "bien_mua": "half-spread buy",
+    "bien_ban": "half-spread sell",
+    "lech": "skew",
+    "lot": "size", "lot_mua": "size buy", "lot_ban": "size sell",
 }
 
 #: Đích nào sửa CẢ HAI phía cùng lúc → nhắm `bien` là đặt cả `bien_mua` lẫn `bien_ban`.
@@ -350,7 +351,7 @@ def ensure_step_ids(steps):
 # ---------------------------------------------------------------------------
 
 
-def make_start_step(name="Chạy lại từ đây"):
+def make_start_step(name="Restart here"):
     """Khối BẮT ĐẦU — không làm gì cả, nhưng nói ra một điều quan trọng.
 
     CẢ SƠ ĐỒ là một vòng lặp: nó chạy lại từ khối này ở MỖI LƯỢT. Nên "chờ tới khi"
@@ -383,13 +384,13 @@ def step_title(step):
     if ten:
         return ten
     if is_start_step(step):
-        return "Bắt đầu"
+        return "Start"
     # Một chuỗi sáu số hạng mà hộp nào cũng đề "Số hạng" thì tiêu đề không nói gì.
     # Lấy ĐÍCH làm tên: nhìn danh sách khối là biết ngay khối nào động vào cái gì, kể
     # cả khi người dùng chưa đặt tên cho khối nào.
     if step.get("type") == SO_HANG and step.get("dich") in DICH_NGAN:
         return DICH_NGAN[step["dich"]]
-    return ACTION_LABELS.get(step.get("type"), "Hành động")
+    return ACTION_LABELS.get(step.get("type"), "Action")
 
 
 # ---------------------------------------------------------------------------
@@ -400,15 +401,19 @@ def step_title(step):
 
 
 def _so(x):
-    """Số cho người đọc: bỏ đuôi `.0`, dùng dấu phẩy thập phân kiểu Việt."""
+    """Số cho người đọc: bỏ đuôi `.0` thừa.
+
+    ⚠ Định dạng theo kiểu ANH (`1,234.5`) chứ không phải kiểu Việt. Giao diện dùng
+    tiếng Anh, mà chuỗi này do Python sinh rồi hiện thẳng lên màn hình — trộn `1.234,5`
+    vào một câu tiếng Anh thì người đọc hiểu sai đúng một nghìn lần."""
     try:
         f = float(x)
     except (TypeError, ValueError):
         return str(x)
-    s = f"{f:.6f}".rstrip("0").rstrip(".")
-    # Dấu phẩy thập phân kiểu Việt, và dấu TRỪ THẬT (U+2212) chứ không phải gạch nối.
-    # `ton_kho ≤ -2000` với gạch nối trông như một khoảng nối số ở cỡ chữ nhỏ.
-    return (s or "0").replace(".", ",").replace("-", "−")
+    s = f"{f:,.6f}".rstrip("0").rstrip(".")
+    # Dấu TRỪ THẬT (U+2212) chứ không phải gạch nối: `inventory ≤ -2000` với gạch nối
+    # trông như một khoảng nối số ở cỡ chữ nhỏ.
+    return (s or "0").replace("-", "−")
 
 
 def luong_display(l):
@@ -469,15 +474,15 @@ def action_display(a, tham_so=None):
     if t == CHECK_COND:
         ds = a.get("conditions") or []
         if not ds:
-            return dau + "Kiểm tra điều kiện — CHƯA có điều kiện nào"
-        return dau + " VÀ ".join(dieu_kien_display(c) for c in ds)
+            return dau + "Check condition — NO conditions yet"
+        return dau + " AND ".join(dieu_kien_display(c) for c in ds)
 
     if t == SO_HANG:
         cau = (f"{DICH_NGAN.get(a.get('dich'), '?')} "
                f"{PHEP_GAN.get(a.get('phep'), '?')} "
                f"{luong_display(a.get('luong'))}")
         if a.get("khi"):
-            cau += f"  ·  khi {dieu_kien_display(a['khi'])}"
+            cau += f"  ·  when {dieu_kien_display(a['khi'])}"
         return dau + cau
 
     return dau + ACTION_LABELS.get(t, str(t))
@@ -494,20 +499,20 @@ def dong_khoi(a, tham_so=None, tab=None):
     t = (a or {}).get("type")
     if t == CHECK_COND:
         return [dieu_kien_display(c) for c in (a.get("conditions") or [])] \
-            or ["chưa có điều kiện nào — luôn khớp"]
+            or ["no conditions yet — always matches"]
 
     if t == SO_HANG:
         ds = [f"{DICH_NGAN.get(a.get('dich'), '?')} {PHEP_GAN.get(a.get('phep'), '?')} "
               f"{luong_display(a.get('luong'))}"]
         if a.get("khi"):
-            ds.append(f"khi {dieu_kien_display(a['khi'])}")
+            ds.append(f"when {dieu_kien_display(a['khi'])}")
         # HẬU QUẢ ĐẦY ĐỦ phải hiện trên hộp, không bắt nhớ luật trong đầu. `lot = 0`
         # nghĩa là rút; `lot_mua = 0` nghĩa là bỏ hẳn một phía — hai chuyện lớn mà đọc
         # dòng trên không thấy ngay.
         if a.get("phep") == "=" and _la_khong(a.get("luong")):
-            ds.append({"lot": "→ rút hết báo giá",
-                       "lot_mua": "→ bỏ phía MUA",
-                       "lot_ban": "→ bỏ phía BÁN"}.get(a.get("dich"), ""))
+            ds.append({"lot": "→ pull the whole quote",
+                       "lot_mua": "→ drop the BUY side",
+                       "lot_ban": "→ drop the SELL side"}.get(a.get("dich"), ""))
         return [x for x in ds if x]
 
     return [action_display(a)]
@@ -525,7 +530,7 @@ def _la_khong(l):
 
 def step_display(step):
     if is_start_step(step):
-        return "◆ Bắt đầu   ·  mỗi sự kiện chạy lại từ đây"
+        return "◆ Start   ·  every event runs again from here"
     return f"⚡ {action_display(step)}"
 
 
@@ -847,37 +852,37 @@ def validate_flow_graph(steps, edges):
     for sid, n in dem.items():
         if n > 1:
             _loi(ra, "error", sid,
-                 f'Có {n} khối trùng id với nhau ({ten(sid)}) — chỉ MỘT cái được chạy, '
-                 f"những cái còn lại biến mất khỏi sơ đồ mà không báo gì. "
-                 f"Hãy xoá bớt rồi tạo lại.")
+                 f"{n} blocks share the same id ({ten(sid)}) — only ONE of them "
+                 f"runs, the rest vanish from the diagram without a word. Delete "
+                 f"the extras and recreate them.")
 
     # ---- Khối Bắt đầu ----
     bd = [s for s in ds if is_start_step(s)]
     if len(bd) > 1:
         _loi(ra, "error", bd[1]["id"],
-             f"Sơ đồ có {len(bd)} khối Bắt đầu — chỉ được đúng một. "
-             f"Hãy xoá bớt, giữ lại một cái.")
+             f"The diagram has {len(bd)} Start blocks — there must be exactly one. "
+             f"Delete the extras and keep one.")
     if not bd:
         _loi(ra, "warning", None,
-             "Sơ đồ chưa có khối Bắt đầu. Thêm một cái để việc đánh số có điểm neo cố "
-             "định — không có nó, một vòng lặp nối ngược lên trên có thể làm mất luôn "
-             "điểm bắt đầu và mọi khối đều mất số.")
+             "The diagram has no Start block. Add one so numbering has a fixed "
+             "anchor — without it a loop wired back upwards can swallow the entry "
+             "point and every block loses its number.")
     for s in bd:
         vao = [e for e in (edges or [])
                if isinstance(e, dict) and e.get("to") == s["id"]]
         if vao:
             _loi(ra, "error", s["id"],
-                 f"Khối Bắt đầu có {len(vao)} đường nối ĐI VÀO. Nó là điểm neo, "
-                 f"không bao giờ được chạy tới từ chỗ khác. Hãy gỡ mấy đường đó.")
+                 f"The Start block has {len(vao)} INCOMING edges. It is the anchor "
+                 f"and must never be reached from elsewhere. Remove those edges.")
 
     # ---- Đường nối trỏ về chính nó ----
     for e in (edges or []):
         if isinstance(e, dict) and e.get("from") and e.get("from") == e.get("to") \
                 and e["from"] in theo_id:
             _loi(ra, "error", e["from"],
-                 f"{ten(e['from'])} có đường nối trỏ về CHÍNH NÓ — chạy tới đây là quay "
-                 f"lại chính mình mãi mãi. Muốn lặp thì nối về một khối phía trước và "
-                 f"ghim số khối đó.")
+                 f"{ten(e['from'])} has an edge pointing at ITSELF — reaching it "
+                 f"means looping on itself forever. To loop, wire back to an earlier "
+                 f"block and pin that block's number.")
 
     # ⚠ PHÉP SOÁT "HAI KHỐI VÀO LỆNH TRÊN CÙNG MỘT ĐƯỜNG" ĐÃ BỎ.
     #
@@ -895,9 +900,9 @@ def validate_flow_graph(steps, edges):
     for sid, st in theo_id.items():
         if is_branch_gate(st) and not ke.get(sid):
             _loi(ra, "warning", sid,
-                 f"{ten(sid)} khớp điều kiện rồi thì không có gì phía sau — chiến lược "
-                 f"kết thúc ngay tại đó. Nối tiếp một khối vào nếu bạn muốn nhánh này "
-                 f"làm gì đó.")
+                 f"{ten(sid)} matches, and then there is nothing after it — the "
+                 f"strategy simply ends there. Wire a block on if you want this branch "
+                 f"to do something.")
 
     # ---- Luật rẽ nhánh ----
     # Nhiều đường ra KHÔNG phải lỗi, nhưng phải quyết định được đi đường nào. Ở điểm rẽ
@@ -916,17 +921,16 @@ def validate_flow_graph(steps, edges):
         if len(khong_cong) > 1:
             ds_ten = ", ".join(ten(uv) for uv in khong_cong)
             _loi(ra, "error", sid,
-                 f"{ten(sid)} rẽ {len(nhanh)} nhánh nhưng có {len(khong_cong)} nhánh "
-                 f"không có cổng kiểm tra ({ds_ten}) — chạy tới đây không biết chọn "
-                 f'nhánh nào. Mỗi nhánh phải bắt đầu bằng khối HĐ lẻ '
-                 f'"{ACTION_LABELS[CHECK_COND]}", nhiều nhất một nhánh được để trống '
-                 f"làm nhánh mặc định.")
+                 f"{ten(sid)} forks into {len(nhanh)} branches but {len(khong_cong)} "
+                 f"of them have no gate ({ds_ten}) — arriving here there is no way to "
+                 f"pick one. Every branch must open with a "
+                 f'"{ACTION_LABELS[CHECK_COND]}" block; at most one branch may be left '
+                 f"bare as the default.")
         elif khong_cong and khong_cong[0] != thang[-1]:
             _loi(ra, "error", sid,
-                 f"{ten(khong_cong[0])} là nhánh mặc định (không có cổng kiểm tra) "
-                 f"nhưng không nằm dưới cùng của {ten(sid)} — nhánh mặc định luôn khớp "
-                 f"nên các nhánh xếp dưới nó không bao giờ chạy tới. Hãy kéo nó xuống "
-                 f"thấp nhất.")
+                 f"{ten(khong_cong[0])} is the default branch (no gate) but it is "
+                 f"not the lowest one under {ten(sid)} — the default always matches, "
+                 f"so every branch below it is unreachable. Drag it to the bottom.")
         # CỐ Ý KHÔNG cảnh báo "nhánh nào cũng có điều kiện". Trước đây có, vì tưởng
         # không khớp nhánh nào là chiến lược chết đứng. Sai: cả sơ đồ là một vòng lặp
         # chạy lại ở mỗi nến, nên không khớp gì = HẾT LƯỢT, nến sau chạy lại từ đầu.
@@ -946,11 +950,11 @@ def validate_flow_graph(steps, edges):
                 if abs(ya - yb) >= LECH_TOI_THIEU:
                     continue
                 _loi(ra, "error", a,
-                     f"{ten(a)} và {ten(b)} là hai nhánh của {ten(sid)} nhưng nằm "
-                     f"NGANG NHAU (lệch {abs(ya - yb):.0f} px). Nhánh nào được thử "
-                     f"trước là do vị trí quyết, nên đặt ngang nhau là để máy tự chọn "
-                     f"bằng thứ mắt không thấy. Hãy kéo một trong hai lên hoặc xuống "
-                     f"ít nhất {LECH_TOI_THIEU:.0f} px.")
+                     f"{ten(a)} and {ten(b)} are both branches of {ten(sid)} but sit "
+                     f"LEVEL with each other ({abs(ya - yb):.0f} px apart). Position "
+                     f"decides which branch is tried first, so placing them level lets "
+                     f"the machine choose by something the eye cannot see. Drag one of "
+                     f"them at least {LECH_TOI_THIEU:.0f} px up or down.")
 
         # ⚠ CẢNH BÁO "hai cổng trùng điều kiện" ĐÃ BỎ (đợt 3).
         #
@@ -965,32 +969,32 @@ def validate_flow_graph(steps, edges):
     # ---- Điểm bắt đầu ----
     if kq["entry"] is None:
         _loi(ra, "error", None,
-             "Không tìm được khối bắt đầu — mọi khối đều có đường nối đi vào. Hãy thêm "
-             "một khối Bắt đầu, hoặc gỡ bớt một đường nối.")
+             "No entry block found — every block has an incoming edge. Add a Start "
+             "block, or remove one edge.")
 
     # ---- Vòng lặp CHƯA ghim ----
     for tu, toi in kq["vong_ho"]:
         _loi(ra, "warning", toi,
-             f"{ten(tu)} nối ngược về {ten(toi)} tạo thành VÒNG LẶP, nhưng {ten(toi)} "
-             f'chưa được ghim số. Bấm chuột phải vào nó → "Ghim số" để xác nhận đây là '
-             f"vòng lặp cố ý — số của nó sẽ được giữ nguyên và cảnh báo này biến mất. "
-             f"Vòng chỉ dừng khi chạy đủ {MAX_PROCESS_STEPS} bước.")
+             f"{ten(tu)} wires back to {ten(toi)}, forming a LOOP, but {ten(toi)} "
+             f'has no pinned number. Right-click it → "Pin number" to confirm the loop '
+             f"is deliberate — its number is then held fixed and this warning goes "
+             f"away. A loop only stops after {MAX_PROCESS_STEPS} steps.")
 
     # ---- Nhánh chụm không đều ----
     # KHÔNG gọi là vòng lặp. Đây là lúc `diem_gop` không tìm ra khối chung cho MỌI
     # nhánh (vd 3 nhánh mà chỉ 2 nhánh gặp nhau), nên số không quay về được mức trên.
     for sid in kq["lech_nhanh"]:
         _loi(ra, "warning", sid,
-             f"{ten(sid)} được nhiều nhánh cùng dẫn tới, nhưng KHÔNG PHẢI mọi nhánh của "
-             f"điểm rẽ đều dẫn tới đây — nên số không quay về được mức trên cùng và khối "
-             f"này mang nhãn của nhánh chạm tới nó trước. Nối nốt các nhánh còn lại vào "
-             f"đây nếu bạn muốn nó là điểm gộp thật.")
+             f"{ten(sid)} is reached by several branches, but NOT every branch of "
+             f"the fork leads here — so numbering cannot return to the outer level and "
+             f"this block carries the label of whichever branch touched it first. Wire "
+             f"the remaining branches in too if you meant it as a real join point.")
 
     # ---- Khối không bao giờ chạy tới ----
     for sid in kq["unreachable"]:
         _loi(ra, "warning", sid,
-             f"{ten(sid)} không bao giờ chạy tới — chưa có đường nối dẫn vào từ khối "
-             f"bắt đầu.")
+             f"{ten(sid)} is never reached — no path leads to it from the entry "
+             f"block.")
 
     return ra
 
@@ -1005,7 +1009,7 @@ def _soat_dieu_kien(c, cho, e):
     bộ luật — không có phiên bản thứ hai để lệch dần theo thời gian."""
     ten = (c.get("trai") or {}).get("ten") if isinstance(c, dict) else None
     if ten not in TOAN_HANG_KEYS:
-        e(f'{cho} chưa chọn đại lượng, hoặc "{ten}" không có trong kho.')
+        e(f'{cho} has no operand selected, or "{ten}" is not in the library.')
         return
     phep = c.get("phep")
 
@@ -1013,15 +1017,15 @@ def _soat_dieu_kien(c, cho, e):
     # số mà mang "là ĐÚNG" cũng vô nghĩa như một đại lượng đúng/sai mà mang "≥".
     if ten in TOAN_HANG_DUNG_SAI:
         if phep not in PHEP_DUNG_SAI:
-            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" vốn đã đúng/sai, chỉ dùng được '
-              f'"{PHEP_SO["la_dung"]}" hoặc "{PHEP_SO["la_sai"]}".')
+            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" is already true/false, so it only '
+              f'takes "{PHEP_SO["la_dung"]}" or "{PHEP_SO["la_sai"]}".')
         return
     if phep in PHEP_DUNG_SAI:
-        e(f'{cho} — "{PHEP_SO[phep]}" chỉ dùng cho đại lượng đúng/sai, mà '
-          f'"{TOAN_HANG_LABELS[ten]}" là một con số.')
+        e(f'{cho} — "{PHEP_SO[phep]}" only applies to a true/false operand, and '
+          f'"{TOAN_HANG_LABELS[ten]}" is a number.')
         return
     if phep not in PHEP_SO:
-        e(f"{cho} chưa chọn phép so sánh.")
+        e(f"{cho} has no comparison selected.")
 
     p = c.get("phai") or {}
     loai = TOAN_HANG_LOAI.get(ten)
@@ -1029,17 +1033,17 @@ def _soat_dieu_kien(c, cho, e):
     # Vế phải là một ĐẠI LƯỢNG KHÁC — so hai thứ cùng loại, không cần đơn vị.
     if p.get("ten"):
         if p["ten"] not in TOAN_HANG_KEYS:
-            e(f'{cho} — vế phải "{p["ten"]}" không có trong kho.')
+            e(f'{cho} — right-hand operand "{p["ten"]}" is not in the library.')
         elif TOAN_HANG_LOAI.get(p["ten"]) != loai:
-            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" và "{TOAN_HANG_LABELS[p["ten"]]}" '
-              f"không cùng loại đại lượng, so với nhau không ra nghĩa gì.")
+            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" and "{TOAN_HANG_LABELS[p["ten"]]}" '
+              f"are different kinds of quantity; comparing them means nothing.")
         return
 
     if not isinstance(p.get("value"), (int, float)) or isinstance(p.get("value"), bool):
-        e(f"{cho} — vế phải cần một con số.")
+        e(f"{cho} — the right-hand side needs a number.")
     dv = p.get("tinh")
     if dv and dv not in NHAN_DON_VI:
-        e(f'{cho} — đơn vị "{dv}" không có.')
+        e(f'{cho} — there is no unit "{dv}".')
         return
 
     # ĐƠN VỊ PHẢI KHỚP LOẠI ĐẠI LƯỢNG. So `tồn kho` (lot) với `2 tick` là một câu
@@ -1048,11 +1052,12 @@ def _soat_dieu_kien(c, cho, e):
     if loai == "dem":
         can = TOAN_HANG_DON_VI.get(ten)
         if dv and dv != can:
-            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" đếm bằng {DON_VI_DEM.get(can, can)}, '
-              f"không so được với {NHAN_DON_VI.get(dv, dv)}.")
+            e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" is counted in '
+              f"{DON_VI_DEM.get(can, can)}; it cannot be compared with "
+              f"{NHAN_DON_VI.get(dv, dv)}.")
     elif loai == "muc_gia" and dv and dv != "gia":
-        e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" là một MỨC giá chứ không phải bề rộng, '
-          f"nên không quy đổi sang {NHAN_DON_VI.get(dv, dv)} được.")
+        e(f'{cho} — "{TOAN_HANG_LABELS[ten]}" is a price LEVEL, not a width, so it '
+          f"cannot be converted to {NHAN_DON_VI.get(dv, dv)}.")
 
 
 def _soat_luong(l, dich, phep, cho, e):
@@ -1060,18 +1065,18 @@ def _soat_luong(l, dich, phep, cho, e):
 
     Câu hỏi duy nhất: lượng này ĐO CÁI GÌ, và đích có nhận thứ đó không."""
     if not isinstance(l, dict):
-        e(f"{cho} chưa có gì.")
+        e(f"{cho} is empty.")
         return
     if not isinstance(l.get("he_so"), (int, float)) or isinstance(l.get("he_so"), bool):
-        e(f"{cho} — hệ số cần một con số.")
+        e(f"{cho} — the coefficient needs a number.")
 
     th = l.get("toan_hang")
     if th and th not in TOAN_HANG_KEYS:
-        e(f'{cho} — "{th}" không có trong kho.')
+        e(f'{cho} — "{th}" is not in the library.')
         return
     if th in TOAN_HANG_DUNG_SAI:
-        e(f'{cho} — "{TOAN_HANG_LABELS[th]}" là đúng/sai, không nhân với hệ số được. '
-          f'Đúng/sai thuộc về ô "khi", không thuộc về lượng.')
+        e(f'{cho} — "{TOAN_HANG_LABELS[th]}" is true/false and cannot be multiplied '
+          f'by a coefficient. True/false belongs in the "when" field, not the amount.')
         return
     loai = TOAN_HANG_LOAI.get(th) if th else None
     ten = TOAN_HANG_LABELS.get(th, th)
@@ -1080,33 +1085,34 @@ def _soat_luong(l, dich, phep, cho, e):
 
     if kieu == "lot":
         if loai and loai != "dem":
-            e(f'{cho} — "{DICH[dich]}" là số lot, chỉ nhân được với một đại lượng ĐẾM. '
-              f'"{ten}" là giá.')
+            e(f'{cho} — "{DICH[dich]}" is a lot count and can only be multiplied by '
+              f'a COUNT operand. "{ten}" is a price.')
         elif dv and dv != "lot":
-            e(f"{cho} — khối lượng đo bằng lot, không phải {NHAN_DON_VI.get(dv, dv)}.")
+            e(f"{cho} — size is measured in lots, not {NHAN_DON_VI.get(dv, dv)}.")
         return
 
     # Đại lượng giá TỰ MANG đơn vị của nó. Cho chọn thêm một thước nữa là mời người
     # dùng viết `spread × 2 tick` — một câu không quy được về đâu.
     if loai in ("muc_gia", "khoang_cach"):
         if dv:
-            e(f'{cho} — "{ten}" đã tự mang đơn vị giá, bỏ ô thước đo đi.')
+            e(f'{cho} — "{ten}" already carries its own price unit; clear the unit '
+              f'field.')
         # `=` trên một mức giá cần một MỨC; mọi trường hợp còn lại cần một KHOẢNG
         # CÁCH. Đây là luật phân biệt `công bằng = mid` (đúng) với `công bằng = spread`
         # (một giá công bằng bằng bề rộng spread — vô nghĩa, mà chạy vẫn ra số).
         can = "muc_gia" if (kieu == "muc_gia" and phep == PHEP_GHI_DE) else "khoang_cach"
         if loai != can:
-            e(f'{cho} — "{DICH[dich]} {PHEP_GAN[phep]}" cần một '
-              f'{"MỨC giá" if can == "muc_gia" else "KHOẢNG CÁCH giá"}, mà "{ten}" là '
-              f'{"một mức" if loai == "muc_gia" else "một bề rộng"}.')
+            e(f'{cho} — "{DICH[dich]} {PHEP_GAN[phep]}" needs a '
+              f'{"price LEVEL" if can == "muc_gia" else "price DISTANCE"}, but "{ten}" '
+              f'is {"a level" if loai == "muc_gia" else "a width"}.')
         return
 
     # Còn lại: một con số, hoặc một số ĐẾM nhân với hệ số → phải khai thước đo.
     if dv not in DON_VI:
-        e(f'{cho} chưa chọn thước đo — {" · ".join(DON_VI.values())}.')
+        e(f'{cho} has no unit selected — {" · ".join(DON_VI.values())}.')
     elif kieu == "muc_gia" and phep == PHEP_GHI_DE and dv != "gia":
-        e(f'{cho} — "{DICH[dich]} =" đặt một MỨC giá, nên con số phải là giá tuyệt '
-          f"đối. {NHAN_DON_VI[dv]} là bề rộng, chỉ dùng được với `+=`.")
+        e(f'{cho} — "{DICH[dich]} =" sets a price LEVEL, so the number must be an '
+          f"absolute price. {NHAN_DON_VI[dv]} is a width and only works with `+=`.")
 
 
 def validate_actions(actions, err, tab=None, ten_tham_so=None):
@@ -1128,41 +1134,42 @@ def validate_actions(actions, err, tab=None, ten_tham_so=None):
             err(m, _i)
         t = (a or {}).get("type")
         if t not in ACTION_TYPES:
-            e(f'Loại hành động "{t}" không còn được hỗ trợ — xoá khối này hoặc đổi loại.')
+            e(f'Action type "{t}" is no longer supported — delete this block or '
+              f'change its type.')
             continue
         if tab and tab not in ACTION_TABS[t]:
             cho = ", ".join(TAB_LABELS[x] for x in ACTION_TABS[t])
             # `.get` chứ không `[]`: tab lạ là đúng thứ phép này sinh ra để tố cáo,
             # nên nó phải BÁO LỖI, không được ném KeyError và giết cả lượt soát.
-            e(f'"{ACTION_LABELS[t]}" không dùng được ở sơ đồ '
-              f'"{TAB_LABELS.get(tab, tab)}" — nó chỉ thuộc về {cho}.')
+            e(f'"{ACTION_LABELS[t]}" cannot be used in the "{TAB_LABELS.get(tab, tab)}" '
+              f'diagram — it belongs only to {cho}.')
             continue
 
         if t == CHECK_COND:
             ds = a.get("conditions") or []
             if not ds:
-                e('"Kiểm tra điều kiện" chưa có điều kiện nào — nó sẽ LUÔN khớp, và '
-                  "nhánh bên cạnh không bao giờ chạy tới.")
+                e('"Check condition" has no conditions — it will ALWAYS match, and '
+                  "the branch beside it is never reached.")
             for k, c in enumerate(ds):
-                _soat_dieu_kien(c, f"Điều kiện {k + 1}", e)
+                _soat_dieu_kien(c, f"Condition {k + 1}", e)
 
         elif t == SO_HANG:
             dich = a.get("dich")
             if dich not in DICH:
-                e('"Số hạng" chưa chọn sửa cái gì.')
+                e('"Term" has no target selected.')
                 continue
             phep = a.get("phep")
             cho_phep = PHEP_CHO_DICH[DICH_KIEU[dich]]
             if phep not in cho_phep:
                 # `×=` trên một mức giá hay một bề rộng không có nghĩa vật lý nào —
                 # "gấp đôi giá công bằng" là gì?
-                them = f", không nhận {PHEP_GAN[phep]}" if phep in PHEP_GAN else ""
-                e(f'"{DICH[dich]}" chỉ nhận {" · ".join(PHEP_GAN[p] for p in cho_phep)}'
-                  f"{them}.")
+                them = f", not {PHEP_GAN[phep]}" if phep in PHEP_GAN else ""
+                e(f'"{DICH[dich]}" only takes '
+                  f'{" · ".join(PHEP_GAN[p] for p in cho_phep)}{them}.')
                 continue
-            _soat_luong(a.get("luong"), dich, phep, "Lượng", e)
+            _soat_luong(a.get("luong"), dich, phep, "Amount", e)
             if a.get("khi"):
-                _soat_dieu_kien(a["khi"], "Điều kiện áp dụng", e)
+                _soat_dieu_kien(a["khi"], "When condition", e)
 
 
 def _khoa_nhan(n):
@@ -1216,12 +1223,12 @@ def _soat_ghi_de(steps, nhan, tab):
             elif st.get("phep") == PHEP_GHI_DE and d in cong_don:
                 bi_de.append(cong_don.pop(d))
         if bi_de:
-            ai = " và ".join(f"[{nhan[x]}]" for x in dict.fromkeys(bi_de))
+            ai = " and ".join(f"[{nhan[x]}]" for x in dict.fromkeys(bi_de))
             ra.append({
                 "severity": "warning", "step": sid, "index": None, "tab": tab,
-                "message": f'[{nhan[sid]}] gán ĐÈ lên "{DICH[st["dich"]]}", xoá sạch '
-                           f"thứ {ai} vừa cộng vào. Đổi thành `+=`, hoặc kéo khối này "
-                           f"lên TRƯỚC nó."})
+                "message": f'[{nhan[sid]}] OVERWRITES "{DICH[st["dich"]]}", wiping out '
+                           f"what {ai} just added. Change it to `+=`, or drag this "
+                           f"block ABOVE it."})
     return ra
 
 
@@ -1573,8 +1580,9 @@ def normalize_process(doc):
     # lên giao diện.
     if v > SCHEMA:
         raise ValueError(
-            f"File này thuộc bản mới hơn (schema {v}, app đang hiểu {SCHEMA}). "
-            f"Cập nhật app rồi mở lại — mở bằng bản cũ sẽ MẤT những khối nó chưa biết.")
+            f"This file belongs to a newer build (schema {v}, this app speaks "
+            f"{SCHEMA}). Update the app and reopen — opening it with an older build "
+            f"would LOSE every block it does not recognise.")
 
     # ⚠ VÀ CHẶN CẢ FILE CŨ HƠN, đây là điều mới. Trước kia mở file cũ luôn được, vì
     # mỗi lần chỉ có vài trường đổi tên — `_doi_ten_cu` dịch là xong. Lần này khác về
@@ -1588,15 +1596,15 @@ def normalize_process(doc):
     # chỉ khác chiều. Chặn thẳng, và NÓI RA nó nằm ở đâu để lấy lại.
     if 0 < v < SCHEMA:
         raise ValueError(
-            f"File này là chiến lược của bản nến/MT5 (schema {v}). App giờ nói bằng "
-            f"từ vựng market maker — không có phép dịch nào giữa hai bên, mở lên sẽ "
-            f"ra sơ đồ TRỐNG rồi lưu đè mất bản gốc.\n"
-            f"Bản app đọc được nó: git checkout f1c90fb")
+            f"This is a strategy from the candle/MT5 build (schema {v}). The app now "
+            f"speaks market-maker vocabulary — there is no translation between the two, "
+            f"so it would open EMPTY and then overwrite your original on save.\n"
+            f"The build that can read it: git checkout f1c90fb")
 
     ra = {
         "schema": SCHEMA,
         "type": "strategy",
-        "name": (doc.get("name") or "").strip() or "Chiến lược 1",
+        "name": (doc.get("name") or "").strip() or "Strategy 1",
         "symbol": (doc.get("symbol") or "").strip() or "BTCUSDT",
         # ⚠ BẢNG THAM SỐ vẫn rỗng. Giữ khoá chứ không bỏ: file lưu ra cùng hình dạng
         # với file đọc vào. Nó sẽ quay lại khi có chỗ ĐẶT TÊN cho những con số nằm
@@ -1615,9 +1623,9 @@ def new_process():
     đầu tiên người dùng thả ra sẽ tự nhận số 1 rồi đổi số ngay khi họ thả khối thứ hai
     lên phía trên nó."""
     s = load_settings()
-    bd = make_start_step("Mỗi sự kiện")
+    bd = make_start_step("Every event")
     bd["pos"] = [80.0, 300.0]
-    return {"schema": SCHEMA, "type": "strategy", "name": "Chiến lược 1",
+    return {"schema": SCHEMA, "type": "strategy", "name": "Strategy 1",
             "symbol": s.get("symbol", "BTCUSDT"), "tham_so": [],
             TAB_BAO_GIA: {"steps": [bd], "edges": []}}
 
@@ -1651,7 +1659,7 @@ def clone_steps(steps):
 # Từng có template riêng cho Vòng theo dõi và Nhóm. Bỏ: một template phải là thứ CHẠY
 # ĐƯỢC. Cụm khối rời thì chưa biết nó nối vào đâu, mở ra là một mớ khối lạc không có
 # đường vào — dán xong vẫn phải tự nối lại từ đầu.
-TEMPLATE_KINDS = {"strategy": "Chiến lược"}
+TEMPLATE_KINDS = {"strategy": "Strategy"}
 
 
 # Đọc/ghi uỷ quyền hết cho `luu_tru.py`. `kind` giữ lại cho code cũ nhưng chỉ còn

@@ -165,7 +165,7 @@ export function PillTab({ tab, tabs, nhan, datTab, tabCoLoi }: {
         <button key={t} className={'pill' + (tab === t ? ' dang' : '')}
                 onClick={() => datTab(t)}>
           {nhan[t] ?? t}
-          {tabCoLoi[t] && <span className="cham-loi" title="Sơ đồ này đang có lỗi" />}
+          {tabCoLoi[t] && <span className="cham-loi" title="This diagram has errors" />}
         </button>
       ))}
     </div>
@@ -179,63 +179,64 @@ export default function Ribbon(p: RibbonProps) {
           hai nút và cả cái luật ấy đã đi cùng hai động từ — market maker chỉ có MỘT
           sơ đồ, nên không còn gì để ẩn theo. Cơ chế `action_tabs` thì vẫn còn bên
           Python, sẵn cho ngày có sơ đồ thứ hai. */}
-      <Nhom ten="Thêm khối">
-        <Nut ten="Kiểm tra ĐK" icon={I.branch} onClick={p.themKiemTra}
-             title={'Thêm cổng "Kiểm tra điều kiện" — nối nhiều cổng vào cùng một khối '
-                    + 'để chia nhánh. Khớp thì đi nhánh đó, không khớp thì thử nhánh dưới.'} />
-        <Nut ten="Số hạng" icon={I.soHang} onClick={p.themSoHang}
-             title={'Góp một số hạng vào báo giá: đặt/cộng vào giá công bằng, nửa biên, '
-                    + 'lệch hoặc khối lượng. Kèm được một điều kiện "khi …".'} />
+      <Nhom ten="Add block">
+        <Nut ten="Check" icon={I.branch} onClick={p.themKiemTra}
+             title={'Add a "Check condition" gate — wire several gates out of one block '
+                    + 'to fork. If it matches you take that branch, otherwise the next '
+                    + 'one down is tried.'} />
+        <Nut ten="Term" icon={I.soHang} onClick={p.themSoHang}
+             title={'Contribute one term to the quote: set or add to fair value, '
+                    + 'half-spread, skew or size. It can carry a "when …" condition.'} />
       </Nhom>
 
       <Nhom ten="Sửa">
-        <Nut ten="Sửa" icon={I.edit} onClick={p.sua} tat={!p.coChon}
-             title="Mở hộp thoại sửa khối đang chọn (hoặc double-click vào khối)" />
-        <Nut ten="Nhân bản" icon={I.copy} onClick={p.nhanBan} tat={!p.coChon}
-             title="Nhân bản khối đang chọn (Ctrl+D)" />
-        <Nut ten="Xoá" icon={I.del} onClick={p.xoa} tat={!p.coChon}
-             title="Xoá khối đang chọn (Delete)" />
+        <Nut ten="Edit" icon={I.edit} onClick={p.sua} tat={!p.coChon}
+             title="Open the editor for the selected block (or double-click it)" />
+        <Nut ten="Duplicate" icon={I.copy} onClick={p.nhanBan} tat={!p.coChon}
+             title="Duplicate the selected block (Ctrl+D)" />
+        <Nut ten="Delete" icon={I.del} onClick={p.xoa} tat={!p.coChon}
+             title="Delete the selected block (Delete)" />
       </Nhom>
 
-      <Nhom ten="Luồng">
-        <Nut ten="Đặt số ①" icon={I.motSo} onClick={p.datBatDau} tat={!p.coChon}
-             title="Biến khối đang chọn thành khối ① — khối chạy đầu tiên" />
-        <Nut ten={p.chonDaGhim ? 'Bỏ ghim' : 'Ghim số'} icon={I.ghim}
+      <Nhom ten="Flow">
+        <Nut ten="Make ①" icon={I.motSo} onClick={p.datBatDau} tat={!p.coChon}
+             title="Make the selected block ① — the one that runs first" />
+        <Nut ten={p.chonDaGhim ? 'Unpin' : 'Pin number'} icon={I.ghim}
              onClick={p.doiGhim} tat={!p.coChon}
-             title={'Ghim số của khối đang chọn: mọi đường nối quay ngược về nó vẫn giữ '
-                    + 'đúng số cũ, và không còn cảnh báo vòng lặp'} />
-        <Nut ten="Vừa khung" icon={I.fit} onClick={p.vuaKhung}
-             title="Thu cả sơ đồ vào vừa màn hình" />
+             title={'Pin the selected block\'s number: any edge looping back to it keeps '
+                    + 'that same number, and the loop warning goes away'} />
+        <Nut ten="Fit view" icon={I.fit} onClick={p.vuaKhung}
+             title="Fit the whole diagram on screen" />
       </Nhom>
 
-      <Nhom ten="Hoàn tác">
-        <Nut ten="Hoàn tác" icon={I.undo} onClick={p.hoanTac} tat={!p.coTheHoanTac} title="Ctrl+Z" />
-        <Nut ten="Làm lại" icon={I.redo} onClick={p.lamLai} tat={!p.coTheLamLai} title="Ctrl+Y" />
+      <Nhom ten="Undo">
+        <Nut ten="Undo" icon={I.undo} onClick={p.hoanTac} tat={!p.coTheHoanTac} title="Ctrl+Z" />
+        <Nut ten="Redo" icon={I.redo} onClick={p.lamLai} tat={!p.coTheLamLai} title="Ctrl+Y" />
       </Nhom>
 
       <Nhom ten="Template">
-        <NutMenu ten="Lưu" icon={I.save} muc={p.mucLuu} />
-        <NutMenu ten="Mở" icon={I.open} muc={p.mucMo} />
+        <NutMenu ten="Save" icon={I.save} muc={p.mucLuu} />
+        <NutMenu ten="Open" icon={I.open} muc={p.mucMo} />
       </Nhom>
 
       {/* Cụm chạy — ghim mép phải. Hai tầng: tên chiến lược ở trên, hàng nút hạ xuống
           dưới cho ngang hàng với nhãn nhóm. Xếp chồng nên KHÔNG tốn thêm bề ngang. */}
       <div className="cum-chay">
         <input className="o o-ten-process" value={p.ten} spellCheck={false}
-               placeholder="Tên chiến lược"
-               title="Tên chiến lược — cũng hiện trên thanh tiêu đề"
+               placeholder="Strategy name"
+               title="Strategy name — also shown in the title bar"
                onChange={e => p.datTen(e.target.value)} />
         <div className="hang-chay">
           <input className="o nho o-symbol" value={p.symbol} spellCheck={false}
-                 title="Mã giao dịch" placeholder="XAUUSD"
+                 title="Trading symbol" placeholder="BTCUSDT"
                  onChange={e => p.datSymbol(e.target.value.toUpperCase())} />
           {/* LIVE đứng TRÁI và màu đỏ. Đỏ không phải để đẹp: hai nút cạnh nhau, một
               cái tiêu vài giây CPU, một cái tiêu tiền thật — chúng không được trông
               giống nhau. Trái/phải cũng cố ý: tay quen bấm cái bên phải. */}
           <button className="nut do" onClick={p.live}
-                  title="Mở cửa sổ Live — CHƯA CÓ KẾT NỐI SÀN (Ctrl+L)">● Live</button>
+                  title="Open the Live window — NO EXCHANGE CONNECTION YET (Ctrl+L)">● Live</button>
           <button className="nut chinh" onClick={p.chay}
-                  title="Chạy thử sơ đồ này — CHƯA CÓ BỘ CHẠY (Ctrl+R)">▶ Test</button>
+                  title="Backtest this diagram on recorded tick data (Ctrl+R)">▶ Test</button>
         </div>
       </div>
     </div>

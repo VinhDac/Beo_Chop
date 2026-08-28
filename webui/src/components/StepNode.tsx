@@ -47,10 +47,10 @@ const SOI_KY_HIEU: Record<string, string> = {
   qua: '✓', truot: '✗', bo: '↩', 'bo-qua': '⊘',
 }
 const SOI_GIAI_THICH: Record<string, string> = {
-  qua: 'Lượt này chạy qua khối này',
-  truot: 'Cổng TRƯỢT — điều kiện không khớp, nên phải lùi tìm nhánh khác',
-  bo: 'Nhánh này đã thử rồi BỎ — số hạng của nó đã bị hoàn nguyên',
-  'bo-qua': 'Có chạy tới, nhưng ô "khi" trượt nên số hạng KHÔNG được áp dụng',
+  qua: 'This turn ran through this block',
+  truot: 'Gate FAILED — the condition did not match, so it backed out to try another branch',
+  bo: 'This branch was tried then ABANDONED — its terms were rolled back',
+  'bo-qua': 'It was reached, but the "when" field failed so the term was NOT applied',
 }
 
 export default function StepNode({ data, selected }: NodeProps) {
@@ -105,9 +105,9 @@ export default function StepNode({ data, selected }: NodeProps) {
         <div className={'so-thu-tu' + (thuTu ? '' : ' trong') + (card.ghim ? ' ghim' : '')}
              title={thuTu
                ? (card.ghim
-                 ? `Bước ${thuTu} — SỐ ĐÃ GHIM: mọi đường nối quay về đây vẫn giữ đúng số này`
-                 : `Bước ${thuTu} — số = đi được bao xa, chữ = đi nhánh nào`)
-               : 'Không có đường nối dẫn tới — sẽ không chạy'}>
+                 ? `Step ${thuTu} — NUMBER PINNED: any edge looping back here keeps this exact number`
+                 : `Step ${thuTu} — digits = how far along, letters = which branch`)
+               : 'Nothing wires into this block — it will not run'}>
           {thuTu ?? '–'}
           {card.ghim && <span className="dau-ghim" aria-hidden>⟲</span>}
         </div>
@@ -144,13 +144,13 @@ export default function StepNode({ data, selected }: NodeProps) {
                     nhau bằng VÀ, phải ghi ra để không ai đoán là HOẶC. Ở khối vào/sửa
                     lệnh, mỗi dòng là một TRƯỜNG (lot, đệm, SL, TP) — dán "và" vào là
                     nói sai. */}
-                <span className="danh">{laVa && i > 0 ? 'và' : ''}</span>
+                <span className="danh">{laVa && i > 0 ? 'and' : ''}</span>
                 <span>{d.text}</span>
               </div>
             ))}
             {con > 0 && (
               <div className="dong con-nua">
-                <span className="danh" /><span>… còn {con} dòng nữa</span>
+                <span className="danh" /><span>… {con} more line{con > 1 ? 's' : ''}</span>
               </div>
             )}
             {/* CON SỐ THẬT của lượt đang soi, ngay dưới câu mô tả của khối. Đây mới là
@@ -167,7 +167,7 @@ export default function StepNode({ data, selected }: NodeProps) {
         {card.badges.length > 0 && (
           <div className="chan">
             {card.badges.map((b, i) => <span key={i} className="the">{b}</span>)}
-            {card.ghim && <span className="the the-ghim">⟲ đã ghim số</span>}
+            {card.ghim && <span className="the the-ghim">⟲ pinned</span>}
           </div>
         )}
       </div>

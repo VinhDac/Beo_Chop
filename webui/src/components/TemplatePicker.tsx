@@ -31,7 +31,7 @@ export default function TemplatePicker({ tieuDe, choPhepXoa = true, onChon, onDo
 
   async function xoa() {
     if (!chon) return
-    if (!window.confirm(`Xoá template "${chon}"?`)) return
+    if (!window.confirm(`Delete template "${chon}"?`)) return
     await py.delete_template(chon)
     setChon(null)
     nap()
@@ -40,18 +40,18 @@ export default function TemplatePicker({ tieuDe, choPhepXoa = true, onChon, onDo
   return (
     <Modal title={tieuDe} width={460} onClose={onDong}
            footer={<>
-             {choPhepXoa && <button className="nut" disabled={!chon} onClick={xoa}><Icon name="trash" /> Xoá</button>}
-             {onDuyetFile && <button className="nut" onClick={onDuyetFile}>Duyệt file khác…</button>}
+             {choPhepXoa && <button className="nut" disabled={!chon} onClick={xoa}><Icon name="trash" /> Delete</button>}
+             {onDuyetFile && <button className="nut" onClick={onDuyetFile}>Browse for a file…</button>}
              <span className="day" />
              <button className="nut" onClick={onDong}>Huỷ</button>
              <button className="nut chinh" disabled={!chon}
-                     onClick={() => chon && onChon(chon)}>Mở</button>
+                     onClick={() => chon && onChon(chon)}>Open</button>
            </>}>
       <div className="danh-sach cao-10">
-        {dangTai && <div className="muc mo">đang đọc…</div>}
+        {dangTai && <div className="muc mo">loading…</div>}
         {!dangTai && ds.length === 0 && (
           <div className="muc mo">
-            Chưa có chiến lược nào được lưu — lưu một cái ở menu Lưu ▾ trước đã.
+            No strategies saved yet — save one from the Save ▾ menu first.
           </div>
         )}
         {ds.map(t => (

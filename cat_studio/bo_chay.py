@@ -130,25 +130,26 @@ LENH_CONG = 0      # cổng: rẽ nhánh
 LENH_SO_HANG = 1
 
 
-def _so_vi(x, le=0):
-    """Số theo kiểu Việt: `.` ngăn nghìn, `,` thập phân.
+def _so(x, le=0):
+    """Số cho người đọc: `,` ngăn nghìn, `.` thập phân, dấu TRỪ thật.
 
-    ⚠ Python mặc định `f"{x:,}"` cho ra kiểu Anh — và trong một giao diện tiếng Việt
-    thì `2,970 giây` đọc thành *hai phẩy chín bảy giây*, sai đúng một nghìn lần. Chuỗi
-    này do Python sinh rồi hiện thẳng lên màn hình, nên phải đúng quy ước ngay tại đây.
+    ⚠ Từng là `_so_vi` và đảo hai dấu sang kiểu Việt. Giao diện đổi sang tiếng Anh thì
+    phép đảo ấy thành cái sai đúng một nghìn lần theo chiều ngược lại — `2.970 s` đọc
+    ra *hai phẩy chín bảy giây*. Chuỗi này do Python sinh rồi hiện thẳng lên màn hình,
+    nên quy ước phải chốt ngay tại đây.
 
     Không dùng `locale`: nó là trạng thái TOÀN CỤC của tiến trình, đổi một chỗ là đổi
     mọi chỗ, và trên Windows thì tên locale còn khác hệ khác."""
-    return f"{x:,.{le}f}".translate(str.maketrans(",.", ".,")).replace("-", "−")
+    return f"{x:,.{le}f}".replace("-", "−")
 
 
 def _khoang(giay):
-    """Quãng thời gian → chữ đọc được. `2970` → `49 phút`, không phải `2.970 giây`."""
+    """Quãng thời gian → chữ đọc được. `2970` → `50 min`, không phải `2,970 s`."""
     if giay < 90:
-        return f"{_so_vi(giay, 1)} giây"
+        return f"{_so(giay, 1)} s"
     if giay < 5400:
-        return f"{_so_vi(giay / 60)} phút"
-    return f"{_so_vi(giay / 3600, 1)} giờ"
+        return f"{_so(giay / 60)} min"
+    return f"{_so(giay / 3600, 1)} h"
 
 
 class LoiChay(Exception):
@@ -196,16 +197,16 @@ def _bien_dich_dieu_kien(c, nhan):
     ten = (c.get("trai") or {}).get("ten")
     f = kho.TINH.get(ten)
     if f is None:
-        raise LoiChay(f'[{nhan}] không tính được "{ten}" — toán hạng này không có '
-                      f"trong kho. Mở lại khối và chọn một đại lượng đang có.")
+        raise LoiChay(f'[{nhan}] cannot evaluate "{ten}" — that operand is not in '
+                      f"the library. Open the block and pick one that exists.")
     phep = c.get("phep")
     if phep not in core.PHEP_SO:
-        raise LoiChay(f"[{nhan}] chưa chọn phép so sánh.")
+        raise LoiChay(f"[{nhan}] has no comparison selected.")
 
     p = c.get("phai") or {}
     g = kho.TINH.get(p["ten"]) if p.get("ten") else None
     if p.get("ten") and g is None:
-        raise LoiChay(f'[{nhan}] không tính được vế phải "{p["ten"]}".')
+        raise LoiChay(f'[{nhan}] cannot evaluate right-hand operand "{p["ten"]}".')
     try:
         hang = float(p.get("value", 0.0))
     except (TypeError, ValueError):
@@ -223,16 +224,17 @@ def _bien_dich_luong(l, dich, nhan):
     th = l.get("toan_hang")
     f = kho.TINH.get(th) if th else None
     if th and f is None:
-        raise LoiChay(f'[{nhan}] không tính được "{th}" — toán hạng này không có '
-                      f"trong kho.")
+        raise LoiChay(f'[{nhan}] cannot evaluate "{th}" — that operand is not in '
+                      f"the library.")
     dv = MA_DON_VI.get(l.get("don_vi"), DV_TRAN)
     # `khoang_cach`/`muc_gia` mà không khai thước đo thì lượng KHÔNG quy đổi được sang
     # giá. Chặn ở đây chứ không đoán: `validate_actions` đã nói câu này rồi, nhưng file
     # lưu tay hoặc sơ đồ cũ vẫn lọt tới đây được.
     if dv == DV_TRAN and f is None and core.DICH_KIEU.get(dich) != "lot":
         if l.get("don_vi") != "gia":
-            raise LoiChay(f'[{nhan}] "{core.DICH_NGAN.get(dich, dich)}" nhận một khoảng '
-                          f"cách giá, mà lượng chưa chọn thước đo (tick · spread · bps).")
+            raise LoiChay(f'[{nhan}] "{core.DICH_NGAN.get(dich, dich)}" takes a price '
+                          f"distance, but the amount has no unit selected "
+                          f"(tick · spread · bps).")
     return (he, f, dv)
 
 
@@ -273,11 +275,11 @@ def bien_dich(doc, tab=None):
             dich = s.get("dich")
             o = O_CUA_DICH.get(dich)
             if o is None:
-                raise LoiChay(f'[{nhan}] chưa chọn sửa cái gì.')
+                raise LoiChay(f'[{nhan}] has no target selected.')
             phep = s.get("phep")
             if phep not in core.PHEP_CHO_DICH[core.DICH_KIEU[dich]]:
                 raise LoiChay(
-                    f'[{nhan}] "{core.DICH[dich]}" không nhận phép '
+                    f'[{nhan}] "{core.DICH[dich]}" does not take '
                     f'"{core.PHEP_GAN.get(phep, phep)}".')
             khi = s.get("khi")
             lenh.append((LENH_SO_HANG,
@@ -285,7 +287,7 @@ def bien_dich(doc, tab=None):
                           _bien_dich_dieu_kien(khi, nhan) if khi else None),
                          nhanh))
         else:
-            raise LoiChay(f'[{nhan}] loại khối "{t}" không chạy được.')
+            raise LoiChay(f'[{nhan}] block type "{t}" cannot run.')
 
     dau = core.flow_entry(steps, edges)
     return lenh, chi_so.get(dau, -1), [{"id": s["id"], "nhan": _nhan(doc_nhan, s["id"])}
@@ -820,27 +822,29 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
     # vô nghĩa, và không cái nào tự lộ ra trên đường vốn.
     canh = []
     if not math.isfinite(mid_cuoi):
-        canh.append("kết thúc lúc đang MẤT sổ lệnh — tồn kho còn lại không định giá "
-                    "được, `gia_tri` chỉ là tiền mặt")
+        canh.append("the run ended while the book was MISSING — leftover inventory "
+                    "cannot be marked, so `value` is cash only")
     if khop.ton_kho:
-        canh.append(f"còn {_so_vi(khop.ton_kho, 2)} lot tồn kho — con số lãi lỗ chỉ "
-                    f"chắc chắn khi tồn kho về 0, vì xả thật còn phải trả spread và phí")
+        canh.append(f"{_so(khop.ton_kho, 2)} lots of inventory left — the P&L is "
+                    f"only certain once inventory is 0, because unwinding for real "
+                    f"still costs the spread and the fee")
     if khop.so_tu_choi:
         # NÓI THEO TỈ LỆ, không nói con số trần. "119.188 lần" nghe như nhiều; "99% số
         # sự kiện" thì nói ra đúng bản chất: chiến lược KẸT CỨNG, không phải thỉnh
         # thoảng lỡ nhịp. Hai câu khác nhau dẫn tới hai hành động khác nhau.
         ti = khop.so_tu_choi / max(1, kq.so_su_kien)
         if ti > 0.25:
-            canh.append(f"KẸT: {ti:.0%} số sự kiện bị post-only từ chối. Báo giá lấn "
-                        f"qua phía đối diện và không thoát ra được — thường là `lệch` "
-                        f"quá mạnh so với spread, hoặc hạn mức tồn kho tắt mất phía "
-                        f"duy nhất còn đặt được")
+            canh.append(f"STUCK: {ti:.0%} of events were rejected post-only. The "
+                        f"quote crosses to the other side and never gets out — usually "
+                        f"the skew is too strong for the spread, or the inventory limit "
+                        f"switched off the only side still postable")
         else:
-            canh.append(f"{_so_vi(khop.so_tu_choi)} lần ({ti:.1%}) bị từ chối post-only "
-                        f"— báo giá có lúc lấn qua phía đối diện")
+            canh.append(f"{_so(khop.so_tu_choi)} post-only rejections ({ti:.1%}) — "
+                        f"the quote sometimes crosses to the other side")
     if khop.giay_mu_co_lenh:
-        canh.append(f"{_khoang(khop.giay_mu_co_lenh)} MÙ mà vẫn treo lệnh — sàn vẫn "
-                    f"khớp trong quãng đó, backtest thì không thấy")
+        canh.append(f"{_khoang(khop.giay_mu_co_lenh)} BLIND with orders still "
+                    f"resting — the exchange kept matching, the backtest could not see "
+                    f"it")
     kq.loi = " · ".join(canh)
     return kq
 
@@ -856,8 +860,9 @@ def chay_file(doc, symbol, tu_ngay, den_ngay, mo_hinh=None, **kw):
         tick = khop_lenh.do_buoc_gia(p.so["bid"], p.so["ask"], p.khop["gia"])
         if not math.isfinite(tick):
             raise LoiChay(
-                f"Không đo được bước giá của {symbol} từ {tu_ngay}…{den_ngay} — dữ "
-                f"liệu quá ít hoặc chỉ có một mức giá duy nhất. Ghi thêm rồi chạy lại.")
+                f"Could not measure the tick size of {symbol} over "
+                f"{tu_ngay}…{den_ngay} — too little data, or only one price level ever "
+                f"appeared. Record more and run again.")
         c = (luu_tru.doc_cai_dat().get("khop") or {})
         mo_hinh = khop_lenh.MoHinh(
             tick,

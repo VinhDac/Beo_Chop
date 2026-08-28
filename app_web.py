@@ -79,10 +79,10 @@ def kiem_moi_truong():
     rel = _doc_registry(winreg.HKEY_LOCAL_MACHINE, KHOA_DOTNET, "Release")
     if thieu_dotnet(rel):
         van_de.append(
-            "THIẾU .NET Framework 4.7.2 trở lên"
-            + (f" (máy đang có bản cũ hơn, mã {rel})" if rel
-               else " (máy chưa cài .NET Framework 4)")
-            + ".\n   Tải tại: https://dotnet.microsoft.com/download/dotnet-framework")
+            ".NET Framework 4.7.2 or newer is MISSING"
+            + (f" (this machine has an older build, code {rel})" if rel
+               else " (.NET Framework 4 is not installed)")
+            + ".\n   Download: https://dotnet.microsoft.com/download/dotnet-framework")
 
     # WebView2: Windows 10/11 thường có sẵn theo Edge, nhưng Windows Server và mấy
     # bản Windows gọt nhẹ thì không.
@@ -90,8 +90,8 @@ def kiem_moi_truong():
           or _doc_registry(winreg.HKEY_CURRENT_USER, KHOA_WEBVIEW2, "pv"))
     if not pv:
         van_de.append(
-            "THIẾU Microsoft Edge WebView2 Runtime.\n"
-            "   Tải tại: https://developer.microsoft.com/microsoft-edge/webview2/")
+            "Microsoft Edge WebView2 Runtime is MISSING.\n"
+            "   Download: https://developer.microsoft.com/microsoft-edge/webview2/")
     return van_de
 
 
@@ -130,26 +130,26 @@ def main():
         # Cũng phải báo bằng HỘP THOẠI, không chỉ stderr: shortcut trên Desktop chạy
         # bằng `pythonw.exe` nên KHÔNG có console — in ra stderr là không ai thấy, và
         # người dùng chỉ thấy bấm đúp mà chẳng có gì mở lên.
-        bao_loi("Cat Studio — chưa build giao diện",
-                "Thư mục webui\\dist chưa có.\n\n"
-                "Chạy một lần:\n\n    tools\\setup.bat\n\n"
-                "hoặc:\n\n    cd webui && npm install && npm run build")
-        print("Chưa build giao diện. Chạy:  tools\\setup.bat", file=sys.stderr)
+        bao_loi("Cat Studio — UI not built",
+                "The webui\\dist folder does not exist.\n\n"
+                "Run once:\n\n    tools\\setup.bat\n\n"
+                "or:\n\n    cd webui && npm install && npm run build")
+        print("UI not built. Run:  tools\\setup.bat", file=sys.stderr)
         return 1
 
     thieu = kiem_moi_truong()
     if thieu:
-        bao_loi("Cat Studio — thiếu thành phần của Windows",
-                "Máy này chưa đủ thứ để chạy app:\n\n · "
+        bao_loi("Cat Studio — missing Windows components",
+                "This machine is missing what the app needs:\n\n · "
                 + "\n\n · ".join(thieu)
-                + "\n\nCài xong rồi mở lại app.")
+                + "\n\nInstall them, then reopen the app.")
         return 1
 
     # Bản cũ để `settings.json` + `templates/` ngay cạnh app. Chép sang `du_lieu/`
     # trước khi `Api()` đọc cài đặt — chỉ chép cái chưa có, không đè, không xoá bản cũ.
     da = luu_tru.di_cu()
     if da:
-        print(f"[khởi động] đã chuyển sang du_lieu/: {', '.join(da)}", file=sys.stderr)
+        print(f"[startup] moved into du_lieu/: {', '.join(da)}", file=sys.stderr)
 
     api = Api()
     win = webview.create_window(
@@ -177,11 +177,11 @@ def main():
         time.sleep(0.35)                  # đợi cửa sổ được map xong mới vá được
         h = tim_cua_so()
         if h and api._khung.va(h):
-            print("[khởi động] đã vá khung cửa sổ (thanh tiêu đề tự vẽ)", file=sys.stderr)
+            print("[startup] window frame patched (custom title bar)", file=sys.stderr)
         else:
             # Không vá được thì thôi: app vẫn dùng được, chỉ là cửa sổ không viền và
             # không kéo giãn. Thà vậy còn hơn không mở nổi.
-            print("[khởi động] KHÔNG vá được khung cửa sổ — chạy với khung trần",
+            print("[startup] could NOT patch the window frame — running with the native one",
                   file=sys.stderr)
 
     # debug MẶC ĐỊNH TẮT: bật lên thì pywebview mở luôn DevTools đè lên app.
@@ -194,13 +194,14 @@ def main():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        bao_loi("Cat Studio — không mở được cửa sổ",
+        bao_loi("Cat Studio — cannot open the window",
                 f"{type(e).__name__}: {e}\n\n"
-                "Hai nguyên nhân hay gặp nhất trên máy mới:\n\n"
-                " · Windows CHẶN file vì tải từ mạng. Chuột phải vào file .zip → "
-                "Properties → tick 'Unblock' → OK, RỒI MỚI giải nén lại.\n\n"
-                " · Thiếu .NET Framework 4.7.2 trở lên, hoặc thiếu Microsoft Edge "
-                "WebView2 Runtime.")
+                "The two most common causes on a fresh machine:\n\n"
+                " · Windows BLOCKED the file because it came from the internet. "
+                "Right-click the .zip → Properties → tick 'Unblock' → OK, and only "
+                "THEN extract it again.\n\n"
+                " · .NET Framework 4.7.2 or newer is missing, or Microsoft Edge "
+                "WebView2 Runtime is missing.")
         return 1
     return 0
 

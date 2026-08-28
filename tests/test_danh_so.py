@@ -173,7 +173,7 @@ b6 = {"BD": core.make_start_step(), "1": viec("1", 300, 0)}
 b6["BD"]["pos"] = [0, 0]
 ds = loi(list(b6.values()), noi_day(b6, [("BD", "1"), ("1", "BD")]), "error")
 kiem("nối ngược vào khối Bắt đầu → báo LỖI",
-     any("Bắt đầu" in p["message"] and "ĐI VÀO" in p["message"] for p in ds),
+     any("Start" in p["message"] and "INCOMING" in p["message"] for p in ds),
      f"— {[p['message'][:60] for p in ds]}")
 
 # ================= 4. GHIM SỐ =================
@@ -189,8 +189,8 @@ kiem("chưa ghim: nhãn vẫn đủ, nhưng ghi nhận là vòng CHƯA GHIM",
      n8 == {"BD": "1", "1": "2", "2": "3", "3": "4"} and len(kq8["vong_ho"]) == 1
      and not kq8["quay_lai"], f"— {n8}, vong_ho={len(kq8['vong_ho'])}")
 w = loi(list(b7.values()), noi_day(b7, CAP7), "warning")
-kiem("chưa ghim → cảnh báo có gợi ý bấm chuột phải → Ghim số",
-     any("Ghim số" in p["message"] for p in w),
+kiem("chưa ghim → cảnh báo có gợi ý bấm chuột phải → Pin number",
+     any("Pin number" in p["message"] for p in w),
      f"— {[p['message'][:70] for p in w]}")
 
 # ghim rồi -> hết cảnh báo, số cũ vẫn nguyên
@@ -203,7 +203,7 @@ kiem("ghim rồi: cạnh quay lại được ghi nhận, không còn là vòng h
      f"— quay_lai={kq9['quay_lai']}, vong_ho={kq9['vong_ho']}")
 w2 = loi(list(b7.values()), noi_day(b7, CAP7), "warning")
 kiem("ghim rồi → KHÔNG còn cảnh báo vòng lặp nào",
-     not any("VÒNG LẶP" in p["message"] or "Ghim số" in p["message"] for p in w2),
+     not any("LOOP" in p["message"] or "Pin number" in p["message"] for p in w2),
      f"— {[p['message'][:60] for p in w2]}")
 
 # quay lại từ trong một nhánh
@@ -235,7 +235,7 @@ kiem("nhận diện đúng là 'nhánh chụm không đều'",
 # có nhắc chữ "vòng lặp" trong câu khuyên — đó là lời khuyên, không phải chẩn đoán sai.
 w3 = [p for p in loi(list(b9.values()), noi_day(b9, CAP9), "warning") if p["step"]]
 kiem("không cảnh báo nào GẮN VỚI KHỐI gọi đây là vòng lặp",
-     not any("vòng lặp" in p["message"].lower() for p in w3),
+     not any("loop" in p["message"].lower() for p in w3),
      f"— {[p['message'][:70] for p in w3]}")
 
 # ================= 6. Bẫy 3 — thông báo dùng nhãn =================
@@ -247,7 +247,7 @@ b10["BD"]["pos"] = [0, 200]
 CAP10 = [("BD", "1"), ("1", "A"), ("1", "B"), ("1", "C")]
 e10 = loi(list(b10.values()), noi_day(b10, CAP10), "error")
 kiem("hai nhánh không cổng → báo lỗi",
-     any("không có cổng" in p["message"] for p in e10),
+     any("have no gate" in p["message"] for p in e10),
      f"— {[p['message'][:60] for p in e10]}")
 kiem("thông báo có nhãn dạng [2] / [2A] chứ không phải \"Bước 3\"",
      any("[2]" in p["message"] for p in e10) and
@@ -261,7 +261,7 @@ kiem("nhánh mặc định xếp DƯỚI CÙNG → không lỗi",
      not loi(list(b11.values()), noi_day(b11, [("1", "A"), ("1", "MD")]), "error"))
 b11["MD"]["pos"] = [300, -300]        # kéo nhánh mặc định lên trên
 kiem("nhánh mặc định xếp TRÊN → báo lỗi",
-     any("dưới cùng" in p["message"]
+     any("lowest" in p["message"]
          for p in loi(list(b11.values()), noi_day(b11, [("1", "A"), ("1", "MD")]), "error")))
 
 b12 = {"1": viec("1", 0, 200), "A": cong(7, 300, 0), "A2": cong(7, 300, 400)}
@@ -270,7 +270,7 @@ b12 = {"1": viec("1", 0, 200), "A": cong(7, 300, 0), "A2": cong(7, 300, 400)}
 
 b13 = {"1": viec("1", 0, 0)}
 kiem("đường nối trỏ về CHÍNH NÓ → lỗi",
-     any("CHÍNH NÓ" in p["message"]
+     any("ITSELF" in p["message"]
          for p in loi(list(b13.values()), noi_day(b13, [("1", "1")]), "error")))
 
 # ================= 8. Chuẩn hoá giữ cờ ghim =================
@@ -322,7 +322,7 @@ kiem("đúng MỘT sơ đồ", core.TABS == [core.TAB_BAO_GIA], f"— {core.TABS
 kiem("cả hai động từ đều dùng được ở sơ đồ đó",
      all(set(core.ACTION_TABS[t]) == set(core.TABS) for t in core.ACTION_TYPES))
 kiem("khối lạc sang sơ đồ không nhận nó → báo lỗi",
-     any("chỉ thuộc về" in m for m in loi_hd_tab(
+     any("belongs only to" in m for m in loi_hd_tab(
          {"type": core.SO_HANG, "dich": "lech", "phep": "+=",
           "luong": {"he_so": 1, "don_vi": "tick"}}, "so_do_chua_co")))
 

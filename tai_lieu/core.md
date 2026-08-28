@@ -16,8 +16,11 @@
 > **Cái ở lại là phần KHÔNG dính sàn nào và cũng KHÔNG dính chiến lược nào** — và đó
 > đúng là phần đã sống sót qua cả D_02 lẫn MT5:
 > §3 cơ chế đánh số · §4 ghim số ⟲ và khối Bắt đầu · §5 luật rẽ nhánh · §6.1 mỗi sơ đồ
-> là một vòng lặp · §6.2 hai loại khối · §8 giao diện · §9 định dạng file · §10 môi
+> là một vòng lặp · §6.2 hai loại khối · §8 giao diện · §9 định dạng file · §11 môi
 > trường.
+>
+> **§10 NGÔN NGỮ là mục mới**: giao diện nói TIẾNG ANH, mã nguồn (chú thích, docstring,
+> tên hàm) vẫn tiếng Việt. Đọc nó trước khi thêm bất cứ chuỗi nào.
 >
 > **§6.0 và §6.3 thì viết lại hẳn**, không phải cắt: hai sơ đồ Entry/Manage thành MỘT sơ
 > đồ Báo giá, ba động từ thành HAI (`check_cond` · `so_hang`), và từ vựng nến/ATR/R
@@ -597,7 +600,7 @@ mất, và hộp vẫn nói rõ hậu quả (`→ rút hết báo giá`) nên kh
 chủ động bằng lệnh taker, không chờ ai lấy hàng. Nó không nhét vào ngữ pháp số hạng
 được — một số hạng *góp vào* báo giá, còn cái này *vứt* báo giá đi và bắn một lệnh ăn
 ngay — và cũng là một đường đi khác hẳn với `khop_lenh.py`: khớp ngay, ăn qua
-nhiều mức, trả phí taker. Xem `o_cam_trong.md` §11; nên làm cùng lúc với bộ chạy.
+nhiều mức, trả phí taker. Xem `o_cam_trong.md` §9; nên làm cùng lúc với bộ chạy.
 
 #### Bốn trường của một số hạng
 
@@ -634,7 +637,7 @@ của quản trị rủi ro market making.
 ở từng lệnh — nên cả cụm từ vựng đó không có chỗ đứng, không phải "chưa làm".
 
 Bốn cái đáng thêm ngay sau (`microprice` · `bien_dong` · `tuoi_bao_gia` · `lech_luong`):
-`o_cam_trong.md` §11.
+`o_cam_trong.md` §8.
 
 #### Đơn vị — ba thước, và một thước GHÉP được suy ra
 
@@ -819,7 +822,53 @@ và `Ctrl+Z` thành vô dụng.
 
 ---
 
-## 10. Môi trường
+## 10. ⭐ NGÔN NGỮ — giao diện TIẾNG ANH, mã nguồn TIẾNG VIỆT
+
+Ranh giới này phải rõ, vì nó cắt ngang chứ không cắt dọc: một file có thể chứa cả hai.
+
+| | ngôn ngữ | ví dụ |
+|---|---|---|
+| **Chữ người dùng nhìn thấy** | **TIẾNG ANH** | nhãn nút, tooltip, thông báo lỗi, chữ trên hộp, tên toán hạng |
+| Chú thích · docstring | tiếng Việt | mọi `#`, `"""…"""`, `/* … */` |
+| Tên hàm · biến · khoá | tiếng Việt | `dong_khoi`, `bao_gia`, `soi_luot`, `TOAN_HANG` |
+
+**Chữ người dùng thấy phần lớn do PYTHON sinh, không phải JS.** Đó là luật kiến trúc
+(§6.3, `api._the_buoc`): giao diện không tự ghép câu, vì ghép là dựng một bản dịch thứ
+hai rồi sớm muộn nó mô tả khác thứ lõi thực sự hiểu. Hệ quả: **đổi ngôn ngữ giao diện
+là phải đổi cả hai phía** — sửa mỗi `.tsx` sẽ ra một app nửa Anh nửa Việt.
+
+Nơi chứa chữ tiếng Anh, theo thứ tự lượng:
+
+```
+core.py             ACTION_LABELS · TAB_LABELS · DICH · DON_VI · PHEP_SO …
+                    + mọi câu của `validate_*` và `dong_khoi`/`action_display`
+kho/nen_tang.py     nhan · ngan · nhom · mo_ta của từng toán hạng
+bo_chay.py          LoiChay · câu cảnh báo trong `KetQua.loi`
+api.py              mọi `_loi(…)` và badge của thẻ khối
+app_web.py          MessageBox lúc khởi động (thiếu .NET / WebView2)
+webui/src/**        nhãn, tooltip, chỗ trống có lời giải thích
+```
+
+### ⚠ ĐỊNH DẠNG SỐ ĐI THEO NGÔN NGỮ
+
+`1.234,5` nằm trong một câu tiếng Anh là **sai đúng một nghìn lần**, và nó không nổ,
+không cảnh báo, chỉ đọc sai. Nên khi giao diện đổi sang tiếng Anh thì cả ba chỗ định
+dạng số phải đổi cùng lúc:
+
+* `core._so` — số trong chữ trên hộp;
+* `bo_chay._so` (từng là `_so_vi`, và từng CỐ Ý đảo hai dấu sang kiểu Việt);
+* mọi `toLocaleString` bên JS — `'en-US'`, không phải `'vi-VN'`.
+
+Dấu **TRỪ THẬT** `−` (U+2212) thì giữ nguyên ở cả hai ngôn ngữ: nó là quy ước SẮP CHỮ,
+không phải quy ước ngôn ngữ. Gạch nối `-` hẹp hơn nên trong một cột số nó phá thẳng
+hàng, và ở cỡ chữ nhỏ trông như dấu nối.
+
+> Chưa có cơ chế đa ngôn ngữ, và cố ý chưa: một bảng `i18n` chỉ đáng dựng khi thật sự
+> có hai thứ tiếng phải giữ song song. Hiện chỉ có một.
+
+---
+
+## 11. Môi trường
 
 | | |
 |---|---|
@@ -1131,7 +1180,7 @@ mấy câu hỏi mà làm tay hay quên:
 
 Dùng `.venv\Scripts\python.exe` chứ không Python global — cùng lý do Auto_Clicker ghi: gói
 `quantconnect-stubs` ở global chiếm namespace `Microsoft`. Mã nguồn đã tự chữa được
-(`_uu_tien_namespace_dotnet`, §10), nhưng đóng gói bằng môi trường sạch thì gói nhẹ hơn và không
+(`_uu_tien_namespace_dotnet`, §11), nhưng đóng gói bằng môi trường sạch thì gói nhẹ hơn và không
 kéo theo rác.
 
 Ra `dist/Cat_Studio/` — **66 MB · 211 file** — và `Cat_Studio-windows.zip` để đưa sang máy khác.

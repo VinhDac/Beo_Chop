@@ -56,8 +56,8 @@ def _soat_trung(ds, ten):
         k = x["key"]
         if k in thay:
             raise RuntimeError(
-                f"kho: trùng khoá {ten} \"{k}\" giữa module \"{thay[k]}\" và "
-                f"\"{x['nguon']}\". Mỗi khoá phải thuộc về đúng một nơi.")
+                f"kho: duplicate {ten} key \"{k}\" between module \"{thay[k]}\" and "
+                f"\"{x['nguon']}\". Every key must belong to exactly one place.")
         thay[k] = x["nguon"]
     return ds
 
@@ -67,13 +67,14 @@ def _soat_du_cong_thuc(ds):
     thieu = [x["key"] for x in ds if x["key"] not in TINH]
     if thieu:
         raise RuntimeError(
-            f"kho: toán hạng {thieu} được khai nhưng không có công thức trong `TINH`. "
-            f"Mỗi toán hạng phải tự khai cách tính của nó, cạnh chỗ khai nó.")
+            f"kho: operands {thieu} are declared but have no formula in `TINH`. "
+            f"Every operand must declare how it is computed, next to where it is "
+            f"declared.")
     du = [k for k in TINH if k not in {x["key"] for x in ds}]
     if du:
         raise RuntimeError(
-            f"kho: có công thức cho {du} nhưng không toán hạng nào mang khoá đó. "
-            f"Công thức mồ côi là dấu hiệu vừa đổi tên mà quên một đầu.")
+            f"kho: there are formulas for {du} but no operand carries those keys. "
+            f"An orphan formula means a rename that only got done on one side.")
     return ds
 
 
@@ -82,9 +83,9 @@ TINH = {}
 for _m in MODULE:
     TINH.update(getattr(_m, "TINH", {}))
 
-TOAN_HANG = _soat_du_cong_thuc(_soat_trung(_gom("TOAN_HANG"), "toán hạng"))
-CHI_BAO = _soat_trung(_gom("CHI_BAO"), "chỉ báo")
-BANG_TRANG_THAI = _soat_trung(_gom("BANG_TRANG_THAI"), "bảng trạng thái")
+TOAN_HANG = _soat_du_cong_thuc(_soat_trung(_gom("TOAN_HANG"), "operand"))
+CHI_BAO = _soat_trung(_gom("CHI_BAO"), "indicator")
+BANG_TRANG_THAI = _soat_trung(_gom("BANG_TRANG_THAI"), "state table")
 
 # ---- tra cứu nhanh, để `core.py` khỏi quét lại mỗi lần ----
 TOAN_HANG_KEYS = [t["key"] for t in TOAN_HANG]

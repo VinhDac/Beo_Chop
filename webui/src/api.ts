@@ -37,7 +37,7 @@ export function cho_cau_noi(ham = 'bootstrap', timeout = 10000): Promise<void> {
       // Chờ ĐÚNG hàm mà trang này sắp gọi: cửa sổ tester có `ApiTester` riêng, KHÔNG
       // có `bootstrap`. Chờ cứng `bootstrap` ở đó là treo 10 giây rồi báo mất kết nối.
       if (typeof window.pywebview?.api?.[ham] === 'function') return ok()
-      if (Date.now() - t0 > timeout) return hong(new Error('Không kết nối được tới Python'))
+      if (Date.now() - t0 > timeout) return hong(new Error('Could not connect to Python'))
       setTimeout(thu, 40)
     }
     thu()
@@ -47,7 +47,7 @@ export function cho_cau_noi(ham = 'bootstrap', timeout = 10000): Promise<void> {
 async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
   const api = window.pywebview?.api
   if (!api || typeof api[ten] !== 'function') {
-    return { ok: false, error: `api.py không có hàm "${ten}"` }
+    return { ok: false, error: `api.py has no function "${ten}"` }
   }
   try {
     return (await api[ten](...args)) as Reply<T>

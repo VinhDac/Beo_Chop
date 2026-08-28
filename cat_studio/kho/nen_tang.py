@@ -26,9 +26,9 @@ Thứ ĐÁNG THÊM NGAY SAU nhưng chưa thêm, để tuyến thông trước:
 từng lệnh — nên cả cụm từ vựng đó không có chỗ đứng, không phải "chưa làm".
 """
 
-TEN = "Nền tảng"
+TEN = "Core"
 MA_SO = "nen_tang"
-MO_TA = "Sổ lệnh · tồn kho · sức khoẻ dữ liệu — có sẵn cho mọi chiến lược."
+MO_TA = "Order book · inventory · data health — available to every strategy."
 
 # Không tính chỉ báo nào, không nuôi bảng trạng thái nào.
 CHI_BAO = []
@@ -58,44 +58,48 @@ BANG_TRANG_THAI = []
 #: nhưng chỉ bề rộng mới chuẩn hoá được.
 TOAN_HANG = [
     # ---- Sổ lệnh: cái gì đang ở đỉnh ----
-    {"key": "bid", "nhan": "Bid — giá mua tốt nhất", "ngan": "bid", "nhom": "Sổ lệnh",
+    {"key": "bid", "nhan": "Bid — best buy price", "ngan": "bid", "nhom": "Order book",
      "loai": "muc_gia", "tham_so": [],
-     "mo_ta": "Đỉnh phía mua. Treo lệnh bán ở đây là khớp ngay — thành taker."},
-    {"key": "ask", "nhan": "Ask — giá bán tốt nhất", "ngan": "ask", "nhom": "Sổ lệnh",
+     "mo_ta": "Top of the buy side. A sell resting here fills instantly — you become the taker."},
+    {"key": "ask", "nhan": "Ask — best sell price", "ngan": "ask", "nhom": "Order book",
      "loai": "muc_gia", "tham_so": []},
-    {"key": "bid_kl", "nhan": "Khối lượng ở Bid", "ngan": "KL bid", "nhom": "Sổ lệnh",
+    {"key": "bid_kl", "nhan": "Size at bid", "ngan": "bid size", "nhom": "Order book",
      "loai": "dem", "don_vi": "lot", "tham_so": [],
-     "mo_ta": "Đang có bao nhiêu lot đứng ở đỉnh mua. Treo vào đó là ta xếp SAU chừng "
-              "ấy — đây chính là hàng đợi, thứ quyết định có được khớp hay không."},
-    {"key": "ask_kl", "nhan": "Khối lượng ở Ask", "ngan": "KL ask", "nhom": "Sổ lệnh",
+     "mo_ta": "How many lots sit at the top of the book. Joining puts you BEHIND "
+              "every one of them — this is the queue, the one thing that decides "
+              "whether you fill at all."},
+    {"key": "ask_kl", "nhan": "Size at ask", "ngan": "ask size", "nhom": "Order book",
      "loai": "dem", "don_vi": "lot", "tham_so": []},
 
     # ---- Suy ra từ sổ lệnh ----
-    {"key": "mid", "nhan": "Mid — giữa bid và ask", "ngan": "mid", "nhom": "Sổ lệnh",
+    {"key": "mid", "nhan": "Mid — halfway between bid and ask", "ngan": "mid", "nhom": "Order book",
      "loai": "muc_gia", "tham_so": [],
-     "mo_ta": "Giá công bằng đơn giản nhất. Nó KHÔNG nhìn khối lượng hai bên, nên "
-              "lệch khi sổ lệnh mất cân — `microprice` sẽ vá chỗ đó."},
-    {"key": "spread", "nhan": "Spread — ask trừ bid", "ngan": "spread", "nhom": "Sổ lệnh",
+     "mo_ta": "The simplest fair value there is. It IGNORES the size on either "
+              "side, so it drifts whenever the book is lopsided — `microprice` "
+              "fixes exactly that."},
+    {"key": "spread", "nhan": "Spread — ask minus bid", "ngan": "spread", "nhom": "Order book",
      "loai": "khoang_cach", "tham_so": [],
-     "mo_ta": "Doanh thu gộp nếu ăn trọn cả hai chân. Phải lớn hơn hai lần phí maker, "
-              "nếu không thì âm dấu ngay từ đầu — xem `tools/do_spread.py`."},
+     "mo_ta": "Gross revenue if both legs fill. It must beat twice the maker fee, "
+              "or the sign is wrong before you even start — see `tools/do_spread.py`."},
 
     # ---- Của ta ----
-    {"key": "ton_kho", "nhan": "Tồn kho (±lot)", "ngan": "tồn kho", "nhom": "Của ta",
+    {"key": "ton_kho", "nhan": "Inventory (±lots)", "ngan": "inventory", "nhom": "Ours",
      "loai": "dem", "don_vi": "lot", "tham_so": [],
-     "mo_ta": "Vị thế ròng, CÓ DẤU: dương là đang ôm hàng mua, âm là đang thiếu hàng. "
-              "Dấu là toàn bộ ý nghĩa — bỏ dấu đi thì không lệch báo giá được, mà lệch "
-              "theo tồn kho là thứ quan trọng nhất của quản trị rủi ro market making."},
+     "mo_ta": "Net position, SIGNED: positive is long, negative is short. The sign "
+              "is the whole point — drop it and you can no longer skew your quotes, "
+              "and skewing on inventory is the heart of market-making risk control."},
 
     # ---- Sức khoẻ dữ liệu ----
-    {"key": "co_so", "nhan": "Có thấy sổ lệnh", "ngan": "thấy sổ lệnh", "nhom": "Sức khoẻ",
-     "loai": "dung_sai", "tham_so": [], "dung_sai": True,
-     "mo_ta": "SAI khi chưa nhận bản ghi sổ nào, hoặc vừa ra khỏi một lỗ hổng. Lúc đó "
-              "mọi mức giá đều là NaN và mọi phép so đều trượt — nên cổng đọc nhầm sẽ "
-              "không khớp bừa. Mù thì phải RÚT, không phải đoán.\n"
-              "⚠ Nó CHỈ trả lời 'tôi có nhìn thấy không'. Câu 'chợ có bình thường "
-              "không' (spread rộng bất thường, độ trễ vọt) là chuyện khác, sẽ có toán "
-              "hạng riêng — gộp hai thứ đó là mất khả năng phân biệt mù với loạn."},
+    {"key": "co_so", "nhan": "Order book visible", "ngan": "book visible",
+     "nhom": "Health", "loai": "dung_sai", "tham_so": [], "dung_sai": True,
+     "mo_ta": "FALSE before the first book record arrives, and right after a data "
+              "gap. Every price is NaN then and every comparison fails — so a gate "
+              "reading stale numbers cannot match by accident. Blind means PULL, "
+              "not guess.\n"
+              "⚠ It answers ONLY 'can I see?'. Whether the market is SANE (spread "
+              "unusually wide, latency spiking) is a different question and will "
+              "get its own operand — merging the two throws away the difference "
+              "between blind and chaotic."},
 ]
 
 

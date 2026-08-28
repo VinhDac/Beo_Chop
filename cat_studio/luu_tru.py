@@ -319,12 +319,12 @@ def tom_tat():
     return {
         "goc": goc(),
         "muc": [
-            {"ten": "Chiến lược", "duong_dan": thu_muc_chien_luoc(),
+            {"ten": "Strategies", "duong_dan": thu_muc_chien_luoc(),
              "so_luong": len(liet_ke_chien_luoc()),
              "danh_sach": liet_ke_chien_luoc()},
-            {"ten": "Nến đã tải", "duong_dan": thu_muc_nen(),
+            {"ten": "Downloaded candles", "duong_dan": thu_muc_nen(),
              "so_luong": dem(thu_muc_nen()), "danh_sach": []},
-            {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
+            {"ten": "Run logs", "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],
     }

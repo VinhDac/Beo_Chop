@@ -139,7 +139,7 @@ def duong(symbol, ngay, luong):
     Cắt theo NGÀY UTC chứ không theo phiên: sàn crypto chạy 24/7, không có phiên. Và
     cắt theo ngày thì một file hỏng chỉ mất một ngày, không mất cả dải."""
     if luong not in LUONG:
-        raise ValueError(f'Luồng "{luong}" không có. Chỉ có: {", ".join(LUONG)}.')
+        raise ValueError(f'No stream named "{luong}". Only: {", ".join(LUONG)}.')
     return os.path.join(thu_muc(symbol), f"{ngay}.{luong}.bin")
 
 

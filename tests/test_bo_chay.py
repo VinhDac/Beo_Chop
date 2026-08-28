@@ -220,17 +220,17 @@ def loi_bien_dich(doc):
 m = loi_bien_dich(so_do([cong("g", 300, [{"trai": {"ten": "atr"}, "phep": ">",
                                           "phai": {"value": 1}}])], [("s0", "g")]))
 kiem("toán hạng không có trong kho → nổ lúc biên dịch",
-     "không có trong kho" in m, f"— {m!r}")
+     "not in the library" in m, f"— {m!r}")
 kiem("và câu nói ra mang NHÃN KHỐI, không phải một dòng KeyError",
      m.startswith("[") and "]" in m[:8], f"— {m[:24]!r}")
 
 m = loi_bien_dich(so_do([sh("a", 300, "bien", "=", 2)], [("s0", "a")]))
 kiem("lượng thiếu thước đo → nổ, không đoán hộ một đơn vị",
-     "thước đo" in m, f"— {m!r}")
+     "no unit selected" in m, f"— {m!r}")
 
 m = loi_bien_dich(so_do([sh("a", 300, "bien", "*=", 2, don_vi="tick")], [("s0", "a")]))
 kiem("phép không hợp với đích → nổ (chuẩn hoá GIỮ phép sai để chỗ này còn tố cáo được)",
-     "không nhận" in m, f"— {m!r}")
+     "does not take" in m, f"— {m!r}")
 
 kiem("sơ đồ mẫu biên dịch sạch", not loi_bien_dich(api.Api().demo_process()["value"]))
 kiem("sơ đồ chỉ có khối Bắt đầu cũng chạy được, và cho báo giá RỖNG",
@@ -387,10 +387,11 @@ kiem("chạy sơ đồ RỖNG thì không khớp gì, và không nổ",
 print("\n▸ Kết quả phải nói ra chỗ nó không chắc")
 kq = chay(tre_ra_ms=5.0)
 kiem("còn tồn kho thì PHẢI cảnh báo — lãi lỗ chỉ chắc khi tồn kho về 0",
-     ("tồn kho" in kq.loi) == bool(kq.tom_tat_khop["ton_kho"]),
+     ("inventory left" in kq.loi) == bool(kq.tom_tat_khop["ton_kho"]),
      f"— tồn kho {kq.tom_tat_khop['ton_kho']:.2f} · lời: {kq.loi[:60]!r}")
 kiem("bị post-only từ chối thì phải nói — chiến lược đang muốn thoát mà không thoát được",
-     ("từ chối" in kq.loi) == bool(kq.tom_tat_khop["so_tu_choi"]),
+     ("rejection" in kq.loi or "STUCK" in kq.loi)
+     == bool(kq.tom_tat_khop["so_tu_choi"]),
      f"— {kq.tom_tat_khop['so_tu_choi']:,} lần")
 
 import json  # noqa: E402
