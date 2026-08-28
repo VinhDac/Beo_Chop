@@ -644,7 +644,7 @@ function Ung() {
     const r = await py.demo_process()
     if (!r.ok || !r.value) { ghi('không mở được sơ đồ mẫu: ' + r.error, 'err'); return }
     chup()
-    nap(r.value, 'mở sơ đồ mẫu Compress')
+    nap(r.value, 'mở sơ đồ mẫu')
   }, [chup, nap, ghi, fitView])
 
   const luu = useCallback(async () => {
@@ -954,7 +954,7 @@ function Ung() {
     { nhan: 'Thêm khối từ chiến lược khác…',
       chay: () => setMoPicker({ tieuDe: 'Thêm khối từ chiến lược',
                                 xong: t => { setMoPicker(null); void themKhoiTu(t) } }) },
-    { nhan: 'Sơ đồ mẫu Compress (xem thử)', chay: moMau },
+    { nhan: 'Sơ đồ mẫu…', chay: moMau },
   ]
 
   /* 4 menu trên thanh tiêu đề. Cố ý KHÔNG tạo hành động mới nào — tất cả trỏ về đúng
@@ -969,7 +969,10 @@ function Ung() {
       { ten: 'Thêm khối từ chiến lược khác…', icon: 'paste',
         onClick: () => setMoPicker({ tieuDe: 'Thêm khối từ chiến lược',
                                      xong: t => { setMoPicker(null); void themKhoiTu(t) } }) },
-      { ten: 'Sơ đồ mẫu Compress (xem thử)', onClick: moMau },
+      // ⚠ Nhãn cũ là 'Sơ đồ mẫu Compress (xem thử)'. Sơ đồ mẫu D_02 đã đi ở đợt 2;
+      //   giữ mục nhưng đổi nhãn — một cái tên hứa thứ không còn tệ hơn hẳn một
+      //   câu lỗi thẳng thắn, mà `moMau` đã sẵn sàng hiện câu đó.
+      { ten: 'Sơ đồ mẫu…', onClick: moMau },
       { ngan: true },
       // Trỏ thẳng về `chay` — đúng hàm mà nút ▶ trên ribbon gọi, nên hai lối vào không
       // thể lệch nhau (cùng luật với 4 menu còn lại).

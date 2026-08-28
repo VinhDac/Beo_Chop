@@ -144,7 +144,7 @@ export interface RibbonProps {
 
 const TEN_TAB: Record<Tab, string> = { entry: 'Entry', manage: 'Manage' }
 const CHU_THICH_TAB: Record<Tab, string> = {
-  entry: 'Sơ đồ ĐI SĂN — chạy một lượt mỗi nến. Chỉ nó được TẠO lệnh.',
+  entry: 'Sơ đồ ĐI SĂN — chạy một lượt mỗi nhịp. Chỉ nó được TẠO lệnh.',
   manage: 'Sơ đồ QUẢN LÝ — chạy một lượt cho MỖI lệnh đang sống. Chỉ nó được SỬA lệnh.',
 }
 
@@ -234,9 +234,9 @@ export default function Ribbon(p: RibbonProps) {
               cái tiêu vài giây CPU, một cái tiêu tiền thật — chúng không được trông
               giống nhau. Trái/phải cũng cố ý: tay quen bấm cái bên phải. */}
           <button className="nut do" onClick={p.live}
-                  title="Mở cửa sổ Live — chạy trên kết nối thật (Ctrl+L)">● Live</button>
+                  title="Mở cửa sổ Live — CHƯA CÓ KẾT NỐI SÀN (Ctrl+L)">● Live</button>
           <button className="nut chinh" onClick={p.chay}
-                  title="Mở Strategy Tester để chạy thử sơ đồ này (Ctrl+R)">▶ Test</button>
+                  title="Chạy thử sơ đồ này — CHƯA CÓ BỘ CHẠY (Ctrl+R)">▶ Test</button>
         </div>
       </div>
     </div>

@@ -137,8 +137,8 @@ dòng** điều kiện.
 đừng rải `setSoi(null)` khắp nơi; chỉ tô từng dòng khi **số dòng còn khớp**; phải có dải
 nổi + nút ✕ chứ không chỉ phím Esc.
 
-Lớp CSS `soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-truot` vẫn nằm trong
-`app.css`, hiện không ai dùng — đợt 4 quyết giữ hay bỏ.
+Lớp CSS của nó (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-truot`) đã đi ở
+đợt 4.
 
 ---
 
@@ -277,14 +277,44 @@ kết quả: nhờ vậy chạy lại được, và so được hai lần chạy
 
 ---
 
-## Đợt sau sẽ thêm vào đây
+## 14. Nhật ký thiết kế đã cắt khỏi `core.md`
 
-**Đợt 3 đã xong.** Repo giờ là một trình soạn thảo sơ đồ sạch: vẽ · nối · đánh số ·
-ghim số ⟲ · soát cấu trúc · lưu/mở. Khối mang TÊN · ĐỘNG TỪ · (với `Vào lệnh`) HƯỚNG.
+**Nằm ở đâu** — `tai_lieu/core.md`, mỗi chỗ cắt để lại một dòng `<!-- ĐÃ CẮT (đợt 4): …
+-->` nói rõ mất gì.
 
-Còn lại **đợt 4** — dọn nốt phần giao diện không ai gọi tới: lớp CSS mồ côi trong
-`app.css` (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-truot` · `cd-nguon-*` ·
-`kho-chip` …), icon `zone` trong `Icon.tsx`, và soát lại `README.md` cho khớp thực tế.
+**Trước cắm gì** — file đi từ **2.403 xuống ~1.000 dòng**:
 
-Mỗi thứ gỡ xong thêm một mục vào sổ này **ngay trong đợt đó**, không để dồn: đúng cái
-không được ghi ngay là cái sẽ không bao giờ được ghi.
+| Cắt | Dòng |
+|---|---|
+| §12 toàn bộ thiết kế Strategy Tester + nhật ký hoàn thiện nó | ~1.030 |
+| §7 chiến lược mẫu Compress (D_02) | 94 |
+| §6.4 bảng tham số | 187 |
+| §11 kế hoạch cũ · §4.3 nút ▶ Chạy · §12.23 · §13.4 · §13 việc còn treo | ~150 |
+
+Cùng `tai_lieu/D02_Compress_ban_giao.md` (276 dòng) — bản tóm tắt một buổi mổ xẻ EA gốc.
+
+**Phải cắm gì** — không phải "cắm lại" mà **viết mới** khi thiết kế market maker chốt:
+một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược mẫu.
+
+> Phần Ở LẠI của `core.md` là phần đã sống sót qua cả D_02 lẫn MT5, và nhiều khả năng
+> sẽ sống tiếp: §3 cơ chế đánh số · §4 ghim số ⟲ và khối Bắt đầu · §5 luật rẽ nhánh ·
+> §6.0–6.3 hai sơ đồ / mỗi sơ đồ là một vòng lặp / hai loại khối / ba động từ ·
+> §8 giao diện · §9 định dạng file. **Đọc nó trước khi sửa bất cứ thứ gì.**
+
+
+---
+
+## Xong phần dọn — việc còn lại
+
+**Bốn đợt đã xong. Lần dọn kết thúc ở đây.**
+
+Repo giờ là một trình soạn thảo sơ đồ sạch: vẽ · nối · đánh số · ghim số ⟲ · soát cấu
+trúc · lưu/mở. Khối mang TÊN · ĐỘNG TỪ · (với `Vào lệnh`) HƯỚNG. Không còn một dòng mã,
+một lớp CSS, một icon, một biến theme hay một đoạn tài liệu nào mô tả thứ không tồn tại.
+
+Việc tiếp theo **không phải dọn nữa mà là chọn sàn** — mọi ổ cắm trong sổ này đều chờ
+đúng một quyết định đó. Cắm theo thứ tự phụ thuộc: nguồn dữ liệu (§1) → kết nối sàn
+(§2) → mô hình khớp (§3) → bộ chạy (§4) → kho toán hạng (§10) → từ vựng (§11) → sổ lệnh
+(§12) → nhật ký (§13) → hai cửa sổ (§5, §6) → soi lượt (§7) → cài đặt (§8).
+
+Mỗi ổ cắm xong thì **xoá khỏi sổ này**, không đánh dấu ✔. Sổ cạn tới rỗng là xong.

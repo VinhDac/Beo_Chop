@@ -30,8 +30,6 @@
 
   /* NẾN XÁM — giá là bối cảnh, không phải nhân vật. Xanh/đỏ để dành CHỈ cho lãi/lỗ,
      cam để dành CHỈ cho mức lệnh. Một cặp màu mang ba nghĩa thì chẳng còn nghĩa nào. */
-  --nen-len: #9aa0a6;
-  --nen-xuong: #5c6166;
   --ok: #4ec96a;
   --err: #e5534b;
   --warn: #d9a441;
@@ -41,7 +39,6 @@
   /* Màu nhận dạng các loại khối. Cố ý nhạt: 20 hộp trên canvas mà hộp nào cũng
      rực lên thì không còn gì nổi bật nữa. */
   --start: #4ec96a;
-  --loop: #ffa657;
   --group: #6cb6ff;
   --action: #a8a8a8;
 
@@ -69,6 +66,8 @@
 
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: Consolas, "Cascadia Mono", monospace;
+  /* ⚠ `--loop` · `--nen-len` · `--nen-xuong` đã đi ở đợt 4: màu khối "Vòng theo dõi"
+     (loại khối đã bỏ từ lâu) và màu nến tăng/giảm của chart. */
 }
 
 :root[data-theme='light'] {
@@ -81,8 +80,6 @@
   --border: #d6d6d6;
   --border-soft: #e4e4e4;
   --text: #1f1f1f;
-  --nen-len: #5c6166;
-  --nen-xuong: #b9bec4;
   --muted: #5f5f5f;
   --dim: #8a8a8a;
   --canvas-bg: #fafafa;

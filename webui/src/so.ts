@@ -1,3 +1,22 @@
+/* ⚠ HIỆN KHÔNG AI IMPORT FILE NÀY.
+ *
+ * `locSo` và `chotSo` từng phục vụ ô số dùng chung của `ActionDialog` (lot · chu kỳ ·
+ * SL · TP · đệm · ngưỡng), mà cả sáu ô đó đã đi cùng từ vựng ở đợt 3.
+ *
+ * GIỮ LẠI, và đây là chỗ DUY NHẤT trong lần dọn tôi giữ một file không ai gọi — lý do
+ * phải nói rõ để lần sau không ai tưởng là bỏ sót:
+ *
+ *   · nó KHÔNG mô hình hoá thế giới cũ. Khác `so_lenh.py` (chỉ số nến, R theo SL) hay
+ *     `nhat_ky.py` (nhận `KetQua` của bộ chạy) — hai file đó nói về nến và về một bộ
+ *     chạy không còn tồn tại. File này chỉ nói về CHUỖI và SỐ;
+ *   · nó đúng, và có bài kiểm riêng đang chạy xanh (`tests/test_o_so.py` →
+ *     `webui/kiem/o_so.mjs`) — một trong bốn bài còn lại của cả repo;
+ *   · bài học trong nó đắt và sẽ lặp lại nguyên vẹn ở ô số kế tiếp.
+ *
+ * Xoá được nếu thấy thừa: `git rm webui/src/so.ts webui/kiem/o_so.mjs tests/test_o_so.py`
+ * rồi bỏ mục tương ứng trong `tests/chay_tat_ca.py`.
+ */
+
 /** Ô SỐ — hai hàm thuần, không phụ thuộc React.
  *
  *  Ở riêng một file vì chúng phải KIỂM ĐƯỢC BẰNG MÁY (`webui/kiem/o_so.mjs`). Lỗi ở đây

@@ -26,15 +26,14 @@ const HINH: Record<string, React.ReactNode> = {
   'vao-lenh': <><path {...S} d="M3.4 10.6V5.4M3.4 3.6v1.8M3.4 10.6v1.8" /><rect {...S} x="1.9" y="5.4" width="3" height="5.2" rx=".7" /><path {...S} d="M7.4 10.4l3.4-3.4M8.2 6.6h2.8v2.8" /><path {...S} d="M13.4 3.2v9.6" strokeDasharray="1.6 1.6" /></>,
   /* Sửa lệnh: đường giá + tay kéo chốt SL/TP lên xuống. */
   'sua-lenh': <><path {...S} d="M2 11.4h12" strokeDasharray="1.8 1.6" /><path {...S} d="M2 5.2h12" strokeDasharray="1.8 1.6" /><path {...S} d="M8 3.4v9.6" /><path {...S} d="M6.2 6.9L8 5.1l1.8 1.8M6.2 9.7L8 11.5l1.8-1.8" /></>,
-  // Ba kiểu vẽ giá + ba nút xem. Vẽ tối giản: ở 15px thì mọi chi tiết đều thành nhiễu.
-  'kieu-nen': <><path {...S} d="M5 2.6v10.8M11 2.6v10.8" /><rect {...S} x="3.3" y="5" width="3.4" height="6" /><rect {...S} x="9.3" y="4" width="3.4" height="7" /></>,
-  'kieu-bar': <><path {...S} d="M4.5 2.6v10.8M4.5 5h-2M4.5 8h2M11.5 2.6v10.8M11.5 6h-2M11.5 10h2" /></>,
-  'kieu-line': <><path {...S} d="M2.5 11.5 6 7l2.5 2.5L13.5 4" /></>,
-  've-mau': <><circle {...S} cx="8" cy="8" r="5.2" /><path {...S} d="M8 2.8v10.4" /></>,
-  'zone': <><rect {...S} x="1.8" y="5" width="12.4" height="6" rx="1" /></>,
-  'an-lenh': <><path {...S} d="M1.8 8s2.6-4.2 6.2-4.2S14.2 8 14.2 8s-2.6 4.2-6.2 4.2S1.8 8 1.8 8Z" /><circle {...S} cx="8" cy="8" r="1.7" /></>,
-  've-nay': <><path {...S} d="M13 8a5 5 0 1 1-1.6-3.7" /><path {...S} d="M13.2 2.6v2.9h-2.9" /></>,
-  'dat-co': <><path {...S} d="M4 14V2.6" /><path {...S} d="M4 3.2h8l-2 2.7 2 2.7H4z" /></>,
+  /* ⚠ MƯỜI BỐN ICON ĐÃ ĐI ở đợt 4, cùng thứ chúng đứng trên:
+       kieu-nen · kieu-bar · kieu-line · ve-mau · zone · an-lenh · ve-nay   thanh công
+         cụ chart của cửa sổ Tester (ba kiểu vẽ giá, ba nút xem, hộp zone);
+       up · down · motSo · minus · dau · cuoi   nút xếp thứ tự bảng tham số, submenu
+         nhịp, và điều khiển tua của tester;
+       dat-co   hành động "Đặt cờ" đã bỏ từ trước cả lần dọn này — `ICON_HANH_DONG`
+         vẫn còn ánh xạ tới nó, tức một dòng chết nằm im suốt nhiều bản.
+     Bản cũ: `git show f1c90fb:webui/src/components/Icon.tsx`. */
 
   /* --- loại khối --- */
   start: <><circle {...S} cx="8" cy="8" r="5.9" /><path {...S} d="M8 3.6l2.6 4.4L8 12.4 5.4 8z" /></>,
@@ -49,8 +48,6 @@ const HINH: Record<string, React.ReactNode> = {
   plus: <><path {...S} d="M8 3v10M3 8h10" /></>,
   gear: <><circle {...S} cx="8" cy="8" r="4.9" /><circle {...S} cx="8" cy="8" r="1.9" /><g strokeWidth={2} stroke="currentColor" strokeLinecap="round"><path d="M8 1.3v1.4M8 13.3v1.4M14.7 8h-1.4M2.7 8H1.3" /><path d="M12.7 3.3l-1 1M4.3 11.7l-1 1M12.7 12.7l-1-1M4.3 4.3l-1-1" /></g></>,
   edit: <><path {...S} d="M9.8 3.2l3 3L6 13H3v-3z" /><path {...S} d="M8.4 4.6l3 3" /></>,
-  up: <><path {...S} d="M8 12.6V3.6M4.2 7.4L8 3.6l3.8 3.8" /></>,
-  down: <><path {...S} d="M8 3.4v9M4.2 8.6L8 12.4l3.8-3.8" /></>,
   copy: <><rect {...S} x="5.6" y="2.4" width="8" height="9.6" rx="1.3" /><path {...S} d="M10.6 14.2H3.7a1.3 1.3 0 0 1-1.3-1.3V5.2" /></>,
   paste: <><path {...S} d="M6 3.2H4.3a1.3 1.3 0 0 0-1.3 1.3v8.2a1.3 1.3 0 0 0 1.3 1.3h7.4a1.3 1.3 0 0 0 1.3-1.3V4.5a1.3 1.3 0 0 0-1.3-1.3H10" /><rect {...S} x="6" y="1.8" width="4" height="2.8" rx=".9" /></>,
   branch: <><path {...S} d="M1.8 8h3.9M5.7 8l3.1-3.1M5.7 8l3.1 3.1" /><circle {...S} cx="11.3" cy="4.9" r="1.8" /><circle {...S} cx="11.3" cy="11.1" r="1.8" /></>,
@@ -61,10 +58,6 @@ const HINH: Record<string, React.ReactNode> = {
   unlink: <><path {...S} d="M6.6 9.4 4.9 11a2.6 2.6 0 0 1-3.7-3.7l1.7-1.7M9.4 6.6 11 4.9a2.6 2.6 0 0 1 3.7 3.7L13 10.3" /><path {...S} d="M2 2l12 12" /></>,
   fit: <><path {...S} d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3" /><rect {...S} x="6" y="6" width="4" height="4" rx=".8" /></>,
   chay: <><circle {...S} cx="8" cy="8" r="6" /><path {...S} d="M6.5 5.3l4.4 2.7-4.4 2.7z" /></>,
-  motSo: <><circle {...S} cx="8" cy="8" r="5.8" /><path {...S} d="M6.8 6.2L8.4 5.2v5.6M7 10.8h2.8" /></>,
-  minus: <><path {...S} d="M3 8h10" /></>,
-  dau: <><path {...S} d="M11.5 3.4 6.4 8l5.1 4.6M4.6 3.4v9.2" /></>,
-  cuoi: <><path {...S} d="M4.5 3.4 9.6 8l-5.1 4.6M11.4 3.4v9.2" /></>,
 }
 
 export default function Icon({ name, size = 14 }: { name: string; size?: number }) {
@@ -80,5 +73,4 @@ export const ICON_HANH_DONG: Record<string, string> = {
   check_cond: 'check-cond',
   vao_lenh: 'vao-lenh',
   sua_lenh: 'sua-lenh',
-  dat_co: 'dat-co',
 }

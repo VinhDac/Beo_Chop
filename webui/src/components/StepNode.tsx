@@ -101,10 +101,11 @@ export default function StepNode({ data, selected }: NodeProps) {
           /* Tooltip là CÂU ĐẦY ĐỦ. Trên hộp chỉ để dòng ngắn — mỗi trường một dòng —
              vì nhìn hộp là để liếc ra ngay khối làm gì; rê chuột mới cần đủ chi tiết.
 
-             Khối Bắt đầu CŨNG có thân: nhịp chạy ("Mỗi nến M5") là dòng do Python sinh
-             từ khoá `nhip`. Trước đây nó là chữ gõ tay trong TÊN khối, nên đổi nhịp thì
-             khối vẫn ghi số cũ. Điều kiện ở đây vì thế phải là "có dòng nào không",
-             không phải "có phải khối Bắt đầu không". */
+             ⚠ Điều kiện là "CÓ DÒNG NÀO KHÔNG", không phải "có phải khối Bắt đầu
+             không" — và đó là cố ý. Khối Bắt đầu CŨNG từng có thân (nhịp chạy "Mỗi nến
+             M5", một dòng do Python sinh từ khoá `nhip`, đã đi ở đợt 3). Nhịp sẽ quay
+             lại dưới một dạng khác; viết theo "có dòng nào không" thì lúc đó không phải
+             sửa gì ở đây. */
           <div className="than" title={card.mo_ta}>
             {hien.map((d, i) => (
               <div key={i} className="dong">
