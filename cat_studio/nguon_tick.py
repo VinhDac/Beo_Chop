@@ -57,15 +57,15 @@ THU_MUC_TICK = "tick"
 
 #: Một thay đổi ở đỉnh sổ lệnh. 64 byte.
 #:
-#: CHỈ GHI ĐỈNH (best bid/ask), không ghi cả cuốn sổ — và đó là quyết định, không phải
-#: cắt giảm. `tools/do_spread.py` đo được: trên gần như mọi symbol còn cửa, spread ĐÚNG
-#: MỘT TICK. Không có chỗ nào để chen vào giữa; ta chỉ xếp hàng ở đỉnh. Mà xếp hàng ở
-#: đỉnh thì cần đúng hai thứ — khối lượng đang đứng trước ta (`bid_kl`/`ask_kl`) và
-#: những cú khớp ăn dần vào đó (luồng kia). Ghi cả 20 mức là gấp mười dung lượng để
-#: trả lời một câu hỏi ta không hỏi.
+#: ĐỈNH SỔ LỆNH, ĐỘ PHÂN GIẢI ĐẦY ĐỦ. `tools/do_spread.py` đo được: trên gần như mọi
+#: symbol còn cửa, spread ĐÚNG MỘT TICK. Không có chỗ nào để chen vào giữa; ta chỉ xếp
+#: hàng ở đỉnh. Mà xếp hàng ở đỉnh thì cần đúng hai thứ — khối lượng đang đứng trước ta
+#: (`bid_kl`/`ask_kl`) và những cú khớp ăn dần vào đó (`DT_KHOP`).
 #:
-#: ⚠ Ngày nào spread rộng ra nhiều tick thì quyết định này phải xem lại — lúc đó cải
-#: thiện giá mới có nghĩa, và cần độ sâu thật.
+#: Luồng này bắn theo TỪNG thay đổi thật, không gộp. Nó là luồng duy nhất giữ đúng
+#: THỨ TỰ, nên nó — chứ không phải độ sâu — là thứ bộ phát lại dùng để trừ hàng đợi.
+#:
+#: Độ sâu bên dưới đỉnh nằm ở `DT_SAU`: luồng riêng, nhịp riêng, câu hỏi riêng.
 DT_SO = np.dtype([
     ("T", "<i8"),        # sàn đổi sổ lệnh (ms)
     ("E", "<i8"),        # sàn gửi đi (ms)
@@ -105,8 +105,69 @@ DT_KHOP = np.dtype({
     "itemsize": 56,
 })
 
+#: Số mức mỗi bên trong một ảnh chụp độ sâu. Binance phát 5 / 10 / 20 mức; lấy 20.
+SO_MUC = 20
+
+#: MỘT ẢNH CHỤP 20 mức mỗi bên của sổ lệnh. 672 byte.
+#:
+#: VÌ SAO CÓ LUỒNG NÀY, KHI BẢN ĐẦU ĐÃ CỐ Ý TỪ CHỐI NÓ
+#: Ghi chú cũ ở `tools/ghi_tick.py` viết: "Cố ý KHÔNG lấy `@depth`: nó bị sàn gộp về
+#: 100 ms một ảnh, tức trong mỗi khoảng đó nhiều sự kiện chồng lên nhau và MẤT THỨ TỰ."
+#: Câu đó ĐÚNG, và đến giờ vẫn đúng. Nó chỉ trả lời một câu hỏi KHÁC — "lấy gì để phát
+#: lại hàng đợi ở đỉnh?" — mà câu đó `bookTicker` trả lời, và độ sâu không thay được.
+#:
+#: Câu hỏi của luồng này khác hẳn: "lúc ta đang đứng ở đỉnh thì phía sau ta có bao
+#: nhiêu?" và "sổ lệnh đang nghiêng về bên nào?". Hai câu ấy KHÔNG cần đúng thứ tự từng
+#: sự kiện — chúng cần một bức HÌNH DẠNG lấy đều đặn. 100 ms là thừa đủ, vì thứ chúng
+#: đo (`phan_muc_sau` trong `khop_lenh.py`, và mọi tín hiệu lệch lượng) đổi chậm hơn
+#: thế nhiều.
+#:
+#: Và ƯỚC LƯỢNG DUNG LƯỢNG TRONG GHI CHÚ CŨ SAI. Nó nói "gấp mười dung lượng" — đúng
+#: là bản ghi to gấp mười, nhưng nó TỚI THƯA HƠN gần mười lần vì bị gộp về 100 ms. Ghi
+#: chú cũ nhân kích thước bản ghi NÀY với tần suất của luồng KIA. Đo thật, TRUMPUSDT,
+#: hai cửa sổ khác nhau ngày 2026-08-28:
+#:
+#:                        gói/s    B/gói    MB/ngày
+#:     @bookTicker      36 … 56      64     200 … 310    ← trôi theo độ sôi của chợ
+#:     @depth20@100ms  5,9 … 6,5    672     343 … 375    ← TRẦN CỨNG 10/s = 580
+#:
+#: ⚠ TỈ LỆ GIỮA HAI LUỒNG KHÔNG CỐ ĐỊNH — đo được 1,1× ở cửa sổ này và 1,9× ở cửa sổ
+#: kia, chỉ vì chợ sôi khác nhau. Đừng ghi một con số duy nhất vào đầu. Thứ ĐÚNG LÀ CỐ
+#: ĐỊNH là cái trần: sàn gộp về 100 ms nên độ sâu không bao giờ vượt 580 MB/ngày/symbol,
+#: dù thị trường điên đến đâu — còn `bookTicker` thì không có trần nào cả. Chính tính
+#: chất bị chê ("bị sàn gộp") là cái vừa làm nó rẻ, vừa làm nó ĐOÁN TRƯỚC ĐƯỢC.
+#:
+#: ĐÃ ĐỐI CHIẾU VỚI DỮ LIỆU THẬT: ghi 35 s live rồi so đỉnh của từng ảnh độ sâu với
+#: bản ghi `bookTicker` gần nhất trước nó — khớp 100 % cả hai bên, trên 226 ảnh. Hai
+#: luồng độc lập nói đúng cùng một chuyện, tức cách bóc gói và cách xếp byte ở đây
+#: đúng. Trong cùng lần đó: mọi ảnh đều có bid giảm dần, ask tăng dần, ask[0] > bid[0],
+#: và không mức nào bằng 0 (sổ TRUMPUSDT đủ sâu hơn 20 mức).
+#:
+#: ⚠ ẢNH CHỤP, KHÔNG PHẢI BẢN SAI KHÁC — và đây là chỗ dễ nhầm nhất, vì hai luồng tên
+#: gần giống nhau và cùng báo `"e": "depthUpdate"`. Kiểm ngày 2026-08-28:
+#:
+#:                      mức mỗi gói   dòng kl=0   giá sắp thứ tự
+#:     @depth20@100ms   đúng 20/20         0           có         → ẢNH CHỤP
+#:     @depth@100ms     1…106 / 0…59      10        KHÔNG         → BẢN SAI KHÁC
+#:
+#: Ta dùng cái trên. Nó tự đọc được: không cần ảnh REST ban đầu, không cần nối
+#: `U`/`u`/`pu`, không cần dựng lại cuốn sổ trong bộ phát lại, không cần đồng bộ lại
+#: sau mỗi lỗ hổng. Cái dưới cần cả bốn thứ đó.
+#:
+#: Sổ mỏng thì có ít hơn 20 mức thật, chỗ thiếu ĐỆM 0 chứ không bỏ gói: bỏ gói vì
+#: thiếu mức là im lặng đánh mất đúng những lúc đáng xem nhất. `bid[k] == 0` đọc ra là
+#: "không có mức này".
+DT_SAU = np.dtype([
+    ("T", "<i8"),        # sàn đổi sổ lệnh (ms)
+    ("E", "<i8"),        # sàn gửi đi (ms)
+    ("t_ta", "<i8"),     # ta nhận được (ms)
+    ("u", "<i8"),        # số thứ tự CUỐI trong ảnh — gộp 100 ms nên nhảy quãng là thường
+    ("bid", "<f8", SO_MUC), ("bid_kl", "<f8", SO_MUC),
+    ("ask", "<f8", SO_MUC), ("ask_kl", "<f8", SO_MUC),
+])
+
 #: Tên luồng → dtype. Thêm một luồng là thêm một dòng ở đây, không sửa chỗ nào khác.
-LUONG = {"so": DT_SO, "khop": DT_KHOP}
+LUONG = {"so": DT_SO, "khop": DT_KHOP, "sau": DT_SAU}
 
 
 # ---------------------------------------------------------------------------

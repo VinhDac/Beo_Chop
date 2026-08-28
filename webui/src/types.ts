@@ -198,7 +198,7 @@ export interface BoNguon {
   tu_ngay: string
   den_ngay: string
   mb: number
-  so_ban_ghi: { so: number; khop: number }
+  so_ban_ghi: { so: number; khop: number; sau: number }
   so_lo_hong: number
   ms_lo_hong: number
   /** Trung vị độ trễ, đo trên MẪU của ngày mới nhất. `null` = chưa đo được. */

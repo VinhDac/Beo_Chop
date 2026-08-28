@@ -14,8 +14,9 @@ import type { BoNguon, CaiDatNguon, DongThiTruong, TrangThaiGhi } from '../types
  *
  * BỐN Ô Ở ĐÂY LÀ BỐN CON SỐ DUY NHẤT CỦA NGUỒN MÀ CHỈNH VÀO LÀ ĐỔI THẬT:
  *
- *     thư mục        ~800 MB/ngày/symbol → 24 GB/tháng. Ổ C: không phải lúc nào cũng
- *                    chịu nổi, mà ổ đầy thì bộ ghi chết lúc 3 giờ sáng
+ *     thư mục        ~1,2 GB/ngày/symbol → 35 GB/tháng (sổ 640 + khớp 160 + độ sâu
+ *                    340…580). Ổ C: không phải lúc nào cũng chịu nổi, mà ổ đầy thì
+ *                    bộ ghi chết lúc 3 giờ sáng
  *     giữ N ngày     không đặt thì sớm muộn đĩa đầy
  *     ngưỡng im lặng thấp quá → lỗ hổng GIẢ; cao quá → ngồi mù mà tưởng đang chạy
  *     nhịp xả        "mất điện thì mất bao nhiêu"
@@ -212,7 +213,7 @@ export default function NguonPanel() {
             <table className="kho-bang">
               <thead><tr>
                 <th>Venue</th><th>Symbol</th><th>spread</th><th>fee</th>
-                <th>TỈ LỆ</th><th>tick</th><th>KL 24h</th><th />
+                <th>RATIO</th><th>tick</th><th>24h vol</th><th />
               </tr></thead>
               <tbody>
                 {tt.slice(0, 12).map(d => (
@@ -291,7 +292,8 @@ export default function NguonPanel() {
           ) : (
             <table className="kho-bang">
               <thead><tr>
-                <th>Symbol</th><th>Days</th><th>Range</th><th>Book</th><th>Trades</th>
+                <th>Symbol</th><th>Days</th><th>Range</th>
+                <th>Book</th><th>Trades</th><th>Depth</th>
                 <th>Size</th><th>Gaps</th><th>Latency</th><th />
               </tr></thead>
               <tbody>
@@ -302,6 +304,9 @@ export default function NguonPanel() {
                     <td className="mono">{ngay(d.tu_ngay)} → {ngay(d.den_ngay)}</td>
                     <td className="mono">{d.so_ban_ghi.so.toLocaleString('en-US')}</td>
                     <td className="mono">{d.so_ban_ghi.khop.toLocaleString('en-US')}</td>
+                    {/* Luồng `sau` bật sau hai luồng kia, nên ngày cũ có 0 — 0 thật,
+                        không phải lỗi đọc. Để nguyên số, đừng vẽ dấu gạch. */}
+                    <td className="mono">{d.so_ban_ghi.sau.toLocaleString('en-US')}</td>
                     <td className="mono">{d.mb.toLocaleString('en-US')} MB</td>
                     {/* Lỗ hổng quyết định backtest có tin được không. 0 thì mờ, khác 0 đỏ. */}
                     <td className={'mono' + (d.so_lo_hong ? ' ng-canh' : '')}>
@@ -330,7 +335,8 @@ export default function NguonPanel() {
 
       <div className="chu-dan">
         <code>{thuMuc}</code> · {tongMb.toLocaleString('en-US')} MB · roughly
-        <b> ~800 MB/day</b> for a mid-sized symbol. The recorder runs in its own
+        <b> ~1.2 GB/day</b> for a mid-sized symbol — book 640 MB, trades 160 MB,
+        depth 340–580 MB. The recorder runs in its own
         <b> separate</b> process: closing the app does not stop it.
       </div>
     </>

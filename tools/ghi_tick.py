@@ -7,19 +7,32 @@
 ghi. Chạy càng sớm thì càng sớm có cái để backtest — mọi thứ khác dựng song song được,
 riêng cái này thì không rút ngắn được bằng cách viết code nhanh hơn.
 
-HAI LUỒNG, KHÔNG HƠN
---------------------
-    <sym>@bookTicker   mọi thay đổi ở ĐỈNH sổ lệnh, thời gian thực
-    <sym>@trade        mọi cú khớp, KHÔNG gộp
+BA LUỒNG
+--------
+    <sym>@bookTicker      mọi thay đổi ở ĐỈNH sổ lệnh, thời gian thực   → `so`
+    <sym>@trade           mọi cú khớp, KHÔNG gộp                        → `khop`
+    <sym>@depth20@100ms   ảnh chụp 20 mức mỗi bên, tối đa 10 ảnh/giây   → `sau`
 
 ⚠ `@aggTrade` KHÔNG dùng được: đo ngày 2026-08-28, nó trả 0 gói trong 10 s cho cả
 `trumpusdt` lẫn `btcusdt` — im lặng, không lỗi, không đóng kết nối. `@trade` cùng lúc
 trả 944 gói. Xem `nguon_tick.DT_KHOP`.
 
-Cố ý KHÔNG lấy `@depth` (độ sâu nhiều mức): nó bị sàn gộp về 100 ms hoặc 250 ms một
-ảnh, tức trong mỗi khoảng đó nhiều sự kiện chồng lên nhau và MẤT THỨ TỰ. `bookTicker`
-thì bắn theo từng thay đổi thật. Với spread một tick — đo được trên gần như mọi symbol
-còn cửa — đỉnh sổ lệnh là toàn bộ cuộc chơi. Xem `nguon_tick.DT_SO`.
+⚠ ĐỔI Ý VỀ `@depth` — VÀ LÝ DO CŨ SAI Ở ĐÚNG MỘT CHỖ
+Chỗ này trước viết "cố ý KHÔNG lấy `@depth`, vì nó bị sàn gộp về 100 ms nên MẤT THỨ
+TỰ". Vế đó vẫn đúng, và nó là lý do `bookTicker` không thể bỏ. Nhưng nó trả lời câu
+"lấy gì để phát lại hàng đợi ở đỉnh?", còn độ sâu sinh ra cho câu khác: phía sau ta còn
+bao nhiêu, và sổ đang nghiêng bên nào. Hai câu ấy cần một HÌNH DẠNG lấy đều đặn, không
+cần đúng thứ tự từng sự kiện.
+
+Chỗ SAI THẬT là dung lượng: ghi chú cũ ước "gấp mười", đo ra 1…2× tuỳ chợ sôi hay
+lặng, vì bản ghi độ sâu tuy to gấp mười nhưng tới thưa hơn gần mười lần. Và vì sàn gộp
+về 100 ms, luồng này có TRẦN CỨNG — 580 MB/ngày/symbol, không phụ thuộc thị trường.
+Xem `nguon_tick.DT_SAU` cho số đo, và cho lý do lấy `@depth20` (ẢNH CHỤP, tự đọc được)
+chứ không lấy `@depth` (BẢN SAI KHÁC, phải dựng lại cả cuốn sổ).
+
+⚠ GHI TRƯỚC KHI CÓ AI ĐỌC. Chưa module nào đọc luồng `sau` — bộ phát lại vẫn chỉ ăn
+`so` và `khop`. Vẫn bật ngay, vì dữ liệu quá khứ KHÔNG mua lại được: mỗi giờ không ghi
+là một giờ vĩnh viễn không có. Mã đọc thì tuần sau viết cũng vẫn kịp.
 
 BỐN LUẬT CỦA MỘT BỘ GHI CHẠY DÀI NGÀY
 --------------------------------------
@@ -50,7 +63,16 @@ import urllib.request
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+# Log chạy nhiều tháng phải in được ✔ ⚠ ✘ — bảng mã cp1252 mặc định của Windows thì
+# không. Bọc lại một lần.
+#
+# ⚠ CHỈ BỌC KHI CHƯA PHẢI UTF-8. Bọc lần hai lên cùng một `buffer` thì cái bọc cũ mất
+# tham chiếu, bị thu gom, và LÚC ĐÓNG NÓ ĐÓNG LUÔN `buffer` bên dưới. Người gọi mất
+# stdout ngay giữa chừng với "I/O operation on closed file" — ở chỗ chẳng liên quan gì.
+# Nó cắn khi `tests/` import file này để kiểm mấy hàm thuần.
+if (getattr(sys.stdout, "encoding", "") or "").lower().replace("-", "") != "utf8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8",
+                                  errors="replace")
 
 from cat_studio import nguon_tick as nt                                 # noqa: E402
 
@@ -62,6 +84,14 @@ except ImportError:
 
 GOC_WS = "wss://fstream.binance.com/stream?streams="
 URL_GIO_SAN = "https://fapi.binance.com/fapi/v1/time"
+
+#: Hậu tố kênh đăng ký ở sàn. Một dòng ở đây = một luồng nữa cho MỌI symbol, nên số
+#: kết nối in ra log cũng đếm từ đây chứ không viết tay.
+KENH = ("bookTicker", "trade", "depth20@100ms")
+
+#: Tên luồng trong `nguon_tick.LUONG` → chữ hiện ra log. Người đọc log không cần biết
+#: khoá nội bộ tên gì. Thứ tự đi theo `nt.LUONG` chứ không theo bảng này.
+NHAN_LUONG = {"so": "book", "khop": "trades", "sau": "depth"}
 
 #: Xả đệm xuống đĩa mỗi ngần này giây.
 GIAY_XA = 2.0
@@ -121,6 +151,19 @@ def do_lech_dong_ho(lan=SO_MAU_DONG_HO):
         if tot is None or rtt < tot[1]:
             tot = (lech, rtt)
     return tot
+
+
+def _hai_muoi_muc(ds):
+    """`[[giá, kl], …]` của sàn → hai list đúng `SO_MUC` phần tử, thiếu thì đệm 0.
+
+    Sổ mỏng thì sàn gửi ít hơn 20 mức. BỎ CẢ GÓI vì thiếu mức là im lặng đánh mất đúng
+    những lúc đáng xem nhất — sổ mỏng là lúc giá sắp chạy. Đệm 0 thì mất mát nói ra
+    được: `bid[k] == 0` đọc ra là "không có mức này"."""
+    n = nt.SO_MUC
+    gia, kl = [0.0] * n, [0.0] * n
+    for i, r in enumerate(ds[:n]):
+        gia[i], kl[i] = float(r[0]), float(r[1])
+    return gia, kl
 
 
 def _ngay_utc(ms):
@@ -198,8 +241,7 @@ async def chay(symbols, im_lang=None):
     # đầu thì khỏi phải mượn.
     _do_va_ghi_dong_ho(ghi)
     _khac("clock measured")
-    luong = "/".join(f"{s.lower()}@{k}" for s in symbols
-                     for k in ("bookTicker", "trade"))
+    luong = "/".join(f"{s.lower()}@{k}" for s in symbols for k in KENH)
     url = GOC_WS + luong
     lan = 0
     t_dut = None
@@ -237,7 +279,7 @@ async def chay(symbols, im_lang=None):
                     t_dut = None
                 lan = 0
                 _khac(f"connected · {len(symbols)} symbol(s) · "
-                      f"{len(symbols) * 2} stream(s)")
+                      f"{len(symbols) * len(KENH)} stream(s)")
                 await _doc(ws, ghi, im_lang, t_bat_dau, giay_xa)
         except _XinDung:
             for g in ghi.values():
@@ -300,7 +342,12 @@ async def _doc(ws, ghi, im_lang, t_bat_dau, giay_xa=GIAY_XA):
                 # `m` = is_buyer_maker. ĐẢO NGAY để về `mua_chu_dong` — xem DT_KHOP.
                 g.them("khop", (int(d["T"]), int(d["E"]), t_ta, int(d["t"]),
                                 float(d["p"]), float(d["q"]), not d["m"]))
-        except (KeyError, ValueError, TypeError):
+            elif d["e"] == "depthUpdate":
+                bg, bk = _hai_muoi_muc(d["b"])
+                ag, ak = _hai_muoi_muc(d["a"])
+                g.them("sau", (int(d["T"]), int(d["E"]), t_ta, int(d["u"]),
+                               bg, bk, ag, ak))
+        except (KeyError, IndexError, ValueError, TypeError):
             # Một gói lạ không được giết cả bộ ghi. Bỏ qua, đi tiếp.
             continue
 
@@ -345,13 +392,14 @@ def _in_trang_thai(ghi):
     gio = datetime.now(timezone.utc).strftime("%H:%M:%S")
     phan = []
     for s, g in sorted(ghi.items()):
-        phan.append(f"{s} {g.tong['so']:,}/{g.tong['khop']:,}")
-    print(f"  {gio}Z  " + "  ·  ".join(phan) + "   (book/trades)")
+        phan.append(f"{s} " + "/".join(f"{g.tong[t]:,}" for t in nt.LUONG))
+    ten = "/".join(NHAN_LUONG.get(t, t) for t in nt.LUONG)
+    print(f"  {gio}Z  " + "  ·  ".join(phan) + f"   ({ten})")
 
 
 def main():
     p = argparse.ArgumentParser(
-        description="record the Binance USDⓈ-M book + trade streams to disk")
+        description="record the Binance USDⓈ-M book, trade and depth streams to disk")
     p.add_argument("symbol", nargs="+", help="e.g. TRUMPUSDT PUMPUSDT")
     p.add_argument("--im-lang", type=float, default=None,
                    help="seconds of silence before the stream counts as dead "

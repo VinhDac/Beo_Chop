@@ -978,7 +978,7 @@ function Ung() {
     const coDay = edges.some(e => ids.includes(e.source) || ids.includes(e.target))
 
     return [
-      { ten: 'Sửa', icon: 'edit', tat: nhieu || laStart,
+      { ten: 'Edit', icon: 'edit', tat: nhieu || laStart,
         viSao: laStart ? 'the Start block has nothing to edit' : 'only one block at a time',
         onClick: () => setDangSua(idNguon) },
       { ten: 'Rename…', icon: 'edit', tat: nhieu, viSao: 'only one block at a time',
@@ -1117,7 +1117,7 @@ function Ung() {
       { ten: 'Settings…', icon: 'gear', onClick: () => setMoCaiDat(true) },
       { ten: 'Exit', onClick: () => py.cua_so_dong() },
     ] },
-    { ten: 'Sửa', muc: [
+    { ten: 'Edit', muc: [
       { ten: 'Undo', icon: 'undo', tat: !coLui, viSao: 'nothing to undo yet',
         onClick: hoanTac },
       { ten: 'Redo', icon: 'redo', tat: !coToi, viSao: 'nothing has been undone', onClick: lamLai },
@@ -1132,7 +1132,7 @@ function Ung() {
       { ten: 'Delete', icon: 'trash', tat: !dangChon.length, viSao: 'no block selected',
         onClick: xoa },
     ] },
-    { ten: 'Xem', muc: [
+    { ten: 'View', muc: [
       { ten: 'Zoom in', onClick: () => zoomIn({ duration: 150 }) },
       { ten: 'Zoom out', onClick: () => zoomOut({ duration: 150 }) },
       { ten: 'Fit view', icon: 'fit', onClick: () => fitView({ padding: 0.2, duration: 300, maxZoom: 1 }) },

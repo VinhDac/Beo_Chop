@@ -189,7 +189,7 @@ export default function Ribbon(p: RibbonProps) {
                     + 'half-spread, skew or size. It can carry a "when …" condition.'} />
       </Nhom>
 
-      <Nhom ten="Sửa">
+      <Nhom ten="Edit">
         <Nut ten="Edit" icon={I.edit} onClick={p.sua} tat={!p.coChon}
              title="Open the editor for the selected block (or double-click it)" />
         <Nut ten="Duplicate" icon={I.copy} onClick={p.nhanBan} tat={!p.coChon}

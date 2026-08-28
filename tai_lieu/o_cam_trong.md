@@ -52,7 +52,7 @@ Chạy thật 60 giây trên TRUMPUSDT + PUMPUSDT:
 |---|---|
 | **độ trễ** | trung vị **207 ms**, p99 **350 ms** — đồng hồ máy chỉ lệch −121 ms nên đây là mạng thật |
 | **nhịp** | ~115 bản ghi sổ/s · ~33 khớp/s cho một symbol tầm trung |
-| **dung lượng** | ~**800 MB/ngày/symbol** (sổ 640 + khớp 160) → ~24 GB/tháng |
+| **dung lượng** | ~**800 MB/ngày/symbol** (sổ 640 + khớp 160) → ~24 GB/tháng. Cộng độ sâu từ 2026-08-28: **+340…580 MB/ngày**, phần thêm có trần cứng |
 | **mất gói** | 0 · lỗ hổng 0 |
 
 Độ trễ 207 ms là **ràng buộc thiết kế, không phải chi tiết**: nó nói cuộc chơi không
@@ -65,9 +65,51 @@ trong khi `@trade` cùng lúc trả 944 và `@bookTicker` trả 1.259. Không l�
 kết nối — chỉ im lặng. Dùng `@trade`, và nó hợp hơn thật: `aggTrade` gộp các cú khớp
 liên tiếp cùng giá, mà thứ ta cần là đúng chuỗi để trừ dần hàng đợi.
 
-**Chỉ ghi ĐỈNH sổ lệnh, không ghi cả cuốn.** Vì spread đúng một tick trên gần như mọi
-symbol còn cửa — không có chỗ chen vào giữa, ta chỉ xếp hàng ở đỉnh. Ngày nào spread
-rộng ra nhiều tick thì phải xem lại.
+**Ban đầu chỉ ghi ĐỈNH sổ lệnh — và đã đổi ý, ngày 2026-08-28.** Lý do cũ: spread đúng
+một tick trên gần như mọi symbol còn cửa, không có chỗ chen vào giữa, ta chỉ xếp hàng ở
+đỉnh. Lý do đó **vẫn đúng cho việc phát lại hàng đợi**, và `bookTicker` vẫn là luồng
+duy nhất giữ đúng thứ tự từng thay đổi.
+
+Nhưng nó trả lời sai câu hỏi. Độ sâu không sinh ra để phát lại hàng đợi; nó trả lời
+*"phía sau ta còn bao nhiêu"* (đúng cái `phan_muc_sau` trong `khop_lenh.py` đang **đoán**)
+và *"sổ đang nghiêng bên nào"*. Hai câu đó cần một **hình dạng lấy đều đặn**, không cần
+đúng thứ tự — nên 100 ms một ảnh là thừa đủ.
+
+Và ước lượng dung lượng cũ (*"gấp mười"*) sai: bản ghi to gấp mười, nhưng tới **thưa
+hơn gần mười lần**. Đo thật 1…2× tuỳ chợ sôi hay lặng — và vì sàn gộp về 100 ms, luồng
+này có **trần cứng 580 MB/ngày/symbol** bất kể thị trường thế nào, trong khi `bookTicker`
+không có trần.
+
+Nên từ nay ghi **ba luồng**: `so` (đỉnh, đủ độ phân giải) · `khop` · `sau`
+(`@depth20@100ms`, ảnh chụp 20 mức mỗi bên).
+
+**`@depth20` là ẢNH CHỤP, `@depth` là BẢN SAI KHÁC** — hai tên gần giống nhau, cùng báo
+`"e": "depthUpdate"`, và chọn nhầm thì phải dựng lại cả cuốn sổ. Đã đo để phân biệt:
+
+| | mức mỗi gói | dòng kl = 0 | giá sắp thứ tự | |
+|---|---|---|---|---|
+| `@depth20@100ms` | đúng 20/20 | 0 | có | **ảnh chụp** — tự đọc được |
+| `@depth@100ms` | 1…106 / 0…59 | 10 | không | bản sai khác — cần ảnh REST, nối `U`/`u`/`pu`, đồng bộ lại sau mỗi lỗ hổng |
+
+Đối chiếu trên dữ liệu thật: ghi 35 s live, so đỉnh của từng ảnh độ sâu với bản ghi
+`bookTicker` gần nhất trước nó — **khớp 100 % cả hai bên trên 226 ảnh**. Hai luồng độc
+lập nói cùng một chuyện.
+
+### ⚠ Còn nợ: CHƯA AI ĐỌC luồng `sau`
+
+Bộ phát lại vẫn chỉ ăn `so` và `khop`. Luồng độ sâu đang được **ghi mà không được
+dùng** — cố ý: dữ liệu quá khứ không mua lại được, mỗi giờ không ghi là một giờ vĩnh
+viễn không có, còn mã đọc thì tuần sau viết vẫn kịp.
+
+Ba chỗ sẽ dùng nó, theo thứ tự đáng làm:
+
+1. **`khop_lenh.phan_muc_sau`** — hiện là một **núm người dùng đoán**. Có độ sâu thì nó
+   thành số **đo được**, và một dòng nữa chuyển từ tab "Fill model" sang tab
+   "Data source" theo đúng luật *đo được thì đừng hỏi*.
+2. **Toán hạng `lech_luong`** (§8) — sổ nghiêng bên nào, ứng viên đầu tiên cho một
+   `cong_bang` khá hơn `mid`.
+3. **Trộn vào `phat_lai`** — việc này chạm vòng nóng và mô hình khớp, nên phải là một
+   đợt riêng, không ghép vào đợt ghi.
 
 ### Lớp phát lại — XONG
 
