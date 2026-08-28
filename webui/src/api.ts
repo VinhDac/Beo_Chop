@@ -4,7 +4,8 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  BoNguon, Bootstrap, CaiDatNguon, Card, DongThiTruong, KetQuaSoat, KhoDanhMuc,
+  BoNguon, Bootstrap, CaiDatNguon, Card, DongThiTruong, KetQuaSoat, KetQuaTest,
+  KhoDanhMuc,
   ProcEdge, ProcessDoc, Reply, Step, Tab, TrangThaiGhi,
 } from './types'
 
@@ -134,7 +135,10 @@ export const py = {
   // MT5 (đợt 2). Giữ nguyên chữ ký ở đây chứ không xoá — `App.tsx` đã sẵn nhánh
   // `if (!r.ok) alert(r.error)`, nên nút vẫn nói được thành lời thay vì trông như hỏng.
   // Xem `tai_lieu/o_cam_trong.md`.
-  mo_tester: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_tester', doc),
+  /** ▶ Test — chạy backtest trên dữ liệu tick đã ghi. Trả BẢNG SỐ; cửa sổ Tester
+   *  (biểu đồ, tua, soi từng lượt) là ổ cắm còn trống. */
+  mo_tester: (doc: ProcessDoc, symbol?: string) =>
+    goi<KetQuaTest>('mo_tester', doc, symbol),
   mo_live: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_live', doc),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---

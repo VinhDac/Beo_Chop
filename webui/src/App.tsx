@@ -746,18 +746,47 @@ function Ung() {
     ghi(`đã ngắt ${dinh.length} kết nối (Ctrl+Z để lấy lại)`)
   }, [edges, chup, setEdges, ghi])
 
-  /* ------------------------------- ▶ Chạy --------------------------------- */
+  /* ------------------------------- ▶ Test ---------------------------------
+   *
+   * ⚠ CHƯA CÓ CỬA SỔ TESTER — kết quả đổ vào NHẬT KÝ dưới dạng vài dòng chữ, không
+   * phải biểu đồ. Cố ý làm vậy thay vì đợi có cửa sổ: bộ chạy đã chạy được rồi, và
+   * một bảng số đọc được còn hơn một cái nút bấm vào không ra gì.
+   *
+   * Dòng `⚠` (chỗ kết quả KHÔNG chắc) ghi ở mức CẢNH BÁO. Nó là phần dễ bỏ qua nhất
+   * mà lại quan trọng nhất — "còn tồn kho" hay "KẸT 99% bị từ chối" biến một bảng lãi
+   * lỗ trông ổn thành một bảng vô nghĩa. */
   const chay = useCallback(async () => {
+    setTrangThai('đang chạy backtest…')
     const r = await py.mo_tester(layDoc())
     if (!r.ok) {
-      const ds = ((r as any).loi as Problem[] | undefined)?.map(p => '✖ ' + p.message).join('\n\n')
+      const ds = ((r as any).loi as Problem[] | undefined)
+        ?.map(p => '✖ ' + p.message).join('\n\n')
       window.alert((r.error ?? 'không chạy được') + (ds ? '\n\n' + ds : ''))
       setTabDuoi('van-de')
+      setTrangThai('sẵn sàng')
       return
     }
-    ghi('▶ mở Strategy Tester', 'ok')
-    setTrangThai('đã mở Strategy Tester')
+    const v = r.value!
+    const b = v.bang
+    const n = (x: number) => x.toLocaleString('vi-VN')
+    const so = (x: number, le = 2) =>
+      x.toLocaleString('vi-VN', { minimumFractionDigits: le, maximumFractionDigits: le })
+    ghi(`▶ ${v.symbol} ${v.tu_ngay}…${v.den_ngay} — ${n(b.so_su_kien)} sự kiện `
+        + `trong ${b.giay_chay}s`, 'ok')
+    ghi(`khớp ${n(b.so_lan_khop)} lần · tồn kho ${so(b.ton_kho, 0)} · `
+        + `giá trị ${so(b.gia_tri)} · phí ${so(b.phi_da_tra)}`)
+    ghi(`đặt ${n(b.so_dat)} · huỷ ${n(b.so_huy)} · từ chối ${n(b.so_tu_choi)}`)
+    ghi(`giả định: phí ${b.gia_dinh.phi_maker_bps} bps · trễ ra ${b.gia_dinh.tre_ra_ms} ms`
+        + ` · huỷ trước ${b.gia_dinh.phan_huy_truoc} · mức sâu ${b.gia_dinh.phan_muc_sau}`
+        + ` · tick ${b.gia_dinh.buoc_gia}`)
+    // Thẻ `warn`, KHÔNG phải `canh`: `.dong-log.t-warn` mới có luật CSS. Lớp
+    // ghép lúc chạy như thế này thì `tests/test_giao_dien.py` không quét được —
+    // nó chỉ đọc `className` viết thẳng — nên chỗ này phải tự canh lấy.
+    if (b.loi) ghi('⚠ ' + b.loi, 'warn')
+    setTabDuoi('nhat-ky')
+    setTrangThai(`đã chạy ${n(b.so_su_kien)} sự kiện`)
   }, [layDoc, ghi])
+
 
   /* -------------------------------- ● Live --------------------------------
    *

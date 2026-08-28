@@ -193,28 +193,7 @@ thôi là "sức khoẻ", nó thành tham số của chiến lược.
 
 ---
 
-## 3. Bộ chạy
-
-**Nằm ở đâu** — `api.Api.mo_tester` trả `{ok: false, "Chưa có bộ chạy."}`, sau khi vẫn
-soát sơ đồ tử tế. Nút ▶ Chạy còn nguyên.
-
-**Trước cắm gì** — `bo_chay.py` (1.259 dòng). Thứ đáng cứu nhất trong đó là
-**`_chay_so_do`** (~80 dòng, khó nhất repo) cùng `_xet_cong`:
-
-- **luật lùi** — cổng trượt thì lùi về ngã rẽ gần nhất còn nhánh chưa thử, TRỪ KHI lượt
-  này đã chạm thị trường; đã bắn lệnh ra thì quay lui là đẻ lệnh thứ hai;
-- **cổng luôn tính đủ mọi điều kiện**, không ngắt ở cái sai đầu tiên — nếu ngắt thì nhật
-  ký vĩnh viễn không trả lời được "ba điều kiện kia lúc đó thế nào";
-- **biên dịch trước** — mọi tên → chỉ số cột, chạy xong không đụng một chuỗi nào; và mọi
-  lỗi "toán hạng chưa hỗ trợ" nổ ra kèm nhãn khối `[3A.1]` chứ không nổ ở nến 40.000;
-- **một `mot_nhip` dùng chung** cho backtest lẫn live — "test như nào thì live như thế"
-  thành chuyện của kiến trúc chứ không phải của kỷ luật.
-
-Bốn điều trên không dính sàn nào. Chép lại được gần nguyên văn.
-
----
-
-## 4. Cửa sổ Strategy Tester
+## 3. Cửa sổ Strategy Tester
 
 **Nằm ở đâu** — không còn. `webui/src/main.tsx` cũng đã bỏ nhánh rẽ `?tester=1`.
 
@@ -222,13 +201,27 @@ Bốn điều trên không dính sàn nào. Chép lại được gần nguyên v
 (nến + hộp zone), `BangSoLieu`, `ThongKe` (bội R, drawdown), `Journey`, `LichSu`,
 `BangDuoi`, `NutChart`.
 
-**Phải cắm gì** — chưa quyết, và cố ý chưa. Màn hình của market maker không dùng chung
-một dòng nào với chart nến: thang báo giá hai bên, tồn kho theo thời gian, khoảng cách
-quote tới mid, và chất lượng khớp (bị chọn ngược bao nhiêu lần).
+**Phải cắm gì** — bộ chạy ĐÃ CÓ và đã trả về số, nên đây giờ là ổ cắm **gấp nhất**:
+`api.mo_tester` trả `KetQuaTest` (bảng số + đường vốn + danh sách khớp) mà không có gì
+vẽ nó — App đổ tạm bốn dòng vào Nhật ký.
+
+Màn hình của market maker không dùng chung một dòng nào với chart nến:
+
+| vẽ gì | vì sao nó là thứ phải nhìn |
+|---|---|
+| thang báo giá hai bên + bid/ask thị trường | thấy ngay ta đang treo TRONG hay NGOÀI sổ |
+| tồn kho theo thời gian | trục rủi ro duy nhất; nhìn nó là biết chiến lược có kiểm soát được mình không |
+| đường vốn, tách **gộp / phí** | dữ liệu đã có sẵn (`phi_da_tra`) — hai đường tách nhau nói ra ngay là spread có đủ trả phí không |
+| chất lượng khớp | khớp xong 100 ms sau giá đi đâu? Đây là ĐO ĐƯỢC mức bị chọn ngược, thứ quyết định sống chết |
+| dải **bị từ chối** / **mù** | hai quãng mà kết quả KHÔNG đáng tin, phải hiện trên chính trục thời gian |
+
+> ⚠ **Bốn giả định phải hiện trên màn hình đó**, không giấu trong Cài đặt. `KetQuaTest.
+> bang.gia_dinh` đã mang sẵn. Một bảng lãi lỗ không nói nó giả định gì thì không đọc
+> được — và tệ hơn, nó trông như một sự thật.
 
 ---
 
-## 5. Cửa sổ Live
+## 4. Cửa sổ Live
 
 **Nằm ở đâu** — không còn.
 
@@ -241,7 +234,7 @@ dở và một kết nối tiêu tiền thật. Không có đường tắt — �
 
 ---
 
-## 6. Soi một lượt trên sơ đồ
+## 5. Soi một lượt trên sơ đồ
 
 **Nằm ở đâu** — `webui/src/App.tsx`, chỗ khối `SOI MỘT LƯỢT` từng đứng (giờ là chú
 thích). Đường ống còn sống nửa dưới: `api.Api._ban` và `window.__su_kien` trong
@@ -261,7 +254,7 @@ Lớp CSS của nó (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-tr
 
 ---
 
-## 7. Điều kiện chạy trong Cài đặt
+## 6. Điều kiện chạy trong Cài đặt
 
 **Nằm ở đâu** — `webui/src/components/SettingsDialog.tsx` giờ chỉ còn mã mặc định và
 màu nhấn. Khoá `test` trong `luu_tru.CAI_DAT_MAC_DINH` và hàm `api.save_test_settings`
@@ -281,7 +274,7 @@ nghĩa được sau khi chọn sàn.
 
 ---
 
-## 8. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
+## 7. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
 
 Bộ test đi từ **4.213 dòng xuống 663**, và phần lớn là đúng — một bài kiểm không còn
 đối tượng thì là rác, không phải độ phủ. Nhưng **ba nhóm dưới đây kiểm CƠ CHẾ chứ không
@@ -306,7 +299,7 @@ lại ngay.
 
 ---
 
-## 9. Bảng tham số — hằng số CÓ TÊN
+## 8. Bảng tham số — hằng số CÓ TÊN
 
 **Nằm ở đâu** — `core.normalize_process` giữ khoá `tham_so` và luôn trả `[]`;
 `api.bootstrap` không gửi gì; `types.ts` khai `tham_so: never[]`.
@@ -334,7 +327,7 @@ sớm muộn hai bên hiểu khác nhau, và cái lệch thì im lặng.
 
 ---
 
-## 10. Bốn toán hạng còn thiếu của market maker
+## 9. Bốn toán hạng còn thiếu của market maker
 
 **Nằm ở đâu** — `cat_studio/kho/nen_tang.py` khai tám toán hạng; docstring của nó liệt
 kê bốn cái tiếp theo.
@@ -357,7 +350,7 @@ Cả bốn đều là **module mới thả vào `kho.MODULE`**, không sửa `co
 
 ---
 
-## 11. Động từ thứ ba — LỆNH CHỦ ĐỘNG
+## 10. Động từ thứ ba — LỆNH CHỦ ĐỘNG
 
 **Nằm ở đâu** — `core.ACTION_TYPES` có đúng hai động từ: `check_cond` · `so_hang`.
 
@@ -379,14 +372,17 @@ Nó **không nhét vào ngữ pháp số hạng được**, và đó là lý do 
 góp vào báo giá, còn cái này VỨT báo giá đi và bắn một lệnh ăn ngay. Hai việc khác
 loại.
 
-Mô hình khớp (`khop_lenh.py`) đã có và nó chỉ mô phỏng lệnh THỤ ĐỘNG — một lệnh taker
-là đường đi khác hẳn: khớp ngay, ăn qua nhiều mức, trả phí taker chứ không phải phí
-maker. Nên chờ **bộ chạy (§3)** rồi làm cả hai cùng lúc, lúc đó mới đo được cái giá
-phải trả và mới biết nó có đáng không.
+Mô hình khớp chỉ mô phỏng lệnh THỤ ĐỘNG — lệnh taker là đường đi khác hẳn: khớp ngay,
+ăn qua nhiều mức, trả phí taker chứ không phải phí maker.
+
+**Giờ đã có CON SỐ chứ không còn là suy đoán.** Cho sơ đồ mẫu chạy 400.000 sự kiện thì
+đúng lúc tồn kho chạm hạn mức, `lệch` đẩy báo giá lấn qua phía đối diện và post-only từ
+chối — chiến lược đang nói *"tôi muốn thoát hàng bằng mọi giá"* mà lệnh thụ động thì
+không thoát bằng mọi giá được. Đó chính xác là chỗ động từ thứ ba phải đứng.
 
 ---
 
-## 12. Sổ lệnh
+## 11. Sổ lệnh
 
 **Nằm ở đâu** — không còn file nào.
 
@@ -408,7 +404,7 @@ bằng mili-giây, và theo dõi từng phía bid/ask riêng.
 
 ---
 
-## 13. Nhật ký và lịch sử
+## 12. Nhật ký và lịch sử
 
 **Nằm ở đâu** — không còn file nào. Thư mục `du_lieu/nhat_ky/` vẫn được liệt kê trong
 hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
@@ -416,6 +412,12 @@ hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
 **Trước cắm gì** — `nhat_ky.py` (283) và `lich_su.py` (197). Cả hai nhận thẳng
 `bo_chay.KetQua` với `.nen1` / `.nen5` — kiểu tham số của chúng đã không còn tồn tại,
 nên chúng không phải "mồ côi" mà là **không chạy được**.
+
+> ⚠ **Bộ chạy đang NGẮT SỚM ở điều kiện sai đầu tiên** (`bo_chay.mot_luot`), trong khi
+> bản D_02 cố ý tính đủ mọi điều kiện để nhật ký trả lời được *"ba điều kiện kia lúc đó
+> bằng bao nhiêu"*. Ngắt sớm vì hiện chưa có nhật ký nên cái mất bằng 0. Làm nhật ký
+> thì thêm một `mot_luot_ghi()` chạy đủ — **đừng bỏ bản ngắt sớm**: soi một lượt là
+> việc thỉnh thoảng, chạy mười triệu lượt là việc thường xuyên.
 
 **Phải cắm gì** — nhật ký mới, giữ nguyên ba luật đã trả giá để có:
 
@@ -434,7 +436,7 @@ kết quả: nhờ vậy chạy lại được, và so được hai lần chạy
 
 ---
 
-## 14. Nhật ký thiết kế đã cắt khỏi `core.md`
+## 13. Nhật ký thiết kế đã cắt khỏi `core.md`
 
 **Nằm ở đâu** — `tai_lieu/core.md`, mỗi chỗ cắt để lại một dòng `<!-- ĐÃ CẮT (đợt 4): …
 -->` nói rõ mất gì.
@@ -463,41 +465,45 @@ một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược 
 
 ## Trạng thái — đã cắm được gì
 
-**Bốn đợt dọn xong.** Từ đó đã cắm được bốn mảng, và mỗi mảng xoá vài mục khỏi sổ này:
+**Bốn đợt dọn xong.** Từ đó đã cắm được năm mảng, và mỗi mảng xoá một mục khỏi sổ này:
 
 | đã cắm | thay cho mục nào |
 |---|---|
 | **nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn §1 (còn lại: xem cuối §1) |
-| **kho `nen_tang`** — 8 toán hạng của market maker | *Kho toán hạng* |
-| **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu 7 khối | *Từ vựng của khối hành động* |
+| **kho `nen_tang`** — 8 toán hạng, mỗi cái tự khai công thức của nó | *Kho toán hạng* |
+| **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu | *Từ vựng của khối hành động* |
 | **mô hình khớp** — `khop_lenh.py` + tab Cài đặt · 58 phép kiểm | *Mô hình khớp* |
+| **bộ chạy** — `bo_chay.py`, vòng phản hồi khép kín · 41 phép kiểm | *Bộ chạy* |
 
-Repo giờ **vẽ được một chiến lược market maker, soát được nó, và biết một lệnh thụ động
-khớp lúc nào** — nhưng chưa có gì nối ba thứ đó lại. Sơ đồ mẫu vẫn là một phát biểu đúng
-cú pháp mà chưa ai đọc ra số.
+**Backtest chạy được từ đầu đến cuối.** ▶ Test đọc tick đã ghi, chạy sơ đồ mỗi sự kiện,
+khớp lệnh, và trả về bảng số kèm bốn giả định.
+
+### Ba điều bộ chạy nói ra ngay khi chạy lần đầu
+
+Đây là lý do phải làm §3 trước cửa sổ: cho nó chạy là nó tự chỉ ra chỗ thiếu.
+
+1. **Sơ đồ mẫu requote gần như mỗi sự kiện** (399k lần / 400k sự kiện), vì
+   `công bằng = mid`. Mà đổi giá là **về cuối hàng đợi** — nên ba mức `phan_huy_truoc`
+   chỉ chênh nhau ~2,5%: vị trí hàng đợi chưa kịp có nghĩa thì đã bị vứt. Giữ báo giá
+   cho tới khi nó lệch quá N tick thì cần một toán hạng kho CHƯA CÓ — xem §9.
+2. **Sơ đồ mẫu từng KẸT CỨNG** ở hạn mức tồn kho: 99% số sự kiện bị post-only từ chối,
+   một phía bị hạn mức tắt, phía kia bị sàn từ chối. Nguyên nhân là một bất đẳng thức
+   không ai viết ra: treo ở đúng đỉnh thì `hạn_mức × hệ_số_lệch < spread`. Đã sửa, và
+   ghi lại trong `Api.demo_process`.
+3. **Chỗ để lệch gần như không có trên thị trường spread hẹp**, nên tồn kho phải quản
+   chủ yếu bằng KHỐI LƯỢNG chứ không bằng giá. Đó là bản chất của market making, không
+   phải hạn chế của app.
 
 ### Thứ tự cắm tiếp
 
-**§3 bộ chạy là mảnh ghép còn thiếu, và giờ nó chỉ còn là dây nối.** Hai đầu đã xong:
-`PhatLai` phát sự kiện, `SoKhop` biết khớp hay không. Bộ chạy làm bốn việc mỗi sự kiện —
-chạy sơ đồ, chốt báo giá, gọi `dong_bo`, gọi `buoc` — rồi trả tồn kho ngược lại cho toán
-hạng `ton_kho` ở lượt sau. Chính vòng phản hồi đó là chỗ **kiểm chứng ngữ pháp số hạng**:
-nếu chiến lược sơ cấp chạy ra số hợp lý thì mô hình hai tầng đứng vững, còn không thì
-biết ngay là thiếu gì.
+**§3 cửa sổ Tester là ổ cắm gấp nhất** — bộ chạy đã trả về số mà không có gì vẽ nó, App
+đang đổ tạm bốn dòng vào Nhật ký. Xem §3 để biết phải vẽ gì và vì sao.
 
-Ba việc phải làm trong đó, không cái nào bỏ được:
+Rồi: §2 kết nối sàn (backtest phải sạch trước khi có gì đáng chạy thật) → §11 sổ lệnh →
+§12 nhật ký → §4 cửa sổ Live → §5 soi lượt → §6 cài đặt.
 
-* **Đo bước giá một lần** khi nạp dữ liệu (`khop_lenh.do_buoc_gia`) — hiện chưa ai gọi.
-* **`t_ta` là trục thời gian**, không phải `T`. Lớp phát lại đã đúng; bộ chạy chỉ cần
-  không tự ý đổi.
-* **Kết quả in kèm bốn giả định.** `SoKhop.tom_tat()` đã mang sẵn — đừng bỏ đi khi vẽ
-  bảng.
-
-Sau đó: §2 kết nối sàn (backtest phải sạch trước khi có gì đáng chạy thật) → §12 sổ lệnh
-→ §13 nhật ký → §4/§5 hai cửa sổ → §6 soi lượt → §7 cài đặt.
-
-**§9 bảng tham số · §10 bốn toán hạng · §11 động từ taker** thì độc lập, cắm lúc nào
-cũng được — riêng §11 nên đợi bộ chạy, vì trước đó chưa đo được cái giá phải trả cho một
-lệnh ăn ngay.
+**§8 bảng tham số · §9 bốn toán hạng · §10 động từ taker** thì độc lập. Riêng §10 giờ đã
+có **con số** chứ không còn là suy đoán: bộ chạy đo được đúng chỗ chiến lược muốn thoát
+hàng mà lệnh thụ động không thoát nổi.
 
 Mỗi ổ cắm xong thì **xoá khỏi sổ này**, không đánh dấu ✔. Sổ cạn tới rỗng là xong.

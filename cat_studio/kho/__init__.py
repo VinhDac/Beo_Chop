@@ -16,7 +16,11 @@ CƠ CHẾ KHÔNG ĐỔI MỘT CHỮ qua cả hai lần, vì nó không dính chi
     ai phải chép tay một danh sách thứ hai;
   · `_soat_trung` chặn NGAY LÚC IMPORT nếu hai module cùng khai một khoá. Đây là loại
     lỗi im lặng tệ nhất — hai engine cùng khai `atr` với hai nghĩa khác nhau thì mọi
-    chiến lược dùng nó đều sai mà không báo gì.
+    chiến lược dùng nó đều sai mà không báo gì;
+  · `_soat_du_cong_thuc` chặn cũng ngay lúc import nếu một toán hạng được khai mà
+    KHÔNG có công thức trong `TINH`. Cùng một loại chết im lặng: dòng đó vẫn chọn được
+    trong dropdown, vẫn vẽ được lên hộp, soát tĩnh vẫn im — rồi nổ giữa lúc backtest,
+    hoặc tệ hơn là trả 0 và không ai biết.
 
 THÊM MODULE: thả vào `MODULE` là xong — không sửa `core.py`, không sửa `api.py`, không
 sửa hộp thoại. Mỗi module khai `TEN` · `MA_SO` · `MO_TA` và tuỳ ý `CHI_BAO` /
@@ -58,7 +62,27 @@ def _soat_trung(ds, ten):
     return ds
 
 
-TOAN_HANG = _soat_trung(_gom("TOAN_HANG"), "toán hạng")
+def _soat_du_cong_thuc(ds):
+    """Toán hạng nào cũng phải có công thức. Xem `nen_tang.TINH`."""
+    thieu = [x["key"] for x in ds if x["key"] not in TINH]
+    if thieu:
+        raise RuntimeError(
+            f"kho: toán hạng {thieu} được khai nhưng không có công thức trong `TINH`. "
+            f"Mỗi toán hạng phải tự khai cách tính của nó, cạnh chỗ khai nó.")
+    du = [k for k in TINH if k not in {x["key"] for x in ds}]
+    if du:
+        raise RuntimeError(
+            f"kho: có công thức cho {du} nhưng không toán hạng nào mang khoá đó. "
+            f"Công thức mồ côi là dấu hiệu vừa đổi tên mà quên một đầu.")
+    return ds
+
+
+#: khoá → hàm tính, gom từ mọi module. Bộ chạy đọc thẳng bảng này.
+TINH = {}
+for _m in MODULE:
+    TINH.update(getattr(_m, "TINH", {}))
+
+TOAN_HANG = _soat_du_cong_thuc(_soat_trung(_gom("TOAN_HANG"), "toán hạng"))
 CHI_BAO = _soat_trung(_gom("CHI_BAO"), "chỉ báo")
 BANG_TRANG_THAI = _soat_trung(_gom("BANG_TRANG_THAI"), "bảng trạng thái")
 

@@ -57,6 +57,7 @@ kho/             DANH MỤC mọi thứ app tính được, chia theo NGUỒN
 nguon_tick.py    dữ liệu tick nằm ở đâu, hình dạng gì, thủng chỗ nào
 phat_lai.py      trộn hai luồng thành MỘT dòng sự kiện, trục thời gian là `t_ta`
 khop_lenh.py     lệnh THỤ ĐỘNG của ta khớp lúc nào — hàng đợi, độ trễ, giá của requote
+bo_chay.py       nối sơ đồ với thị trường, đóng vòng phản hồi tồn kho → báo giá
 do_thi_truong.py quét spread ÷ (2 × phí maker) trên bốn sàn
 luu_tru.py       MỘT chỗ duy nhất biết file nằm ở đâu
 api.py           bề mặt DUY NHẤT giao diện gọi tới   (JS → api.py → core.py)
@@ -96,7 +97,33 @@ Nên nó tách đôi rành mạch — phần **suy ra được** và phần **ph
 > định chôn thành hằng số vẫn quyết định toàn bộ bảng lãi lỗ, chỉ khác là không ai biết
 > nó tồn tại để mà nghi ngờ.
 
-Ba điều mô hình này làm mà "chạm là khớp" của D_02 không làm được, và cả ba đều là chỗ
+### ⭐ Vì sao THỨ TỰ trong `bo_chay` là toàn bộ phần khó
+
+Mỗi sự kiện, bốn việc — và đảo hai việc đầu là **nhìn trộm tương lai**:
+
+```
+1.  khop.buoc(sk)     thị trường đi qua: lệnh đang treo của ta khớp hoặc không
+2.  chạy sơ đồ        chiến lược nhìn trạng thái MỚI (kể cả tồn kho vừa đổi)
+3.  chốt báo giá      bid = công_bằng − lệch − biên_mua  ·  ask = … + biên_bán
+4.  khop.dong_bo()    báo giá mới gửi đi
+```
+
+Chạy sơ đồ trước thì nó ra quyết định dựa trên một sự kiện chưa thể biết, rồi lệnh vừa
+đặt được khớp bởi chính sự kiện đó. `tre_ra_ms` chặn ca tệ nhất, nhưng **không được dựa
+vào một con số cấu hình để giữ đúng một luật nhân quả** — luật ấy phải nằm ở THỨ TỰ,
+chỗ không ai vặn được.
+
+**Vòng phản hồi** khép ở bước 1 → 2: tồn kho đổi → `lệch += tồn kho × …` đẩy báo giá →
+bước 4 gửi đi → vòng sau lại khớp. Đó là toàn bộ cơ chế quản trị rủi ro của một market
+maker. Đo được: gỡ khối `lệch` ra thì tồn kho đỉnh nhảy từ **4 lot lên 318 lot**.
+
+**Luật lùi** thừa kế nguyên vẹn nhưng an toàn hơn hẳn bản D_02: ở đó lùi chỉ an toàn khi
+nhánh chưa bắn lệnh ra thị trường; ở đây không động từ nào chạm thị trường giữa chừng,
+số hạng chỉ cộng vào một bản nháp. Đổi lại phải **chụp bản nháp ở mỗi ngã rẽ và hoàn
+nguyên khi lùi** — không chụp thì số hạng của nhánh đã bỏ vẫn nằm trong báo giá, sơ đồ
+nói một đằng kết quả một nẻo, và màn hình không lộ gì.
+
+Ba điều mô hình khớp làm mà "chạm là khớp" của D_02 không làm được, và cả ba đều là chỗ
 lãi khống chui vào:
 
 1. **Đổi báo giá = về CUỐI hàng.** Phát biểu lại Y HỆT thì không đụng gì. Đây chính là
@@ -106,6 +133,12 @@ lãi khống chui vào:
    sàn thật hai lệnh ấy đã khớp nhau rồi. Bỏ qua ca này là vẽ ra một sự an toàn không có
    thật, đúng chỗ thua lỗ thật sự xảy ra.
 3. **Post-only TỪ CHỐI**, không âm thầm thành lệnh chủ động ăn phí taker.
+
+> ⚠ **Cho nó chạy là nó tự chỉ ra chỗ thiếu.** Lần chạy đầu tiên của bộ chạy tố cáo
+> ngay hai lỗi trong chính sơ đồ mẫu — con số lệch lớn gấp 500 lần mức có nghĩa, rồi
+> sau khi sửa thì KẸT CỨNG ở hạn mức tồn kho (99% số sự kiện bị post-only từ chối).
+> Cả hai đều không lộ ra trên canvas, không lộ ra ở soát tĩnh, và cái thứ hai còn cần
+> chạy đủ dài mới hiện. Xem `Api.demo_process` và `o_cam_trong.md`.
 
 ### Vì sao `so_lenh.py` dùng id của ta
 

@@ -22,6 +22,7 @@ import threading
 import time
 import traceback
 
+from . import bo_chay
 from . import core
 from . import kho
 from . import khung_cua_so
@@ -356,15 +357,15 @@ def _so_do_mau():
         so_hang("s_rut", Y - DY, "lot", "=", 0, don_vi="lot", x=620.0),
 
         so_hang("s_cb", Y, "cong_bang", "=", 1, "mid"),
-        so_hang("s_bien", Y + DY, "bien", "=", 1, "spread"),
+        so_hang("s_bien", Y + DY, "bien", "=", 0.5, "spread"),
         # Dấu của `ton_kho` làm hết việc: ôm hàng mua (dương) thì lệch dương, tức cả
         # hai chân dịch XUỐNG. Không cần nhánh nào cho hai chiều.
-        so_hang("s_lech", Y + DY * 2, "lech", "+=", 0.5, "ton_kho", "tick"),
-        so_hang("s_lot", Y + DY * 3, "lot", "=", 500, don_vi="lot"),
+        so_hang("s_lech", Y + DY * 2, "lech", "+=", 0.1, "ton_kho", "tick"),
+        so_hang("s_lot", Y + DY * 3, "lot", "=", 1, don_vi="lot"),
         so_hang("s_tran", Y + DY * 4, "lot_mua", "=", 0, don_vi="lot",
-                khi=han_muc(">=", 2000)),
+                khi=han_muc(">=", 5)),
         so_hang("s_san", Y + DY * 5, "lot_ban", "=", 0, don_vi="lot",
-                khi=han_muc("<=", -2000)),
+                khi=han_muc("<=", -5)),
     ]
     # Khối Bắt đầu rẽ HAI nhánh: cổng "mất sổ lệnh" và chuỗi chính. Nhánh mù đi sang
     # phải rồi DỪNG — rút hết là hết lượt, không còn gì để tính.
@@ -550,11 +551,11 @@ class Api(NenCuaSo):
              │        └─ [1A.1]  lot        =  0            → rút hết
              └─ [1B] (mặc định)
                     [2]  công bằng  =  mid
-                    [3]  biên       =  1 × spread
-                    [4]  lệch      +=  tồn kho × 0,5 tick/lot
-                    [5]  lot        =  500 lot
-                    [6]  lot mua    =  0 lot   khi  tồn kho ≥  2000
-                    [7]  lot bán    =  0 lot   khi  tồn kho ≤ −2000
+                    [3]  biên       =  0,5 × spread
+                    [4]  lệch      +=  tồn kho × 0,1 tick/lot
+                    [5]  lot        =  1 lot
+                    [6]  lot mua    =  0 lot   khi  tồn kho ≥  5
+                    [7]  lot bán    =  0 lot   khi  tồn kho ≤ −5
 
         Đọc theo BA TẦNG, và ba tầng đó chính là ba việc một market maker làm:
 
@@ -563,12 +564,20 @@ class Api(NenCuaSo):
              nhánh, và nó rẽ vì trạng thái "không nhìn thấy sổ lệnh" loại trừ mọi thứ
              còn lại, chứ không phải vì ta muốn hai kiểu hành xử.
 
-        [2][3] BÁO GIÁ GỐC. Treo quanh `mid`, cách nửa spread mỗi phía. Ngây thơ có
-             chủ ý: nó KHÔNG kiếm ra tiền trên một symbol có phí maker chuẩn — treo
-             ngay ở bid/ask hiện tại thì phần lớn thời gian là đứng cuối hàng đợi và
-             chỉ khớp khi giá sắp đi ngược. Nhưng nó là mốc số 0 đúng đắn: mọi thứ
-             tinh vi hơn sau này đều là SỬA hai con số này, và có mốc thì mới đo được
-             sửa ấy đáng bao nhiêu.
+        [2][3] BÁO GIÁ GỐC — và `0,5 × spread` là con số CÓ NGHĨA, không phải số tròn
+             chọn bừa: `mid ± nửa spread` rơi ĐÚNG vào bid và ask hiện tại. Đó là vị
+             trí kinh điển của một market maker, và cũng là vị trí duy nhất mà **hàng
+             đợi quyết định tất cả** — nên nó cũng là sơ đồ để thử ba mức
+             `phan_huy_truoc` mà xem backtest nhạy tới đâu.
+
+             Bản đầu ghi `1 × spread`, tức treo hẳn ra NGOÀI sổ nửa spread mỗi phía.
+             Chạy thử thì ba mức giả định cho ra kết quả gần như y hệt nhau — hợp lý,
+             vì treo ngoài sổ thì chỉ khớp khi giá đi xuyên qua, mà lúc đó xếp thứ mấy
+             không còn quan trọng. Một sơ đồ mẫu như vậy che mất đúng thứ đáng dạy.
+
+             Ngây thơ có chủ ý: nó KHÔNG kiếm ra tiền trên một symbol có phí maker
+             chuẩn. Nhưng nó là mốc số 0 đúng đắn — mọi thứ tinh vi hơn sau này đều là
+             SỬA hai con số này, và có mốc thì mới đo được sửa ấy đáng bao nhiêu.
 
         [4] LỆCH THEO TỒN KHO — số hạng quan trọng nhất trong sơ đồ, và là lý do cả
              ngữ pháp này tồn tại. Ôm 1000 lot mua thì `lệch` = +500 tick, tức CẢ HAI
@@ -598,9 +607,38 @@ class Api(NenCuaSo):
         Không có SL, không có TP, không có "thoát lệnh": rủi ro nằm ở [4] và [6][7],
         tức ở mức TỒN KHO. Xem `kho/nen_tang.py`.
 
-        ⚠ Số trong sơ đồ (0,5 tick/lot · 500 lot · 2000 lot) là số MINH HOẠ đọc được
-        bằng mắt, không phải số đã đo trên symbol nào. Chúng sẽ thành tham số có tên
-        khi bảng tham số quay lại — xem `tai_lieu/o_cam_trong.md`."""
+        ⚠ BA CON SỐ PHẢI ĂN KHỚP, VÀ CÓ MỘT BẤT ĐẲNG THỨC CỨNG. Đây là bài học phải
+        chạy thật hai lần mới có:
+
+        · **Lần một** — `lot = 500` · `hạn mức = 2000` · `0,5 tick/lot`, toàn số tròn
+          dễ đọc. Chạy thử: tồn kho 1000 lot đẩy báo giá đi **50 đơn vị giá** trên một
+          tài sản giá 100 — nửa giá trị tài sản.
+        · **Lần hai** — sửa còn `1 / 5 / 0,5 tick/lot`, nghe đã hợp lý. Chạy 120.000 sự
+          kiện thì **119.188 lần bị post-only từ chối**, tức 99%: chạm hạn mức là KẸT
+          CỨNG, phía này bị hạn mức tắt, phía kia bị sàn từ chối, không bao giờ thoát
+          ra được. Ba mươi nghìn sự kiện đầu chưa lộ ra — nó cần đủ dài mới kẹt.
+
+        Bất đẳng thức là thế này. Treo ở đúng đỉnh (`biên = 0,5 × spread`) thì:
+
+            bid = bid_thị_trường − lệch      ·      ask = ask_thị_trường − lệch
+
+        nên chân gần bị lấn qua phía đối diện ngay khi **|lệch| ≥ spread**. Suy ra:
+
+            hạn_mức × hệ_số  <  spread nhỏ nhất  (= 1 tick)
+
+        `5 × 0,1 = 0,5 tick` — an toàn, mà vẫn đủ để sau khi làm tròn thì báo giá dịch
+        hẳn một tick ở hạn mức. Muốn lệch mạnh hơn thì phải treo RỘNG ra trước đã: nới
+        `biên` thêm c tick là mua thêm đúng c tick ngân sách lệch.
+
+        > Đó không phải hạn chế của app mà là **bản chất của market making trên thị
+        > trường spread hẹp**: chỗ để lệch gần như không có, nên tồn kho phải quản chủ
+        > yếu bằng KHỐI LƯỢNG ([6][7]) chứ không bằng giá.
+
+        `hạn mức ÷ lot = 5` nghĩa là chịu được năm lần khớp cùng chiều mới chạm trần.
+
+        Số minh hoạ vẫn phải là số CHẠY ĐƯỢC, nếu không thì "▶ Mẫu" dạy sai ngay từ cái
+        nhìn đầu tiên. Chúng sẽ thành tham số có tên khi bảng tham số quay lại — xem
+        `tai_lieu/o_cam_trong.md`."""
         return _ok(_kem_the(_so_do_mau()))
 
     @_bat_loi
@@ -706,20 +744,40 @@ class Api(NenCuaSo):
     #
     # Cắm lại: xem `tai_lieu/o_cam_trong.md`.
     @_bat_loi
-    def mo_tester(self, doc):
-        """▶ Chạy — CHƯA CÓ BỘ CHẠY.
+    def mo_tester(self, doc, symbol=None, tu_ngay=None, den_ngay=None, gioi_han=0):
+        """▶ Test — chạy backtest trên dữ liệu tick đã ghi.
 
-        Vẫn soát sơ đồ trước khi trả lời. Sơ đồ có lỗi thì lỗi đó vẫn là tin có ích,
-        và bảng Vấn đề vẫn phải sáng lên — chuyện chưa có bộ chạy không làm cái đó
-        bớt đúng."""
+        Soát sơ đồ TRƯỚC. Sơ đồ có lỗi thì lỗi đó là tin có ích hơn hẳn một bảng kết
+        quả dựng trên một sơ đồ hỏng.
+
+        ⚠ CHƯA CÓ CỬA SỔ TESTER (§4 trong `o_cam_trong.md`) — hàm này trả về BẢNG SỐ,
+        chưa có biểu đồ, chưa tua được, chưa soi từng lượt. Trả số thô còn hơn giữ câu
+        "chưa có bộ chạy" khi bộ chạy đã có: người dùng bấm ▶ Test là muốn biết chiến
+        lược ra sao, và một bảng số trả lời được câu đó."""
         probs = core.validate_process(doc)
         loi = [p for p in probs if p["severity"] == "error"]
         if loi:
             return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
-        return {"ok": False,
-                "error": "Chưa có bộ chạy.\n\nStrategy Tester cũ dựng trên nến M1 "
-                         "và dữ liệu MT5 — cả hai đã gỡ. Cái thay thế chờ chọn xong "
-                         "sàn."}
+
+        symbol = (symbol or (doc or {}).get("symbol") or "").strip().upper()
+        ds = nguon_tick.liet_ke()
+        bo = next((x for x in ds if x["symbol"] == symbol), None)
+        if bo is None:
+            co = ", ".join(x["symbol"] for x in ds) or "(chưa có gì)"
+            return _loi(f"Chưa có dữ liệu tick cho {symbol}.\n\nĐang có: {co}\n\n"
+                        f"Bật bộ ghi ở Cài đặt → Nguồn dữ liệu rồi để nó chạy một lúc.")
+        tu = tu_ngay or bo["tu_ngay"]
+        den = den_ngay or bo["den_ngay"]
+
+        try:
+            kq = bo_chay.chay_file(doc, symbol, tu, den, gioi_han=gioi_han)
+        except bo_chay.LoiChay as e:
+            # Lỗi biên dịch đã mang sẵn nhãn khối (`[1B.2] …`) — đưa thẳng lên, đừng
+            # bọc thêm một lớp chữ làm loãng mất cái nhãn.
+            return _loi(str(e))
+        return _ok({"bang": kq.bang(), "duong_von": kq.duong_von,
+                    "khop": kq.khop[:2000], "symbol": symbol,
+                    "tu_ngay": tu, "den_ngay": den})
 
     @_bat_loi
     def mo_live(self, doc=None):

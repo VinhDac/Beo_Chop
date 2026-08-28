@@ -118,6 +118,15 @@ def do_buoc_gia(*mang_gia):
     của sàn luôn là số tròn (`1e-8` · `0.001` · `0.5` · `2.5` · `10`), không bao giờ là
     một con số 6 chữ số lẻ.
 
+    ⚠ VÀ PHẢI VỨT RÁC FLOAT TRƯỚC KHI LẤY MIN. Hai giá lẽ ra bằng nhau mà lệch nhau
+    `1,4e-14` (chuyện thường gặp khi giá đi qua một phép tính nào đó) sẽ thành "bước
+    giá" — đúng ca đã xảy ra ngay lần chạy thử đầu tiên của bộ chạy, và nó hỏng LẶNG:
+    tick `1,4e-14` khiến `lam_tron` không làm gì cả, `_so_le_cua` trả 8, và mọi báo giá
+    trôi tự do giữa các mức hợp lệ mà không ai thấy gì bất thường.
+
+    Ngưỡng `giá × 1e-9`: lớn hơn sai số float khoảng nghìn lần (ULP của một giá 65.000
+    là ~7e-12), nhỏ hơn bước giá thật của mọi sàn khoảng trăm lần. Rộng cả hai phía.
+
     Trả `nan` nếu không đủ dữ liệu — người gọi phải xử lý, chứ đừng nhận một tick bịa."""
     gom = [np.asarray(m, dtype="f8").ravel() for m in mang_gia if len(m)]
     if not gom:
@@ -127,7 +136,7 @@ def do_buoc_gia(*mang_gia):
     if len(g) < 2:
         return NAN
     d = np.diff(g)
-    d = d[d > 0]
+    d = d[d > abs(g).max() * 1e-9]
     return float(f"{d.min():.6g}") if len(d) else NAN
 
 
@@ -214,11 +223,15 @@ class Lenh:
     `hang_doi` là **ước lượng khối lượng đứng TRƯỚC ta** ở mức giá này. Nó là trái tim
     của cả file, và là con số duy nhất không quan sát được."""
 
-    __slots__ = ("ben", "gia", "kl", "con_lai", "hang_doi", "song_luc", "dat_luc")
+    __slots__ = ("ben", "gia", "gia_tho", "kl", "con_lai", "hang_doi",
+                 "song_luc", "dat_luc")
 
-    def __init__(self, ben, gia, kl, hang_doi, dat_luc, song_luc):
+    def __init__(self, ben, gia, kl, hang_doi, dat_luc, song_luc, gia_tho=None):
         self.ben = ben
         self.gia = gia
+        #: Giá chiến lược ĐÒI, trước khi làm tròn về tick. Giữ lại chỉ để `_dong_bo_mot`
+        #: nhận ra "vẫn đúng câu vừa nói" mà khỏi làm tròn lại — xem chỗ dùng.
+        self.gia_tho = gia if gia_tho is None else gia_tho
         self.kl = kl
         self.con_lai = kl
         self.hang_doi = hang_doi
@@ -295,10 +308,29 @@ class SoKhop:
                 self._go(ben, BI_HUY)
             return 0
 
-        gia = self.mo_hinh.lam_tron(gia, ben)
+        # ĐƯỜNG TẮT: vẫn đúng câu vừa nói lượt trước, và lệnh vẫn đang nằm đó.
+        #
+        # "Phát biểu lại y hệt là hành động RỖNG" vốn đã là ngữ nghĩa; chỗ này chỉ làm
+        # nó RỖNG THẬT — khỏi làm tròn, khỏi so, khỏi gì cả. Đáng làm vì sổ lệnh thật
+        # đổi KHỐI LƯỢNG thường xuyên hơn đổi GIÁ rất nhiều, nên phần lớn sự kiện sẽ
+        # sinh ra đúng cái báo giá cũ.
+        #
+        # ⚠ So `gia_tho` (giá THÔ chiến lược đòi) chứ không so giá đã làm tròn: hai giá
+        # thô khác nhau có thể tròn về cùng một mức, và lúc đó ta muốn đi đường tắt —
+        # nhưng phải chắc chắn là cùng một phép tính cho ra cùng một bit.
+        #
+        # Điều kiện "lệnh vẫn đang nằm đó" (`cu is not None`) là phần bắt buộc: nếu
+        # lượt trước bị post-only TỪ CHỐI thì không có lệnh nào, và sổ lệnh đã đổi
+        # (chính vì thế mới có sự kiện này) nên lần này có thể đặt được. Đi tắt lúc đó
+        # là bỏ luôn cơ hội đặt lại, vĩnh viễn.
+        if cu is not None and cu.gia_tho == gia and cu.kl == kl:
+            return 0
+
+        gia_tho, gia = gia, self.mo_hinh.lam_tron(gia, ben)
         if cu is not None and cu.gia == gia:
             # ---- CÙNG GIÁ: giữ vị trí hàng đợi, và đây là ca đáng giá nhất ----
             if kl <= cu.kl:
+                cu.gia_tho = gia_tho
                 # GIẢM khối lượng giữ được thứ tự ưu tiên ở gần như mọi sàn — lệnh vẫn
                 # là lệnh cũ, chỉ bớt số. Không đụng `hang_doi`.
                 cu.kl = kl
@@ -312,9 +344,9 @@ class SoKhop:
 
         if cu is not None:
             self._go(ben, BI_HUY)         # đổi giá = về cuối hàng, không có đường tắt
-        return 1 if self._dat(ben, t, gia, kl) else 0
+        return 1 if self._dat(ben, t, gia, kl, gia_tho) else 0
 
-    def _dat(self, ben, t, gia, kl):
+    def _dat(self, ben, t, gia, kl, gia_tho=None):
         """Đặt một lệnh POST-ONLY.
 
         ⚠ TỪ CHỐI chứ không âm thầm thành lệnh chủ động. Báo giá lấn qua phía đối diện
@@ -330,7 +362,7 @@ class SoKhop:
             return False
 
         hang_doi = self._hang_doi_ban_dau(ben, gia)
-        lenh = Lenh(ben, gia, kl, hang_doi, t, t + self.mo_hinh.tre_ra_ms)
+        lenh = Lenh(ben, gia, kl, hang_doi, t, t + self.mo_hinh.tre_ra_ms, gia_tho)
         if ben == MUA:
             self.mua = lenh
         else:

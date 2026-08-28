@@ -97,3 +97,61 @@ TOAN_HANG = [
               "không' (spread rộng bất thường, độ trễ vọt) là chuyện khác, sẽ có toán "
               "hạng riêng — gộp hai thứ đó là mất khả năng phân biệt mù với loạn."},
 ]
+
+
+# ---------------------------------------------------------------------------
+# CÁCH TÍNH — mỗi toán hạng khai công thức của CHÍNH NÓ
+# ---------------------------------------------------------------------------
+#
+# ⚠ Bảng này phải nằm ở ĐÂY, cạnh chỗ khai toán hạng, chứ không nằm trong bộ chạy.
+#
+# Bộ chạy mà tự viết cứng tám công thức thì hợp đồng "thả một module vào `kho.MODULE`
+# là xong" gãy ngay: thêm `microprice` vào danh mục sẽ cho ra một dòng dropdown chọn
+# được, vẽ được lên hộp, soát tĩnh không kêu — mà bộ chạy không biết tính. Nó sẽ nổ
+# giữa lúc backtest, hoặc tệ hơn là lặng lẽ trả 0.
+#
+# `kho/__init__.py` soát ngay lúc import: khai một toán hạng mà quên công thức thì nổ
+# tại chỗ, cùng loại bảo vệ với `_soat_trung`.
+#
+# Tham số `nh` là NHÌN — ảnh chụp thị trường + sổ của ta tại một thời điểm. Duck typing
+# cố ý: module kho không được import bộ chạy, nếu không thì `kho/` hết là một danh mục
+# thuần và bắt đầu phụ thuộc ngược lên tầng trên.
+
+def _bid(nh):
+    return nh.bid
+
+
+def _ask(nh):
+    return nh.ask
+
+
+def _bid_kl(nh):
+    return nh.bid_kl
+
+
+def _ask_kl(nh):
+    return nh.ask_kl
+
+
+def _mid(nh):
+    # `* 0.5` chứ không `/ 2`: nhân nhanh hơn chia, và hàm này chạy mười triệu lần/ngày.
+    return (nh.bid + nh.ask) * 0.5
+
+
+def _spread(nh):
+    return nh.ask - nh.bid
+
+
+def _ton_kho(nh):
+    return nh.ton_kho
+
+
+def _co_so(nh):
+    return nh.co_so
+
+
+#: khoá → hàm tính. Khoá phải khớp CHÍNH XÁC với `TOAN_HANG` phía trên.
+TINH = {
+    "bid": _bid, "ask": _ask, "bid_kl": _bid_kl, "ask_kl": _ask_kl,
+    "mid": _mid, "spread": _spread, "ton_kho": _ton_kho, "co_so": _co_so,
+}

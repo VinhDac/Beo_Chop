@@ -230,6 +230,27 @@ export interface CaiDatNguon {
   giay_xa: number
 }
 
+/** Kết quả một lượt ▶ Test. Mọi con số do Python tính, JS không tính lại con nào. */
+export interface KetQuaTest {
+  bang: {
+    so_su_kien: number; so_luot: number; so_lan_khop: number; giay_chay: number
+    ton_kho: number; tien: number; gia_tri: number; phi_da_tra: number
+    so_dat: number; so_huy: number; so_tu_choi: number; giay_mu_co_lenh: number
+    /** Chỗ kết quả KHÔNG chắc — rỗng nghĩa là không có gì phải dè dặt. */
+    loi: string
+    /** Bốn giả định của mô hình khớp. Kết quả không được rời khỏi giả định của nó. */
+    gia_dinh: CaiDatKhop & { buoc_gia: number }
+    [k: string]: unknown
+  }
+  /** `[thời_điểm_ms, giá_trị]`, đã lấy mẫu ~1 điểm/giây. */
+  duong_von: [number, number][]
+  khop: { t: number; ben: number; gia: number; kl: number; phi: number
+          ton_kho: number }[]
+  symbol: string
+  tu_ngay: string
+  den_ngay: string
+}
+
 /** BỐN núm vặn của mô hình khớp, và BA TRONG BỐN là thứ dữ liệu L1 không bao giờ trả
  *  lời được. Mặt kia của `CaiDatNguon`: ở đó luật là *đo được thì đừng hỏi*, ở đây là
  *  *không đo được thì đừng giấu*. Xem `cat_studio/khop_lenh.MoHinh`. */
