@@ -57,6 +57,39 @@ def _ok(v=None, **them):
     return ra
 
 
+def _don_khop(moi, cu):
+    """Dọn bốn núm vặn của mô hình khớp — số hỏng thì GIỮ giá trị cũ, không rơi về 0.
+
+    ⚠ Rơi về 0 ở đây là im lặng đổi giả định: `phi_maker_bps = 0` biến gần như mọi
+    chiến lược thành có lãi, `tre_ra_ms = 0` cho lệnh sống tức thì. Một ô đang gõ dở
+    không được phép làm chuyện đó — giữ số cũ là lựa chọn duy nhất không nói dối.
+
+    Kẹp `[0, 1]` cho hai tỉ lệ thì `khop_lenh.MoHinh` cũng làm, nhưng làm cả ở đây để
+    con số LƯU XUỐNG ĐĨA đã sạch — nếu không, mở lại hộp thoại sẽ thấy `5` trong một ô
+    mà lõi đang hiểu là `1`, và hai bên nói khác nhau."""
+    ra = dict(cu)
+    for k in ("phi_maker_bps", "tre_ra_ms", "phan_huy_truoc", "phan_muc_sau"):
+        try:
+            v = float(moi[k])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if v != v:                                   # NaN
+            continue
+        if k.startswith("phan_"):
+            ra[k] = min(1.0, max(0.0, v))            # tỉ lệ: [0, 1]
+        elif k == "tre_ra_ms":
+            ra[k] = max(0.0, v)                      # thời gian không âm được
+        else:
+            # ⚠ PHÍ MAKER ÂM LÀ HỢP LỆ — đó là REBATE, sàn TRẢ cho ta vì đã cung cấp
+            # thanh khoản. Không phải chuyện lý thuyết: đây đúng là thứ làm cho market
+            # making có lãi được trên những symbol mà phí chuẩn đã khoá cửa. Nó không
+            # có ở hạng VIP thường, phải vào chương trình Market Maker của sàn.
+            #
+            # Bản đầu kẹp về 0 và thế là lặng lẽ xoá mất đúng ca đáng quan tâm nhất.
+            ra[k] = v
+    return ra
+
+
 def _loi(chu):
     """Thất bại CÓ LÝ DO ĐỌC ĐƯỢC — khác với ngoại lệ. Cùng hình dạng với `_bat_loi` trả
     về, nên phía JS chỉ có một chỗ để kiểm tra."""
@@ -724,6 +757,20 @@ class Api(NenCuaSo):
             cd["symbol"] = str(s["symbol"]).strip().upper()
         if (s or {}).get("accent"):
             cd["accent"] = str(s["accent"])
+        if isinstance((s or {}).get("khop"), dict):
+            cd["khop"] = _don_khop(s["khop"], cd.get("khop") or {})
+        self._cai_dat = core.save_settings(cd)
+        return _ok(self._cai_dat)
+
+    @_bat_loi
+    def khop_mac_dinh(self):
+        """Trả bốn núm vặn của mô hình khớp về mặc định BI QUAN.
+
+        Có nút riêng vì đây là bộ giá trị người dùng cần quay về được: vặn thử ba mức
+        `phan_huy_truoc` là việc NÊN làm thường xuyên, mà quên vặn về thì mọi kết quả
+        sau đó lạc quan hơn sự thật và không có gì nhắc."""
+        cd = dict(self._cai_dat)
+        cd["khop"] = json.loads(json.dumps(luu_tru.CAI_DAT_MAC_DINH["khop"]))
         self._cai_dat = core.save_settings(cd)
         return _ok(self._cai_dat)
 

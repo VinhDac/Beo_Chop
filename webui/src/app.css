@@ -778,6 +778,38 @@ select.o { cursor: pointer; }
   border-left-color: var(--err);
 }
 
+/* ---------------- Tab MÔ HÌNH KHỚP trong Cài đặt ----------------
+   Bốn ô, và mỗi ô mang một đoạn giải thích DÀI hơn cả cái ô. Cố ý: một con số như
+   "0,5" không chỉnh được nếu không biết vặn sai về phía nào thì mất tiền. */
+.khop-panel { display: flex; flex-direction: column; gap: 2px; }
+.k-o { padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+.k-o:last-of-type { border-bottom: none; }
+.k-o > .hang { margin-bottom: 4px; }
+.k-nhan { flex: 0 0 172px; }
+.k-mo-ta {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+  padding-left: 178px;
+}
+.k-mo-ta b { color: var(--text); font-weight: 600; }
+.k-mo-ta code { font: 11px var(--mono); color: var(--accent); }
+
+/* Nhãn ĐO ĐƯỢC / PHẢI ĐOÁN — thứ quan trọng nhất trên màn hình này. Nó trả lời câu
+   "con số này đáng tin tới đâu", mà mọi con số khác trong app đều không cần trả lời. */
+.k-the {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 10px;
+  letter-spacing: .04em;
+  background: var(--raised);
+  color: var(--dim);
+  border: 1px solid var(--border);
+}
+.k-the.doan { color: var(--warn); border-color: var(--warn); }
+
 /* Chỗ trống có lời giải thích — mọi bảng/danh sách rỗng dùng chung. */
 .cd-rong { color: var(--dim); font-size: 11.5px; font-style: italic; }
 

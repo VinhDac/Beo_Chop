@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { py } from '../api'
-import type { Bootstrap } from '../types'
+import type { Bootstrap, CaiDatKhop } from '../types'
+import KhopPanel from './KhopPanel'
 import Modal from './Modal'
 import NguonPanel from './NguonPanel'
 
-/** CÀI ĐẶT của app — hai tab: **Chung** và **Nguồn dữ liệu**.
+/** CÀI ĐẶT của app — ba tab: **Chung** · **Nguồn dữ liệu** · **Mô hình khớp**.
  *
  * ⚠ MỤC "STRATEGY TEST" ĐÃ ĐI HẲN (đợt 2 của lần dọn sang HFT market maker). Nó mang
  * bảng nguồn nến M1, nút kiểm kết nối MT5, và năm ô điều kiện chạy backtest — spread
@@ -14,10 +15,13 @@ import NguonPanel from './NguonPanel'
  * Tab **Nguồn dữ liệu** thay chỗ ấy — nhưng nói về thứ khác hẳn: không phải "tải bao
  * nhiêu nến" mà "bộ ghi còn sống không, dữ liệu dày lên tới đâu". Xem `NguonPanel`.
  *
- * ⚠ CHÂN HỘP THOẠI ĐỔI THEO TAB, và đó là chủ ý. Tab Chung có Huỷ/Lưu vì nó sửa một
- * bản nháp; tab Nguồn thì mọi nút đều tác động NGAY (bật ghi, dừng, xoá) nên một cái
- * nút "Lưu" ở đó là lời hứa hão — không có gì để lưu, và nó gợi ý rằng bấm Huỷ sẽ
- * hoàn tác được cái vừa xoá.
+ * Tab **Mô hình khớp** là MẶT KIA của tab Nguồn, và cặp đôi ấy là một ý duy nhất:
+ * *đo được thì đừng hỏi · không đo được thì đừng giấu*. Xem `KhopPanel`.
+ *
+ * ⚠ CHÂN HỘP THOẠI ĐỔI THEO TAB, và đó là chủ ý. Chung và Mô hình khớp có Huỷ/Lưu vì
+ * chúng sửa một bản nháp; tab Nguồn thì mọi nút đều tác động NGAY (bật ghi, dừng, xoá)
+ * nên một cái nút "Lưu" ở đó là lời hứa hão — không có gì để lưu, và nó gợi ý rằng bấm
+ * Huỷ sẽ hoàn tác được cái vừa xoá.
  */
 export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }: {
   boot: Bootstrap
@@ -27,16 +31,19 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   onDong: () => void
 }) {
   const s = boot.settings as Record<string, any>
-  const [tab, setTab] = useState<'chung' | 'nguon'>('chung')
+  const [tab, setTab] = useState<'chung' | 'nguon' | 'khop'>('chung')
   const [symbol, setSymbol] = useState(String(s.symbol ?? 'XAUUSD'))
   const [accent, setAccent] = useState(String(s.accent ?? '#ffa657'))
+  const [khop, setKhop] = useState<CaiDatKhop>(() => ({ ...(s.khop as CaiDatKhop) }))
   const [loiLuu, setLoiLuu] = useState('')
+  /* Tab nào sửa một BẢN NHÁP thì có Huỷ/Lưu; tab Nguồn tác động ngay nên chỉ có Đóng. */
+  const banNhap = tab !== 'nguon'
 
   async function luu() {
     setLoiLuu('')
     // ⚠ PHẢI xem kết quả. Trước đây bỏ qua rồi `onDong()` vô điều kiện, nên đĩa đầy hay
     // mất quyền ghi thì hộp thoại vẫn đóng như đã lưu xong — im lặng, không dấu vết.
-    const r = await py.save_settings({ symbol, accent })
+    const r = await py.save_settings({ symbol, accent, khop })
     if (!r.ok) return setLoiLuu(r.error ?? 'không lưu được cài đặt')
     // ⚠ NẠP LẠI `boot` rồi mới đóng. `boot` vốn chỉ nạp MỘT LẦN lúc mở app, mà hộp thoại
     // này lấy giá trị ban đầu từ đó — nên lưu xong, mở lại là thấy y nguyên số CŨ, và
@@ -46,8 +53,8 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   }
 
   return (
-    <Modal title="Cài đặt" width={tab === 'nguon' ? 740 : 620} onClose={onDong}
-           footer={tab === 'chung' ? (
+    <Modal title="Cài đặt" width={tab === 'chung' ? 620 : 740} onClose={onDong}
+           footer={banNhap ? (
              <>
                {loiLuu && <span className="loi-ghi">{loiLuu}</span>}
                <button className="nut" onClick={onDong}>Huỷ</button>
@@ -62,6 +69,8 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
                 onClick={() => setTab('chung')}>Chung</button>
         <button className={'tab' + (tab === 'nguon' ? ' dang' : '')}
                 onClick={() => setTab('nguon')}>Nguồn dữ liệu</button>
+        <button className={'tab' + (tab === 'khop' ? ' dang' : '')}
+                onClick={() => setTab('khop')}>Mô hình khớp</button>
       </div>
 
       {tab === 'chung' ? (
@@ -91,7 +100,9 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
             repo. Phiên bản {boot.phien_ban} · {boot.app_dir}
           </div>
         </>
-      ) : <NguonPanel />}
+      ) : tab === 'nguon' ? <NguonPanel /> : (
+        <KhopPanel khop={khop} dat={(k, v) => setKhop(x => ({ ...x, [k]: v }))} />
+      )}
     </Modal>
   )
 }

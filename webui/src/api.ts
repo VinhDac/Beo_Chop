@@ -103,6 +103,8 @@ export const py = {
   // --- cài đặt ---
   save_settings: (s: Record<string, unknown>) =>
     goi<Record<string, unknown>>('save_settings', s),
+  /** Trả bốn núm vặn của mô hình khớp về mặc định BI QUAN. */
+  khop_mac_dinh: () => goi<Record<string, unknown>>('khop_mac_dinh'),
   save_ui: (state: Record<string, unknown>) =>
     goi<Record<string, unknown>>('save_ui', state),
   // ⚠ `save_test_settings` ĐÃ BỎ cùng mục "Strategy Test" trong Cài đặt — nó lưu

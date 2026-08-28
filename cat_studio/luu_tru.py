@@ -68,6 +68,39 @@ CAI_DAT_MAC_DINH = {
         # Xả đệm xuống đĩa mỗi mấy giây. Đây là câu "mất điện thì mất bao nhiêu".
         "giay_xa": 2.0,
     },
+
+    # MÔ HÌNH KHỚP — bốn con số, và BA TRONG BỐN là thứ dữ liệu không bao giờ trả lời
+    # được. Chúng phải nằm ở đây, nhìn thấy được, vặn được, in kèm mọi kết quả.
+    #
+    # Đây là chỗ khác hẳn khối `nguon` ngay trên. Ở đó luật là "đo được thì đừng hỏi".
+    # Ở đây luật là mặt kia của cùng đồng xu: **KHÔNG đo được thì đừng giấu.** Một giả
+    # định chôn thành hằng số trong `khop_lenh.py` vẫn quyết định toàn bộ bảng lãi lỗ,
+    # chỉ khác là không ai biết nó tồn tại để mà nghi ngờ.
+    #
+    # Xem `cat_studio/khop_lenh.MoHinh` để biết từng con số nghĩa gì và vì sao mặc
+    # định lại chọn phía BI QUAN.
+    "khop": {
+        # Phí maker, tính bằng bps. 2,0 = 0,02% — biểu phí chuẩn của Binance/Bybit/OKX.
+        # Tra được ở biểu phí sàn nhưng phụ thuộc hạng VIP và chương trình Market Maker
+        # nên vẫn phải khai. So với spread bằng `tools/do_spread.py`.
+        "phi_maker_bps": 2.0,
+
+        # Từ lúc chiến lược quyết tới lúc lệnh NẰM ở sàn, tính bằng mili-giây. KHÔNG đo
+        # được nếu chưa từng gửi lệnh thật — đây là ước lượng, và nó ăn thẳng vào kết
+        # quả: mọi thứ xảy ra trong quãng đó là cơ hội ta không với tới.
+        "tre_ra_ms": 5.0,
+
+        # ⚠ NÚM QUAN TRỌNG NHẤT CỦA CẢ BACKTEST.
+        # Khi khối lượng ở mức của ta biến mất mà không có lệnh khớp nào giải thích,
+        # tức người ta HUỶ — họ đứng TRƯỚC hay SAU ta?
+        #   0,0 bi quan (mặc định) · 0,5 rải đều · 1,0 lạc quan
+        # Chạy lại với cả ba rồi nhìn khoảng cách: đó CHÍNH LÀ phần backtest không biết.
+        "phan_huy_truoc": 0.0,
+
+        # Treo SÂU HƠN đỉnh thì bao nhiêu phần của mức đó nằm trước ta? `bookTicker`
+        # không thấy tầng dưới nên đây là con số mượn tạm. 1,0 = bi quan.
+        "phan_muc_sau": 1.0,
+    },
 }
 
 

@@ -45,6 +45,7 @@ BAI = [
     ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
     ("test_nguon_tick.py", "Nguồn tick — định dạng, mất gói, sổ lỗ hổng (không chạm mạng)"),
     ("test_phat_lai.py", "Phát lại — trục thời gian là `t_ta`, lỗ hổng là SỰ KIỆN"),
+    ("test_khop_lenh.py", "Mô hình khớp — chạm ≠ khớp · hàng đợi · giá của việc requote"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
 ]

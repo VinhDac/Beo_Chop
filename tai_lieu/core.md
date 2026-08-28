@@ -53,10 +53,11 @@ Ba tầng, mỗi tầng biết đúng việc của mình. Đây là thứ làm a
 ```
 core.py          lõi — đồ thị, đánh số, soát lỗi. Không phụ thuộc giao diện.
 kho/             DANH MỤC mọi thứ app tính được, chia theo NGUỒN
-  nen_tang.py      giá · thời gian · tài khoản · lệnh này   (không thuộc engine nào)
-  chi_bao.py       ATR · MA · Donchian · Volume MA          (chỉ báo phổ thông)
-  engine_d02.py    atr_bps · bảng vùng nén                  (ý tưởng riêng của D_02)
-so_lenh.py       bảng `lệnh` + `vùng nén`, id của CHÍNH TA
+  nen_tang.py      sổ lệnh · tồn kho · sức khoẻ dữ liệu     (không thuộc engine nào)
+nguon_tick.py    dữ liệu tick nằm ở đâu, hình dạng gì, thủng chỗ nào
+phat_lai.py      trộn hai luồng thành MỘT dòng sự kiện, trục thời gian là `t_ta`
+khop_lenh.py     lệnh THỤ ĐỘNG của ta khớp lúc nào — hàng đợi, độ trễ, giá của requote
+do_thi_truong.py quét spread ÷ (2 × phí maker) trên bốn sàn
 luu_tru.py       MỘT chỗ duy nhất biết file nằm ở đâu
 api.py           bề mặt DUY NHẤT giao diện gọi tới   (JS → api.py → core.py)
 app_web.py       khởi động cửa sổ (pywebview + WebView2)
@@ -64,16 +65,47 @@ khung_cua_so.py  vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo / gi
 webui/           React + TypeScript + React Flow (@xyflow/react)
 ```
 
+> ⚠ `chi_bao.py` · `engine_d02.py` · `so_lenh.py` đã đi ở đợt 3 cùng thế giới nến. Bốn
+> file `nguon_tick` · `phat_lai` · `khop_lenh` · `do_thi_truong` thay chỗ, và chúng
+> **không phải bản đổi tên** — chúng trả lời những câu hỏi mà bản cũ không có.
+
 ### Vì sao `kho/` tách khỏi `core.py`
 
-`so_nen_nen` **chỉ có nghĩa khi engine D_02 đang nạp**. Để nó chung một danh sách phẳng
-với `close` là nói dối về việc thứ gì luôn có, thứ gì đến từ một chiến lược cụ thể.
+Một toán hạng như `microprice` **chỉ có nghĩa khi module vi cấu trúc đang nạp**. Để nó
+chung một danh sách phẳng với `bid` là nói dối về việc thứ gì luôn có, thứ gì đến từ
+một chiến lược cụ thể.
 
 - Thêm một chiến lược = thêm **một file** vào `kho/`, không sờ `core.py`.
 - Hộp thoại **Kho** (menu File) đọc thẳng `kho.danh_muc()` — không có danh sách nào
   chép tay, nên nó không thể nói khác thực tế.
 - **Trùng khoá giữa hai module là lỗi CHẾT NGƯỜI** (hai engine cùng khai `atr` với hai
   nghĩa) → `kho/__init__.py` nổ ngay lúc import, không để nó âm thầm.
+
+### ⭐ Vì sao `khop_lenh.py` đứng riêng, và vì sao nó là file khó nhất
+
+Nó trả lời một câu mà **dữ liệu không chứa câu trả lời**: *lệnh của ta xếp thứ mấy trong
+hàng đợi?* Đỉnh sổ lệnh chỉ cho biết tổng khối lượng, không cho biết nó gồm những lệnh
+nào và khi giảm thì phần giảm nằm trước hay sau ta.
+
+Nên nó tách đôi rành mạch — phần **suy ra được** và phần **phải đoán** — rồi gom cả phần
+đoán vào đúng một lớp `MoHinh` (bốn con số), đặt ở Cài đặt, in kèm mọi kết quả.
+
+> **`nguon` và `khop` là hai mặt của một luật.** Tab Nguồn dữ liệu theo *"đo được thì
+> đừng hỏi"* — độ trễ, spread, lệch đồng hồ, bước giá đều app tự đo, hỏi là mời gõ sai
+> rồi tin nó. Tab Mô hình khớp theo mặt kia: ***không đo được thì đừng giấu.*** Một giả
+> định chôn thành hằng số vẫn quyết định toàn bộ bảng lãi lỗ, chỉ khác là không ai biết
+> nó tồn tại để mà nghi ngờ.
+
+Ba điều mô hình này làm mà "chạm là khớp" của D_02 không làm được, và cả ba đều là chỗ
+lãi khống chui vào:
+
+1. **Đổi báo giá = về CUỐI hàng.** Phát biểu lại Y HỆT thì không đụng gì. Đây chính là
+   thứ làm ngữ pháp *"một lượt phát biểu = trạng thái đầy đủ"* (§6.0) chạy được: nói lại
+   cùng một câu là một hành động RỖNG, không phải một lần đặt lại lệnh.
+2. **Khớp NGHỊCH.** Ask tụt xuống dưới giá mua của ta mà không có lệnh khớp nào — trong
+   sàn thật hai lệnh ấy đã khớp nhau rồi. Bỏ qua ca này là vẽ ra một sự an toàn không có
+   thật, đúng chỗ thua lỗ thật sự xảy ra.
+3. **Post-only TỪ CHỐI**, không âm thầm thành lệnh chủ động ăn phí taker.
 
 ### Vì sao `so_lenh.py` dùng id của ta
 
@@ -472,7 +504,8 @@ mất, và hộp vẫn nói rõ hậu quả (`→ rút hết báo giá`) nên kh
 **Động từ thứ ba CÒN THIẾU và nó có thật:** tồn kho chạm hạn mức CỨNG thì phải đóng
 chủ động bằng lệnh taker, không chờ ai lấy hàng. Nó không nhét vào ngữ pháp số hạng
 được — một số hạng *góp vào* báo giá, còn cái này *vứt* báo giá đi và bắn một lệnh ăn
-ngay. Xem `o_cam_trong.md` §12; phải đợi §3 mô hình khớp.
+ngay — và cũng là một đường đi khác hẳn với `khop_lenh.py`: khớp ngay, ăn qua
+nhiều mức, trả phí taker. Xem `o_cam_trong.md` §11; nên làm cùng lúc với bộ chạy.
 
 #### Bốn trường của một số hạng
 

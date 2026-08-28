@@ -193,23 +193,7 @@ thôi là "sức khoẻ", nó thành tham số của chiến lược.
 
 ---
 
-## 3. Mô hình khớp
-
-**Nằm ở đâu** — không còn file nào.
-
-**Trước cắm gì** — `khop_lenh.py` (220 dòng): biến mỗi nến M1 thành **đường đi 4 điểm**
-(tăng: O→L→H→C, giảm: O→H→L→C) rồi mọi thứ thành một luật *"giá chạm mức X ở bước k"* —
-lệnh chờ khớp, SL bị chạm, TP bị chạm, hết. Không còn ca đặc biệt "SL và TP cùng nến".
-Cộng phép quy mọi mức về Bid một lần, và luật gap (chạm ở bước 0 = khớp tại giá mở cửa).
-
-**Phải cắm gì** — mô hình khớp cho lệnh **thụ động**, và đây là chỗ khác bản chất so với
-bản cũ: với lệnh limit thì **chạm ≠ khớp**. Giá phải đi xuyên qua, và còn phụ thuộc vị
-trí trong hàng đợi. Bê nguyên luật "chạm là khớp" sang market making sẽ cho lãi khống
-một cách có hệ thống — đúng loại lỗi mà cả file cũ được viết ra để tránh.
-
----
-
-## 4. Bộ chạy
+## 3. Bộ chạy
 
 **Nằm ở đâu** — `api.Api.mo_tester` trả `{ok: false, "Chưa có bộ chạy."}`, sau khi vẫn
 soát sơ đồ tử tế. Nút ▶ Chạy còn nguyên.
@@ -230,7 +214,7 @@ Bốn điều trên không dính sàn nào. Chép lại được gần nguyên v
 
 ---
 
-## 5. Cửa sổ Strategy Tester
+## 4. Cửa sổ Strategy Tester
 
 **Nằm ở đâu** — không còn. `webui/src/main.tsx` cũng đã bỏ nhánh rẽ `?tester=1`.
 
@@ -244,7 +228,7 @@ quote tới mid, và chất lượng khớp (bị chọn ngược bao nhiêu l�
 
 ---
 
-## 6. Cửa sổ Live
+## 5. Cửa sổ Live
 
 **Nằm ở đâu** — không còn.
 
@@ -257,7 +241,7 @@ dở và một kết nối tiêu tiền thật. Không có đường tắt — �
 
 ---
 
-## 7. Soi một lượt trên sơ đồ
+## 6. Soi một lượt trên sơ đồ
 
 **Nằm ở đâu** — `webui/src/App.tsx`, chỗ khối `SOI MỘT LƯỢT` từng đứng (giờ là chú
 thích). Đường ống còn sống nửa dưới: `api.Api._ban` và `window.__su_kien` trong
@@ -277,7 +261,7 @@ Lớp CSS của nó (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-tr
 
 ---
 
-## 8. Điều kiện chạy trong Cài đặt
+## 7. Điều kiện chạy trong Cài đặt
 
 **Nằm ở đâu** — `webui/src/components/SettingsDialog.tsx` giờ chỉ còn mã mặc định và
 màu nhấn. Khoá `test` trong `luu_tru.CAI_DAT_MAC_DINH` và hàm `api.save_test_settings`
@@ -297,7 +281,7 @@ nghĩa được sau khi chọn sàn.
 
 ---
 
-## 9. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
+## 8. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
 
 Bộ test đi từ **4.213 dòng xuống 663**, và phần lớn là đúng — một bài kiểm không còn
 đối tượng thì là rác, không phải độ phủ. Nhưng **ba nhóm dưới đây kiểm CƠ CHẾ chứ không
@@ -322,7 +306,7 @@ lại ngay.
 
 ---
 
-## 10. Bảng tham số — hằng số CÓ TÊN
+## 9. Bảng tham số — hằng số CÓ TÊN
 
 **Nằm ở đâu** — `core.normalize_process` giữ khoá `tham_so` và luôn trả `[]`;
 `api.bootstrap` không gửi gì; `types.ts` khai `tham_so: never[]`.
@@ -350,7 +334,7 @@ sớm muộn hai bên hiểu khác nhau, và cái lệch thì im lặng.
 
 ---
 
-## 11. Bốn toán hạng còn thiếu của market maker
+## 10. Bốn toán hạng còn thiếu của market maker
 
 **Nằm ở đâu** — `cat_studio/kho/nen_tang.py` khai tám toán hạng; docstring của nó liệt
 kê bốn cái tiếp theo.
@@ -373,7 +357,7 @@ Cả bốn đều là **module mới thả vào `kho.MODULE`**, không sửa `co
 
 ---
 
-## 12. Động từ thứ ba — LỆNH CHỦ ĐỘNG
+## 11. Động từ thứ ba — LỆNH CHỦ ĐỘNG
 
 **Nằm ở đâu** — `core.ACTION_TYPES` có đúng hai động từ: `check_cond` · `so_hang`.
 
@@ -393,12 +377,16 @@ lệnh thị trường mới cắt được.
 
 Nó **không nhét vào ngữ pháp số hạng được**, và đó là lý do phải ghi ra: một số hạng
 góp vào báo giá, còn cái này VỨT báo giá đi và bắn một lệnh ăn ngay. Hai việc khác
-loại. Chờ tới khi có §3 (mô hình khớp) mới làm được, vì trước đó chưa có gì mô phỏng
-nổi cái giá phải trả cho một lệnh taker.
+loại.
+
+Mô hình khớp (`khop_lenh.py`) đã có và nó chỉ mô phỏng lệnh THỤ ĐỘNG — một lệnh taker
+là đường đi khác hẳn: khớp ngay, ăn qua nhiều mức, trả phí taker chứ không phải phí
+maker. Nên chờ **bộ chạy (§3)** rồi làm cả hai cùng lúc, lúc đó mới đo được cái giá
+phải trả và mới biết nó có đáng không.
 
 ---
 
-## 13. Sổ lệnh
+## 12. Sổ lệnh
 
 **Nằm ở đâu** — không còn file nào.
 
@@ -420,7 +408,7 @@ bằng mili-giây, và theo dõi từng phía bid/ask riêng.
 
 ---
 
-## 14. Nhật ký và lịch sử
+## 13. Nhật ký và lịch sử
 
 **Nằm ở đâu** — không còn file nào. Thư mục `du_lieu/nhat_ky/` vẫn được liệt kê trong
 hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
@@ -446,7 +434,7 @@ kết quả: nhờ vậy chạy lại được, và so được hai lần chạy
 
 ---
 
-## 15. Nhật ký thiết kế đã cắt khỏi `core.md`
+## 14. Nhật ký thiết kế đã cắt khỏi `core.md`
 
 **Nằm ở đâu** — `tai_lieu/core.md`, mỗi chỗ cắt để lại một dòng `<!-- ĐÃ CẮT (đợt 4): …
 -->` nói rõ mất gì.
@@ -475,34 +463,41 @@ một §12 mới cho cửa sổ chạy, và một §7 mới cho chiến lược 
 
 ## Trạng thái — đã cắm được gì
 
-**Bốn đợt dọn xong.** Từ đó đã cắm được ba mảng, và mỗi mảng xoá vài mục khỏi sổ này:
+**Bốn đợt dọn xong.** Từ đó đã cắm được bốn mảng, và mỗi mảng xoá vài mục khỏi sổ này:
 
 | đã cắm | thay cho mục nào |
 |---|---|
-| **§1 nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn §1 (còn lại: xem cuối §1) |
-| **kho `nen_tang`** — 8 toán hạng của market maker | §10 cũ *Kho toán hạng* |
-| **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu 7 khối | §11 cũ *Từ vựng của khối hành động* |
+| **nguồn tick** — bộ ghi 24/7, lớp phát lại, lệch đồng hồ, bảng điều khiển trong app | phần lớn §1 (còn lại: xem cuối §1) |
+| **kho `nen_tang`** — 8 toán hạng của market maker | *Kho toán hạng* |
+| **ngữ pháp báo giá** — 2 động từ · đích/phép/lượng/khi · luật kiểu · sơ đồ mẫu 7 khối | *Từ vựng của khối hành động* |
+| **mô hình khớp** — `khop_lenh.py` + tab Cài đặt · 58 phép kiểm | *Mô hình khớp* |
 
-Repo giờ **vẽ được một chiến lược market maker và soát được nó**, nhưng chưa CHẠY được
-nó: không có mô hình khớp, không có bộ chạy, không có kết nối sàn. Sơ đồ mẫu là một
-phát biểu đúng cú pháp mà chưa ai đọc ra số.
+Repo giờ **vẽ được một chiến lược market maker, soát được nó, và biết một lệnh thụ động
+khớp lúc nào** — nhưng chưa có gì nối ba thứ đó lại. Sơ đồ mẫu vẫn là một phát biểu đúng
+cú pháp mà chưa ai đọc ra số.
 
 ### Thứ tự cắm tiếp
 
-Ba mục đầu **phụ thuộc nhau chặt**, phải theo đúng thứ tự:
+**§3 bộ chạy là mảnh ghép còn thiếu, và giờ nó chỉ còn là dây nối.** Hai đầu đã xong:
+`PhatLai` phát sự kiện, `SoKhop` biết khớp hay không. Bộ chạy làm bốn việc mỗi sự kiện —
+chạy sơ đồ, chốt báo giá, gọi `dong_bo`, gọi `buoc` — rồi trả tồn kho ngược lại cho toán
+hạng `ton_kho` ở lượt sau. Chính vòng phản hồi đó là chỗ **kiểm chứng ngữ pháp số hạng**:
+nếu chiến lược sơ cấp chạy ra số hợp lý thì mô hình hai tầng đứng vững, còn không thì
+biết ngay là thiếu gì.
 
-1. **§3 mô hình khớp** — trước cả bộ chạy. Nó trả lời câu hỏi khó nhất và cũng là câu
-   duy nhất phân biệt backtest thật với ảo tưởng: *quote của ta xếp thứ mấy trong hàng
-   đợi?* Dữ liệu L1 không bao giờ nhìn thấy điều đó, nên nó phải là một **giả định
-   chỉnh được**, không phải một hằng số giấu trong mã.
-2. **§4 bộ chạy** — đọc `PhatLai`, chạy sơ đồ mỗi sự kiện, chốt báo giá cuối lượt, hỏi
-   §3 xem có khớp không. Ở đây mới biết được ngữ pháp số hạng có đủ dùng thật không.
-3. **§2 kết nối sàn** — sau cùng, vì backtest phải sạch trước khi có gì đáng chạy thật.
+Ba việc phải làm trong đó, không cái nào bỏ được:
 
-Rồi mới tới: §13 sổ lệnh → §14 nhật ký → §5/§6 hai cửa sổ → §7 soi lượt → §8 cài đặt.
+* **Đo bước giá một lần** khi nạp dữ liệu (`khop_lenh.do_buoc_gia`) — hiện chưa ai gọi.
+* **`t_ta` là trục thời gian**, không phải `T`. Lớp phát lại đã đúng; bộ chạy chỉ cần
+  không tự ý đổi.
+* **Kết quả in kèm bốn giả định.** `SoKhop.tom_tat()` đã mang sẵn — đừng bỏ đi khi vẽ
+  bảng.
 
-**§10 bảng tham số · §11 bốn toán hạng · §12 động từ taker** thì độc lập, cắm lúc nào
-cũng được — nhưng §12 phải đợi §3, vì trước đó không có gì mô phỏng nổi cái giá phải
-trả cho một lệnh ăn ngay.
+Sau đó: §2 kết nối sàn (backtest phải sạch trước khi có gì đáng chạy thật) → §12 sổ lệnh
+→ §13 nhật ký → §4/§5 hai cửa sổ → §6 soi lượt → §7 cài đặt.
+
+**§9 bảng tham số · §10 bốn toán hạng · §11 động từ taker** thì độc lập, cắm lúc nào
+cũng được — riêng §11 nên đợi bộ chạy, vì trước đó chưa đo được cái giá phải trả cho một
+lệnh ăn ngay.
 
 Mỗi ổ cắm xong thì **xoá khỏi sổ này**, không đánh dấu ✔. Sổ cạn tới rỗng là xong.

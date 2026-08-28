@@ -230,6 +230,20 @@ export interface CaiDatNguon {
   giay_xa: number
 }
 
+/** BỐN núm vặn của mô hình khớp, và BA TRONG BỐN là thứ dữ liệu L1 không bao giờ trả
+ *  lời được. Mặt kia của `CaiDatNguon`: ở đó luật là *đo được thì đừng hỏi*, ở đây là
+ *  *không đo được thì đừng giấu*. Xem `cat_studio/khop_lenh.MoHinh`. */
+export interface CaiDatKhop {
+  /** bps. ÂM = rebate — sàn trả cho ta (chương trình Market Maker, không phải VIP). */
+  phi_maker_bps: number
+  /** Từ lúc quyết tới lúc lệnh NẰM ở sàn. Không đo được nếu chưa gửi lệnh thật. */
+  tre_ra_ms: number
+  /** 0 bi quan · 1 lạc quan. Núm quan trọng nhất của cả backtest. */
+  phan_huy_truoc: number
+  /** Treo sâu hơn đỉnh thì bao nhiêu phần của mức đó nằm trước ta. */
+  phan_muc_sau: number
+}
+
 /** Một dòng của bảng `spread ÷ (2 × phí maker)`. Do Python đo, JS không tính lại. */
 export interface DongThiTruong {
   san: string
