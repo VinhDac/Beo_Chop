@@ -8,45 +8,18 @@ import './theme.css'
 import './app.css'
 import App from './App'
 
-/** Rẽ trang bằng `?tester=1` — KHÔNG thêm entry thứ hai cho Vite.
+/* ⚠ NHÁNH RẼ `?tester=1` / `?live=1` ĐÃ ĐI (đợt 2). Tấm bia dựng ở đợt 1 chỉ đúng
+ * chừng nào `api.py` còn MỞ cửa sổ thứ hai — giờ `mo_tester` và `mo_live` trả thẳng
+ * một câu lỗi và không tạo cửa sổ nào, nên không url nào mang được hai tham số đó nữa.
+ * Giữ lại là để một nhánh không bao giờ chạy tới, tức đúng loại mã làm người đọc sau
+ * tưởng còn có cửa sổ thứ hai ở đâu đó.
  *
- * `api.py` gắn sẵn `?tester=1` vào url cửa sổ Strategy Tester từ lâu, nhưng trước đây
- * KHÔNG chỗ nào đọc nó, nên cửa sổ thứ hai dựng lại y hệt trình soạn thảo — hai thanh
- * tiêu đề, hai ribbon, và mọi lời gọi `py.*` đều nhắm vào cửa sổ chính.
- *
- * Một dòng `if` ở đây rẻ hơn hẳn `build.rollupOptions.input`: một bundle, một `app.css`
- * toàn cục, dùng chung được `TitleBar` / `Modal` / `Icon` mà không phải tách gì. */
-const laTester = new URLSearchParams(location.search).get('tester') === '1'
-const laLive = new URLSearchParams(location.search).get('live') === '1'
-
-/** Ổ CẮM TRỐNG — cửa sổ Tester và Live đã bị gỡ (đợt 1 của lần dọn sang HFT market
- *  maker). Hai cửa sổ cũ dựng quanh chart nến và thống kê bội R; màn hình của một
- *  market maker — thang báo giá, tồn kho theo thời gian, chất lượng khớp — không dùng
- *  chung một dòng nào với chúng.
- *
- *  ⚠ GIỮ nhánh rẽ này chứ không xoá. Bỏ nó đi thì `?tester=1` rơi về `<App/>`, và cửa
- *  sổ thứ hai lại dựng nguyên trình soạn thảo lần nữa — đúng con bug mà chú thích phía
- *  trên kể. Một tấm bia đọc được thì thà hơn một cửa sổ nói dối.
- *
- *  Xem `tai_lieu/o_cam_trong.md`. */
-function ChuaCo({ ten }: { ten: string }) {
-  return (
-    <div style={{
-      height: '100vh', display: 'grid', placeContent: 'center', gap: 8,
-      background: 'var(--bg)', color: 'var(--muted)',
-      font: '13px/1.6 system-ui, sans-serif', textAlign: 'center',
-    }}>
-      <div style={{ color: 'var(--text)', fontSize: 15 }}>Chưa có cửa sổ {ten}</div>
-      <div>Cửa sổ cũ đã gỡ cùng MT5 và mô hình nến.</div>
-      <div>Cái thay thế chờ chọn xong sàn.</div>
-    </div>
-  )
-}
-
+ * Ngày dựng lại cửa sổ chạy: chỗ rẽ nằm ở ĐÂY, và chú thích cũ giải thích vì sao rẽ
+ * bằng một dòng `if` chứ không bằng `build.rollupOptions.input` — một bundle, một
+ * `app.css` toàn cục, dùng chung `TitleBar`/`Modal`/`Icon` mà không phải tách gì.
+ * Đọc `git show f1c90fb:webui/src/main.tsx`. Xem `tai_lieu/o_cam_trong.md`. */
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {laLive ? <ChuaCo ten="Live" />
-      : laTester ? <ChuaCo ten="Strategy Tester" />
-        : <App />}
+    <App />
   </React.StrictMode>,
 )

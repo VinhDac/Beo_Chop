@@ -20,7 +20,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import api  # noqa: E402
 from cat_studio import core  # noqa: E402
 from cat_studio import kho  # noqa: E402
 from cat_studio import luu_tru  # noqa: E402
@@ -155,64 +154,18 @@ kiem("tên file bị chặn thoát ra ngoài thư mục",
 tt = luu_tru.tom_tat()
 kiem("tóm tắt kho nói rõ đường dẫn thật", tt["goc"] and len(tt["muc"]) == 3)
 
-# ================= 4. BẢNG THAM SỐ =================
-print("\n▸ Bảng tham số")
-a = api.Api()
-doc = a.demo_process()["value"]
-ten_ts = {t["ten"] for t in doc["tham_so"]}
-kiem("sơ đồ mẫu mang đủ bộ tham số của D_02", len(doc["tham_so"]) == 11)
-kiem("tham số nào cũng có ĐƠN VỊ — hợp đồng chuẩn hoá",
-     all(t["don_vi"] for t in doc["tham_so"]))
-kiem("không đơn vị nào là pip / điểm / đô",
-     not any(x in " ".join(t["don_vi"] for t in doc["tham_so"]).lower()
-             for x in ("pip", "point", "điểm", "đô")))
-
-dung_ts = core._tham_so_dang_dung(doc)
-kiem("MỌI tham số đều được dùng — không có núm vặn chết",
-     ten_ts == dung_ts, f"— thừa: {ten_ts - dung_ts}")
-
-# đây là cái bug bảng tham số sinh ra để chặn
-ai_dung_nguong = []
-for tab in core.TABS:
-    for st in doc[tab]["steps"]:
-        for c in st.get("conditions") or []:
-            # Vế phải là một LƯỢNG `{value, tinh}`; `value` là số HOẶC tên tham số.
-            # Không còn `phai_loai` — kiểu suy ra được, xem `normalize_action`.
-            if (c.get("phai") or {}).get("value") == "nguong_nen_bps":
-                ai_dung_nguong.append(tab)
-kiem("`nguong_nen_bps` được hỏi ở CẢ HAI sơ đồ nhưng chỉ khai MỘT lần",
-     sorted(ai_dung_nguong) == ["entry", "manage"], f"— {ai_dung_nguong}")
-
-
-def hang_so_go_tay(d):
-    """{giá trị: [nơi dùng]} — chỉ những con số GÕ THẲNG, không qua tham số."""
-    ra = {}
-    for tab in core.TABS:
-        for st in d[tab]["steps"]:
-            noi = f"{tab}/{core.step_title(st)}"
-            for c in st.get("conditions") or []:
-                v = (c.get("phai") or {}).get("value")
-                if v is not None and not isinstance(v, str):
-                    ra.setdefault(v, []).append(noi)
-            for k in ("dem", "sl", "tp", "khoang"):
-                v = (st.get(k) or {}).get("value") if isinstance(st.get(k), dict) else None
-                if v is not None and not isinstance(v, str):
-                    ra.setdefault(v, []).append(f"{noi}/{k}")
-    return ra
-
-
-lap = {v: n for v, n in hang_so_go_tay(doc).items() if len(n) > 1}
-kiem("KHÔNG còn hằng số gõ tay nào lặp lại giữa các khối", not lap, f"— {lap or 'sạch'}")
-
-# tham số không tồn tại → báo lỗi
-xau = dict(doc, tham_so=[t for t in doc["tham_so"] if t["ten"] != "nguong_nen_bps"])
-kiem("bỏ một tham số đang dùng → báo lỗi, không im lặng chạy sai",
-     any("nguong_nen_bps" in p["message"] for p in core.validate_process(xau)))
-
-thua = dict(doc, tham_so=doc["tham_so"] + [
-    core.make_tham_so("khong_ai_dung", "Thừa", 1, "nến")])
-kiem("khai tham số không ai dùng → cảnh báo",
-     any("không khối nào dùng" in p["message"] for p in core.validate_process(thua)))
+# ================= 4. BẢNG THAM SỐ — Ổ CẮM TRỐNG =================
+#
+# Cả mục (~60 dòng) đã đi ở đợt 2. Nó dựng trên `api.demo_process()` — sơ đồ mẫu
+# Compress (D_02) — rồi đếm thẳng vào nội dung của nó: đủ 11 tham số,
+# `nguong_nen_bps` phải được hỏi ở CẢ HAI sơ đồ, không hằng số gõ tay nào lặp lại.
+#
+# HAI PHÉP CUỐI MẤT THEO LÀ ĐÁNG TIẾC, và phải nói ra: "bỏ một tham số đang dùng
+# → báo lỗi" và "khai tham số không ai dùng → cảnh báo" kiểm CƠ CHẾ của bảng tham
+# số, không kiểm D_02. Cơ chế ấy còn sống nguyên trong `core.py` nhưng giờ KHÔNG
+# CÓ ĐỘ PHỦ NÀO. Ghi ở `tai_lieu/o_cam_trong.md` — đó là nợ, không phải dọn xong.
+#
+# Lấy lại: `git show f1c90fb:tests/test_kho_va_lenh.py`.
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

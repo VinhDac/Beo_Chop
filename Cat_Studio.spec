@@ -5,9 +5,11 @@
 
 CHỌN onedir CHỨ KHÔNG onefile — quyết định, không phải mặc định:
 
-  · onefile giải nén TOÀN BỘ gói (numpy + cây DLL .NET của pythonnet + MetaTrader5) vào
-    một thư mục tạm ở MỖI LẦN MỞ. Với payload cỡ này là vài giây chờ trước khi thấy cửa
-    sổ, lần nào cũng vậy — ấn tượng đầu tiên tệ mà chẳng đổi lại được gì.
+  · onefile giải nén TOÀN BỘ gói (cây DLL .NET của pythonnet, và trước đây cả numpy lẫn
+    MetaTrader5) vào một thư mục tạm ở MỖI LẦN MỞ. Với payload cỡ này là vài giây chờ
+    trước khi thấy cửa sổ, lần nào cũng vậy — ấn tượng đầu tiên tệ mà chẳng đổi lại được
+    gì. Gói đã nhẹ đi nhiều sau đợt 2 (gỡ MT5 + numpy), nhưng lý lẽ không đổi: nặng nhất
+    vẫn là pythonnet, và nó thì ở lại.
   · onedir mở gần như tức thì, và nhìn vào thư mục là thấy ngay có gì trong đó.
 
 DỮ LIỆU NGƯỜI DÙNG (`du_lieu/`) nằm CẠNH .exe, không nằm trong gói: `luu_tru.thu_muc_app`

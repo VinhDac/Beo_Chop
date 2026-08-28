@@ -27,12 +27,21 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 # ⚠ Bảy bài CÒN LẠI chưa sạch. `test_bo_chay` / `test_kho_va_lenh` / `test_dat_ten`
 #    vẫn dựng nến giả và zone giả, `test_danh_so` vẫn trộn bài kiểm đồ thị với bài
 #    kiểm từ vựng. Chúng còn xanh vì backend chưa bị đụng tới — đợt 3 sẽ tách.
+# ⚠ ĐỢT 2 bỏ thêm 3 bài, và cái giá phải nói to: cả ba đều dựng fixture bằng
+#    `bo_chay.chay()` — một lần chạy backtest thật trên nến giả.
+#
+#      test_bo_chay    thứ tự trong nhịp · luật lùi · tính xác định
+#      test_nhat_ky    bản ghi rỗng chữ · nhãn dựng lại · ghi/đọc ngược
+#      test_dat_ten    số gõ tay hai chỗ → cảnh báo + nút đặt tên
+#
+#    Hai bài sau kiểm những thứ CÒN SỐNG (`nhat_ky.py`, cơ chế bảng tham số) — chỉ
+#    cái máy đẻ ra dữ liệu cho chúng là chết. Nghĩa là hai module đó giờ KHÔNG CÓ ĐỘ
+#    PHỦ NÀO, và đó là nợ, không phải dọn xong. Ghi ở `tai_lieu/o_cam_trong.md`.
+#
+#    Giữ một `bo_chay` rỗng ruột chỉ để nuôi fixture thì đuôi vẫy được cả con chó.
 BAI = [
     ("test_danh_so.py", "Đánh số phân cấp · ghim số · ba trường hợp gặp lại khối cũ"),
     ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
-    ("test_bo_chay.py", "Bộ chạy — thứ tự trong nhịp, luật lùi, tính xác định"),
-    ("test_nhat_ky.py", "Nhật ký — bản ghi rỗng chữ, nhãn dựng lại, ghi/đọc ngược"),
-    ("test_dat_ten.py", "Số gõ tay hai chỗ → cảnh báo + nút đặt tên"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
 ]

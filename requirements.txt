@@ -7,6 +7,13 @@
 #   "System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft'".
 pywebview
 
-# Nối MetaTrader 5 — kéo nến, đọc chỉ báo, đặt lệnh trong Strategy Tester.
-# Chỉ chạy trên Windows và cần MT5 terminal đang mở.
-MetaTrader5
+# ⚠ `MetaTrader5` ĐÃ GỠ (đợt 2 của lần dọn sang HFT market maker). MT5 không phải nền
+# tảng hợp cho market making tần suất cao, nên bốn module dựng quanh nó — `nguon_nen`
+# (kéo nến), `ket_noi` (sức khoẻ kết nối), `gui_lenh` (đặt lệnh), `phien_live` — đều đi
+# hẳn, không "để tạm".
+#
+# `numpy` cũng biến mất theo: nó vào đây gián tiếp qua MetaTrader5, và giờ KHÔNG module
+# nào trong repo còn import nó. Kiểm lại bằng `grep -rn "numpy\|np\." cat_studio tests`
+# trước khi thêm lại — dependency nặng mà không ai dùng là thứ dễ mọc lại nhất.
+#
+# Sàn mới chưa chọn. Xem `tai_lieu/o_cam_trong.md`.
