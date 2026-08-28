@@ -4,7 +4,7 @@
         cai_dat.json          cài đặt app
         chien_luoc/*.json     chiến lược đã lưu
         nen/                  cache nến tải về (Strategy Tester dùng sau)
-        nhat_ky/              nhật ký lệnh của từng lần chạy (sau)
+        nhat_ky/              nhật ký lệnh của từng lần chạy — CHƯA AI GHI (đợt 3)
 
 Trước đây đường dẫn rải rác trong `core.py` (`app_dir`, `_thu_muc_tpl`, …) và dùng
 từ vựng cũ của Auto_Clicker ("templates", 3 loại). Giờ chỉ còn một loại — chiến lược —
@@ -90,6 +90,9 @@ def thu_muc_nen():
 
 
 def thu_muc_nhat_ky():
+    """⚠ Thư mục còn, nhưng KHÔNG AI GHI vào nữa: `nhat_ky.py` đã đi ở đợt 3 cùng bộ
+    chạy. Giữ đường dẫn chứ không xoá — nhật ký của những lần chạy CŨ có thể còn nằm
+    đó, và hộp thoại Kho vẫn phải liệt kê ra thay vì giấu đi."""
     return _thu_muc(THU_MUC_NHAT_KY)
 
 

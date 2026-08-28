@@ -27,11 +27,12 @@ a = Analysis(
     binaries=[],
     # Giao diện đã build. Không có nó thì app mở ra một cửa sổ trắng.
     datas=[("webui/dist", "webui/dist")],
-    # `cat_studio/kho/` import TĨNH ba module con (`from . import chi_bao, …`) nên
-    # PyInstaller lần theo được — khai ở đây chỉ để chắc, và để ai thêm module mới vào
-    # `kho/` thì thấy ngay chỗ cần khai nếu lỡ import động.
-    hiddenimports=["cat_studio.kho.chi_bao", "cat_studio.kho.engine_d02",
-                   "cat_studio.kho.nen_tang"],
+    # ⚠ `kho/` HIỆN RỖNG (đợt 3) nên không còn module con nào để khai. Trước đây ba
+    # module (`chi_bao`, `engine_d02`, `nen_tang`) được liệt kê ở đây — không phải vì
+    # PyInstaller cần (chúng import TĨNH nên nó lần theo được) mà để ai thêm module mới
+    # vào `kho/` thì thấy ngay chỗ phải khai nếu lỡ import động. Giữ danh sách rỗng
+    # thay vì xoá dòng, đúng vì lý do đó.
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

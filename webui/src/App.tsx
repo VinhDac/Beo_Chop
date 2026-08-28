@@ -9,7 +9,7 @@ import {
 import { py, cho_cau_noi } from './api'
 import type {
   Bootstrap, Card, ProcEdge, Problem, ProcessDoc, SoDo, Step, StepKind,
-  Tab, ThamSo,
+  Tab,
 } from './types'
 import Ribbon, { PillTab, type MucMenu } from './components/Ribbon'
 import StepNode from './components/StepNode'
@@ -17,7 +17,6 @@ import ActionDialog from './components/ActionDialog'
 import SettingsDialog from './components/SettingsDialog'
 import TemplatePicker from './components/TemplatePicker'
 import KhoDialog from './components/KhoDialog'
-import ThamSoDialog from './components/ThamSoDialog'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import { useKhungCuaSo } from './useKhungCuaSo'
@@ -106,10 +105,10 @@ function Ung() {
   const [ten, setTen] = useState('Chiến lược 1')
   const [symbol, setSymbol] = useState('XAUUSD')
   const [vanDe, setVanDe] = useState<Problem[]>([])
-  /* Khối nào đã đi QUA cổng zone. Python tính (`core.khoi_sau_cong_zone`) rồi gửi kèm
-     `validate` — hộp thoại chỉ nhận một `Set`, không tự đi lại đồ thị. Hai đoạn mã cùng
-     duyệt một sơ đồ là hai luật, và chúng sẽ lệch nhau. */
-  const [sauCongZone, setSauCongZone] = useState<Set<string>>(new Set())
+  /* ⚠ `sauCongZone` và `tsDangDung` đã đi ở đợt 3, cùng cổng zone và bảng tham số.
+     Cách chúng được nuôi thì đáng giữ làm mẫu: Python TÍNH rồi gửi KÈM `validate`, giao
+     diện chỉ nhận một `Set` chứ không tự đi lại đồ thị — hai đoạn mã cùng duyệt một sơ
+     đồ là hai luật, và chúng sẽ lệch nhau. */
   const [tabDuoi, setTabDuoi] = useState<'van-de' | 'nhat-ky'>('van-de')
   const [nhatKy, setNhatKy] = useState<{ gio: string; msg: string; tag?: string | null }[]>([])
   const [sanSang, setSanSang] = useState(false)
@@ -129,11 +128,8 @@ function Ung() {
   const [dangNoi, setDangNoi] = useState(false)
   const [moCaiDat, setMoCaiDat] = useState(false)
   const [moKho, setMoKho] = useState(false)
-  const [moThamSo, setMoThamSo] = useState(false)
   /** Bảng tham số của chiến lược — hằng số CÓ TÊN, dùng chung cho cả hai sơ đồ. */
-  const [thamSo, setThamSo] = useState<ThamSo[]>([])
   /** Tên tham số đang thật sự được khối nào đó dùng — Python tính, JS chỉ hiện. */
-  const [tsDangDung, setTsDangDung] = useState<Set<string>>(new Set())
   /** Menu chuột phải đang mở.
    *
    *  Cố ý CHỈ giữ "đang bấm phải vào cái gì", không giữ sẵn danh sách mục menu: mục
@@ -144,7 +140,7 @@ function Ung() {
    *  `noi` = vị trí bấm phải theo toạ độ CANVAS, để "Dán" rơi đúng chỗ đã bấm chứ không
    *  rơi vào chỗ con trỏ lúc chọn dòng menu. */
   const [menuPhai, setMenuPhai] = useState<
-    { x: number; y: number; loai: 'nen' | 'khoi' | 'day' | 'nhip'; id?: string;
+    { x: number; y: number; loai: 'nen' | 'khoi' | 'day'; id?: string;
       noi?: { x: number; y: number } } | null>(null)
   const [moPicker, setMoPicker] = useState<
     { tieuDe: string; xong: (t: string) => void } | null>(null)
@@ -304,7 +300,6 @@ function Ung() {
     setTab('entry')
     setNodes(kho.current.entry.nodes); setEdges(kho.current.entry.edges)
     setTen(doc.name); setSymbol(doc.symbol)
-    setThamSo(doc.tham_so ?? [])
     canFit.current = true
     ghi(loi)
   }, [setNodes, setEdges, ghi])
@@ -325,9 +320,9 @@ function Ung() {
       ? { steps: rf_sang_steps(nodes), edges: rf_sang_edges(edges), cards: [] }
       : { steps: rf_sang_steps(kho.current[t].nodes),
           edges: rf_sang_edges(kho.current[t].edges), cards: [] })
-    return { name: ten, symbol, tham_so: thamSo,
+    return { name: ten, symbol, tham_so: [],
              entry: g('entry'), manage: g('manage') }
-  }, [tab, nodes, edges, ten, symbol, thamSo])
+  }, [tab, nodes, edges, ten, symbol])
 
   /* --------------------------- soát liên tục -------------------------- */
   useEffect(() => {
@@ -343,8 +338,6 @@ function Ung() {
       setThuTu(l?.order ?? {})
       setQuayLai(new Set((l?.quay_lai ?? []).map(([a, b]) => `${a}|${b}`)))
       setVongHo((l?.vong_ho ?? []).length)
-      setSauCongZone(new Set(l?.sau_cong_zone ?? []))
-      setTsDangDung(new Set(((r as any).tham_so_dang_dung as string[]) ?? []))
     }, 250)   // gộp lại: kéo hộp bắn ra hàng chục thay đổi mỗi giây
     return () => clearTimeout(h)
   }, [nodes, edges, sanSang, tab, layDoc])
@@ -489,24 +482,11 @@ function Ung() {
             : `bỏ ghim ${ids.size} khối`, 'ok')
   }, [dangChon, chup, setNodes, ghi])
 
-  /** NHỊP CHẠY của sơ đồ — sống trên khối Bắt đầu, không phải một ô ở góc ribbon.
-   *
-   *  Chữ trên khối do Python sinh từ khoá `nhip`, nên đổi ở đây là khối đổi theo ngay.
-   *  Bản cũ ghi thẳng "M5" vào TÊN khối, không nối với `doc.timeframe` bằng gì cả —
-   *  đổi dropdown thì khối vẫn ghi M5, tức sơ đồ nói dối. */
-  const doiNhip = useCallback(async (id: string, nhip: string) => {
-    const k = nodes.find(n => n.id === id)
-    if (!k) return
-    const st = { ...(k.data as { step: Step }).step, nhip }
-    // Nhờ Python dựng lại thẻ: chữ trên hộp là việc của lõi, JS không tự ghép.
-    const r = await py.describe([st], thamSo)
-    chup()
-    setNodes(ds => ds.map(n => n.id === id
-      ? { ...n, data: { step: st, card: r.value?.[0] ?? (n.data as { card: Card }).card } }
-      : n))
-    ghi(`Nhịp sơ đồ ${tab === 'entry' ? 'Entry' : 'Manage'}: mỗi nến ${nhip}`)
-  }, [nodes, thamSo, chup, setNodes, ghi, tab])
-
+  /* ⚠ `doiNhip` ĐÃ ĐI ở đợt 3, cùng khung thời gian. Luật của nó thì không đổi và
+   * đáng nhớ: chữ trên khối do PYTHON sinh từ khoá dữ liệu, nên đổi khoá là khối đổi
+   * theo ngay. Bản trước nữa ghi thẳng "M5" vào TÊN khối, không nối với
+   * `doc.timeframe` bằng gì cả — đổi dropdown thì khối vẫn ghi M5, tức sơ đồ nói dối.
+   * Xem `tai_lieu/o_cam_trong.md`. */
 
   /** Ctrl+D: nhân bản MỌI khối đang chọn, kèm cả dây nối GIỮA chúng. Chỉ nhân bản khối
    *  đầu tiên thì chọn 3 khối bấm Ctrl+D ra 1 khối — vừa sai vừa im lặng. */
@@ -547,7 +527,7 @@ function Ung() {
   /** Ghi khối đã sửa trở lại node, và LẤY LẠI nội dung hộp từ Python — không tự dựng
    *  lại thẻ ở JS, nếu không hộp sẽ mô tả khác với những gì core thực sự hiểu. */
   const ghiBuoc = useCallback(async (s: Step) => {
-    const r = await py.describe([s], thamSo)
+    const r = await py.describe([s])
     const card = r.ok ? r.value![0] : null
     chup()
     setNodes(ds => ds.map(k => (k.id === s.id
@@ -555,7 +535,7 @@ function Ung() {
       : k)))
     setDangSua(null)
     ghi(`sửa "${card?.title ?? s.name ?? s.id}"`)
-  }, [chup, setNodes, ghi, thamSo])
+  }, [chup, setNodes, ghi])
 
   /* ------------------------------- chép / dán ----------------------------- */
   const chepKhoi = useCallback(() => {
@@ -580,13 +560,10 @@ function Ung() {
    *  Tách ra vì có hai lối vào — dán từ bộ nhớ (Ctrl+V) và **thêm khối từ một chiến
    *  lược khác**. Viết hai lần thì sớm muộn một bên quên remap id hoặc quên `chup()`. */
   const thaCum = useCallback(async (
-    buoc: Step[], canh: ProcEdge[], taiDay?: { x: number; y: number }, ts?: ThamSo[],
+    buoc: Step[], canh: ProcEdge[], taiDay?: { x: number; y: number },
   ) => {
     if (!buoc.length) return 0
-    // Bảng tham số phải đi kèm, nếu không thẻ dựng ra ghi `nguong_nen_bps = ?`. Với lần
-    // NHẬP thì phải là bảng ĐÃ GỘP — tham số mới thêm chưa nằm trong `thamSo` của lần
-    // render này.
-    const r = await py.clone_steps(buoc, ts ?? thamSo)
+    const r = await py.clone_steps(buoc)
     if (!r.ok || !r.value) { ghi('không dán được: ' + r.error, 'err'); return 0 }
     const { steps: moi, map, cards } = r.value
     chup()
@@ -615,7 +592,7 @@ function Ung() {
         markerEnd: MUI_TEN,
       }))])
     return moi.length
-  }, [chup, setNodes, setEdges, ghi, diemDan, thamSo])
+  }, [chup, setNodes, setEdges, ghi, diemDan])
 
   /** Ctrl+V: dán ra bản sao có id MỚI, đặt NGAY CHỖ CON TRỎ, nối lại y như bản gốc. */
   const danKhoi = useCallback(async (taiDay?: { x: number; y: number }) => {
@@ -637,33 +614,23 @@ function Ung() {
   const themKhoiTu = useCallback(async (ten: string) => {
     const r = await py.import_steps(ten, tab)
     if (!r.ok || !r.value) { ghi('không nhập được: ' + r.error, 'err'); return }
-    const { steps: buoc, edges: canh, tham_so: ts, bo_start } = r.value
+    const { steps: buoc, edges: canh, bo_start } = r.value
     if (!buoc.length) {
       ghi(`"${ten}" không có khối nào ở sơ đồ ${tab === 'entry' ? 'Entry' : 'Manage'}`, 'err')
       return
     }
-    const co = new Map(thamSo.map(t => [t.ten, t]))
-    const them = ts.filter(t => !co.has(t.ten))
-    const giu = ts.filter(t => co.has(t.ten)
-                               && String(co.get(t.ten)!.gia_tri) !== String(t.gia_tri))
-    const tsMoi = [...thamSo, ...them]
-    if (them.length) setThamSo(tsMoi)
-
-    const n = await thaCum(buoc, canh, undefined, tsMoi)
+    // ⚠ Phần GỘP BẢNG THAM SỐ đã đi ở đợt 3, và luật của nó đáng nhớ lại nguyên vẹn
+    // khi bảng tham số quay về: tham số của nguồn phải được mang sang, vì khối tham
+    // chiếu tham số bằng TÊN — thiếu một cái là khối trông vẫn bình thường trên canvas
+    // nhưng bấm ▶ mới ném "Bảng tham số thiếu …". Tên ĐÃ CÓ thì GIỮ NGUYÊN giá trị
+    // hiện tại: đè lên là lặng lẽ đổi hành vi của cả chiến lược đang làm dở chỉ vì vừa
+    // nhập một khối.
+    const n = await thaCum(buoc, canh)
     if (!n) return
-
     const chu = [`đã thêm ${n} khối từ "${ten}"`]
     if (bo_start) chu.push('bỏ khối Bắt đầu của nguồn')
-    if (them.length) {
-      chu.push(`thêm ${them.length} tham số (`
-               + them.map(t => `${t.ten} = ${t.gia_tri}`).join(' · ') + ')')
-    }
-    if (giu.length) {
-      chu.push('giữ nguyên ' + giu.map(t =>
-        `${t.ten} = ${co.get(t.ten)!.gia_tri} (nguồn ghi ${t.gia_tri})`).join(' · '))
-    }
     ghi(chu.join(' · '))
-  }, [tab, thamSo, thaCum, ghi])
+  }, [tab, thaCum, ghi])
 
   /* ------------------------------ tài liệu -------------------------------- */
   const soDoMoi = useCallback(async () => {
@@ -790,85 +757,16 @@ function Ung() {
     setTrangThai('đã mở Live')
   }, [layDoc, ghi])
 
-  /** Vẽ lại thẻ CẢ HAI sơ đồ theo bảng tham số `ds`. Tách ra vì hai chỗ cần: sửa bảng
-   *  tham số, và đặt tên cho một con số (chỗ đó còn sửa cả các bước trước khi gọi).
+  /* ⚠ `luuThamSo` và `datTenCho` ĐÃ ĐI ở đợt 3, cùng bảng tham số.
    *
-   *  `tu` cho phép truyền thẳng bảng nút MỚI vào: `nodes` ở đây là giá trị của lần
-   *  render này, `setNodes` vừa gọi xong chưa kịp phản ánh. */
-  const veLaiThe = useCallback(async (ds: ThamSo[], tu?: Map<Tab, Node[]>) => {
-    for (const t of ['entry', 'manage'] as Tab[]) {
-      const ns = tu?.get(t) ?? (t === tab ? nodes : kho.current[t].nodes)
-      const r = await py.describe(ns.map(n => (n.data as { step: Step }).step), ds)
-      if (!r.ok) continue
-      const the = new Map((r.value ?? []).map(c => [c.id, c]))
-      const moi = ns.map(n => (the.has(n.id)
-        ? { ...n, data: { ...(n.data as object), card: the.get(n.id) as Card } } : n))
-      if (t === tab) setNodes(moi); else kho.current[t] = { ...kho.current[t], nodes: moi }
-    }
-  }, [tab, nodes, setNodes])
-
-  /** Đổi bảng tham số — vẽ lại thẻ CẢ HAI sơ đồ, vì một tham số có thể được dùng ở
-   *  bất cứ đâu và chữ trên hộp phải đổi theo ngay. */
-  const luuThamSo = useCallback(async (ds: ThamSo[]) => {
-    chup()
-    setThamSo(ds)
-    setMoThamSo(false)
-    await veLaiThe(ds)
-    ghi(`cập nhật ${ds.length} tham số`, 'ok')
-  }, [chup, veLaiThe, ghi])
-
-  /** ĐẶT TÊN CHO MỘT CON SỐ — một nút, không phải một quy trình.
+   * `datTenCho` là nút "Đặt tên cho số này" ngay trong dòng cảnh báo — MỘT NÚT, không
+   * phải một quy trình. Hai luật của nó đáng dựng lại y nguyên khi bảng tham số quay
+   * về: Python nói sẵn con số nằm ở NHỮNG Ô NÀO (`dat_ten.cho`) nên giao diện chỉ đi
+   * theo đường dẫn, KHÔNG tự quét lại sơ đồ — hai đoạn mã quét cùng một thứ là hai
+   * luật, sớm muộn lệch nhau; và nó thay HẾT mọi chỗ, vì để sót một chỗ gõ tay thì
+   * cảnh báo biến mất mà cái bẫy vẫn còn, lần này còn khó thấy hơn.
    *
-   *  Python đã nói sẵn con số nằm ở NHỮNG Ô NÀO (`dat_ten.cho`), nên ở đây chỉ việc đi
-   *  theo đường dẫn và thay số bằng tên. Cố ý KHÔNG quét lại sơ đồ ở phía giao diện:
-   *  hai đoạn mã quét cùng một thứ là hai luật, và sớm muộn chúng sẽ lệch nhau.
-   *
-   *  Thay HẾT mọi chỗ chứ không chỉ chỗ đang bấm — để lại một chỗ gõ tay thì cảnh báo
-   *  biến mất nhưng cái bẫy vẫn còn nguyên, mà lần này còn khó thấy hơn. */
-  const datTenCho = useCallback(async (dt: NonNullable<Problem['dat_ten']>) => {
-    /* Tên gợi ý có thể đã có sẵn trong bảng — hai trường hợp KHÁC HẲN nhau:
-         cùng giá trị  → DÙNG LẠI dòng đó. `chu_ky_atr = 14` engine luôn đòi phải có;
-                         tạo thêm `chu_ky_atr_2 = 14` là đúng cái rác ta đang dọn.
-         khác giá trị  → thêm hậu tố. Đè lên là âm thầm đổi một thứ người dùng không hỏi. */
-    const cu = thamSo.find(t => t.ten === dt.goi_y)
-    let ten = dt.goi_y
-    const dungLai = !!cu && Number(cu.gia_tri) === dt.gia_tri
-    if (cu && !dungLai) {
-      const dangCo = new Set(thamSo.map(t => t.ten))
-      for (let i = 2; dangCo.has(ten); i++) ten = `${dt.goi_y}_${i}`
-    }
-
-    chup()
-    const doi = new Map<Tab, Node[]>()
-    for (const t of ['entry', 'manage'] as Tab[]) {
-      const ns = t === tab ? nodes : kho.current[t].nodes
-      const can = dt.cho.filter(c => c.tab === t)
-      if (!can.length) { doi.set(t, ns); continue }
-      doi.set(t, ns.map(n => {
-        const duong = can.filter(c => c.step === n.id)
-        if (!duong.length) return n
-        const st = JSON.parse(JSON.stringify((n.data as { step: Step }).step)) as Step
-        for (const c of duong) {
-          let o: Record<string, unknown> = st as unknown as Record<string, unknown>
-          for (const k of c.duong.slice(0, -1)) o = o?.[k] as Record<string, unknown>
-          if (o) o[c.duong[c.duong.length - 1]] = ten
-        }
-        return { ...n, data: { ...(n.data as object), step: st } }
-      }))
-    }
-    for (const t of ['entry', 'manage'] as Tab[]) {
-      const ns = doi.get(t) as Node[]
-      if (t === tab) setNodes(ns); else kho.current[t] = { ...kho.current[t], nodes: ns }
-    }
-
-    const ds = dungLai ? thamSo
-      : [...thamSo, { ten, nhan: dt.nhan, gia_tri: dt.gia_tri,
-                      don_vi: dt.don_vi, ghi_chu: '' }]
-    setThamSo(ds)
-    await veLaiThe(ds, doi)
-    ghi(`${dungLai ? 'dùng lại' : 'đặt'} tên "${ten}" = ${dt.gia_tri}`
-        + ` cho ${dt.cho.length} chỗ`, 'ok')
-  }, [chup, tab, nodes, setNodes, thamSo, veLaiThe, ghi])
+   * Xem `tai_lieu/o_cam_trong.md`; bản cũ ở `git show f1c90fb:webui/src/App.tsx`. */
 
   /* --------------------------- menu chuột phải --------------------------- */
 
@@ -897,15 +795,10 @@ function Ung() {
     setMenuPhai({ x: ev.clientX, y: ev.clientY, loai: 'day', id: d.id })
   }, [])
 
-  /** Danh sách nhịp của một khối Bắt đầu. Dùng CHUNG cho submenu chuột phải và cho nhấp
-   *  đúp — hai lối vào cùng một danh sách thì không thể lệch nhau. */
-  const mucNhip = useCallback((id: string): MucPhai[] => {
-    const nay = (nodes.find(n => n.id === id)?.data as { step: Step } | undefined)?.step.nhip
-    return (boot?.timeframes ?? []).map(t => ({
-      ten: (t === nay ? '● ' : '○ ') + t,
-      onClick: () => void doiNhip(id, t),
-    }))
-  }, [nodes, boot, doiNhip])
+  /* ⚠ `mucNhip` ĐÃ ĐI ở đợt 3, cùng khung thời gian. Nó dựng submenu chuột phải
+   * "Nhịp ▸ M1 M5 M15 …" trên khối Bắt đầu, dùng CHUNG với nhấp đúp — hai lối vào
+   * cùng một danh sách thì không thể lệch nhau, và đó là luật đáng giữ lại.
+   * Xem `tai_lieu/o_cam_trong.md`. */
 
   /** Các mục của menu — dựng LÚC RENDER nên luôn đọc trạng thái mới nhất. */
   const mucMenuPhai = useMemo<MucPhai[]>(() => {
@@ -917,10 +810,6 @@ function Ung() {
       tat: !soChep, viSao: 'chưa chép khối nào',
       onClick: () => danKhoi(taiDay),
     }
-
-    // Nhấp đúp khối Bắt đầu: mở THẲNG danh sách nhịp, không kèm mục nào khác. Người ta
-    // nhấp đúp vì muốn đổi nhịp, dội cả menu chuột phải ra là bắt họ tìm lại.
-    if (menuPhai.loai === 'nhip') return mucNhip(menuPhai.id!)
 
     if (menuPhai.loai === 'day') {
       return [{ ten: 'Xoá kết nối', icon: 'unlink', onClick: () => xoaDay(menuPhai.id!) }]
@@ -974,10 +863,6 @@ function Ung() {
         onClick: () => setDangSua(idNguon) },
       { ten: 'Đổi tên…', icon: 'edit', tat: nhieu, viSao: 'chỉ đổi tên một khối một lúc',
         onClick: doiTen },
-      // Chỉ hiện ở khối Bắt đầu: nhịp là của SƠ ĐỒ, mà khối Bắt đầu là điểm neo của nó.
-      ...(laStart && !nhieu
-          ? [{ ten: 'Nhịp chạy', icon: 'motSo', con: mucNhip(idNguon) } as MucPhai]
-          : []),
       { ngan: true },
       { ten: daGhimHet ? 'Bỏ ghim số' : 'Ghim số ⟲', icon: daGhimHet ? 'bo-ghim' : 'ghim',
         tat: laStart, viSao: 'khối Bắt đầu luôn là số 1, không cần ghim',
@@ -999,7 +884,7 @@ function Ung() {
         viSao: 'khối Bắt đầu là điểm neo đánh số — không xoá được', onClick: xoa },
     ]
   }, [menuPhai, nodes, edges, dangChon, thuTu, tab, danKhoi, xoaDay, themKhoi, doiTen,
-      doiGhim, mucNhip, chepKhoi, nhanBan, noi, ngatKetNoi, xoa])
+      doiGhim, chepKhoi, nhanBan, noi, ngatKetNoi, xoa])
 
   /* ------------------------------ phím tắt ------------------------------- */
   useEffect(() => {
@@ -1095,7 +980,6 @@ function Ung() {
       { ten: 'Lưu thành template…', icon: 'save', onClick: luu },
       { ten: 'Lưu ra file khác…', onClick: luuRaFile },
       { ngan: true },
-      { ten: 'Tham số chiến lược…', icon: 'edit', onClick: () => setMoThamSo(true) },
       { ten: 'Kho — app đang có những gì…', icon: 'folder',
         onClick: () => setMoKho(true) },
       { ngan: true },
@@ -1134,7 +1018,7 @@ function Ung() {
     ] },
   ], [soDoMoi, moFile, moMau, luu, luuRaFile, moChienLuoc, hoanTac, lamLai, coLui, coToi,
       chepKhoi, danKhoi, nhanBan, doiGhim, xoa, dangChon, zoomIn, zoomOut, fitView,
-      panelGap, boot, setMoKho, setMoThamSo, chay, themKhoiTu])
+      panelGap, boot, setMoKho, chay, themKhoiTu])
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
@@ -1183,12 +1067,12 @@ function Ung() {
           onConnectEnd={() => setDangNoi(false)}
           onNodeDragStart={batDauKeo}
           onNodeDragStop={ketThucKeo}
-          onNodeDoubleClick={(ev, n) => {
-            // Khối Bắt đầu không có hộp thoại sửa — thứ DUY NHẤT đổi được ở nó là NHỊP,
-            // nên nhấp đúp mở thẳng danh sách nhịp thay vì không làm gì.
-            if ((n.data as unknown as { step: Step }).step.kind === 'start') {
-              setMenuPhai({ x: ev.clientX, y: ev.clientY, loai: 'nhip', id: n.id })
-            } else setDangSua(n.id)
+          onNodeDoubleClick={(_ev, n) => {
+            // Khối Bắt đầu không có hộp thoại sửa. Trước đây nhấp đúp nó mở thẳng danh
+            // sách NHỊP — thứ duy nhất đổi được ở nó; nhịp đi rồi thì không còn gì.
+            if ((n.data as unknown as { step: Step }).step.kind !== 'start') {
+              setDangSua(n.id)
+            }
           }}
           onEdgeDoubleClick={huyNoi}
           onPaneContextMenu={bamPhaiNen}
@@ -1272,19 +1156,6 @@ function Ung() {
                   <span className="muc">{v.severity === 'error' ? '●' : '▲'}</span>
                   <span className={'nhan-tab t-' + v.tab}>{v.tab === 'entry' ? 'Entry' : 'Manage'}</span>
                   <span>{v.message}</span>
-                  {v.dat_ten && (
-                    // Nút NGAY TRONG dòng cảnh báo, không phải "mở bảng tham số rồi tự
-                    // gõ lại": chỗ phát hiện vấn đề cũng là chỗ sửa được nó.
-                    <button className="nut nho dat-ten"
-                            title={`Thêm tham số "${v.dat_ten.goi_y}" = ${v.dat_ten.gia_tri}`
-                                   + ` và thay vào cả ${v.dat_ten.cho.length} chỗ`}
-                            onClick={e => {
-                              e.stopPropagation()   // không nhảy tới khối
-                              void datTenCho(v.dat_ten!)
-                            }}>
-                      Đặt tên cho số này
-                    </button>
-                  )}
                 </div>
               ))
           ) : (
@@ -1346,11 +1217,6 @@ function Ung() {
 
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
 
-      {moThamSo && boot && (
-        <ThamSoDialog dsGoc={thamSo} boot={boot} dangDung={tsDangDung}
-                      onLuu={luuThamSo} onDong={() => setMoThamSo(false)} />
-      )}
-
       {moCaiDat && boot && (
         <SettingsDialog boot={boot} doiMauNgay={doiMauNgay}
                         lamMoiBoot={lamMoiBoot}
@@ -1372,7 +1238,6 @@ function Ung() {
         // người dùng đi qua một lớp "danh sách 1 phần tử" vô nghĩa.
         return (
           <ActionDialog action={st as Record<string, any>} boot={boot} tab={tab}
-                        thamSo={thamSo} coZone={sauCongZone.has(st.id)}
                         onDong={() => setDangSua(null)}
                         onLuu={a => ghiBuoc({ ...a, kind: 'action', id: st.id,
                                               pos: st.pos, ghim: st.ghim } as Step)} />

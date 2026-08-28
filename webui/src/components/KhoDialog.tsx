@@ -141,41 +141,14 @@ export default function KhoDialog({ onDong }: { onDong: () => void }) {
             </table>
           </Muc>
 
-          <Muc ten="Từ vựng" phu="phép so · cách tính khoảng cách · chế độ Sửa lệnh">
-            <div className="kho-chip">
-              {Object.entries(d.phep_so).map(([k, v]) =>
-                <span key={k} className="the">{v}</span>)}
-            </div>
-            <div className="kho-chip">
-              {Object.entries(d.don_vi).map(([k, v]) =>
-                <span key={k} className="the">{v}</span>)}
-            </div>
-            <div className="kho-chip">
-              {Object.entries(d.sua_che_do).map(([k, v]) =>
-                <span key={k} className="the">{v}</span>)}
-            </div>
-          </Muc>
-
-          <Muc ten="Sổ lệnh" phu="id của ta, không mượn ticket MT5">
-            <div className="chu-dan">
-              Mỗi lệnh mang một id <code>L-0001</code> và nhớ <code>zone_id</code> đẻ ra
-              nó. Nhờ vậy <b>“vùng này đã sinh lệnh”</b> chỉ là một phép tra bảng, và
-              không phải đoán như <code>HasOpenPosition()</code> của D_02.
-              <code>ticket</code> của MT5 chỉ là một cột phụ, để trống khi backtest.
-            </div>
-            <table className="kho-bang">
-              <thead><tr><th>Trạng thái lệnh</th><th>Nghĩa</th></tr></thead>
-              <tbody>
-                {Object.entries(d.trang_thai_lenh).map(([k, v]) => (
-                  <tr key={k}><td className="mono">{k}</td><td>{v}</td></tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="kho-chip">
-              {Object.entries(d.ly_do_dong).map(([k, v]) =>
-                <span key={k} className="the">{v}</span>)}
-            </div>
-          </Muc>
+          {/* ⚠ HAI MỤC ĐÃ ĐI ở đợt 3 của lần dọn sang HFT market maker:
+              · "Từ vựng"  — phép so · đơn vị khoảng cách · chế độ Sửa lệnh;
+              · "Sổ lệnh"  — trạng thái lệnh và lý do đóng, cùng lời giải thích vì sao
+                             lệnh mang id CỦA TA (`L-0001`) chứ không mượn ticket MT5:
+                             nhờ vậy "vùng này đã sinh lệnh" là một phép TRA BẢNG chứ
+                             không phải đoán như `HasOpenPosition()` của D_02.
+              Cả hai vẽ từ những bảng `api.kho_danh_muc` không còn gửi nữa.
+              Xem `tai_lieu/o_cam_trong.md`. */}
 
           <Muc ten="Lưu trữ" phu={d.luu_tru.goc}>
             <table className="kho-bang">

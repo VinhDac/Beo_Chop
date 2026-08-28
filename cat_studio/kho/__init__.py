@@ -1,27 +1,41 @@
 """KHO — danh mục mọi thứ app tính được, gom từ các module con.
 
-    kho/
-      nen_tang.py     giá · thời gian · tài khoản · lệnh này   (không thuộc engine nào)
-      chi_bao.py      ATR · MA · Donchian · Volume MA          (chỉ báo phổ thông)
-      engine_d02.py   atr_bps · bảng vùng nén                  (ý tưởng riêng của D_02)
+⚠ KHO ĐANG RỖNG, và đó là trạng thái CÓ CHỦ Ý (đợt 3 của lần dọn sang HFT market
+maker). Ba module con đã đi cùng thế giới nến:
 
-Vì sao tách ra chứ không để một danh sách phẳng trong `core.py`:
+    nen_tang.py     giá · thời gian · tài khoản · lệnh này        (75 dòng)
+    chi_bao.py      ATR · MA — tính thẳng từ nến                  (46)
+    engine_d02.py   atr_bps · bảng vùng nén — ý tưởng riêng D_02  (191)
 
-  · `zone_dem` CHỈ có nghĩa khi engine D_02 đang nạp. Trộn nó chung với `close` là
-    nói dối về việc thứ gì luôn có, thứ gì đến từ một chiến lược cụ thể.
-  · Thêm một chiến lược mới = thêm MỘT file vào đây, không sửa `core.py`.
-  · Hộp thoại "Kho" chỉ việc đọc `danh_muc()` — nó không cần biết gì thêm.
+Mọi toán hạng trong đó đều đọc từ một cây nến (`close(M5)`, `atr(M15, 50)`,
+`zone_dem`) hoặc từ sổ lệnh của một bộ chạy không còn tồn tại. Giữ lại một danh mục
+mà không gì tính ra được giá trị cho nó thì hộp thoại "Kho" vẫn bày ra đủ thứ, và mỗi
+dòng trong đó là một lời hứa suông.
 
-Trùng khoá là LỖI CHẾT NGƯỜI, nên bắt ngay lúc import: hai engine cùng khai `atr` với
-hai nghĩa khác nhau thì mọi chiến lược dùng nó đều sai mà không báo gì.
+CƠ CHẾ THÌ Ở LẠI NGUYÊN VẸN, vì nó không dính chiến lược nào:
+
+  · `_gom` gắn `nguon` = mã module vào từng mục, nên hộp thoại chia mục được mà không
+    ai phải chép tay một danh sách thứ hai;
+  · `_soat_trung` chặn NGAY LÚC IMPORT nếu hai module cùng khai một khoá. Đây là loại
+    lỗi im lặng tệ nhất — hai engine cùng khai `atr` với hai nghĩa khác nhau thì mọi
+    chiến lược dùng nó đều sai mà không báo gì.
+
+CẮM LẠI: thêm module vào `MODULE` là xong, không sửa `core.py`, không sửa `api.py`,
+không sửa hộp thoại. Mỗi module khai `TEN` · `MA_SO` · `MO_TA` và tuỳ ý
+`CHI_BAO` / `TOAN_HANG` / `BANG_TRANG_THAI`. Một market maker sẽ cần ít nhất:
+
+    nen_tang.py      bid · ask · mid · spread · TỒN KHO CÓ DẤU · tuổi quote
+    vi_cau_truc.py   biến động thực · nhịp tick · trôi mid
+    engine_mm.py     nửa-spread mục tiêu · lệch báo giá theo tồn kho
+
+Xem `tai_lieu/o_cam_trong.md`. Bản cũ: `git show f1c90fb:cat_studio/kho/`.
 """
-from . import chi_bao, engine_d02, nen_tang
 
-# Thứ tự CÓ Ý NGHĨA: dropdown toán hạng xổ ra theo đúng thứ tự này.
-MODULE = [nen_tang, chi_bao, engine_d02]
+#: Thứ tự CÓ Ý NGHĨA: dropdown toán hạng xổ ra theo đúng thứ tự này.
+MODULE = []
 
-# Module nào là ENGINE (mang ý tưởng chiến lược) — dùng để chia mục trong hộp thoại Kho.
-ENGINE = [engine_d02]
+#: Module nào là ENGINE (mang ý tưởng chiến lược) — dùng để chia mục trong hộp thoại Kho.
+ENGINE = []
 
 
 def _gom(ten_thuoc_tinh):
@@ -53,42 +67,21 @@ BANG_TRANG_THAI = _soat_trung(_gom("BANG_TRANG_THAI"), "bảng trạng thái")
 # ---- tra cứu nhanh, để `core.py` khỏi quét lại mỗi lần ----
 TOAN_HANG_KEYS = [t["key"] for t in TOAN_HANG]
 THEO_KEY = {t["key"]: t for t in TOAN_HANG}
-NHOM_LENH_NAY = "Lệnh này"
-
-#: Toán hạng chỉ có nghĩa khi ĐANG CÓ ZONE — gom từ chính các engine khai
-#: (`ENGINE_TRA_LOI`), không chép tay.
-#:
-#: ⚠ `core.TOAN_HANG_CAN_ZONE` từng là một tuple gõ tay, và nó đã lệch thật: còn sót
-#: `zone_range_atr`, một toán hạng đã bị gỡ khỏi kho từ lâu. Hai nơi cùng trả lời
-#: "cái nào cần zone" thì sớm muộn một nơi nói sai — mà `bo_chay` cũng đọc
-#: `ENGINE_TRA_LOI`, nên bản gõ tay là nguồn thứ hai không ai đồng bộ.
-CAN_ZONE = tuple(k for m in MODULE for k in getattr(m, "ENGINE_TRA_LOI", ()))
 
 
 def nhan(key):
     return (THEO_KEY.get(key) or {}).get("nhan", key)
 
 
-def nhom(key):
-    return (THEO_KEY.get(key) or {}).get("nhom", "")
-
-
 def tham_so(key):
     return (THEO_KEY.get(key) or {}).get("tham_so", [])
 
 
-def la_dung_sai(key):
-    """Toán hạng vốn đã đúng/sai — hộp thoại ẩn luôn ô vế phải cho chúng."""
-    return bool((THEO_KEY.get(key) or {}).get("dung_sai"))
-
-
-def tabs_cho_phep(key):
-    """None = dùng được ở cả hai sơ đồ."""
-    return (THEO_KEY.get(key) or {}).get("tabs")
-
-
 def danh_muc():
-    """Toàn bộ kho, đã chia mục — hộp thoại "Kho" vẽ thẳng từ cái này."""
+    """Toàn bộ kho, đã chia mục — hộp thoại "Kho" vẽ thẳng từ cái này.
+
+    Kho rỗng thì trả về đúng ba danh sách rỗng; hộp thoại phải chịu được điều đó và
+    nói ra, chứ không được vẽ một bảng trống không giải thích."""
     return {
         "module": [{
             "ma_so": m.MA_SO,

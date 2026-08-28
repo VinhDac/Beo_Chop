@@ -5,7 +5,6 @@
  */
 import type {
   Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab,
-  ThamSo,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -55,12 +54,7 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
   }
 }
 
-/** Gói nến. `zone` là HỘP phông nền — `[t_đầu, t_cuối, đáy, đỉnh]`, mốc THỜI GIAN nên
- *  đổi khung hiển thị vẫn nằm đúng chỗ. Python đã cắt ở con trỏ, không lộ tương lai. */
-export interface GoiNen {
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]; j: number
-  zone?: [number, number, number, number][]
-}
+// ⚠ `GoiNen` — gói nến cho chart của cửa sổ tester — đã đi ở đợt 2.
 
 export const py = {
   bootstrap: () => goi<Bootstrap>('bootstrap'),
@@ -73,7 +67,7 @@ export const py = {
   /** Khối + nối của MỘT tab trong một chiến lược đã lưu, để THÊM CHỒNG lên sơ đồ đang
    *  mở. Kèm những tham số đám khối đó thật sự đọc. */
   import_steps: (ten: string, tab: Tab) =>
-    goi<{ steps: Step[]; edges: ProcEdge[]; tham_so: ThamSo[]
+    goi<{ steps: Step[]; edges: ProcEdge[]; tham_so: never[]
           bo_start: boolean; ten: string }>('import_steps', ten, tab),
   save_process: (doc: ProcessDoc) =>
     goi<{ path: string; name: string }>('save_process', doc),
@@ -87,12 +81,11 @@ export const py = {
   // --- khối ---
   new_step: (kind: string, actionType?: string) =>
     goi<{ step: Step; card: Card }>('new_step', kind, actionType ?? null),
-  /** `tham_so` = bảng của sơ đồ ĐÍCH. Thiếu nó thì thẻ ghi `nguong_nen_bps = ?`. */
-  clone_steps: (steps: Step[], tham_so?: ThamSo[]) =>
+  clone_steps: (steps: Step[]) =>
     goi<{ steps: Step[]; map: Record<string, string>; cards: Card[] }>(
-      'clone_steps', steps, tham_so ?? []),
-  describe: (steps: Step[], thamSo: ThamSo[]) =>
-    goi<Card[]>('describe', steps, thamSo),
+      'clone_steps', steps, []),
+  describe: (steps: Step[]) =>
+    goi<Card[]>('describe', steps, []),
 
   /** Danh mục kho — engine nào đang nạp, tính được những gì, lưu ở đâu. */
   kho_danh_muc: () => goi<KhoDanhMuc>('kho_danh_muc'),
@@ -101,9 +94,9 @@ export const py = {
   validate: (doc: ProcessDoc) => goi<never>('validate', doc) as Promise<KetQuaSoat>,
 
   // --- hộp thoại hành động ---
-  save_action: (draft: Record<string, unknown>, tab: Tab, thamSo: ThamSo[]) =>
+  save_action: (draft: Record<string, unknown>, tab: Tab) =>
     goi<{ action: Record<string, unknown>; display: string }>(
-      'save_action', draft, tab, thamSo),
+      'save_action', draft, tab, []),
   action_defaults: (t: string) => goi<Record<string, unknown>>('action_defaults', t),
 
   // --- cài đặt ---

@@ -25,7 +25,6 @@ from . import core
 from . import kho
 from . import khung_cua_so
 from . import luu_tru
-from . import so_lenh
 
 
 def _bat_loi(fn):
@@ -69,19 +68,16 @@ def _loi(chu):
 def _hanh_dong_mac_dinh(loai):
     """Giá trị khởi điểm của một hành động mới.
 
-    Cố ý là những con số DÙNG ĐƯỢC NGAY chứ không phải 0: mặc định của Compress EA
-    (ATR 14, ngưỡng 7 bps, SL 1.5×ATR, TP 2R) đã chạy được trên nhiều symbol, nên
-    người dùng mới có thứ hợp lý để sửa chứ không phải bịa từ số không."""
+    ⚠ Bản cũ trả về những con số DÙNG ĐƯỢC NGAY chứ không phải 0 — mặc định của
+    Compress EA (ATR 14, ngưỡng 7 bps, SL 1.5×ATR, TP 2R) — để người dùng mới có thứ
+    hợp lý mà sửa chứ không phải bịa từ số không.
+
+    Nguyên tắc đó ĐÚNG và nên giữ khi từ vựng quay lại. Chỉ là hiện không còn trường
+    nào để đặt mặc định: một khối mang đúng TÊN · ĐỘNG TỪ · (với `vao_lenh`) HƯỚNG.
+    Xem `tai_lieu/o_cam_trong.md`."""
     if loai == core.VAO_LENH:
-        return {"type": loai, "huong": "mua", "loai": "stop", "lot": 0.01,
-                "dem": {"tinh": "atr", "value": 0.1},
-                "sl": {"tinh": "atr", "value": 1.5},
-                "tp": {"tinh": "R", "value": 2}}
-    if loai == core.SUA_LENH:
-        return {"type": loai, "che_do": "hoa_von"}
-    return {"type": core.CHECK_COND, "conditions": [{
-        "trai": {"ten": "atr", "tf": "M5", "period": 14}, "don_vi": "bps",
-        "phep": "<", "phai": {"value": 7.0, "tinh": "bps"}}]}
+        return {"type": loai, "huong": "mua"}
+    return {"type": loai if loai in core.ACTION_TYPES else core.CHECK_COND}
 
 
 # ---------------------------------------------------------------------------
@@ -123,9 +119,11 @@ def _the_buoc(st, ts=None, tab=None):
 
     if core.is_start_step(st):
         the["badges"] = ["chạy lại từ đây"]
-        the["nhip"] = st.get("nhip")
-        the["mo_ta"] = ("Điểm neo đánh số. Cả sơ đồ là một vòng lặp — mỗi nến "
-                        f"{st.get('nhip')} nó chạy lại từ khối này.")
+        # ⚠ `nhip` đã đi cùng khung thời gian (đợt 3), nên câu mô tả không còn nói
+        # "mỗi nến M5" được nữa. Cái nó KHẲNG ĐỊNH thì không đổi và vẫn là điều quan
+        # trọng nhất của khối này: cả sơ đồ là một vòng lặp.
+        the["mo_ta"] = ("Điểm neo đánh số. Cả sơ đồ là một vòng lặp — mỗi lượt nó chạy "
+                        "lại từ khối này.")
         return the
 
     # Bỏ `name` trước khi sinh câu đầy đủ: tiêu đề hộp ĐÃ hiện tên rồi.
@@ -133,14 +131,8 @@ def _the_buoc(st, ts=None, tab=None):
         {k: v for k, v in st.items() if k != "name"}, ts)
 
     if st.get("type") == core.CHECK_COND:
-        n = len(st.get("conditions") or [])
+        # Huy hiệu "N điều kiện · VÀ" và "so hai đại lượng" đã đi cùng điều kiện.
         the["badges"].append("cổng rẽ nhánh" if core.is_branch_gate(st) else "kiểm tra")
-        # Khối CÓ điều kiện thì chữ tự nói (`Giá đóng cửa(M15) > MA(M15, 50)`), nhưng
-        # khối RỖNG ở hai cơ chế nhìn giống hệt nhau — nhãn này là chỗ phân biệt duy nhất.
-        if st.get("so_dai_luong"):
-            the["badges"].append("so hai đại lượng")
-        if n > 1:
-            the["badges"].append(f"{n} điều kiện · VÀ")
     return the
 
 
@@ -318,46 +310,21 @@ class Api(NenCuaSo):
             "action_labels": core.ACTION_LABELS,
             "action_tabs": {k: list(v) for k, v in core.ACTION_TABS.items()},
             "branch_type": core.CHECK_COND,
-            "nhom_lenh_nay": core.NHOM_LENH_NAY,
-            "toan_hang_dung_sai": list(core.TOAN_HANG_DUNG_SAI),
-
-            "timeframes": core.TIMEFRAMES,
-            "nhip_mac_dinh": core.NHIP_MAC_DINH,
-            "ma_methods": core.MA_METHODS,
-            # Gửi nguyên dict từ `kho/` — thêm một trường ở đó là giao diện có ngay,
-            # không phải nhớ sửa chỗ này.
-            "toan_hang": core.TOAN_HANG,
-            "phep_so": core.PHEP_SO,
-            # ĐƠN VỊ — MỘT bảng cho cả app: điều kiện, SL/TP/đệm, sửa lệnh.
-            # Trước đây là hai bảng (`CACH_TINH` + `DON_VI_SS`) trùng nhau ba cặp.
-            "don_vi": core.DON_VI,
-            "don_vi_ngan": core.DON_VI_NGAN,
-            "don_vi_cho": {k: list(v) for k, v in core.DON_VI_CHO.items()},
             "huong": core.HUONG,
-            "loai_lenh": core.LOAI_LENH,
-            # MỐC NEO của khối Vào lệnh — xem `core.MOC_ENTRY`.
-            "moc_entry": core.MOC_ENTRY,
-            # MỌI đơn vị, một bảng nhãn — kể cả đơn vị ĐẾM (nến · lệnh · lot).
-            # Bảng tham số khai `don_vi` bằng một khoá ở đây, và ô số chỉ mời những
-            # tham số có ĐÚNG đơn vị của nó.
-            "nhan_don_vi": core.NHAN_DON_VI,
-            "don_vi_dem": core.DON_VI_DEM,
-            # Toán hạng → đơn vị CỐ ĐỊNH của ô so với nó (`None` = không có vế phải).
-            "toan_hang_don_vi": {
-                t["key"]: core.don_vi_cua_o("dieu_kien", t["key"])
-                for t in kho.TOAN_HANG},
-            "toan_hang_loai": core.TOAN_HANG_LOAI,
-            "loai_co_don_vi": core.LOAI_CO_DON_VI,
-            # Toán hạng nào KHÔNG đo được bằng chính nó (kết quả luôn = 1).
-            "don_vi_chinh_no": core.DON_VI_CHINH_NO,
-            # Toán hạng nào chỉ có nghĩa khi đã có zone, và đơn vị nào cũng vậy.
-            "toan_hang_can_zone": list(core.TOAN_HANG_CAN_ZONE),
-            "don_vi_can_zone": list(core.DON_VI_CAN_ZONE),
-            "moc_can_zone": list(core.MOC_CAN_ZONE),
-            "sua_che_do": core.SUA_CHE_DO,
-            "sua_can_gia": list(core.SUA_CAN_GIA),
 
-            "don_vi_o": {k: core.don_vi_cua_o(k) for k in ("chu_ky", "lot")},
+            # ⚠ MƯỜI CHÍN KHOÁ TỪ VỰNG ĐÃ BỎ ở đợt 3, và giao diện phải chịu được
+            # thiếu hết chúng: `toan_hang` · `phep_so` · `don_vi` · `don_vi_ngan` ·
+            # `don_vi_cho` · `nhan_don_vi` · `don_vi_dem` · `don_vi_o` ·
+            # `toan_hang_don_vi` · `toan_hang_loai` · `toan_hang_dung_sai` ·
+            # `toan_hang_can_zone` · `don_vi_can_zone` · `don_vi_chinh_no` ·
+            # `loai_co_don_vi` · `nhom_lenh_nay` · `loai_lenh` · `moc_entry` ·
+            # `moc_can_zone` · `sua_che_do` · `sua_can_gia`, cộng `timeframes` ·
+            # `nhip_mac_dinh` · `ma_methods`.
+            #
+            # `bootstrap` là hợp đồng "JS không viết cứng danh sách nào" — thêm một
+            # toán hạng ở `kho/` là giao diện có ngay. Hợp đồng đó GIỮ NGUYÊN; chỉ có
+            # điều bên trái hiện chưa có gì để gửi. Xem `tai_lieu/o_cam_trong.md`.
+
             "template_kinds": core.TEMPLATE_KINDS,
             "accent_presets": core.ACCENT_PRESETS,
             "max_process_steps": core.MAX_PROCESS_STEPS,
@@ -388,9 +355,7 @@ class Api(NenCuaSo):
     # ------------------------------------------------------------------ khối
     @_bat_loi
     def new_step(self, kind="action", action_type=None, tab=None):
-        st = (core.make_start_step(
-                  "Chạy lại từ đây",
-                  core.NHIP_MAC_DINH.get(tab, core.NHIP_MAC_DINH[core.TAB_ENTRY]))
+        st = (core.make_start_step("Chạy lại từ đây")
               if kind == core.KIND_START
               else core.make_action_step(
                   _hanh_dong_mac_dinh(action_type or core.CHECK_COND)))
@@ -431,18 +396,16 @@ class Api(NenCuaSo):
                 "quay_lai": [list(c) for c in kq["quay_lai"]],
                 "vong_ho": [list(c) for c in kq["vong_ho"]],
                 "lech_nhanh": kq["lech_nhanh"],
-                # Khối nào đã đi QUA cổng zone — hộp thoại dùng nó để KHÔNG bày ra toán
-                # hạng zone và đơn vị `× ATR zone` ở chỗ zone chưa tồn tại. Trả kèm ở
-                # đây thay vì thêm một lệnh riêng: sơ đồ đổi là bảng này đổi theo, không
-                # có đường nào để hai bên lệch nhau.
-                "sau_cong_zone": sorted(core.khoi_sau_cong_zone(
-                    st, core.default_edges(st) if ed is None else ed)),
+                # ⚠ `sau_cong_zone` đã đi cùng cơ chế cổng zone (đợt 3). Nó nói khối
+                # nào đã đi QUA cổng zone, để hộp thoại KHÔNG bày toán hạng zone ở chỗ
+                # zone chưa tồn tại. Cách trả kèm ở đây — thay vì một lệnh riêng — thì
+                # đáng giữ khi cơ chế tương đương quay lại: sơ đồ đổi là bảng đổi theo,
+                # không có đường nào để hai bên lệch nhau.
             }
         return _ok(probs,
                    so_loi=sum(1 for p in probs if p["severity"] == "error"),
                    so_canh_bao=sum(1 for p in probs if p["severity"] == "warning"),
-                   luong=luong,
-                   tham_so_dang_dung=sorted(core._tham_so_dang_dung(doc)))
+                   luong=luong)
 
     # ------------------------------------------------------------------ tài liệu
     @_bat_loi
@@ -480,9 +443,15 @@ class Api(NenCuaSo):
         * **Chỉ một tab** — toán hạng nhóm "Lệnh này" chỉ tồn tại ở Manage, nên bê một
           khối Manage sang Entry là tạo ra khối không soát nổi.
 
-        Và trả kèm **những tham số đám khối đó THẬT SỰ đọc**: khối tham chiếu tham số
-        bằng TÊN, nên thiếu một cái là khối trông vẫn bình thường trên canvas nhưng bấm
-        ▶ mới ném `"Bảng tham số thiếu …"`. Ai nhập cũng không đoán ra vì sao."""
+        ⚠ Bản cũ còn trả kèm **những tham số đám khối đó THẬT SỰ đọc**, quét bằng
+        `core._tham_so_dang_dung` — cố ý dùng LẠI đúng bộ quét của validator, vì viết
+        một bộ quét thứ hai là sớm muộn hai bên hiểu khác nhau. Lý do phải có: khối
+        tham chiếu tham số bằng TÊN, nên nhập thiếu một cái là khối trông vẫn bình
+        thường trên canvas nhưng bấm ▶ mới ném `"Bảng tham số thiếu …"`, và ai nhập
+        cũng không đoán ra vì sao.
+
+        Bảng tham số đi ở đợt 3, nên `tham_so` giờ luôn rỗng. Cả hai luật lọc phía
+        trên thì không đổi — chúng là luật về CẤU TRÚC. Xem `tai_lieu/o_cam_trong.md`."""
         d = core.normalize_process(core.load_template("strategy", ten))
         tab = tab if tab in core.TABS else core.TAB_ENTRY
         g = d.get(tab) or {}
@@ -491,12 +460,9 @@ class Api(NenCuaSo):
         giu = {s["id"] for s in buoc}
         canh = [e for e in (g.get("edges") or [])
                 if e.get("from") in giu and e.get("to") in giu]
-        # Dùng LẠI đúng bộ quét của validator, trên một `doc` giả chỉ có đám khối này —
-        # viết một bộ quét thứ hai là sớm muộn hai bên hiểu khác nhau.
-        dung = core._tham_so_dang_dung({tab: {"steps": buoc}})
         return _ok({
             "steps": buoc, "edges": canh,
-            "tham_so": [t for t in (d.get("tham_so") or []) if t["ten"] in dung],
+            "tham_so": [],
             "bo_start": len(goc) != len(buoc),
             "ten": d.get("name") or ten,
         })
@@ -598,15 +564,10 @@ class Api(NenCuaSo):
         d["hanh_dong"] = [{"key": k, "nhan": core.ACTION_LABELS[k],
                            "tabs": list(core.ACTION_TABS[k])}
                           for k in core.ACTION_TYPES]
-        d["don_vi"] = core.DON_VI
-        d["sua_che_do"] = core.SUA_CHE_DO
-        d["phep_so"] = core.PHEP_SO
-        d["trang_thai_lenh"] = {
-            so_lenh.CHO: "Lệnh chờ đang treo",
-            so_lenh.MO: "Đã khớp — đang là vị thế",
-            so_lenh.DONG: "Đã đóng / đã huỷ",
-        }
-        d["ly_do_dong"] = so_lenh.LY_DO_DONG
+        # ⚠ `don_vi` · `sua_che_do` · `phep_so` · `trang_thai_lenh` · `ly_do_dong` đã
+        # bỏ cùng từ vựng và cùng `so_lenh.py` (đợt 3). Hộp thoại Kho giờ chỉ còn ba
+        # danh sách RỖNG từ `kho.danh_muc()` cộng bảng hành động — nó phải NÓI RA rằng
+        # kho đang trống, chứ không vẽ một bảng không giải thích.
         return _ok(d)
 
     # ------------------------------------------------------------------ cài đặt

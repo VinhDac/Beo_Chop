@@ -164,26 +164,127 @@ nghĩa được sau khi chọn sàn.
 
 ## 9. Nợ độ phủ — KHÔNG phải ổ cắm, nhưng phải trả
 
-Ba module **còn sống** mà giờ không có bài kiểm nào, vì bài kiểm của chúng dựng fixture
-bằng `bo_chay.chay()`:
+Bộ test đi từ **4.213 dòng xuống 663**, và phần lớn là đúng — một bài kiểm không còn
+đối tượng thì là rác, không phải độ phủ. Nhưng **ba nhóm dưới đây kiểm CƠ CHẾ chứ không
+kiểm D_02**, nên chúng là nợ thật, phải trả khi cơ chế tương ứng quay lại:
 
-| Module còn sống | Bài kiểm đã mất | Kiểm cái gì |
-|---|---|---|
-| `nhat_ky.py` | `test_nhat_ky.py` (478) | bản ghi rỗng chữ · lưu id không lưu nhãn · ghi/đọc ngược không mất gì |
-| bảng tham số (`core.py`) | `test_dat_ten.py` (333) | số gõ tay hai chỗ → cảnh báo + nút đặt tên |
-| bảng tham số (`core.py`) | mục 4 của `test_kho_va_lenh.py` (~60) | bỏ tham số đang dùng → lỗi · khai tham số thừa → cảnh báo |
+| Bài kiểm đã mất | Kiểm CƠ CHẾ gì |
+|---|---|
+| `test_nhat_ky.py` (478) | bản ghi rỗng chữ · lưu id không lưu nhãn · ghi/đọc ngược không mất gì |
+| `test_dat_ten.py` (333) + mục 4 `test_kho_va_lenh.py` (~60) | số gõ tay hai chỗ → cảnh báo · bỏ tham số đang dùng → lỗi · khai tham số thừa → cảnh báo |
+| `test_bo_chay.py` (425) | thứ tự trong một nhịp · **luật lùi** · tính XÁC ĐỊNH (chạy lại ra kết quả y hệt) |
+| 5 mục cuối `test_danh_so.py` (~160) | mô tả hành động đọc được · soát thiếu SL / thiếu mốc neo · cơ chế "so hai đại lượng" |
+
+Còn lại **4 bài, 663 dòng**, phủ đúng thứ đang tồn tại: đánh số phân cấp · ghim số ⟲ ·
+luật rẽ nhánh · ranh giới Entry/Manage · cơ chế kho · lưu trữ · biến CSS ma · ô số.
 
 Giữ một `bo_chay` rỗng ruột chỉ để nuôi fixture thì đuôi vẫy được cả con chó — nên
 chúng đi. Nhưng đây là **nợ**, không phải dọn xong: có bộ chạy mới thì viết lại ngay.
 
 ---
 
+## 10. Kho toán hạng
+
+**Nằm ở đâu** — `cat_studio/kho/__init__.py`, `MODULE = []`.
+
+**Trước cắm gì** — ba module (312 dòng): `nen_tang` (giá · thời gian · tài khoản ·
+"lệnh này"), `chi_bao` (ATR · MA, tính thẳng từ nến), `engine_d02` (bảng vùng nén và
+máy nuôi nó).
+
+**Phải cắm gì** — cơ chế ở lại nguyên vẹn, chỉ thiếu nội dung: thả một module vào
+`MODULE` là hộp thoại Kho, dropdown toán hạng và `api.bootstrap` có ngay. Một market
+maker cần ít nhất `bid` · `ask` · `mid` · `spread` · **tồn kho CÓ DẤU** · tuổi quote ·
+lệch giá quote so với mid, cộng biến động thực và nhịp tick.
+
+> Phép `_soat_trung` là thứ đáng giữ nhất ở đây: hai engine cùng khai `atr` với hai
+> nghĩa khác nhau thì mọi chiến lược dùng nó đều sai mà **không báo gì**. Nó nổ ngay
+> lúc import, không đợi tới lúc chạy.
+
+---
+
+## 11. Từ vựng của khối hành động
+
+**Nằm ở đâu** — `core.py`, khối `# ---- TỪ VỰNG — Ổ CẮM TRỐNG`. Phía giao diện:
+`ActionDialog.tsx` (735 → 120 dòng) và `Bootstrap` trong `types.ts`.
+
+**Trước cắm gì** — 17 toán hạng · 8 phép so (`< ≤ > ≥ = ≠` · `là ĐÚNG` / `là SAI`) ·
+6 đơn vị (`giá` · `bps` · `× ATR` · `× ATR zone` · `× R` · `mép zone đối diện`) cùng
+mười bảng phụ · mốc neo · loại lệnh · 4 chế độ sửa · **bảng tham số** (hằng số CÓ TÊN
++ cảnh báo "số gõ tay hai chỗ" + nút đặt tên) · khung thời gian và nhịp M5/M1.
+
+**Phải cắm gì** — thước của market maker, không phải thước cũ đổi tên:
+
+| bỏ | thay bằng |
+|---|---|
+| `× ATR` · `× ATR zone` | `× spread` — bội của spread hiện tại |
+| `× R` (rủi ro theo SL) | tồn kho, vì SL từng lệnh không còn là trục rủi ro |
+| khung nến M1…MN1 | cửa sổ tick / mili-giây |
+| mốc neo `zone_HH` · `zone_LL` | `mid` · `bid` · `ask` · microprice |
+| loại lệnh `Chờ Stop` | **`Limit`** — và đệm phải ĐẢO DẤU: lùi vào trong, không nhô ra |
+| chế độ sửa `dời SL` · `hoà vốn` | **`dời giá`** (requote) — động tác thường xuyên nhất |
+
+**Còn lại ba thứ, và chúng là NGỮ PHÁP chứ không phải từ vựng** — đã đứng vững qua cả
+D_02 lẫn MT5 và sẽ đứng tiếp: ba động từ `check_cond` · `vao_lenh` · `sua_lenh`; ranh
+giới **Entry chỉ TẠO · Manage chỉ SỬA**; và hai phía **Mua · Bán**.
+
+---
+
+## 12. Sổ lệnh
+
+**Nằm ở đâu** — không còn file nào.
+
+**Trước cắm gì** — `so_lenh.py` (223 dòng): bảng `Lenh` + bảng `Zone`, mỗi thứ một id
+**của CHÍNH TA** (`L-0001`, `V-0003`) đếm tăng chứ không phải uuid.
+
+**Phải cắm gì** — sổ lệnh mới, và ba quyết định cũ đáng bê nguyên sang:
+
+- **id của ta, không mượn ticket sàn.** Backtest không có ticket; định danh phụ thuộc
+  sàn thì nửa hệ thống không chạy được khi chưa nối. D_02 không có id nối lệnh chờ với
+  vị thế sinh ra từ nó nên phải ĐOÁN bằng `HasOpenPosition()`.
+- **Id đếm tăng, không uuid** — chạy lại cùng dữ liệu ra cùng id, nên so được hai lần
+  backtest. uuid thì mất cả hai.
+- **Giữ cả lệnh đã chết**, không xoá đi: những câu hỏi kiểu "vùng này đã sinh lệnh
+  chưa" phải trả lời được kể cả khi lệnh đó đã đóng từ lâu.
+
+Thứ **phải thêm mới** và bản cũ không có: **tồn kho có dấu** (±lot), tuổi quote tính
+bằng mili-giây, và theo dõi từng phía bid/ask riêng.
+
+---
+
+## 13. Nhật ký và lịch sử
+
+**Nằm ở đâu** — không còn file nào. Thư mục `du_lieu/nhat_ky/` vẫn được liệt kê trong
+hộp thoại Kho nhưng KHÔNG AI GHI vào nữa.
+
+**Trước cắm gì** — `nhat_ky.py` (283) và `lich_su.py` (197). Cả hai nhận thẳng
+`bo_chay.KetQua` với `.nen1` / `.nen5` — kiểu tham số của chúng đã không còn tồn tại,
+nên chúng không phải "mồ côi" mà là **không chạy được**.
+
+**Phải cắm gì** — nhật ký mới, giữ nguyên ba luật đã trả giá để có:
+
+1. **Bản ghi RỖNG CHỮ.** Bộ chạy chỉ nhả số nguyên, số thực và id; chữ tiếng Việt được
+   dựng lúc HIỂN THỊ, và chỉ cho lô đang nhìn (~200 dòng). 135.000 bản ghi vì thế
+   không tốn một byte chữ nào lúc chạy.
+2. **Lưu `id` khối, KHÔNG lưu nhãn `[3A.1]`.** Nhãn là hàm thuần của (đồ thị + VỊ TRÍ):
+   ghi nhãn vào nhật ký thì kéo một khối lên 1 px là toàn bộ nhật ký cũ trỏ vào khối
+   khác, không đối chiếu lại được với lần chạy trước.
+3. **Một bản ghi = MỘT LƯỢT chạy**, không ghi từng khối đi qua — 7 khối × 71.000 nhịp
+   là 500.000 dòng rác không ai đọc nổi.
+
+`lich_su.py` thì lưu **thứ ĐẺ RA kết quả** (sơ đồ + cài đặt đã đóng băng) chứ không lưu
+kết quả: nhờ vậy chạy lại được, và so được hai lần chạy.
+
+
+---
+
 ## Đợt sau sẽ thêm vào đây
 
-Đợt 3 gỡ tiếp **từ vựng**: ruột `kho/` (`nen_tang` · `chi_bao` · `engine_d02`), bảng đơn
-vị trong `core.py` (`atr` · `atr_zone` · `bien_zone` · `R`), `MOC_ENTRY`, `LOAI_LENH`,
-`SUA_CHE_DO`, và `so_lenh.Zone`. Cùng lúc phải quyết số phận `nhat_ky.py` / `lich_su.py`
-— hai module mồ côi vẫn mang hình dạng dữ liệu của bộ chạy theo nến.
+**Đợt 3 đã xong.** Repo giờ là một trình soạn thảo sơ đồ sạch: vẽ · nối · đánh số ·
+ghim số ⟲ · soát cấu trúc · lưu/mở. Khối mang TÊN · ĐỘNG TỪ · (với `Vào lệnh`) HƯỚNG.
+
+Còn lại **đợt 4** — dọn nốt phần giao diện không ai gọi tới: lớp CSS mồ côi trong
+`app.css` (`soi-chay` · `soi-truot` · `soi-mo` · `dk-dat` · `dk-truot` · `cd-nguon-*` ·
+`kho-chip` …), icon `zone` trong `Icon.tsx`, và soát lại `README.md` cho khớp thực tế.
 
 Mỗi thứ gỡ xong thêm một mục vào sổ này **ngay trong đợt đó**, không để dồn: đúng cái
 không được ghi ngay là cái sẽ không bao giờ được ghi.

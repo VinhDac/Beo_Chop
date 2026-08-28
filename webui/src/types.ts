@@ -16,9 +16,7 @@ export interface Step {
   /** Ghim số: khối này là điểm quay lại hợp lệ, nhãn của nó không đổi khi có
    *  đường nối ngược về. Bật/tắt bằng chuột phải. */
   ghim?: boolean
-  /** CHỈ khối Bắt đầu: nhịp chạy của sơ đồ ("M5" / "M1" …). Trước đây là
-   *  `doc.timeframe` + một dropdown trên ribbon; giờ thuộc về chính điểm neo. */
-  nhip?: string
+  // ⚠ `nhip` đã đi cùng khung thời gian (đợt 3).
   [k: string]: unknown
 }
 
@@ -47,8 +45,6 @@ export interface Card {
   lines: CardLine[]
   /** Câu đầy đủ, dùng làm tooltip. `lines` là bản ngắn để vẽ lên hộp. */
   mo_ta: string
-  /** CHỈ khối Bắt đầu — nhịp chạy, để menu chuột phải tick đúng mục. */
-  nhip?: string
   ghim: boolean
   la_cong: boolean
   /** Khoá màu NGỮ NGHĨA do Python suy ra: `start · hoi · mua · ban · sua`. Không phải mã
@@ -63,13 +59,7 @@ export interface Problem {
   index?: number | null
   /** Sơ đồ nào — bảng Vấn đề hiện lỗi của CẢ HAI tab, kèm nhãn. */
   tab: Tab
-  /** Chỉ có ở cảnh báo "số gõ tay hai chỗ" — đủ dữ liệu để đặt tên bằng MỘT nút.
-   *  `cho` là đường đi vào từng ô số, để giao diện khỏi phải quét lại sơ đồ (quét hai
-   *  lần bằng hai đoạn mã là hai luật, và chúng sẽ lệch nhau). */
-  dat_ten?: {
-    goi_y: string; gia_tri: number; don_vi: string; nhan: string
-    cho: { tab: Tab; step: string; duong: (string | number)[] }[]
-  }
+  // ⚠ `dat_ten` đã đi cùng bảng tham số (đợt 3).
 }
 
 /** Hai sơ đồ trong một chiến lược.
@@ -82,20 +72,13 @@ export interface SoDo {
   cards: Card[]
 }
 
-/** Một núm vặn của chiến lược. Hằng số CÓ TÊN, đơn vị bất biến (bps · nến · ×ATR ·
- *  ×R) — không pip, không đô. Đây là hợp đồng chuẩn hoá của D_02. */
-export interface ThamSo {
-  ten: string
-  nhan: string
-  gia_tri: number
-  don_vi: string
-  ghi_chu: string
-}
-
+/** ⚠ `ThamSo` đã đi ở đợt 3 cùng bảng tham số. Khoá `tham_so` GIỮ LẠI trong
+ *  `ProcessDoc` và luôn rỗng: `schema` không đổi, nên file lưu ra vẫn cùng hình dạng
+ *  với file đọc vào và sơ đồ cũ mở lên không bị coi là hỏng. */
 export interface ProcessDoc {
   name: string
   symbol: string
-  tham_so: ThamSo[]
+  tham_so: never[]
   entry: SoDo
   manage: SoDo
 }
@@ -115,11 +98,8 @@ export interface KhoDanhMuc {
     luat: string[]
   }[]
   hanh_dong: { key: string; nhan: string; tabs: Tab[] }[]
-  don_vi: Record<string, string>
-  sua_che_do: Record<string, string>
-  phep_so: Record<string, string>
-  trang_thai_lenh: Record<string, string>
-  ly_do_dong: Record<string, string>
+  // ⚠ `don_vi` · `sua_che_do` · `phep_so` · `trang_thai_lenh` · `ly_do_dong` đã đi
+  // cùng từ vựng và `so_lenh.py` (đợt 3). Ba danh sách trên hiện luôn RỖNG.
   luu_tru: {
     goc: string
     muc: { ten: string; duong_dan: string; so_luong: number; danh_sach: string[] }[]
@@ -155,55 +135,21 @@ export interface Bootstrap {
   action_tabs: Record<string, Tab[]>
   /** Loại hành động đóng vai CỔNG rẽ nhánh. */
   branch_type: string
-  /** Tên nhóm toán hạng chỉ có nghĩa ở Manage. */
-  nhom_lenh_nay: string
-  /** Toán hạng vốn đã đúng/sai — hộp thoại ẩn ô vế phải. */
-  toan_hang_dung_sai: string[]
-
-  timeframes: string[]
-  /** Nhịp mặc định mỗi sơ đồ: Entry M5 (quyết định) · Manage M1 (phản ứng). */
-  nhip_mac_dinh: Record<Tab, string>
-  ma_methods: Record<string, string>
-  toan_hang: ToanHang[]
-  /** Tám phép: `< ≤ > ≥ = ≠` + `là ĐÚNG` / `là SAI`. Hai phép cuối dùng CHO VÀ CHỈ CHO
-   *  toán hạng đúng/sai, và chúng KHÔNG có vế phải. */
-  phep_so: Record<string, string>
-  /** ĐƠN VỊ — MỘT bảng cho cả app: điều kiện, SL/TP/đệm, sửa lệnh.
-   *  Trước đây là hai bảng (`CACH_TINH` + `DON_VI_SS`) trùng nhau ba cặp. */
-  don_vi: Record<string, string>
-  don_vi_ngan: Record<string, string>
-  /** Đơn vị nào dùng được ở đâu: `dieu_kien` · `dem` · `sl` · `tp` · `sua`. */
-  don_vi_cho: Record<string, string[]>
   huong: Record<string, string>
-  loai_lenh: Record<string, string>
-  /** Mốc neo của khối Vào lệnh — `zone_HH` · `zone_LL` · `gia_hien_tai`. */
-  moc_entry: Record<string, string>
-  /** Mốc nào chỉ có nghĩa khi phía trên có cổng zone. */
-  moc_can_zone: string[]
-  /** MỌI đơn vị → nhãn, kể cả đơn vị ĐẾM. Bảng tham số khai `don_vi` bằng khoá ở đây. */
-  nhan_don_vi: Record<string, string>
-  /** Đơn vị ĐẾM (`nen` · `lenh` · `lot`) — không quy đổi gì, chỉ nói con số đo cái gì. */
-  don_vi_dem: Record<string, string>
-  /** Toán hạng → đơn vị CỐ ĐỊNH của ô so với nó. `null` = đúng/sai, không có vế phải. */
-  toan_hang_don_vi: Record<string, string | null>
-  /** Toán hạng → loại đại lượng. Quyết định ô đơn vị sống hay mờ. */
-  toan_hang_loai: Record<string, string>
-  /** Loại DUY NHẤT được chọn đơn vị: `khoang_cach`. */
-  loai_co_don_vi: string
-  /** Toán hạng → đơn vị chính là NÓ. Chọn cái đó thì kết quả luôn = 1, nên không bày. */
-  don_vi_chinh_no: Record<string, string>
-  /** Toán hạng chỉ có nghĩa khi đã có zone. */
-  toan_hang_can_zone: string[]
-  /** Đơn vị chỉ có nghĩa khi đã có zone (`× ATR zone` · `mép zone đối diện`). */
-  don_vi_can_zone: string[]
-  /** Bốn chế độ: dời SL · dời TP · SL về hoà vốn · KẾT THÚC LỆNH NÀY (gộp đóng+huỷ). */
-  sua_che_do: Record<string, string>
-  sua_can_gia: string[]
 
-  // ⚠ `nguon` và `co_mt5` ĐÃ BỎ cùng nguồn nến MT5 (đợt 2).
+  /* ⚠ HAI MƯƠI TƯ KHOÁ TỪ VỰNG ĐÃ ĐI ở đợt 3, khớp với `api.bootstrap`:
+   *   nhom_lenh_nay · toan_hang_dung_sai · timeframes · nhip_mac_dinh · ma_methods
+   *   toan_hang · phep_so · don_vi · don_vi_ngan · don_vi_cho · loai_lenh
+   *   moc_entry · moc_can_zone · nhan_don_vi · don_vi_dem · toan_hang_don_vi
+   *   toan_hang_loai · loai_co_don_vi · don_vi_chinh_no · toan_hang_can_zone
+   *   don_vi_can_zone · sua_che_do · sua_can_gia · don_vi_o
+   *
+   * `Bootstrap` là hợp đồng "JS không viết cứng danh sách nào" — thêm một toán hạng ở
+   * `kho/` là giao diện có ngay. Hợp đồng GIỮ NGUYÊN, chỉ là bên trái chưa có gì để
+   * gửi. Bản cũ: `git show f1c90fb:webui/src/types.ts`. */
 
-  /** Đơn vị của những ô CỐ ĐỊNH ngoài điều kiện: `chu_ky` → nến, `lot` → lot. */
-  don_vi_o: Record<string, string>
+  // ⚠ `nguon` và `co_mt5` đã bỏ cùng nguồn nến MT5 (đợt 2).
+
   template_kinds: Record<string, string>
   accent_presets: Record<string, string>
   max_process_steps: number
@@ -225,9 +171,7 @@ export interface LuongSoDo {
   /** Vòng lặp CHƯA ghim. */
   vong_ho: [string, string][]
   lech_nhanh: string[]
-  /** Khối nào dòng chảy đã đi QUA cổng zone trước khi tới — chỉ ở đó zone mới tồn tại,
-   *  nên chỉ ở đó mới bày ra toán hạng zone và đơn vị `× ATR zone`. */
-  sau_cong_zone: string[]
+  // ⚠ `sau_cong_zone` đã đi cùng cơ chế cổng zone (đợt 3).
 }
 
 /** Kết quả `api.validate` — soát CẢ HAI sơ đồ trong một lời gọi. */
