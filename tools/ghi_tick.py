@@ -57,7 +57,7 @@ from cat_studio import nguon_tick as nt                                 # noqa: 
 try:
     import websockets
 except ImportError:
-    print("Thiếu thư viện `websockets`.  pip install websockets")
+    print("Missing the `websockets` library.  pip install websockets")
     raise SystemExit(1)
 
 GOC_WS = "wss://fstream.binance.com/stream?streams="
@@ -180,7 +180,7 @@ async def chay(symbols, im_lang=None):
     for s in ghi:
         bo = nt.don_ngay_cu(s, giu_ngay)
         if bo:
-            print(f"  ♻ {s}: xoá {len(bo)} ngày cũ ({bo[0]} … {bo[-1]})")
+            print(f"  ♻ {s}: deleted {len(bo)} old day(s) ({bo[0]} … {bo[-1]})")
     t_bat_dau = int(time.time() * 1000)
     # Cờ dừng CŨ còn sót lại thì lần chạy này chết ngay khi vừa mở. Dọn trước.
     nt.xoa_co_dung()
@@ -197,7 +197,7 @@ async def chay(symbols, im_lang=None):
     # nào đứng trước nó thì phải mượn lần đo đầu tiên — mượn được, nhưng đo ngay từ
     # đầu thì khỏi phải mượn.
     _do_va_ghi_dong_ho(ghi)
-    _khac("đo đồng hồ xong")
+    _khac("clock measured")
     luong = "/".join(f"{s.lower()}@{k}" for s in symbols
                      for k in ("bookTicker", "trade"))
     url = GOC_WS + luong
@@ -214,7 +214,7 @@ async def chay(symbols, im_lang=None):
             # cái nút không phản ứng.
             if nt.da_xin_dung():
                 raise _XinDung()
-            _khac("bắt đầu bắt tay WebSocket")
+            _khac("starting WebSocket handshake")
             # ⚠ `close_timeout=1` — ĐÃ ĐO, và nó là chỗ mất bảy giây.
             #
             # Thoát `async with` thì thư viện làm BẮT TAY ĐÓNG: gửi frame close rồi chờ
@@ -232,18 +232,19 @@ async def chay(symbols, im_lang=None):
                     # bộ chạy tin vào một dải liền mạch không có thật.
                     gio = int(time.time() * 1000)
                     for s in ghi:
-                        nt.ghi_lo_hong(s, _ngay_utc(gio), t_dut, gio, "mất kết nối")
-                    print(f"  ⚠ lỗ hổng {(gio - t_dut) / 1000:.1f}s — đã ghi vào sổ")
+                        nt.ghi_lo_hong(s, _ngay_utc(gio), t_dut, gio, "disconnected")
+                    print(f"  ⚠ {(gio - t_dut) / 1000:.1f}s gap — written to the ledger")
                     t_dut = None
                 lan = 0
-                _khac(f"đã nối · {len(symbols)} symbol · {len(symbols) * 2} luồng")
+                _khac(f"connected · {len(symbols)} symbol(s) · "
+                      f"{len(symbols) * 2} stream(s)")
                 await _doc(ws, ghi, im_lang, t_bat_dau, giay_xa)
         except _XinDung:
             for g in ghi.values():
                 g.xa()
             nt.xoa_co_dung()
             nt.xoa_nhip()
-            print("  ■ dừng theo yêu cầu của app — đã xả hết đệm")
+            print("  ■ stopped at the app's request — buffers fully flushed")
             return
         except asyncio.CancelledError:
             # Ctrl+C. Xả nốt phần đã nhận RỒI mới đi — mất hai giây dữ liệu vì một
@@ -260,7 +261,7 @@ async def chay(symbols, im_lang=None):
                 g.xa()                       # đừng để mất phần đã nhận
             cho = CHO_NOI_LAI[min(lan, len(CHO_NOI_LAI) - 1)]
             lan += 1
-            print(f"  ✘ {type(e).__name__}: {str(e)[:80]} — nối lại sau {cho}s")
+            print(f"  ✘ {type(e).__name__}: {str(e)[:80]} — reconnecting in {cho}s")
             # Vẫn đập nhịp trong lúc chờ nối lại: bộ ghi CÒN SỐNG, chỉ là đang mù.
             # Ngừng đập ở đây thì app báo "đã chết" trong khi nó sắp nối lại được.
             nt.dap_nhip(sorted(ghi), t_bat_dau)
@@ -282,7 +283,7 @@ async def _doc(ws, ghi, im_lang, t_bat_dau, giay_xa=GIAY_XA):
         try:
             tho = await asyncio.wait_for(ws.recv(), timeout=im_lang)
         except asyncio.TimeoutError:
-            raise ConnectionError(f"im lặng quá {im_lang:g}s")
+            raise ConnectionError(f"silent for more than {im_lang:g}s")
         t_ta = int(time.time() * 1000)
         try:
             goi = json.loads(tho)
@@ -337,7 +338,7 @@ def _do_va_ghi_dong_ho(ghi):
     ngay = _ngay_utc(t)
     for s in ghi:
         nt.ghi_lech_dong_ho(s, ngay, t, lech, rtt)
-    print(f"  ⏱ lệch đồng hồ {lech:+.0f} ms (rtt {rtt:.0f} ms)")
+    print(f"  ⏱ clock offset {lech:+.0f} ms (rtt {rtt:.0f} ms)")
 
 
 def _in_trang_thai(ghi):
@@ -345,21 +346,22 @@ def _in_trang_thai(ghi):
     phan = []
     for s, g in sorted(ghi.items()):
         phan.append(f"{s} {g.tong['so']:,}/{g.tong['khop']:,}")
-    print(f"  {gio}Z  " + "  ·  ".join(phan) + "   (sổ/khớp)")
+    print(f"  {gio}Z  " + "  ·  ".join(phan) + "   (book/trades)")
 
 
 def main():
     p = argparse.ArgumentParser(
-        description="ghi luồng sổ lệnh + khớp lệnh Binance USDⓈ-M ra đĩa")
-    p.add_argument("symbol", nargs="+", help="ví dụ TRUMPUSDT PUMPUSDT")
+        description="record the Binance USDⓈ-M book + trade streams to disk")
+    p.add_argument("symbol", nargs="+", help="e.g. TRUMPUSDT PUMPUSDT")
     p.add_argument("--im-lang", type=float, default=None,
-                   help="im bao nhiêu giây thì coi là chết (mặc định: lấy từ Cài đặt)")
+                   help="seconds of silence before the stream counts as dead "
+                        "(default: taken from Settings)")
     a = p.parse_args()
 
     syms = [s.upper() for s in a.symbol]
-    print(f"  ghi vào  {nt.thu_muc(syms[0])}")
-    print(f"  symbol   {', '.join(syms)}")
-    print("  Ctrl+C để dừng — phần đã nhận vẫn được xả xuống đĩa\n")
+    print(f"  writing to  {nt.thu_muc(syms[0])}")
+    print(f"  symbols     {', '.join(syms)}")
+    print("  Ctrl+C to stop — whatever arrived is still flushed to disk\n")
     try:
         asyncio.run(chay(syms, a.im_lang))
     except KeyboardInterrupt:
@@ -368,7 +370,7 @@ def main():
         # `finally: if ghi: …` ở đây với `ghi = None` — tức một đoạn mã trông như đang
         # bảo vệ dữ liệu nhưng KHÔNG BAO GIỜ chạy. Đó là loại tệ nhất: đọc thì yên tâm,
         # thực tế thì không.
-        print("\n  dừng theo yêu cầu")
+        print("\n  stopped on request")
 
 
 if __name__ == "__main__":

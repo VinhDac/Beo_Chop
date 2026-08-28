@@ -45,30 +45,32 @@ def _dong(d, dau_hieu=True):
 
 
 def main():
-    p = argparse.ArgumentParser(description="spread có lớn hơn hai lần phí maker không")
+    p = argparse.ArgumentParser(
+        description="is the spread wider than twice the maker fee?")
     p.add_argument("--kl", type=float, default=50.0,
-                   help="ngưỡng khối lượng 24h, TRIỆU USD (mặc định 50)")
-    p.add_argument("--top", type=int, default=25, help="in bao nhiêu dòng đầu bảng")
+                   help="24h volume floor, MILLIONS of USD (default 50)")
+    p.add_argument("--top", type=int, default=25, help="how many rows to print")
     p.add_argument("--san", default=",".join(dtt.SAN),
-                   help="sàn nào, cách nhau bằng dấu phẩy")
+                   help="which venues, comma-separated")
     p.add_argument("--phi", type=float, default=None,
-                   help="ÉP phí maker (%%) cho mọi sàn — dùng để hỏi 'nếu phí bằng 0 "
-                        "thì sao', tức bậc VIP đáng giá bao nhiêu")
+                   help="FORCE the maker fee (%%) on every venue — use it to ask "
+                        "'what if the fee were 0', i.e. what a VIP tier is worth")
     a = p.parse_args()
 
     if a.phi is not None:
-        print(f"  ⚠ ÉP phí maker = {a.phi} % cho mọi sàn — đây là giả định, không phải số thật")
-    print("  … đang hỏi các sàn", flush=True)
+        print(f"  ⚠ FORCING maker fee = {a.phi} % on every venue — this is an "
+              f"assumption, not a real number")
+    print("  … asking the venues", flush=True)
     du, hong = dtt.do([s.strip() for s in a.san.split(",")], a.kl, a.phi)
     tat_ca, _ = du, None
 
     print(f"\n{'=' * 84}")
-    print(f"  spread ÷ (2 × phí maker)   ·   khối lượng ≥ {a.kl:g} triệu USD/ngày")
-    print(f"  {len(du)} symbol qua ngưỡng khối lượng")
+    print(f"  spread ÷ (2 × maker fee)   ·   volume ≥ ${a.kl:g}M/day")
+    print(f"  {len(du)} symbols clear the volume floor")
     print("=" * 84)
-    print(f"{'sàn':<13}{'symbol':<18}{'spread':>8}{'phí':>7}{'TỈ LỆ':>8}"
-          f"{'tick':>7}{'KL 24h':>12}")
-    print(f"{'':<13}{'':<18}{'(bps)':>8}{'(bps)':>7}{'':>8}{'':>7}{'(triệu $)':>12}")
+    print(f"{'venue':<13}{'symbol':<18}{'spread':>8}{'fee':>7}{'RATIO':>8}"
+          f"{'tick':>7}{'24h vol':>12}")
+    print(f"{'':<13}{'':<18}{'(bps)':>8}{'(bps)':>7}{'':>8}{'':>7}{'($M)':>12}")
     print("-" * 84)
     for d in du[:a.top]:
         print(_dong(d))
@@ -76,20 +78,23 @@ def main():
 
     lon = sorted((d for d in tat_ca if d["ma"] in LON), key=lambda d: -d["kl_trieu"])[:9]
     if lon:
-        print("\n  ĐỐI CHIẾU — hàng thanh khoản nhất:")
+        print("\n  FOR REFERENCE — the most liquid names:")
         for d in lon:
             print(_dong(d, dau_hieu=False))
         print("-" * 84)
 
     qua = [d for d in du if d["ti_le"] > 1]
     if qua:
-        print(f"  {len(qua)} symbol có TỈ LỆ > 1 — cửa còn mở, nhưng đó mới là điều kiện CẦN.")
+        print(f"  {len(qua)} symbols have a RATIO > 1 — the door is open, but that is "
+              f"only the NECESSARY condition.")
     else:
-        print("  KHÔNG symbol nào có tỉ lệ > 1. Ở bậc phí này, bắt spread là sai dấu.")
-        print("  Ba đường: hạ phí (bậc VIP / chương trình MM) · đổi công cụ · đổi sàn.")
-        print("  Thử lại với phí 0:  --phi 0")
+        print("  NO symbol has a ratio > 1. At this fee tier, capturing the spread has "
+              "the wrong sign.")
+        print("  Three ways out: lower the fee (VIP tier / MM programme) · change "
+              "instrument · change venue.")
+        print("  Try again with a zero fee:  --phi 0")
     if hong:
-        print("\n  sàn không hỏi được:", ", ".join(hong))
+        print("\n  venues that did not answer:", ", ".join(hong))
 
 
 if __name__ == "__main__":

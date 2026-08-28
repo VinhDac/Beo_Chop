@@ -37,13 +37,13 @@ if (-not (Test-Path $exe)) {
     }
     if ($that) { $exe = Join-Path (Split-Path $that) "pythonw.exe" }
     if (-not $that -or -not (Test-Path $exe)) {
-        Write-Host "Khong tim thay pythonw.exe that (da bo qua stub WindowsApps)." -ForegroundColor Red
-        Write-Host "Chay tools\setup.bat truoc da." -ForegroundColor Yellow
+        Write-Host "No real pythonw.exe found (the WindowsApps stub was skipped)." -ForegroundColor Red
+        Write-Host "Run tools\setup.bat first." -ForegroundColor Yellow
         exit 1
     }
-    Write-Host "! Chua co .venv - dung Python he thong:" -ForegroundColor Yellow
+    Write-Host "! No .venv yet - falling back to system Python:" -ForegroundColor Yellow
     Write-Host "  $exe"
-    Write-Host "  (nen dung .venv rieng - xem README)"
+    Write-Host "  (a separate .venv is recommended - see README)"
 }
 
 # Kiểm cả `webui\dist`: thiếu nó thì app mở ra một cửa sổ TRẮNG và không nói vì sao.
@@ -52,9 +52,9 @@ $thieu = @($icon,
            (Join-Path $goc "webui\dist\index.html")) |
          Where-Object { -not (Test-Path $_) }
 if ($thieu) {
-    Write-Host "Thieu:" -ForegroundColor Red
+    Write-Host "Missing:" -ForegroundColor Red
     $thieu | ForEach-Object { Write-Host "  $_" }
-    Write-Host "`nChay tools\setup.bat (hoac tools\build_ui.bat) truoc da." -ForegroundColor Yellow
+    Write-Host "`nRun tools\setup.bat (or tools\build_ui.bat) first." -ForegroundColor Yellow
     exit 1
 }
 

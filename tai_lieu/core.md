@@ -828,9 +828,15 @@ Ranh giới này phải rõ, vì nó cắt ngang chứ không cắt dọc: một
 
 | | ngôn ngữ | ví dụ |
 |---|---|---|
-| **Chữ người dùng nhìn thấy** | **TIẾNG ANH** | nhãn nút, tooltip, thông báo lỗi, chữ trên hộp, tên toán hạng |
-| Chú thích · docstring | tiếng Việt | mọi `#`, `"""…"""`, `/* … */` |
+| **Chữ người dùng nhìn thấy** | **TIẾNG ANH** | nhãn nút, tooltip, thông báo lỗi, chữ trên hộp, tên toán hạng, **output của `tools/`**, **log bộ ghi**, **file ship theo bản đóng gói** |
+| Chú thích · docstring | tiếng Việt | mọi `#`, `REM`, `"""…"""`, `/* … */` |
 | Tên hàm · biến · khoá | tiếng Việt | `dong_khoi`, `bao_gia`, `soi_luot`, `TOAN_HANG` |
+| Mô tả trong `tests/` | tiếng Việt | chữ in ra cho NGƯỜI CHẠY BỘ KIỂM, cùng loại với chú thích |
+| `tai_lieu/*.md` · `README.md` | tiếng Việt | tài liệu cho người viết mã |
+
+> **Ranh giới thật không phải "app hay không app", mà là AI ĐỌC.** Người dùng đọc thì
+> tiếng Anh; người viết mã đọc thì tiếng Việt. Cùng một file `.bat` có cả hai: dòng
+> `REM` là chú thích (Việt), dòng `echo` là output (Anh).
 
 **Chữ người dùng thấy phần lớn do PYTHON sinh, không phải JS.** Đó là luật kiến trúc
 (§6.3, `api._the_buoc`): giao diện không tự ghép câu, vì ghép là dựng một bản dịch thứ
@@ -847,7 +853,26 @@ bo_chay.py          LoiChay · câu cảnh báo trong `KetQua.loi`
 api.py              mọi `_loi(…)` và badge của thẻ khối
 app_web.py          MessageBox lúc khởi động (thiếu .NET / WebView2)
 webui/src/**        nhãn, tooltip, chỗ trống có lời giải thích
+tools/ghi_tick.py   LOG BỘ GHI — tiến trình chạy nhiều tháng, log là thứ duy nhất
+                    nói ra nó đang làm gì
+tools/do_spread.py  bảng quét thị trường + argparse help
+tools/dong_goi.bat  `echo` tiến độ, và `READ-ME-FIRST.txt` ship theo bản đóng gói
+tools/*.bat · .ps1  mọi dòng `echo` / `Write-Host`
 ```
+
+### ⚠ FILE SHIP THEO BẢN ĐÓNG GÓI PHẢI NÓI ĐÚNG, không chỉ nói tiếng Anh
+
+`tools/dong_goi.bat` sinh ra `READ-ME-FIRST.txt` — **thứ duy nhất trong repo đến tay
+người dùng cuối**. Bản trước tên là `DOC-TRUOC-KHI-CHAY.txt` và dạy:
+
+> *"Lan dau chay chua co nen: mo Cai dat, chon symbol va khoang From/To, roi bam Chay —
+> app tu tai phan con thieu tu MT5."*
+
+MT5 gỡ từ đợt 2, nến gỡ, From/To không còn. Tức nó hướng dẫn một **sản phẩm không tồn
+tại**, suốt nhiều đợt dọn, mà không ai để ý — vì không ai đọc file đó khi sửa mã.
+
+Bài học không phải "nhớ dịch" mà là: **file nào không nằm trên đường đi hằng ngày thì
+phải có người cố ý đi tìm nó.** Sửa xong một mảng lớn thì rà lại danh sách trên.
 
 ### ⚠ ĐỊNH DẠNG SỐ ĐI THEO NGÔN NGỮ
 
@@ -1174,7 +1199,8 @@ mấy câu hỏi mà làm tay hay quên:
 2. build giao diện web — quên bước này là gói ra một cửa sổ trắng;
 3. **chạy bộ kiểm; đỏ thì DỪNG, không đóng gói** — thêm so với Auto_Clicker;
 4. PyInstaller theo `Cat_Studio.spec`;
-5. kèm `DOC-TRUOC-KHI-CHAY.txt` vào trong gói;
+5. kèm `READ-ME-FIRST.txt` vào trong gói — file DUY NHẤT đến tay người dùng cuối,
+   nên nó phải nói đúng sản phẩm hiện tại (bản cũ còn dạy tải nến từ MT5);
 6. nén `Cat_Studio-windows.zip` rồi **xoá `build/`** — thư mục đó chỉ là chỗ làm việc trung gian
    của PyInstaller, để lại chỉ tổ rác thư mục gốc.
 

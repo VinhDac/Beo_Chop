@@ -97,7 +97,7 @@ def main():
             # biết" lại là phần không bao giờ được nhìn.
             if i == 1:
                 k = MOI_NGAY // 3
-                NT.ghi_lo_hong(SYMBOL, ngay, int(t[k]), int(t[k + 9000]), "giả lập")
+                NT.ghi_lo_hong(SYMBOL, ngay, int(t[k]), int(t[k + 9000]), "simulated")
 
         a = A.Api()
         doc = a.demo_process()["value"]
@@ -138,11 +138,11 @@ def main():
 
         b = v["bang"]
         print(f"\n  {duong}   {os.path.getsize(duong) / 1024:,.0f} KB")
-        print(f"  {b['so_su_kien']:,} sự kiện · {len(v['mau']):,} điểm mẫu · "
-              f"{len(v['lo_hong'])} lỗ hổng")
-        print(f"  khớp {b['so_lan_khop']:,} · ròng {b['gia_tri']:.2f} · "
-              f"phí {b['phi_da_tra']:.2f} · markout {b['markout_tick']:+.3f} tick/lot")
-        print(f"  soi sẵn {len(soi)} mốc")
+        print(f"  {b['so_su_kien']:,} events · {len(v['mau']):,} samples · "
+              f"{len(v['lo_hong'])} gap(s)")
+        print(f"  {b['so_lan_khop']:,} fills · net {b['gia_tri']:.2f} · "
+              f"fees {b['phi_da_tra']:.2f} · markout {b['markout_tick']:+.3f} tick/lot")
+        print(f"  {len(soi)} inspect snapshots pre-baked")
         print(f"  ⚠ {b['loi']}\n")
     finally:
         luu_tru.ghi_cai_dat(goc)

@@ -14,4 +14,4 @@ call npm run build
 cd ..
 
 echo.
-echo Xong. Chay app:  tools\chay.bat
+echo Done. Run the app:  tools\chay.bat
