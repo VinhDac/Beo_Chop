@@ -776,9 +776,21 @@ class Api(NenCuaSo):
             # Lỗi biên dịch đã mang sẵn nhãn khối (`[1B.2] …`) — đưa thẳng lên, đừng
             # bọc thêm một lớp chữ làm loãng mất cái nhãn.
             return _loi(str(e))
-        return _ok({"bang": kq.bang(), "mau": kq.mau, "lo_hong": kq.lo_hong,
-                    "khop": kq.khop[:2000], "symbol": symbol,
-                    "tu_ngay": tu, "den_ngay": den})
+        # ⚠ PHẢI ĐI QUA `_sach`. `json.dumps` của Python phun `NaN` trần — không phải
+        # JSON hợp lệ — và `JSON.parse` bên kia cầu nối nổ ngay, hiện ra thành "không
+        # đọc được phản hồi" chứ không chỉ vào đây.
+        #
+        # Điểm mẫu CÓ NaN thật, không phải hiếm: suốt một quãng mù thì `bid`/`ask` là
+        # NaN theo đúng thiết kế, nên vốn định giá theo `mid` cũng NaN. Tức bất kỳ ai
+        # có một lần rớt mạng trong dữ liệu là bấm Test không ra gì.
+        #
+        # Chỗ này lọt suốt vì bộ sinh dữ liệu giả KHAI lỗ hổng mà không XOÁ bản ghi —
+        # nên dải mù trong bản giả không bao giờ thật sự mù, và NaN không bao giờ sinh
+        # ra. Một fixture nói dối che đúng cái lỗi mà nó được dựng ra để lộ.
+        return _ok(bo_chay._sach({
+            "bang": kq.bang(), "mau": kq.mau, "lo_hong": kq.lo_hong,
+            "khop": kq.khop[:2000], "symbol": symbol,
+            "tu_ngay": tu, "den_ngay": den}))
 
     @_bat_loi
     def soi_luot(self, doc, nhin, tick=None):

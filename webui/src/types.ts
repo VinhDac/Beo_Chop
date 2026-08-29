@@ -242,10 +242,27 @@ export interface KetQuaTest {
     ton_kho: number; tien: number; gia_tri: number; phi_da_tra: number
     so_khop: number; kl_da_khop: number
     so_dat: number; so_huy: number; so_tu_choi: number; giay_mu_co_lenh: number
-    /** MARKOUT — sau khi khớp `markout_ms` thì giá đi đâu. ÂM = bị chọn ngược.
-     *  Con số quan trọng nhất của market making; xem `bo_chay.MARKOUT_MS`. */
+    /** MARKOUT — sau khi khớp Δ thì giá đi đâu. ÂM = bị chọn ngược. Con số quan
+     *  trọng nhất của market making; xem `bo_chay.MOC_MARKOUT`.
+     *
+     *  MỘT THANG, KHÔNG MỘT MỐC: 100 ms hỏi "có bị tay nhanh nhặt mất không", 30 s
+     *  hỏi "có đang cãi xu hướng không". Một con số duy nhất giấu mất hình dạng.
+     *
+     *  ⚠ `kl` LÀ MẪU SỐ và phải hiện cùng `tick`, không được tách. Ba ô dưới cộng
+     *  lại đúng bằng `kl_da_khop` — mọi lot khớp nằm trong ĐÚNG MỘT ô, không lot nào
+     *  bốc hơi:
+     *    `kl`      đo được
+     *    `mu_kl`   đáo hạn lúc màn hình tối (mất kết nối) → KHÔNG có phép đo
+     *    `non_kl`  lượt chạy hết trước khi đáo hạn */
+    markout: {
+      ms: number; tong: number; kl: number; mu_kl: number; non_kl: number
+      /** Trung bình mỗi lot, quy ra tick — dạng đọc được bằng mắt. */
+      tick: number
+      /** `kl` chia tổng lot đã khớp. 1 = đo được hết. */
+      phu: number
+    }[]
+    /** Bốn khoá cũ, trỏ vào `bo_chay.MOC_CHINH` trong thang trên. */
     markout_ms: number; markout_tong: number; markout_kl: number
-    /** Trung bình mỗi lot, quy ra tick — dạng đọc được bằng mắt. */
     markout_tick: number
     /** Chỗ kết quả KHÔNG chắc — rỗng nghĩa là không có gì phải dè dặt. */
     loi: string

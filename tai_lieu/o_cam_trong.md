@@ -289,7 +289,9 @@ không chỉ phím Esc — **cả hai đều có**.
 > · *Đếm số lần bị từ chối theo thời gian* — `mau` đã chở sẵn cột đó (cột thứ 5), chỉ
 >   chưa vẽ. Rẻ, thêm lúc nào cũng được.
 > · *Biểu đồ phân bố markout* — thú vị nhưng một con số trung bình đã đủ để quyết định,
->   và phân bố cần chỗ bằng cả hai biểu đồ hiện có.
+>   và phân bố cần chỗ bằng cả hai biểu đồ hiện có. **Đã trả một nửa món này**: thay
+>   một mốc bằng THANG năm mốc (100 ms … 30 s) trên một hàng. Không phải phân bố, nhưng
+>   là HÌNH DẠNG theo thời gian, và tốn đúng một dòng.
 > · *So hai lượt chạy cạnh nhau* — đúng là thứ người ta muốn khi vặn `phan_huy_truoc`
 >   qua ba mức. Đợi tới khi có ai thật sự làm việc đó nhiều lần.
 

@@ -310,9 +310,60 @@ kiem("và ảnh chụp thị trường trong mẫu KHỚP với thứ sơ đồ 
      all(m[5] == m[5] or not m[9] for m in kq.mau))
 
 # MARKOUT — con số nói ra ta có đang bị chọn ngược hay không.
-kiem("markout đo được, và chỉ đo phần khớp ĐỦ TUỔI",
-     0 < kq.markout_kl <= kq.tom_tat_khop["kl_da_khop"],
-     f"— đo {kq.markout_kl:.0f}/{kq.tom_tat_khop['kl_da_khop']:.0f} lot")
+th = b["markout"]
+kiem("đo cả một THANG mốc, không một mốc — 100 ms và 30 s hỏi hai câu khác nhau",
+     [r["ms"] for r in th] == sorted(B.MOC_MARKOUT),
+     f"— {[r['ms'] for r in th]}")
+kiem("mốc chính có mặt trong thang, và ba khoá cũ trỏ đúng vào nó",
+     b["markout_ms"] == B.MOC_CHINH
+     and any(r["ms"] == b["markout_ms"] and r["tick"] == b["markout_tick"] for r in th))
+
+# ⚠ BẤT BIẾN GIỮ CHO BẢNG KHÔNG NÓI DỐI. Mỗi lot đã khớp phải nằm trong ĐÚNG MỘT ô:
+# đo được · đáo hạn lúc màn hình tối · lượt chạy hết trước khi đáo hạn. Không có ô
+# thứ tư, và không lot nào được bốc hơi — vì bốc hơi thì mẫu số phình lên trong im
+# lặng và trung bình đẹp ra.
+tong_kl = kq.tom_tat_khop["kl_da_khop"]
+kiem("MỌI lot đã khớp đều được kể tên, ở mọi mốc — không lot nào bốc hơi",
+     all(abs(r["kl"] + r["mu_kl"] + r["non_kl"] - tong_kl) < 1e-6 for r in th),
+     f"— {[(r['ms'], round(r['kl'] + r['mu_kl'] + r['non_kl'] - tong_kl, 6)) for r in th]}")
+kiem("mốc càng XA thì phần chưa kịp đáo hạn càng NHIỀU — không thể ngược lại",
+     all(a["non_kl"] <= b2["non_kl"] + 1e-9 for a, b2 in zip(th, th[1:])),
+     f"— {[(r['ms'], round(r['non_kl'], 1)) for r in th]}")
+kiem("mỗi dòng tự mang MẪU SỐ của nó — `phu` là phần đo được trên tổng lot",
+     all(abs(r["phu"] - r["kl"] / tong_kl) < 1e-9 for r in th),
+     f"— {[(r['ms'], round(r['phu'] * 100, 1)) for r in th]}")
+
+# ⚠ LỖ HỔNG ĂN MẤT PHÉP ĐO, VÀ PHẢI NÓI RA — không được chốt bừa ở giá lúc sáng lại.
+#
+# Khoét một lỗ THẬT giữa dữ liệu (xoá bản ghi + khai lỗ hổng đúng quãng đó), rồi so
+# với lượt chạy trên dữ liệu nguyên vẹn. Cú khớp ngay trước lúc mất kết nối đáo hạn khi
+# màn hình đang tối: bản trước để nó nằm chờ rồi chốt bằng `mid` lúc sáng lại — một
+# phép đo ở chân trời khác hẳn, trộn vào trung bình mà không dán nhãn.
+# ⚠ LỖ HỔNG PHẢI NẰM GIỮA, VÀ PHẢI CÒN DỮ LIỆU PHÍA SAU. Bản đầu của bài này khoét
+# 120 giây trên một bộ dữ liệu dài 90 giây — lỗ hổng nuốt trọn phần đuôi, nên KHÔNG có
+# sự kiện nào sau nó, và mọi phép đo rơi vào ô "lượt chạy đã hết" thay vì ô "màn hình
+# tối". Bài kiểm báo 0 và trông như mã hỏng, trong khi mã đúng.
+_dau, _cuoi = int(SO["t_ta"][0]), int(SO["t_ta"][-1])
+_TU = _dau + (_cuoi - _dau) // 3
+_DEN = _TU + 10_000                                   # mười giây tối, còn 2/3 dữ liệu phía sau
+_gs = (SO["t_ta"] < _TU) | (SO["t_ta"] > _DEN)
+_gk = (KH["t_ta"] < _TU) | (KH["t_ta"] > _DEN)
+_kq_mu = B.chay(MAU, phat_lai.PhatLai(SO[_gs], KH[_gk],
+                                      lo_hong=[{"tu": _TU, "den": _DEN}]),
+                K.MoHinh(TICK, tre_ra_ms=5.0))
+_th_mu = _kq_mu.bang()["markout"]
+kiem("cú khớp đáo hạn lúc màn hình TỐI thì bị BỎ, và ĐẾM ra — không chốt bừa",
+     all(r["mu_kl"] > 0 for r in _th_mu),
+     f"— {[(r['ms'], round(r['mu_kl'], 1)) for r in _th_mu]}")
+kiem("bỏ rồi vẫn không lot nào bốc hơi — bất biến giữ nguyên khi có lỗ hổng",
+     all(abs(r["kl"] + r["mu_kl"] + r["non_kl"]
+             - _kq_mu.tom_tat_khop["kl_da_khop"]) < 1e-6 for r in _th_mu))
+kiem("mốc càng XA càng mất nhiều phép đo vào lỗ hổng — cửa sổ đáo hạn rộng hơn",
+     all(a["mu_kl"] <= b2["mu_kl"] + 1e-9 for a, b2 in zip(_th_mu, _th_mu[1:])),
+     f"— {[(r['ms'], round(r['mu_kl'], 1)) for r in _th_mu]}")
+kiem("và kết quả NÓI RA điều đó, không để người đọc tự đoán",
+     "markout" in _kq_mu.loi and "dark" in _kq_mu.loi, f"— {_kq_mu.loi[:90]!r}")
+
 kiem("markout quy ra TICK để đọc được bằng mắt",
      abs(b["markout_tick"] - b["markout_tong"] / b["markout_kl"] / TICK) < 1e-9,
      f"— {b['markout_tick']:+.3f} tick/lot sau {b['markout_ms']} ms")

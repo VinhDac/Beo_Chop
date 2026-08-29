@@ -637,8 +637,7 @@ class KetQua:
     """Kết quả một lượt backtest. Mọi con số ở đây là số của Python, JSON hoá được."""
 
     __slots__ = ("so_su_kien", "so_luot", "khop", "mau", "lo_hong", "loi",
-                 "tom_tat_khop", "tu_ms", "den_ms", "giay_chay",
-                 "markout_tong", "markout_kl", "markout_ms")
+                 "tom_tat_khop", "tu_ms", "den_ms", "giay_chay", "markout")
 
     def __init__(self):
         self.so_su_kien = 0
@@ -673,9 +672,9 @@ class KetQua:
         self.tom_tat_khop = {}
         self.tu_ms = self.den_ms = 0
         self.giay_chay = 0.0
-        self.markout_tong = 0.0
-        self.markout_kl = 0.0
-        self.markout_ms = 0
+        #: MỘT DÒNG MỖI MỐC. Xem `MOC_MARKOUT` để biết vì sao là thang chứ không phải
+        #: một con số: `{"ms", "tong", "kl", "mu_kl", "non_kl"}`.
+        self.markout = []
 
     def bang(self):
         d = dict(self.tom_tat_khop)
@@ -683,14 +682,35 @@ class KetQua:
         d.update({"so_su_kien": self.so_su_kien, "so_luot": self.so_luot,
                   "so_lan_khop": len(self.khop), "loi": self.loi,
                   "tu_ms": self.tu_ms, "den_ms": self.den_ms,
-                  "giay_chay": round(self.giay_chay, 2),
-                  "markout_ms": self.markout_ms,
-                  "markout_tong": self.markout_tong,
-                  "markout_kl": self.markout_kl,
-                  # Trung bình MỖI LOT, quy ra TICK — dạng đọc được bằng mắt: "sau một
-                  # giây, mỗi lot khớp lãi/lỗ trung bình bao nhiêu tick".
-                  "markout_tick": (self.markout_tong / self.markout_kl / tick
-                                   if self.markout_kl else 0.0)})
+                  "giay_chay": round(self.giay_chay, 2)})
+
+        # THANG MARKOUT. Mỗi dòng tự mang theo nó đo được trên bao nhiêu lot và bỏ mất
+        # bao nhiêu — không tách ra chỗ khác, để không ai đọc con số mà quên mẫu số.
+        thang = []
+        for r in self.markout:
+            thang.append({
+                "ms": r["ms"],
+                "tong": r["tong"],
+                "kl": r["kl"],
+                "mu_kl": r["mu_kl"],
+                "non_kl": r["non_kl"],
+                # Trung bình MỖI LOT, quy ra TICK — dạng đọc được bằng mắt: "sau ngần
+                # ấy mili-giây, mỗi lot khớp lãi/lỗ trung bình bao nhiêu tick".
+                "tick": (r["tong"] / r["kl"] / tick) if r["kl"] else 0.0,
+                # PHẦN ĐO ĐƯỢC trên tổng số lot đã khớp. Đây là MẪU SỐ, và nó phải đi
+                # kèm con số chứ không nằm rời: 0,3 tick đo trên 30 % số lot và 0,3
+                # tick đo trên 100 % là hai câu khác hẳn nhau.
+                "phu": (r["kl"] / (r["kl"] + r["mu_kl"] + r["non_kl"])
+                        if (r["kl"] + r["mu_kl"] + r["non_kl"]) else 0.0),
+            })
+        d["markout"] = thang
+
+        # BA KHOÁ CŨ vẫn giữ, trỏ vào MỐC CHÍNH — chỗ khác còn đọc chúng.
+        chinh = next((x for x in thang if x["ms"] == MOC_CHINH), thang[0] if thang else None)
+        d.update({"markout_ms": chinh["ms"] if chinh else 0,
+                  "markout_tong": chinh["tong"] if chinh else 0.0,
+                  "markout_kl": chinh["kl"] if chinh else 0.0,
+                  "markout_tick": chinh["tick"] if chinh else 0.0})
         return d
 
 
@@ -714,8 +734,7 @@ TOI_DA_MAU = 3000
 #: ra. Lãi lỗ trộn ba chuyện vào một số: ăn spread, trả phí, và **bị chọn ngược**. Chỉ
 #: cái thứ ba mới cho biết chiến lược có đang bị người khác lấy tiền hay không.
 #:
-#: Cách đo: mua 1 lot ở giá `p`, một giây sau `mid` là `m` thì phần lời tức thời là
-#: `(m − p)`. Cộng dồn mọi lần khớp:
+#: Cách đo: mua 1 lot ở giá `p`, sau Δ thì `mid` là `m`, phần lời tức thời là `(m − p)`.
 #:
 #:     markout ÂM  → khớp xong giá đi NGƯỢC. Ta là bên bị chọn — người khớp vào ta biết
 #:                   thứ ta không biết. Càng khớp nhiều càng lỗ, và nới spread cũng
@@ -723,13 +742,25 @@ TOI_DA_MAU = 3000
 #:     markout DƯƠNG → ta đang bắt được đúng phần thưởng của việc cung cấp thanh khoản.
 #:                   Nếu vẫn lỗ thì vấn đề là PHÍ, một bài toán khác hẳn.
 #:
-#: Một giây là mốc thường dùng: đủ dài để nhiễu vi cấu trúc lắng, đủ ngắn để chưa lẫn
-#: với xu hướng.
-MARKOUT_MS = 1000
+#: ⚠ MỘT THANG, KHÔNG PHẢI MỘT MỐC — và đây là chỗ bản trước nói dối mà không cố ý.
+#: Bản trước chôn cứng `MARKOUT_MS = 1000`, không hiện ở đâu trong giao diện. Nhưng Δ
+#: không phải một hằng số của thế giới, nó là CÂU HỎI ta đang hỏi:
+#:
+#:     100 ms   ta có bị mấy tay nhanh hơn nhặt mất không?
+#:       1 s    ta có bị chọn ngược không?   ← mốc thường dùng
+#:      30 s    ta có đang cãi lại xu hướng không?
+#:
+#: Ba câu khác nhau, ba câu trả lời khác nhau, và một con số duy nhất thì giấu mất
+#: hình dạng. Đo cả thang rẻ gần như bằng không — hàng đợi chờ chốt chỉ dài bằng
+#: `Δ × nhịp khớp` — nên không có lý do gì để chọn một mốc rồi im.
+MOC_MARKOUT = (100, 500, 1000, 5000, 30_000)
+
+#: Mốc hiện thành con số LỚN ở đầu bảng Kết quả. Phải nằm trong `MOC_MARKOUT`.
+MOC_CHINH = 1000
 
 
 def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
-         markout_ms=MARKOUT_MS):
+         moc_markout=MOC_MARKOUT):
     """Chạy `doc` trên dòng sự kiện `p`. Trả `KetQua`.
 
     `gioi_han` > 0 thì dừng sau chừng ấy sự kiện — để thử nhanh mà không nạp cả ngày.
@@ -743,10 +774,21 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
     nh = Nhin()
     nhap = list(NHAP_GOC)
     kq = KetQua()
-    kq.markout_ms = markout_ms
     t0 = time.perf_counter()
     moc_sau = 0
-    cho_markout = deque()            # [(đáo_hạn, giá, bên, kl)]
+
+    # MỘT HÀNG CHỜ MỖI MỐC. Sắp tăng dần và bỏ trùng để `moc[0]` chắc chắn là mốc
+    # ngắn nhất — `ke_tiep` bên dưới dựa vào đó.
+    moc = tuple(sorted({int(x) for x in moc_markout if int(x) > 0}))
+    cho = [deque() for _ in moc]     # [(đáo_hạn, giá, bên, kl)]
+    mk_tong = [0.0] * len(moc)
+    mk_kl = [0.0] * len(moc)         # ĐO ĐƯỢC
+    mk_mu = [0.0] * len(moc)         # đáo hạn RƠI VÀO LÚC MÙ — không quan sát được
+    #: Đáo hạn gần nhất trong mọi hàng chờ. Có nó thì mỗi sự kiện chỉ phải so MỘT số,
+    #: thay vì ngó đầu cả năm hàng — vòng này chạy mười triệu lần.
+    ke_tiep = float("inf")
+    #: Mid ĐANG NGỰ TRỊ tính tới TRƯỚC sự kiện hiện tại. Xem khối chốt markout.
+    mid_truoc = float("nan")
     mo_lo_hong = 0
 
     while True:
@@ -770,16 +812,43 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
         if moi:
             kq.khop.extend(moi)
             for f in moi:
-                cho_markout.append((t + markout_ms, f["gia"], f["ben"], f["kl"]))
+                g, b, k = f["gia"], f["ben"], f["kl"]
+                for i, h in enumerate(moc):
+                    cho[i].append((t + h, g, b, k))
+            if t + moc[0] < ke_tiep:
+                ke_tiep = t + moc[0]
 
-        # MARKOUT: lần khớp nào đủ tuổi thì chốt sổ với `mid` HIỆN TẠI.
-        if cho_markout and cho_markout[0][0] <= t:
-            m = (p.bid + p.ask) * 0.5
-            if m == m:               # `mid` NaN (đang mù) thì để đó, chờ có sổ lại
-                while cho_markout and cho_markout[0][0] <= t:
-                    _, gia, ben, kl = cho_markout.popleft()
-                    kq.markout_tong += (m - gia) * ben * kl
-                    kq.markout_kl += kl
+        # MARKOUT — chốt bằng BÁO GIÁ ĐANG NGỰ TRỊ lúc đáo hạn.
+        #
+        # ⚠ `mid_truoc`, KHÔNG PHẢI `mid` hiện tại. Giá thị trường tại thời điểm D là
+        # báo giá cuối cùng ở hoặc trước D — đó là ĐỊNH NGHĨA của trạng thái sổ lệnh,
+        # không phải xấp xỉ. Ta chốt tại sự kiện đầu tiên có `t >= D`, nên sổ lệnh tại
+        # D chính là sổ TRƯỚC sự kiện này.
+        #
+        # Bản đầu của đợt sửa này lấy `mid` của sự kiện hiện tại — tức nhìn TỚI TƯƠNG
+        # LAI một quãng bằng khoảng cách giữa hai sự kiện. Đã đo trên dữ liệu giả
+        # (330 ms một sự kiện): mốc 100 ms mất SẠCH phép đo, vì không sự kiện nào rơi
+        # đủ gần. Lấy báo giá ngự trị thì mốc 100 ms đo được ngay, và câu trả lời
+        # "không đổi gì trong 100 ms" là một câu trả lời ĐÚNG, không phải một chỗ thiếu.
+        if t >= ke_tiep:
+            for i, c in enumerate(cho):
+                while c and c[0][0] <= t:
+                    dao_han, gia, ben, kl = c[0]
+                    # Báo giá ngự trị đúng tại `dao_han`. Bằng `t` thì sự kiện này
+                    # nằm ở đúng thời điểm đó nên nó được tính vào.
+                    m = (p.bid + p.ask) * 0.5 if dao_han == t else mid_truoc
+                    # ⚠ KHÔNG CÓ BÁO GIÁ NGỰ TRỊ → BỎ. Sổ lệnh đã đi đâu trong lúc
+                    # tối thì ta không biết; chốt bằng báo giá trước lúc mất kết nối là
+                    # bịa ra một phép đo. `mid_truoc` bị xoá ngay từ lúc MỞ lỗ hổng nên
+                    # mọi đáo hạn rơi vào quãng ấy đều rơi vào nhánh này.
+                    if m != m:
+                        c.popleft()
+                        mk_mu[i] += kl
+                        continue
+                    c.popleft()
+                    mk_tong[i] += (m - gia) * ben * kl
+                    mk_kl[i] += kl
+            ke_tiep = min((c[0][0] for c in cho if c), default=float("inf"))
 
         # ---- 2. chiến lược nhìn trạng thái MỚI ----
         nh.bid = p.bid
@@ -794,6 +863,27 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
         # ---- 3 & 4. chốt rồi gửi ----
         gm, lm, gb, lb = chot_bao_gia(nhap)
         khop.dong_bo(t, gm, lm, gb, lb)
+
+        # Sự kiện này đã được chiến lược nhìn xong → từ đây nó là "báo giá trước".
+        #
+        # ⚠ XOÁ NGAY TỪ LÚC MỞ LỖ HỔNG, không đợi lúc đóng — và đây là chỗ đợt sửa
+        # này sai hai lần liên tiếp trước khi đúng.
+        #
+        # `PhatLai` chỉ hạ `co_so` ở `DONG_LO_HONG`, tức ở CUỐI quãng tối. Bám vào đó
+        # thì suốt quãng tối `mid_truoc` vẫn giữ báo giá của lúc trước khi mất kết nối,
+        # và mọi đáo hạn trong quãng ấy được chốt bằng nó — im lặng, trông như đo được.
+        # Đo trên một lượt chạy có lỗ hổng 10 giây: `mu_kl` ra 0 tròn trĩnh ở cả năm
+        # mốc, y hệt lượt chạy không có lỗ hổng nào.
+        #
+        # Từ mốc MỞ trở đi là ta không nhìn thấy nữa. Xoá ở đó thì cả hai thứ tự phát
+        # ra đều được bịt, không cần cờ thứ hai:
+        #   · `DONG_LO_HONG` trước bản ghi `so` (thường)
+        #   · bản ghi `so` trước `DONG_LO_HONG` (khi hoà mốc)
+        #
+        # Phần đáo hạn ĐÚNG TẠI mốc mở vẫn chốt được: nó đã đi qua khối chốt ở trên
+        # trong chính vòng lặp này, trước khi dòng dưới chạy.
+        mid_truoc = (float("nan") if loai == phat_lai.MO_LO_HONG or not nh.co_so
+                     else (nh.bid + nh.ask) * 0.5)
 
         if t >= moc_sau:
             moc_sau = t + moc_von_ms
@@ -815,8 +905,20 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
                    float(nh.bid), float(nh.ask),
                    float(nh.bid_kl), float(nh.ask_kl), bool(nh.co_so)))
     # ⚠ Lần khớp CHƯA ĐỦ TUỔI thì BỎ, không chốt bừa ở giá cuối. Chốt bừa là trộn một
-    # phép đo nửa vời vào trung bình rồi không ai biết. Số lot đo được nằm trong
-    # `markout_kl` — so với `kl_da_khop` là thấy ngay phần bị bỏ.
+    # phép đo nửa vời vào trung bình rồi không ai biết.
+    #
+    # BA SỐ, VÀ CHÚNG PHẢI CỘNG LẠI BẰNG TỔNG SỐ LOT ĐÃ KHỚP:
+    #
+    #     kl      đo được
+    #     mu_kl   đáo hạn lúc màn hình tối  → không quan sát được
+    #     non_kl  lượt chạy hết trước khi đáo hạn
+    #
+    # Bất biến `kl + mu_kl + non_kl == kl_da_khop` là thứ giữ cho bảng không nói dối:
+    # mọi lot đã khớp đều nằm trong ĐÚNG MỘT ô, không lot nào bốc hơi. Có bài kiểm.
+    for i, h in enumerate(moc):
+        kq.markout.append({"ms": h, "tong": mk_tong[i], "kl": mk_kl[i],
+                           "mu_kl": mk_mu[i],
+                           "non_kl": float(sum(x[3] for x in cho[i]))})
 
     # ⚠ NÓI RA CHỖ KHÔNG BIẾT. Ba con số dưới đây là ba cách một kết quả có thể đẹp mà
     # vô nghĩa, và không cái nào tự lộ ra trên đường vốn.
@@ -828,6 +930,13 @@ def chay(doc, p, mo_hinh, tab=None, gioi_han=0, moc_von_ms=NHIP_VON_MS,
         canh.append(f"{_so(khop.ton_kho, 2)} lots of inventory left — the P&L is "
                     f"only certain once inventory is 0, because unwinding for real "
                     f"still costs the spread and the fee")
+    # Lỗ hổng dữ liệu KHÔNG chỉ làm mất một quãng đường vốn — nó ăn mất cả những phép
+    # đo markout đáo hạn trong quãng đó. Nói ra, vì nhìn đường vốn không thấy.
+    mu_max = max((r["mu_kl"] for r in kq.markout), default=0.0)
+    if mu_max:
+        canh.append(f"data loss also cost up to {_so(mu_max, 2)} lots of markout "
+                    f"measurement — those fills matured while the book was dark, so "
+                    f"there is no observation to average, not even a bad one")
     if khop.so_tu_choi:
         # NÓI THEO TỈ LỆ, không nói con số trần. "119.188 lần" nghe như nhiều; "99% số
         # sự kiện" thì nói ra đúng bản chất: chiến lược KẸT CỨNG, không phải thỉnh

@@ -917,6 +917,24 @@ select.o { cursor: pointer; }
 .kq-noi-bat b { font-size: 14px; font-variant-numeric: tabular-nums; margin-left: 8px; }
 .kq-phu { color: var(--dim); font-size: 10.5px; margin-left: 6px; }
 
+/* THANG MARKOUT — năm mốc đứng cạnh nhau, đọc bằng MỘT cái liếc.
+   Xếp ngang chứ không xếp dọc: cái mắt cần thấy là HÌNH DẠNG (markout xấu dần hay tốt
+   dần theo thời gian), mà hình dạng chỉ hiện ra khi các số nằm trên một hàng. */
+.kq-thang { display: flex; gap: 2px; margin-bottom: 6px; flex-wrap: wrap; }
+.kq-thang-o {
+  display: flex; align-items: baseline; gap: 4px;
+  padding: 2px 6px; border-radius: var(--radius-sm);
+  background: var(--field); cursor: help;
+  font-size: 10.5px; font-variant-numeric: tabular-nums;
+}
+/* Mốc chính = con số to ở dòng trên. Viền trái nối hai chỗ đó lại bằng mắt. */
+.kq-thang-o.chinh { border-left: 2px solid var(--accent); }
+.kq-thang-ms { color: var(--muted); }
+.kq-thang-o b { font-size: 11px; }
+/* MẪU SỐ. Mờ khi đủ, ĐỎ khi thiếu — thiếu mẫu số thì con số cạnh nó yếu đi, và đó là
+   thứ duy nhất người đọc không tự đoán được. */
+.kq-thang-phu { color: var(--dim); }
+
 .t-ok  { color: var(--ok); }
 .t-err { color: var(--err); }
 .t-dim { color: var(--dim); }

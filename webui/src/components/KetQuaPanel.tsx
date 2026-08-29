@@ -143,6 +143,21 @@ const nguyen = (v: number) => truVi(v.toLocaleString('en-US'))
  *  thời gian chạy. Ép cứng 2 chữ số ở đó là làm `0,001` thành `0,00`. */
 const tuNhien = (v: number) => truVi(v.toLocaleString('en-US', { maximumFractionDigits: 8 }))
 
+/** Mốc markout thành chữ ngắn: `100` → `100ms`, `30000` → `30s`.
+ *
+ *  Viết `30000 ms` thì mắt phải đếm số 0 mới biết là 30 giây — mà cả thang đứng cạnh
+ *  nhau thì phải so được bằng một cái liếc. */
+const mocTen = (ms: number) =>
+  ms < 1000 ? `${ms}ms` : truVi((ms / 1000).toLocaleString('en-US')) + 's'
+
+/** Phần trăm phủ — và ⚠ KHÔNG BAO GIỜ LÀM TRÒN LÊN THÀNH 100 %.
+ *
+ *  `99,996 %` mà hiện ra `100.0%` là đúng cái nói dối mà cả đợt sửa này đi chữa: người
+ *  đọc thấy 100 thì tin là đã đo hết, trong khi vẫn có lot bị bỏ. Cắt xuống (floor) và
+ *  chặn trần ở 99,9 — chỉ đúng 100 % mới được viết là 100 %. */
+const phuTen = (v: number) =>
+  v >= 1 ? '100%' : `${Math.min(99.9, Math.floor(v * 1000) / 10).toFixed(1)}%`
+
 function gio(ms: number) {
   const d = new Date(ms)
   return d.toISOString().slice(0, 16).replace('T', ' ')
@@ -233,13 +248,49 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
             + 'per lot. NEGATIVE = adverse selection: whoever hit you knew something '
             + 'you did not. Widening the spread will not save you if the cause is a '
             + 'quote standing still while the market moved.'}>
-            <span className="kq-nhan">Markout {b.markout_ms} ms</span>
+            <span className="kq-nhan">Markout {mocTen(b.markout_ms)}</span>
             <b className={b.markout_tick >= 0 ? 't-ok' : 't-err'}>
               {b.markout_tick >= 0 ? '+' : ''}{so(b.markout_tick, 3)} tick/lot
             </b>
             <span className="kq-phu">
               {b.markout_tick < 0 ? 'adversely selected' : 'earning the liquidity premium'}
             </span>
+          </div>
+
+          {/* ⚠ THANG MARKOUT — MỘT CON SỐ GIẤU MẤT HÌNH DẠNG.
+              100 ms hỏi "có bị tay nhanh nhặt mất không"; 30 s hỏi "có đang cãi xu
+              hướng không". Ba câu khác nhau. Bản trước chỉ hiện MỘT mốc, mà mốc đó
+              còn bị chôn cứng trong mã — người đọc không có cách nào biết nó là 1 s.
+
+              Và MẪU SỐ đi kèm từng dòng, không tách ra chỗ khác: −0,3 tick đo trên
+              100 % số lot và −0,3 tick đo trên 35 % là hai câu khác hẳn nhau. Mốc
+              càng xa thì phần đo được càng ít, và đó không phải lỗi — đó là sự thật
+              về dữ liệu, nên nó phải nằm ngay cạnh con số. */}
+          <div className="kq-thang">
+            {b.markout.map(r => {
+              const thieu = 1 - r.phu
+              return (
+                <div key={r.ms}
+                     className={'kq-thang-o' + (r.ms === b.markout_ms ? ' chinh' : '')}
+                     title={'Price ' + mocTen(r.ms) + ' after each fill, per lot.'
+                       + ' Measured on ' + so(r.kl, 0) + ' of '
+                       + so(r.kl + r.mu_kl + r.non_kl, 0) + ' lots.'
+                       + (r.mu_kl ? '  ' + so(r.mu_kl, 0) + ' lots matured while the '
+                          + 'book was dark (lost connection) — no observation exists, '
+                          + 'so they are dropped rather than settled at a later price.'
+                          : '')
+                       + (r.non_kl ? '  ' + so(r.non_kl, 0) + ' lots filled too close '
+                          + 'to the end of the run to mature.' : '')}>
+                  <span className="kq-thang-ms">{mocTen(r.ms)}</span>
+                  <b className={r.tick >= 0 ? 't-ok' : 't-err'}>
+                    {r.tick >= 0 ? '+' : ''}{so(r.tick, 3)}
+                  </b>
+                  <span className={'kq-thang-phu' + (thieu > 0.02 ? ' ng-canh' : '')}>
+                    {phuTen(r.phu)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
           <div><span className="kq-nhan">Fills</span> {nguyen(b.so_lan_khop)} ·{' '}
             {so(b.kl_da_khop, 0)} lots</div>

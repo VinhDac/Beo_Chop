@@ -61,7 +61,7 @@ nguon_tick.py    dữ liệu tick nằm ở đâu, hình dạng gì, thủng ch�
 phat_lai.py      trộn hai luồng thành MỘT dòng sự kiện, trục thời gian là `t_ta`
 khop_lenh.py     lệnh THỤ ĐỘNG của ta khớp lúc nào — hàng đợi, độ trễ, giá của requote
 bo_chay.py       nối sơ đồ với thị trường, đóng vòng phản hồi tồn kho → báo giá
-                 (`MARKOUT_MS` — con số nói ta có đang bị chọn ngược hay không)
+                 (`MOC_MARKOUT` — con số nói ta có đang bị chọn ngược hay không)
 do_thi_truong.py quét spread ÷ (2 × phí maker) trên bốn sàn
 luu_tru.py       MỘT chỗ duy nhất biết file nằm ở đâu
 api.py           bề mặt DUY NHẤT giao diện gọi tới   (JS → api.py → core.py)
@@ -166,9 +166,50 @@ Markout 1000 ms    −0,523 tick/lot   ← bị chọn ngược
 * **Markout DƯƠNG mà vẫn lỗ** — vấn đề là PHÍ, một bài toán khác hẳn: đổi symbol, đổi
   hạng phí, hoặc vào chương trình Market Maker để có rebate.
 
-Chỉ những lần khớp ĐỦ TUỔI mới được tính; số lot đo được nằm ở `markout_kl`, so với
-`kl_da_khop` là thấy ngay phần bị bỏ. Chốt bừa ở giá cuối là trộn một phép đo nửa vời
-vào trung bình rồi không ai biết.
+#### Một THANG, không một mốc — và mẫu số đi kèm
+
+Δ không phải hằng số của thế giới, nó là **câu hỏi đang hỏi**:
+
+| Δ | hỏi gì |
+|---|---|
+| 100 ms | có bị mấy tay nhanh hơn nhặt mất không? |
+| 1 s | có bị chọn ngược không? *(mốc chính, hiện thành con số lớn)* |
+| 30 s | có đang cãi lại xu hướng không? |
+
+Ba câu khác nhau, ba câu trả lời khác nhau. Bản trước chôn cứng `MARKOUT_MS = 1000` và
+không hiện ở đâu — người đọc không có cách nào biết con số mình đang nhìn là mốc nào,
+mà cũng không đổi được. Đo cả thang rẻ gần như bằng không (hàng chờ chỉ dài bằng
+`Δ × nhịp khớp`), nên không có lý do gì để chọn một mốc rồi im.
+
+**Mỗi dòng mang MẪU SỐ của chính nó.** −0,3 tick đo trên 100 % số lot và −0,3 tick đo
+trên 35 % là hai câu khác hẳn nhau, và bản trước chỉ hiện tử số. Mọi lot đã khớp nằm
+trong **đúng một** ô — có bài kiểm giữ bất biến `kl + mu_kl + non_kl == kl_da_khop`:
+
+    kl       đo được
+    mu_kl    đáo hạn lúc KHÔNG NHÌN THẤY GIÁ → không có phép đo
+    non_kl   lượt chạy hết trước khi đáo hạn
+
+#### ⚠ Chốt bằng BÁO GIÁ ĐANG NGỰ TRỊ, và đợt sửa này sai hai lần trước khi đúng
+
+Giá thị trường tại thời điểm D là **báo giá cuối cùng ở hoặc trước D** — đó là định
+nghĩa của trạng thái sổ lệnh, không phải xấp xỉ.
+
+*Sai lần một:* lấy `mid` của sự kiện đầu tiên **sau** D. Đó là nhìn tới tương lai một
+quãng bằng khoảng cách hai sự kiện. Đo trên dữ liệu 330 ms/sự kiện: mốc 100 ms mất
+**sạch** phép đo, vì không sự kiện nào rơi đủ gần.
+
+*Sai lần hai:* xoá báo giá ngự trị ở lúc **đóng** lỗ hổng. Nhưng `PhatLai` chỉ hạ
+`co_so` ở cuối quãng tối, nên suốt quãng ấy phép chốt vẫn "thấy" báo giá của lúc trước
+khi mất kết nối — cú khớp ngay trước lúc rớt mạng được chốt bằng giá **50 phút sau**,
+vẫn cộng vào trung bình như thể đo đúng ở Δ. `mu_kl` ra **0 tròn trĩnh** trên một lượt
+chạy có lỗ hổng, y hệt lượt không có lỗ hổng nào.
+
+*Đúng:* xoá ngay từ lúc **mở**. Từ mốc đó trở đi là không nhìn thấy, nên đáo hạn nào
+rơi vào quãng ấy đều không có phép đo — bỏ, và đếm. Bịt ở lúc mở thì cả hai thứ tự phát
+ra đều được chặn, không cần cờ thứ hai.
+
+Đo được sai lệch: **−0,197 → −0,179 tick**, tức 10 % con số đầu bảng, trên một lượt
+chạy có đúng một lỗ hổng.
 
 ### ⭐ SOI MỘT LƯỢT — vì sao nó là một HÀM THUẦN
 

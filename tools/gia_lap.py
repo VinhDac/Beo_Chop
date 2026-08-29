@@ -90,14 +90,22 @@ def main():
         r = np.random.default_rng(21)
         for i, ngay in enumerate(NGAY):
             so, kh, t = _mot_ngay(r, i)
-            so.tofile(NT.duong(SYMBOL, ngay, "so"))
-            kh.tofile(NT.duong(SYMBOL, ngay, "khop"))
             # Một lỗ hổng THẬT ở ngày thứ hai — để soi được dải mù đỏ trên biểu đồ và
             # câu cảnh báo đi kèm. Không có nó thì đúng cái phần "nói ra chỗ mình không
             # biết" lại là phần không bao giờ được nhìn.
+            #
+            # ⚠ PHẢI KHOÉT BẢN GHI ĐI, không chỉ ghi một dòng vào sổ lỗ hổng. Bản trước
+            # khai lỗ hổng mà vẫn để nguyên dữ liệu trong quãng đó — nên dải đỏ trên
+            # biểu đồ là GIẢ: chiến lược vẫn nhìn thấy giá và vẫn giao dịch suốt quãng
+            # "mù". Một fixture nói dối đúng về cái mà nó được dựng ra để minh hoạ.
             if i == 1:
                 k = MOI_NGAY // 3
-                NT.ghi_lo_hong(SYMBOL, ngay, int(t[k]), int(t[k + 9000]), "simulated")
+                tu, den = int(t[k]), int(t[k + 9000])
+                so = so[(so["T"] < tu) | (so["T"] > den)]
+                kh = kh[(kh["T"] < tu) | (kh["T"] > den)]
+                NT.ghi_lo_hong(SYMBOL, ngay, tu, den, "simulated")
+            so.tofile(NT.duong(SYMBOL, ngay, "so"))
+            kh.tofile(NT.duong(SYMBOL, ngay, "khop"))
 
         a = A.Api()
         doc = a.demo_process()["value"]
