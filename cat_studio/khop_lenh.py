@@ -28,8 +28,14 @@ Nên file này KHÔNG giả vờ biết. Nó tách đôi rành mạch:
   * **SUY RA ĐƯỢC** — treo cao hơn đỉnh thì hàng đợi = 0 (chắc chắn, không giả định);
     treo đúng đỉnh thì hàng đợi = khối lượng đang hiện (cũng chắc chắn — ta vừa tới);
     có lệnh khớp ở mức ta thì phần khớp đó chắc chắn ăn từ ĐẦU hàng.
+  * **ĐO ĐƯỢC, TỪ 2026-08-29** — treo SÂU HƠN đỉnh thì hỏi luồng độ sâu: mức đó đang
+    có bao nhiêu thì cả bấy nhiêu đứng trước ta, vì ta vừa mới tới. Trước đây đây là
+    một chỗ đoán (`phan_muc_sau`); giờ núm ấy chỉ còn đỡ phần độ sâu KHÔNG với tới —
+    sâu quá 20 mức, hoặc ngày ghi trước lúc bật luồng. Mỗi kết quả nói ra nó đã phải
+    đoán bao nhiêu lần (`muc_sau_do` / `muc_sau_doan`).
   * **PHẢI GIẢ ĐỊNH** — khối lượng biến mất mà không có lệnh khớp nào giải thích thì
-    là người ta HUỶ, và huỷ ở trước hay sau ta thì không ai biết.
+    là người ta HUỶ, và huỷ ở trước hay sau ta thì không ai biết. Đây là chỗ duy nhất
+    còn lại mà dữ liệu công khai KHÔNG BAO GIỜ trả lời được.
 
 Mọi giả định nằm gọn trong `MoHinh` — bốn con số, đặt ở Cài đặt, in ra cùng kết quả.
 Không có hằng số nào giấu trong mã.
@@ -39,8 +45,10 @@ BỐN THIÊN LỆCH CÒN LẠI, GHI RA ĐỂ KHÔNG AI QUÊN
 1. **Không mô hình hoá tác động.** Ta phát lại sổ lệnh như thể lệnh của ta VÔ HÌNH với
    người khác. Thật ra một lệnh đủ lớn ở đỉnh sẽ làm người khác đổi hành vi. Đây là
    thiên lệch cố hữu của mọi backtest phát lại, không sửa được bằng dữ liệu này.
-2. **Mức treo SÂU HƠN đỉnh là vùng mù.** `bookTicker` không thấy tầng dưới, nên khối
-   lượng trước ta ở đó là một con số bịa — `phan_muc_sau` chọn bịa theo hướng nào.
+2. ~~**Mức treo SÂU HƠN đỉnh là vùng mù.**~~ **ĐÃ TRẢ.** `bookTicker` không thấy
+   tầng dưới, nhưng `@depth20@100ms` thì thấy — 20 mức mỗi bên, ảnh chụp cũ tối đa
+   100 ms. Còn mù ở hai chỗ: sâu hơn 20 mức, và những ngày ghi trước lúc bật luồng.
+   Cả hai đều được ĐẾM, không im lặng rơi về núm.
 3. **Độ trễ ra không đo được** nếu chưa từng gửi lệnh thật. `tre_ra_ms` là ước lượng.
 4. **Lỗ hổng dữ liệu là vùng mù thật sự.** Lệnh vẫn nằm ở sàn và sàn vẫn khớp, ta chỉ
    không nhìn thấy. File này KHÔNG cho khớp trong lỗ hổng, nhưng ĐẾM thời gian mù có
@@ -264,7 +272,8 @@ class SoKhop:
     __slots__ = ("mo_hinh", "mua", "ban", "ton_kho", "tien", "phi_da_tra",
                  "so_khop", "kl_da_khop", "so_dat", "so_huy", "so_tu_choi",
                  "giay_mu_co_lenh", "_mu_tu", "_dang_mu",
-                 "_bid", "_bkl", "_ask", "_akl", "_khop_bid", "_khop_ask", "_t")
+                 "_bid", "_bkl", "_ask", "_akl", "_khop_bid", "_khop_ask", "_t",
+                 "_nhin", "_tra_muc", "muc_sau_do", "muc_sau_doan")
 
     def __init__(self, mo_hinh):
         self.mo_hinh = mo_hinh
@@ -289,6 +298,25 @@ class SoKhop:
         self._khop_bid = 0.0
         self._khop_ask = 0.0
         self._t = 0
+        #: Nguồn đang phát, và hàm tra độ sâu của nó. Giữ THAM CHIẾU, không chép.
+        #:
+        #: ⚠ TRA MỘT LẦN KHI NGUỒN ĐỔI, không tra mỗi sự kiện. `getattr` mười triệu lần
+        #: một ngày là tốn thật, mà nguồn thì gần như không bao giờ đổi giữa chừng —
+        #: một phép so ĐỊA CHỈ là đủ để biết.
+        #:
+        #: Và tra bằng `getattr` chứ không gọi thẳng: một nguồn live chưa nối độ sâu,
+        #: hay một đối tượng giả trong bài kiểm, vẫn phải chạy được. Thiếu độ sâu là
+        #: quay về đoán — chuyện bình thường, có đếm — chứ không phải nổ.
+        self._nhin = None
+        self._tra_muc = None
+        #: HAI SỐ ĐẾM, và chúng là thứ làm cho việc nối độ sâu vào TRUNG THỰC.
+        #:
+        #: Có luồng độ sâu KHÔNG có nghĩa là mọi lần treo sâu đều đo được: ảnh chụp chỉ
+        #: thấy 20 mức, và ngày ghi trước khi bật luồng thì không có ảnh nào. Nói "giờ
+        #: đo được rồi" mà không nói ĐO ĐƯỢC BAO NHIÊU PHẦN là đổi một lời nói dối bi
+        #: quan lấy một lời nói dối lạc quan.
+        self.muc_sau_do = 0               # tra được độ sâu thật
+        self.muc_sau_doan = 0             # phải mượn `phan_muc_sau`
 
     # ---------------------------------------------------------------- báo giá
 
@@ -377,9 +405,11 @@ class SoKhop:
           1. treo TỐT HƠN đỉnh → ta thành đỉnh mới → hàng đợi **0**. Chắc chắn.
           2. treo ĐÚNG đỉnh    → cả khối lượng đang hiện đứng trước ta. Cũng chắc chắn:
              ta vừa mới tới, nên mọi người đang ở đó đều tới trước.
-          3. treo SÂU HƠN đỉnh → `bookTicker` không thấy tầng đó. Không biết, và không
-             có cách nào biết. `phan_muc_sau` × khối lượng đỉnh là một con số MƯỢN TẠM
-             — mượn của tầng trên vì không có gì gần hơn để mượn."""
+          3. treo SÂU HƠN đỉnh → HỎI LUỒNG ĐỘ SÂU. Nếu ảnh chụp thấy mức đó thì con
+             số là ĐO ĐƯỢC, không phải đoán: mức đang có Q lot thì cả Q đứng trước ta,
+             vì ta vừa mới tới. Chỉ khi ảnh chụp KHÔNG thấy — sâu hơn 20 mức, hoặc ngày
+             dữ liệu ghi trước lúc bật luồng — mới rơi về `phan_muc_sau`, và lần đó
+             được ĐẾM."""
         dinh, dinh_kl = (self._bid, self._bkl) if ben == MUA else (self._ask, self._akl)
         if not _huu_han(dinh):
             return 0.0
@@ -388,6 +418,14 @@ class SoKhop:
             return 0.0
         if gia == dinh:
             return float(dinh_kl)
+
+        # ⚠ ĐO TRƯỚC, ĐOÁN SAU — và đếm cả hai. Xem `muc_sau_do` / `muc_sau_doan`.
+        if self._tra_muc is not None:
+            q = self._tra_muc(ben == MUA, gia)
+            if q is not None:
+                self.muc_sau_do += 1
+                return q
+        self.muc_sau_doan += 1
         return float(dinh_kl) * self.mo_hinh.phan_muc_sau
 
     def _go(self, ben, ly_do):
@@ -404,6 +442,9 @@ class SoKhop:
         """Một sự kiện đi qua. Trả tuple các lần khớp (rỗng là chuyện thường)."""
         loai = sk.loai
         self._t = sk.t
+        if sk is not self._nhin:
+            self._nhin = sk
+            self._tra_muc = getattr(sk, "kl_tai_muc", None)
         if loai == phat_lai.KHOP:
             # ⚠ Chặn khớp trong lỗ hổng. `PhatLai` không bao giờ phát sự kiện giữa hai
             # mốc lỗ hổng, nên nhánh này gần như không chạy — nhưng docstring đầu file
@@ -581,5 +622,9 @@ class SoKhop:
             "so_huy": self.so_huy,
             "so_tu_choi": self.so_tu_choi,
             "giay_mu_co_lenh": self.giay_mu_co_lenh,
+            # MẪU SỐ của `phan_muc_sau`. Cùng kỷ luật với thang markout: con số không
+            # được rời khỏi phần dữ liệu đã đỡ được nó.
+            "muc_sau_do": self.muc_sau_do,
+            "muc_sau_doan": self.muc_sau_doan,
             "gia_dinh": self.mo_hinh.tom_tat(),
         }

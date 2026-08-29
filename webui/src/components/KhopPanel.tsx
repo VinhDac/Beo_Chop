@@ -18,9 +18,9 @@ import type { CaiDatKhop } from '../types'
 
 /** Một ô số + câu giải thích. `ĐO ĐƯỢC` / `PHẢI ĐOÁN` là nhãn quan trọng nhất trên
  *  màn hình này — nó nói cho người dùng biết con số nào đáng tin. */
-function O({ nhan, don_vi, gt, dat, doan, mo_ta, buoc, min, max }: {
+function O({ nhan, don_vi, gt, dat, doan, the, mo_ta, buoc, min, max }: {
   nhan: string; don_vi: string; gt: number; dat: (v: number) => void
-  doan?: boolean; mo_ta: React.ReactNode
+  doan?: boolean; the?: string; mo_ta: React.ReactNode
   buoc?: number; min?: number; max?: number
 }) {
   return (
@@ -34,8 +34,11 @@ function O({ nhan, don_vi, gt, dat, doan, mo_ta, buoc, min, max }: {
                  if (Number.isFinite(v)) dat(v)
                }} />
         <span className="chu-mo">{don_vi}</span>
+        {/* BA nhãn, không hai. Bản trước chỉ có "đoán / tra được", nên một núm
+            CHỈ đỡ phần dữ liệu không với tới cũng bị đóng dấu là phỏng đoán y như
+            một núm không có gì đo được — hai chuyện khác hẳn nhau. */}
         <span className={'k-the' + (doan ? ' doan' : '')}>
-          {doan ? 'A GUESS' : 'LOOK IT UP'}
+          {the || (doan ? 'A GUESS' : 'LOOK IT UP')}
         </span>
       </div>
       <div className="k-mo-ta">{mo_ta}</div>
@@ -106,13 +109,21 @@ export default function KhopPanel({ khop, dat }: {
          </>} />
 
       <O nhan="Deep level ahead of us" don_vi="ratio 0–1" gt={khop.phan_muc_sau}
-         buoc={0.1} min={0} max={1} doan
+         buoc={0.1} min={0} max={1} doan the="FALLBACK ONLY"
          dat={v => dat('phan_muc_sau', v)}
          mo_ta={<>
            Resting <b>deeper than the touch</b>, how much of that level sits ahead of
-           us? Top-of-book data cannot see the levels below, so this number is borrowed
-           from the level above. 1 = the whole level is ahead of us. A strategy quoting
-           half a spread away from fair value lands here constantly.
+           us? A strategy quoting half a spread away from fair value lands here
+           constantly.
+           <br />
+           <b>This is now measured, not guessed</b> — the depth stream sees 20 levels
+           per side, and the whole level is ahead of you because you just arrived. The
+           dial only covers what depth cannot answer: deeper than 20 levels, or days
+           recorded before the depth stream was switched on. Every result says how much
+           of it had to fall back.
+           <br />
+           So the way to retire this dial is not to tune it — it is to{' '}
+           <b>record depth</b>.
          </>} />
 
       <div className="hang">

@@ -374,6 +374,75 @@ kiem("mặc định của app CHÍNH LÀ đầu bi quan nhất — 0 lot, không
      K.MoHinh(1.0).phan_huy_truoc == 0.0 and bi == 0.0)
 
 
+# ================= ĐỘ SÂU THAY CHỖ CHO NÚM ĐOÁN =================
+print("\n▸ Treo sâu hơn đỉnh — ĐO từ độ sâu thay vì đoán")
+
+
+class SKSau(SK):
+    """Sự kiện giả CÓ luồng độ sâu. `bang` là {(bên_mua, giá): khối_lượng}; giá không
+    có trong bảng thì `None` — tức KHÔNG BIẾT, đúng như ngoài tầm 20 mức."""
+
+    __slots__ = ("bang",)
+
+    def __init__(self, loai, t, bang=None, **kw):
+        super().__init__(loai, t, **kw)
+        self.bang = bang or {}
+
+    def kl_tai_muc(self, ben_mua, gia):
+        return self.bang.get((ben_mua, round(gia, 10)))
+
+
+def _dat_sau(bang, gia_mua, pms=1.0):
+    """Đặt một lệnh mua ở `gia_mua` rồi trả về sổ khớp, để soi hàng đợi trước ta."""
+    sk = SKSau(phat_lai.SO, 0, bang=bang, bid=100.0, bid_kl=400.0, ask=101.0, ask_kl=400.0)
+    s = K.SoKhop(K.MoHinh(0.5, tre_ra_ms=0.0, phan_muc_sau=pms))
+    s.buoc(sk)
+    s.dong_bo(0, gia_mua, 1.0, 0.0, 0.0)
+    return s
+
+
+# Đỉnh bid là 100 và ta treo ở 99,5 — sâu hơn một mức. Độ sâu nói mức đó có 250 lot.
+_s = _dat_sau({(True, 99.5): 250.0}, 99.5)
+kiem("mức sâu ĐO ĐƯỢC → lấy đúng số thật, KHÔNG nhân với núm",
+     _s.mua.hang_doi == 250.0 and _s.muc_sau_do == 1 and _s.muc_sau_doan == 0,
+     f"— {_s.mua.hang_doi}")
+
+# ⚠ 0.0 CŨNG LÀ ĐO ĐƯỢC. Mức trống nghĩa là ta đứng đầu hàng — một sự thật, không
+# phải một chỗ thiếu. Gộp nó vào ô "phải đoán" là vứt đi đúng ca có lợi nhất.
+_s = _dat_sau({(True, 99.5): 0.0}, 99.5)
+kiem("mức TRỐNG → hàng đợi 0, và vẫn đếm là ĐO ĐƯỢC",
+     _s.mua.hang_doi == 0.0 and _s.muc_sau_do == 1 and _s.muc_sau_doan == 0)
+
+# Ngoài tầm nhìn → mượn núm, y như trước, NHƯNG lần đó phải được đếm.
+_s = _dat_sau({}, 99.5, pms=1.0)
+kiem("ngoài tầm 20 mức → quay về núm, và ĐẾM là đã phải đoán",
+     _s.mua.hang_doi == 400.0 and _s.muc_sau_do == 0 and _s.muc_sau_doan == 1,
+     f"— {_s.mua.hang_doi}")
+_s = _dat_sau({}, 99.5, pms=0.25)
+kiem("núm vẫn còn tác dụng ở chỗ nó còn việc để làm", _s.mua.hang_doi == 100.0)
+
+# Treo Ở ĐÚNG ĐỈNH thì KHÔNG hỏi độ sâu — `bookTicker` biết chắc chắn và mới hơn, còn
+# ảnh chụp thì cũ tới 100 ms. Đây là chỗ dễ sửa hỏng nhất khi nối một luồng mới vào:
+# thay cả ba ca bằng ca mới, kể cả hai ca vốn đã CHẮC CHẮN.
+_s = _dat_sau({(True, 100.0): 7.0}, 100.0)
+kiem("treo ĐÚNG ĐỈNH vẫn dùng `bookTicker`, không hỏi ảnh chụp cũ hơn",
+     _s.mua.hang_doi == 400.0 and _s.muc_sau_do == 0 and _s.muc_sau_doan == 0,
+     f"— {_s.mua.hang_doi}")
+_s = _dat_sau({(True, 100.5): 7.0}, 100.5)
+kiem("treo TỐT HƠN đỉnh vẫn là 0 chắc chắn, không hỏi ai",
+     _s.mua.hang_doi == 0.0 and _s.muc_sau_do == 0 and _s.muc_sau_doan == 0)
+
+# Nguồn KHÔNG có hàm tra (bài kiểm cũ, hay một nguồn live chưa nối depth) phải chạy.
+_sk = SK(phat_lai.SO, 0, bid=100.0, bid_kl=400.0, ask=101.0, ask_kl=400.0)
+_s = K.SoKhop(K.MoHinh(0.5, tre_ra_ms=0.0, phan_muc_sau=1.0))
+_s.buoc(_sk)
+_s.dong_bo(0, 99.5, 1.0, 0.0, 0.0)
+kiem("nguồn KHÔNG có hàm tra độ sâu → đoán như cũ, không nổ",
+     _s.mua.hang_doi == 400.0 and _s.muc_sau_doan == 1)
+
+kiem("`tom_tat` mang theo MẪU SỐ — con số không được rời khỏi phần dữ liệu đỡ nó",
+     {"muc_sau_do", "muc_sau_doan"} <= set(_s.tom_tat().keys()))
+
 print("\n" + "=" * 56)
 print(f"  {dung} đúng, {sai} sai")
 print("=" * 56)

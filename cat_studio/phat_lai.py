@@ -76,6 +76,20 @@ import numpy as np
 
 from . import nguon_tick as nt
 
+#: "Không còn ảnh độ sâu nào nữa" — một `int` LỚN, KHÔNG phải `float("inf")`.
+#:
+#: ⚠ ĐÃ ĐO, và chênh lệch không nhỏ chút nào. `self.t` là `np.int64`, và phép so nó
+#: với một số của Python đi qua bộ máy vô hướng của numpy:
+#:
+#:     np.int64 >= float      1210 ns      ← `float("inf")`
+#:     np.int64 >= int          46 ns      ← rẻ hơn 26 lần
+#:     np.int64 >= np.int64     31 ns
+#:
+#: Phép so đó chạy MỖI SỰ KIỆN. Bản đầu dùng `float("inf")` cho gọn và kéo lớp phát
+#: lại từ 1,83 xuống 0,53 triệu sự kiện/giây — chậm gấp ba, vì đúng một hằng số.
+#: `1 << 62` lớn hơn mọi mốc mili-giây trong vài chục triệu năm tới.
+VO_HAN = 1 << 62
+
 #: Loại sự kiện. Số nguyên nhỏ, không phải chuỗi — bộ chạy so hàng triệu lần.
 SO = 1            #: sổ lệnh đổi ở đỉnh
 KHOP = 2          #: có người khớp
@@ -112,16 +126,28 @@ class PhatLai:
     lặp ra khỏi Python, không phải vặn thêm ở đây.
     """
 
-    __slots__ = ("so", "khop", "lo_hong", "_nguon", "_ki", "_n", "_i",
+    __slots__ = ("so", "khop", "sau", "lo_hong", "_nguon", "_ki", "_n", "_i",
                  "t", "T", "loai", "bid", "bid_kl", "ask", "ask_kl", "co_so",
                  "gia", "kl", "mua_chu_dong", "_trong_lo_hong",
                  "_s_t", "_s_T", "_s_bid", "_s_bkl", "_s_ask", "_s_akl",
                  "_k_t", "_k_T", "_k_gia", "_k_kl", "_k_mua", "_lh_moc",
+                 "_d_t", "_d_bid", "_d_bkl", "_d_ask", "_d_akl", "_d_n", "_d_i",
+                 "_d_ke", "_d_gb", "_d_vb", "_d_ga", "_d_va",
                  "_dh_moc", "_dh_lech", "co_dong_ho", "lech_ms")
 
-    def __init__(self, so, khop, lo_hong=(), dong_ho=None):
+    def __init__(self, so, khop, lo_hong=(), dong_ho=None, sau=None):
         self.so = so
         self.khop = khop
+        #: ⚠ ĐỘ SÂU KHÔNG PHẢI MỘT SỰ KIỆN — nó là một BẢNG TRA, và đó là quyết định.
+        #:
+        #: Nhét `sau` vào dòng sự kiện thì mỗi ảnh chụp lại làm chiến lược chạy thêm
+        #: một lượt: +10 % số lượt (6 ảnh/s so với 56 bản ghi sổ/s), tức ĐỔI HÀNH VI
+        #: của mọi chiến lược đã viết, để đổi lấy một thứ chỉ cần tra cứu.
+        #:
+        #: Mà thứ cần tra là "lúc ta đặt lệnh, mức giá đó đang có bao nhiêu" — một câu
+        #: hỏi tại MỘT thời điểm. Nên giữ một con trỏ chạy theo dòng sự kiện, luôn trỏ
+        #: vào ảnh chụp cuối cùng có `t_ta` không vượt quá hiện tại. Xem `kl_tai_muc`.
+        self.sau = sau
         self.lo_hong = list(lo_hong)
 
         # HIỆU CHỈNH ĐỒNG HỒ TRƯỚC KHI TRỘN. Thứ tự phát phải theo mốc ĐÃ sửa, không
@@ -157,6 +183,37 @@ class PhatLai:
         self._k_gia, self._k_kl = khop["gia"], khop["kl"]
         self._k_mua = khop["mua_chu_dong"]
 
+        # ĐỘ SÂU — cùng phép hiệu chỉnh đồng hồ với hai luồng kia, không thì con trỏ
+        # chạy theo một trục thời gian khác với trục đang phát.
+        if sau is not None and len(sau):
+            self._d_t = _sua_dong_ho(sau["t_ta"], moc, lech)
+            self._d_bid, self._d_bkl = sau["bid"], sau["bid_kl"]
+            self._d_ask, self._d_akl = sau["ask"], sau["ask_kl"]
+            self._d_n = len(self._d_t)
+        else:
+            self._d_t = self._d_bid = self._d_bkl = None
+            self._d_ask = self._d_akl = None
+            self._d_n = 0
+        #: −1 = CHƯA có ảnh nào ở hoặc trước hiện tại. Khác hẳn 0 (đã có ảnh đầu tiên).
+        self._d_i = -1
+        #: Mốc của ảnh KẾ TIẾP, ép sẵn về `int` của Python. Xem `VO_HAN`.
+        #:
+        #: Vòng lặp chính chạm cái này mười triệu lần một ngày, và `self._d_t[j+1]` là
+        #: một phép đọc numpy — dựng một `np.int64` mỗi lần. Giữ sẵn một `int` thì ca
+        #: thường (chưa tới ảnh kế) chỉ còn đúng một phép so.
+        self._d_ke = int(self._d_t[0]) if self._d_n else VO_HAN
+        #: ẢNH CHỤP ĐANG NGỰ TRỊ, đã đổ sang list của Python.
+        #:
+        #: ĐỔI MỘT LẦN MỖI ẢNH, không đổi mỗi lần tra: `kl_tai_muc` được gọi mỗi lần
+        #: đặt lệnh (nửa triệu lần cho hai ngày), còn ảnh chỉ đổi ~6 lần/giây. Đúng
+        #: dòng `.tolist()` ở bảng đo đầu file, chỉ khác là mỗi lần 20 phần tử nên
+        #: không tốn bộ nhớ gì.
+        #:
+        #: ⚠ Đo rồi: chỗ này KHÔNG phải chỗ tốn. Phép tra chỉ chạy khi treo sâu hơn
+        #: đỉnh, còn phần chậm nằm hết ở con trỏ trong `buoc` — xem `VO_HAN`. Giữ lại
+        #: vì nó đúng và rẻ, nhưng đừng ghi công cho nó.
+        self._d_gb = self._d_vb = self._d_ga = self._d_va = None
+
 
         self.t = self.T = 0
         self.loai = 0
@@ -178,10 +235,14 @@ class PhatLai:
         mù; quên bảng đồng hồ thì mọi mốc thời gian lệch đi mà không ai thấy."""
         so = nt.doc(symbol, tu_ngay, den_ngay, "so")
         khop = nt.doc(symbol, tu_ngay, den_ngay, "khop")
+        # ĐỘ SÂU CÓ THỂ RỖNG, và đó là chuyện thường: luồng này bật sau hai luồng kia,
+        # nên mọi ngày ghi trước đó không có nó. Rỗng thì `phan_muc_sau` quay về làm
+        # núm đoán như cũ — và bảng Kết quả nói ra là nó đã phải đoán bao nhiêu lần.
+        sau = nt.doc(symbol, tu_ngay, den_ngay, "sau")
         lh = []
         for n in nt._dai_ngay(tu_ngay, den_ngay):
             lh += nt.doc_lo_hong(symbol, n)
-        return cls(so, khop, lh, nt.bang_lech(symbol, tu_ngay, den_ngay))
+        return cls(so, khop, lh, nt.bang_lech(symbol, tu_ngay, den_ngay), sau=sau)
 
     # ------------------------------------------------------------------ đi
     def buoc(self):
@@ -218,7 +279,62 @@ class PhatLai:
                 # lệnh của 40 giây trước.
                 self.co_so = False
                 self.bid = self.bid_kl = self.ask = self.ask_kl = NAN
+
+        # CON TRỎ ĐỘ SÂU — luôn trỏ vào ảnh chụp CUỐI CÙNG có `t_ta` ≤ hiện tại.
+        #
+        # ⚠ `<=`, không phải `<`, và không bao giờ nhìn tới ảnh phía trước: ảnh chụp ở
+        # tương lai là thứ ta chưa thấy lúc đặt lệnh. Cùng nguyên tắc "báo giá đang ngự
+        # trị" mà `bo_chay` dùng để chốt markout.
+        #
+        # Vòng `while` chứ không phải tìm nhị phân: con trỏ chỉ tiến, và mỗi sự kiện
+        # trung bình tiến 0,1 bước (6 ảnh/s so với 56 bản ghi sổ/s), nên phép so ở đây
+        # gần như luôn hỏng ngay lần đầu.
+        # CON TRỎ TIẾN. Ca thường là một phép so số nguyên rồi thôi — xem `VO_HAN`
+        # cho lý do mốc kết thúc là `int` chứ không phải `float("inf")`.
+        if self.t >= self._d_ke:
+            j, t, n = self._d_i, self.t, self._d_n
+            while j + 1 < n and self._d_t[j + 1] <= t:
+                j += 1
+            self._d_i = j
+            self._d_ke = int(self._d_t[j + 1]) if j + 1 < n else VO_HAN
+            self._d_gb = self._d_bid[j].tolist()
+            self._d_vb = self._d_bkl[j].tolist()
+            self._d_ga = self._d_ask[j].tolist()
+            self._d_va = self._d_akl[j].tolist()
         return self.loai
+
+    def kl_tai_muc(self, ben_mua, gia):
+        """Khối lượng ĐANG ĐỨNG ở đúng mức `gia`. `None` nghĩa là KHÔNG BIẾT.
+
+        Đây là thứ biến `phan_muc_sau` từ một núm ĐOÁN thành một con số ĐO. Treo sâu
+        hơn đỉnh mà mức đó đang có Q lot thì **toàn bộ Q** đứng trước ta — ta vừa mới
+        tới, mọi người ở đó đều tới trước. Không có tỉ lệ nào phải đoán.
+
+        BA CÂU TRẢ LỜI KHÁC NHAU, và gộp chúng lại là mất hết ý nghĩa:
+
+            Q > 0     mức đó đang có Q lot                    ← đo được
+            0.0       mức đó TRỐNG, ta sẽ đứng đầu hàng       ← cũng đo được
+            None      mức đó nằm NGOÀI tầm nhìn 20 mức, hoặc
+                      chưa có ảnh chụp nào                    ← không biết, phải đoán
+
+        ⚠ Ảnh chụp cũ tối đa ~100 ms (sàn gộp `@depth20@100ms`). Trong quãng đó mức có
+        thể đã đổi. Đây là phép đo có sai số, không phải sự thật tuyệt đối — nhưng một
+        phép đo cũ 100 ms vẫn hơn hẳn một con số bịa."""
+        g = self._d_gb if ben_mua else self._d_ga
+        if g is None:
+            return None
+        v = self._d_vb if ben_mua else self._d_va
+        # Bid xếp GIẢM dần, ask xếp TĂNG dần — nên quét từ đỉnh xuống và dừng ngay khi
+        # đi quá mức cần tìm. Giá 0 là chỗ đệm khi sổ mỏng hơn 20 mức (xem `DT_SAU`).
+        for i in range(len(g)):
+            gi = g[i]
+            if gi == 0.0:
+                return None            # hết mức thật → sâu hơn tầm nhìn
+            if gi == gia:
+                return float(v[i])
+            if (gi < gia) if ben_mua else (gi > gia):
+                return 0.0             # đi quá rồi mà không gặp → mức này TRỐNG
+        return None                    # sâu hơn cả mức thứ 20 → không nhìn thấy
 
     # ------------------------------------------------------------------ đọc thêm
     @property

@@ -95,21 +95,32 @@ Nên từ nay ghi **ba luồng**: `so` (đỉnh, đủ độ phân giải) · `k
 `bookTicker` gần nhất trước nó — **khớp 100 % cả hai bên trên 226 ảnh**. Hai luồng độc
 lập nói cùng một chuyện.
 
-### ⚠ Còn nợ: CHƯA AI ĐỌC luồng `sau`
+### Luồng `sau` — đã dùng vào việc đầu tiên
 
-Bộ phát lại vẫn chỉ ăn `so` và `khop`. Luồng độ sâu đang được **ghi mà không được
-dùng** — cố ý: dữ liệu quá khứ không mua lại được, mỗi giờ không ghi là một giờ vĩnh
-viễn không có, còn mã đọc thì tuần sau viết vẫn kịp.
+**Đã trả (2026-08-29): `khop_lenh.phan_muc_sau`.** Treo sâu hơn đỉnh thì hỏi thẳng ảnh
+chụp độ sâu — mức đó có bao nhiêu thì cả bấy nhiêu đứng trước ta, vì ta vừa mới tới.
+Không còn tỉ lệ nào phải đoán. Núm chỉ còn đỡ hai chỗ độ sâu không với tới (sâu hơn 20
+mức · ngày ghi trước lúc bật luồng), và **mỗi kết quả nói ra nó đã phải đoán bao nhiêu
+lần**.
 
-Ba chỗ sẽ dùng nó, theo thứ tự đáng làm:
+Độ sâu vào bằng **con trỏ ảnh chụp**, không phải sự kiện mới: nhét nó vào dòng sự kiện
+thì mỗi ảnh làm chiến lược chạy thêm một lượt (+10 %), tức đổi hành vi của mọi chiến
+lược đã viết để lấy một thứ chỉ cần tra cứu. Giá phải trả: bộ chạy chậm **8 %**
+(61k → 56k sự kiện/giây).
 
-1. **`khop_lenh.phan_muc_sau`** — hiện là một **núm người dùng đoán**. Có độ sâu thì nó
-   thành số **đo được**, và một dòng nữa chuyển từ tab "Fill model" sang tab
-   "Data source" theo đúng luật *đo được thì đừng hỏi*.
-2. **Toán hạng `lech_luong`** (§8) — sổ nghiêng bên nào, ứng viên đầu tiên cho một
-   `cong_bang` khá hơn `mid`.
-3. **Trộn vào `phat_lai`** — việc này chạm vòng nóng và mô hình khớp, nên phải là một
-   đợt riêng, không ghép vào đợt ghi.
+Đo trên dữ liệu giả một ngày: dải giữa ba lần đoán (`0,0 / 0,5 / 1,0`) rộng **7.161 lần
+khớp — 12,8 %**. Đó là phần backtest không biết, và với mọi mức nhìn thấy được thì nó
+**về không**. ⚠ Nhưng độ sâu giả được sinh cùng phân phối với đỉnh sổ, nên `1,0` trúng
+là đương nhiên; chợ thật tầng dưới thường **dày hơn** đỉnh. Cơ chế đúng — con số "đoán
+sai bao nhiêu" chỉ **dữ liệu thật** mới trả lời được.
+
+**Còn nợ, theo thứ tự đáng làm:**
+
+1. **Toán hạng `lech_luong`** (§8) — sổ nghiêng bên nào, ứng viên đầu tiên cho một
+   `cong_bang` khá hơn `mid`. Đây mới là chỗ độ sâu đổi được *chiến thuật*, không chỉ
+   đổi *cách chấm điểm*.
+2. **Cho chiến lược nhìn thấy độ sâu** — hiện chỉ mô hình khớp tra được, sơ đồ thì
+   không. Chạm vòng nóng, phải là một đợt riêng.
 
 ### Lớp phát lại — XONG
 

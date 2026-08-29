@@ -77,7 +77,28 @@ def _mot_ngay(r, i):
     kh["gia"] = np.where(mua, np.round(gia[la_khop] + sp[la_khop], 10), gia[la_khop])
     kh["kl"] = r.gamma(1.5, 120, len(kh))
     kh["mua_chu_dong"] = mua
-    return so, kh, t
+
+    # ĐỘ SÂU — mỗi 3 sự kiện một ảnh (~1 ảnh/giây ở nhịp này). Thật thì tỉ lệ là ~1
+    # ảnh trên 9 bản ghi sổ; ở đây thưa hơn để file giả không phình, vẫn đủ để mọi
+    # lần treo sâu đều có một ảnh đứng trước nó.
+    #
+    # ⚠ DỰNG TỪ CHÍNH `gia`, không dựng độc lập. Độ sâu mà không khớp đỉnh với luồng
+    # `so` thì `phan_muc_sau` đo ra một cuốn sổ khác với cuốn đang phát lại — bài kiểm
+    # xanh mà con số vô nghĩa.
+    ld = np.zeros(n, dtype=bool)
+    ld[::3] = True
+    m = int(ld.sum())
+    sa = np.zeros(m, dtype=NT.DT_SAU)
+    sa["T"] = sa["t_ta"] = t[ld]
+    b0, a0 = gia[ld], np.round(gia[ld] + sp[ld], 10)
+    muc = np.arange(NT.SO_MUC)
+    # Các mức liền nhau theo tick. Sổ thật có chỗ trống, nhưng chỗ trống chỉ làm
+    # `kl_tai_muc` trả 0.0 — vẫn là ĐO ĐƯỢC, nên không mất đường đi nào.
+    sa["bid"] = np.round(b0[:, None] - muc[None, :] * TICK, 10)
+    sa["ask"] = np.round(a0[:, None] + muc[None, :] * TICK, 10)
+    sa["bid_kl"] = r.gamma(2, 900, (m, NT.SO_MUC))
+    sa["ask_kl"] = r.gamma(2, 900, (m, NT.SO_MUC))
+    return so, kh, sa, t
 
 
 def main():
@@ -89,7 +110,7 @@ def main():
     try:
         r = np.random.default_rng(21)
         for i, ngay in enumerate(NGAY):
-            so, kh, t = _mot_ngay(r, i)
+            so, kh, sa, t = _mot_ngay(r, i)
             # Một lỗ hổng THẬT ở ngày thứ hai — để soi được dải mù đỏ trên biểu đồ và
             # câu cảnh báo đi kèm. Không có nó thì đúng cái phần "nói ra chỗ mình không
             # biết" lại là phần không bao giờ được nhìn.
@@ -103,9 +124,16 @@ def main():
                 tu, den = int(t[k]), int(t[k + 9000])
                 so = so[(so["T"] < tu) | (so["T"] > den)]
                 kh = kh[(kh["T"] < tu) | (kh["T"] > den)]
+                sa = sa[(sa["T"] < tu) | (sa["T"] > den)]
                 NT.ghi_lo_hong(SYMBOL, ngay, tu, den, "simulated")
             so.tofile(NT.duong(SYMBOL, ngay, "so"))
             kh.tofile(NT.duong(SYMBOL, ngay, "khop"))
+            # ⚠ NGÀY ĐẦU CỐ Ý KHÔNG CÓ ĐỘ SÂU. Luồng `sau` bật sau hai luồng kia, nên
+            # dữ liệu thật của ai cũng sẽ có một quãng đầu không có nó — và giao diện
+            # phải nói ra điều đó thay vì im lặng đoán. Bản giả không dựng ca ấy thì ca
+            # ấy không bao giờ được nhìn.
+            if i:
+                sa.tofile(NT.duong(SYMBOL, ngay, "sau"))
 
         a = A.Api()
         doc = a.demo_process()["value"]

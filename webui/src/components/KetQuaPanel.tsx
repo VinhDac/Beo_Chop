@@ -205,6 +205,12 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
   const rong = b.gia_tri
   const truocPhi = rong + phi
 
+  // MẪU SỐ của `phan_muc_sau`: bao nhiêu lần treo sâu đo được từ luồng depth, bao
+  // nhiêu lần phải mượn núm. Xem `khop_lenh.SoKhop._hang_doi_ban_dau`.
+  const mucDo = b.muc_sau_do
+  const mucDoan = b.muc_sau_doan
+  const mucTong = mucDo + mucDoan
+
   /* Bấm vào biểu đồ → BÁM VÀO ĐIỂM MẪU GẦN NHẤT, không nội suy.
      Chỉ những mốc đã lấy mẫu mới có ảnh chụp đầy đủ để soi (xem `bo_chay.KetQua.mau`);
      nội suy giữa hai mốc là bịa ra một trạng thái chưa từng tồn tại. Con trỏ nhảy về
@@ -308,12 +314,34 @@ export default function KetQuaPanel({ kq, dangChay, soiIdx, onSoi }: {
             {tuNhien(b.giay_chay)}s</div>
           {/* GIẢ ĐỊNH nằm NGAY CẠNH kết quả, không giấu trong Cài đặt. */}
           <div className="kq-gia-dinh"
-               title="The four numbers the app has to GUESS. Change them in Settings → Fill model.">
+               title="The numbers the app has to GUESS. Change them in Settings → Fill model.">
             <span className="kq-nhan">Assumptions</span>{' '}
             fee {tuNhien(b.gia_dinh.phi_maker_bps)} bps ·
             latency {tuNhien(b.gia_dinh.tre_ra_ms)} ms ·
             cancels ahead {tuNhien(b.gia_dinh.phan_huy_truoc)} ·
-            deep level {tuNhien(b.gia_dinh.phan_muc_sau)} ·
+            {/* ⚠ `deep level` KHÔNG CÒN LÀ MỘT NÚM THUẦN ĐOÁN.
+                Có luồng depth thì khối lượng đứng trước ta ở mức sâu là ĐO ĐƯỢC — cả
+                mức đó đứng trước, vì ta vừa mới tới. Núm chỉ còn đỡ những lần KHÔNG
+                tra được: sâu quá 20 mức, hoặc ngày ghi trước lúc bật luồng.
+                Nên chỗ này hiện MẪU SỐ chứ không hiện mỗi con số — "0,5" mà 100 %
+                đo được và "0,5" mà 100 % phải đoán là hai câu khác hẳn nhau. */}
+            <span title={'How much size sits ahead of you when you post DEEPER than '
+              + 'the touch. With the depth stream this is MEASURED, not guessed — the '
+              + 'whole level is ahead of you, because you just arrived. The dial only '
+              + 'covers what depth cannot see: deeper than 20 levels, or days recorded '
+              + 'before the depth stream was switched on.'
+              + '\n\nMeasured ' + nguyen(mucDo) + ' of ' + nguyen(mucTong)
+              + ' deep placements' + (mucDoan ? ', guessed ' + nguyen(mucDoan) : '')
+              + '.'}>
+              deep level{' '}
+              {mucTong === 0 ? tuNhien(b.gia_dinh.phan_muc_sau)
+                : mucDoan === 0 ? <b className="t-ok">measured</b>
+                : mucDo === 0 ? <><b className="t-err">all guessed</b>{' '}
+                    at {tuNhien(b.gia_dinh.phan_muc_sau)}</>
+                : <><b className="ng-canh">
+                      {(mucDo / mucTong * 100).toFixed(0)}% measured
+                    </b>, rest at {tuNhien(b.gia_dinh.phan_muc_sau)}</>}
+            </span> ·
             tick {tuNhien(b.gia_dinh.buoc_gia)}
           </div>
         </div>

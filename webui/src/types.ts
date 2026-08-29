@@ -242,6 +242,11 @@ export interface KetQuaTest {
     ton_kho: number; tien: number; gia_tri: number; phi_da_tra: number
     so_khop: number; kl_da_khop: number
     so_dat: number; so_huy: number; so_tu_choi: number; giay_mu_co_lenh: number
+    /** MẪU SỐ của `phan_muc_sau` — bao nhiêu lần treo SÂU HƠN đỉnh đo được khối lượng
+     *  đứng trước từ luồng depth, bao nhiêu lần phải mượn núm. Có depth thì con số là
+     *  ĐO; không có (sâu quá 20 mức, hoặc ngày ghi trước lúc bật luồng) thì là ĐOÁN,
+     *  và hai chuyện đó không được trông giống nhau. */
+    muc_sau_do: number; muc_sau_doan: number
     /** MARKOUT — sau khi khớp Δ thì giá đi đâu. ÂM = bị chọn ngược. Con số quan
      *  trọng nhất của market making; xem `bo_chay.MOC_MARKOUT`.
      *

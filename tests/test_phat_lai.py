@@ -218,5 +218,67 @@ print(f"    → một ngày 10 triệu sự kiện ≈ {10e6 / (dem / t_di):.1f}
 kiem("đi được ít nhất 1 triệu sự kiện/giây", dem / t_di > 1e6,
      f"— {dem / t_di / 1e6:.2f} triệu/s")
 
+# ================= ĐỘ SÂU — bảng tra, không phải sự kiện =================
+print("\n▸ Độ sâu — con trỏ ảnh chụp, và ba câu trả lời khác nhau")
+
+
+def _sau(moc, dinh_bid, buoc=0.5, muc=None):
+    """Ảnh chụp tại từng mốc: bid giảm dần từ `dinh_bid`, ask tăng dần từ `dinh_bid+1`.
+
+    `muc` < 20 thì phần còn lại ĐỆM 0 — đúng cách bộ ghi làm khi sổ mỏng."""
+    n = muc if muc is not None else nt.SO_MUC
+    a = np.zeros(len(moc), dtype=nt.DT_SAU)
+    a["T"] = a["t_ta"] = moc
+    for k, b0 in enumerate(np.atleast_1d(dinh_bid)):
+        for j in range(n):
+            a["bid"][k][j] = round(b0 - j * buoc, 10)
+            a["ask"][k][j] = round(b0 + 1 + j * buoc, 10)
+            a["bid_kl"][k][j] = 100 + j
+            a["ask_kl"][k][j] = 200 + j
+    return a
+
+
+_so2 = np.zeros(3, dtype=nt.DT_SO)
+_so2["T"] = _so2["t_ta"] = [1000, 2000, 3000]
+_so2["bid"], _so2["ask"] = 100.0, 101.0
+_so2["bid_kl"] = _so2["ask_kl"] = 500.0
+_p = pl.PhatLai(_so2, np.zeros(0, dtype=nt.DT_KHOP),
+                      sau=_sau([1500, 2500], [100.0, 90.0]))
+
+# ⚠ TRƯỚC ảnh chụp đầu tiên thì KHÔNG BIẾT, không phải bằng 0. Trả 0 ở đây là nói
+# "mức đó trống, anh đứng đầu hàng" — một lời nói dối theo hướng có lợi.
+_p.buoc()                                        # t = 1000, chưa có ảnh nào
+kiem("chưa có ảnh độ sâu nào → None, KHÔNG phải 0",
+     _p.kl_tai_muc(True, 99.5) is None)
+
+_p.buoc()                                        # t = 2000, ảnh của 1500 đã ngự trị
+kiem("mức có hàng → trả đúng khối lượng ĐO ĐƯỢC",
+     _p.kl_tai_muc(True, 99.5) == 101.0 and _p.kl_tai_muc(False, 101.5) == 201.0,
+     f"— bid {_p.kl_tai_muc(True, 99.5)} · ask {_p.kl_tai_muc(False, 101.5)}")
+kiem("mức TRỐNG giữa hai mức có hàng → 0.0, và 0.0 cũng là ĐO ĐƯỢC",
+     _p.kl_tai_muc(True, 99.7) == 0.0)
+kiem("sâu hơn cả 20 mức → None, quay về đoán",
+     _p.kl_tai_muc(True, 50.0) is None)
+
+# ⚠ KHÔNG NHÌN TỚI TƯƠNG LAI. Ảnh chụp của 2500 chưa được thấy ở t = 2000, dù nó nằm
+# sẵn trong mảng. Cùng nguyên tắc "báo giá đang ngự trị" mà `bo_chay` chốt markout.
+kiem("ảnh chụp Ở TƯƠNG LAI chưa được nhìn — đỉnh vẫn là ảnh cũ",
+     _p.kl_tai_muc(True, 100.0) == 100.0 and _p.kl_tai_muc(True, 90.0) is None,
+     f"— đỉnh {_p.kl_tai_muc(True, 100.0)} · mức 90 {_p.kl_tai_muc(True, 90.0)}")
+_p.buoc()                                        # t = 3000, ảnh của 2500 mới ngự trị
+kiem("qua mốc rồi mới đổi — con trỏ chỉ TIẾN, đúng một chiều",
+     _p.kl_tai_muc(True, 90.0) == 100.0 and _p.kl_tai_muc(True, 100.0) == 0.0)
+
+# Sổ mỏng: chỉ 3 mức thật, 17 mức đệm 0. Chỗ đệm KHÔNG được đọc thành "mức trống".
+_q = pl.PhatLai(_so2, np.zeros(0, dtype=nt.DT_KHOP),
+                      sau=_sau([1500], [100.0], muc=3))
+_q.buoc(); _q.buoc()
+kiem("sổ chỉ 3 mức → mức thứ 4 là KHÔNG BIẾT, không phải trống",
+     _q.kl_tai_muc(True, 99.0) == 102.0 and _q.kl_tai_muc(True, 98.5) is None,
+     f"— {_q.kl_tai_muc(True, 98.5)}")
+
+kiem("không có luồng độ sâu → None ở mọi mức, chạy bình thường",
+     pl.PhatLai(_so2, np.zeros(0, dtype=nt.DT_KHOP)).kl_tai_muc(True, 99.5) is None)
+
 print(f"\n{'=' * 56}\n  {dung} đúng, {sai} sai\n{'=' * 56}")
 sys.exit(1 if sai else 0)
