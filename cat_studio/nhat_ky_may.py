@@ -38,7 +38,12 @@ def _pt(x):
 
 
 def co_viec(r):
-    """Dòng này có CHUYỆN không (lọc "chỉ dòng có việc"): làm gì đó, Gom, hay sự kiện."""
+    """Dòng này có CHUYỆN không (lọc "chỉ dòng có việc"): làm gì đó, Gom, hay sự kiện.
+
+    Lượt ② chỉ phát lại tín hiệu cũ để gia hạn (`doi = False`) thì KHÔNG tính — nó lặp lại mỗi
+    nến cho mỗi mã, và che mất đúng những lúc tín hiệu đổi chiều."""
+    if r.get("tram") == "tin_hieu" and "doi" in r:
+        return bool(r["doi"])
     return bool(r.get("viec") or r.get("gom") or r.get("su_kien"))
 
 
@@ -139,6 +144,8 @@ class DocNhatKy:
         duong = "→".join(f"[{self._nhan(k, x)}]" for x in r.get("duong") or [])
         if r.get("viec"):
             duoi = " · ".join(self._viec(v) for v in r["viec"])
+            if r.get("doi") is False:
+                duoi += " (giữ nguyên, gia hạn)"
         else:
             cong = r.get("cong") or []
             cuoi = f"[{self._nhan(k, cong[-1]['khoi'])}]" if cong else duong.split("→")[-1]

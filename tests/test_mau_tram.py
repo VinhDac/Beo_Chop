@@ -180,9 +180,16 @@ kiem("dòng ⑤ nói đặt lệnh nào, loại gì, bao nhiêu % vốn",
      f"— {doc.chu(r_d5)}")
 kiem("dòng khớp lệnh", any("khớp L-0001" in x for x in dong))
 lo = doc.lo(bm.nhat_ky, 0, 50, chi_viec=True)
-kiem("lô «chỉ dòng có việc» bỏ đúng những lượt trượt",
-     lo["tong"] == sum(1 for r in bm.nhat_ky if r.get("viec") or r.get("gom") or r.get("su_kien"))
-     and all(d["co_viec"] for d in lo["dong"]) and len(lo["dong"]) <= 50)
+r2_gia_han = [r for r in bm.nhat_ky if r.get("tram") == T.TIN_HIEU and r.get("doi") is False
+              and r.get("viec")]
+kiem("lô «chỉ dòng có việc» bỏ lượt trượt VÀ lượt ② chỉ gia hạn tín hiệu cũ",
+     r2_gia_han and lo["tong"] == sum(
+         1 for r in bm.nhat_ky if (r.get("viec") or r.get("gom") or r.get("su_kien"))
+         and not (r.get("tram") == T.TIN_HIEU and r.get("doi") is False))
+     and all(d["co_viec"] for d in lo["dong"]) and len(lo["dong"]) <= 50,
+     f"— {len(r2_gia_han)} lượt gia hạn bị lọc")
+kiem("lượt gia hạn khi xem đủ thì ghi rõ «giữ nguyên, gia hạn»",
+     doc.chu(r2_gia_han[0]).endswith("(giữ nguyên, gia hạn)"))
 r_dn = {"t": SG.NGAY, "tram": T.RUI_RO, "ma": "A", "su_kien": "dung_tai_khoan"}
 kiem("dòng sự kiện «dừng cả tài khoản»",
      doc.chu(r_dn) == "01-01 00:00  ④ A  DỪNG CẢ TÀI KHOẢN — bán sạch, thôi giao dịch")

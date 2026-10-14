@@ -18,12 +18,15 @@ import time
 from datetime import datetime
 
 from . import bo_chay
+from . import bo_may
 from . import core
 from . import game
 from . import goi_qc
 from . import luu_tru
+from . import may as M
 from . import qc_api
 from . import nhat_ky as nk
+from .ket_qua_may import KetQuaMay
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +138,37 @@ def soat_tu_do(tu_do):
             "von": von}
 
 
+#: Loại thị trường của cỗ máy 5 trạm (D-10) — đúng những loại lớp vỏ QC biết đăng ký.
+LOAI_THI_TRUONG = {"forex": "Ngoại hối (OANDA)", "cfd": "CFD (OANDA)",
+                   "co_phieu": "Cổ phiếu Mỹ", "crypto": "Crypto (Coinbase)"}
+#: Một rổ quá to là một lượt QC chạy cả giờ — trần cho chế độ Sáng tạo.
+TRAN_SO_MA = 20
+
+
+def soat_tu_do_may(tu_do):
+    """Đầu vào Sáng tạo cho CỖ MÁY 5 TRẠM → `{ma: [...], loai, tu, den, von}` sạch, hoặc
+    `LoiGame` nói rõ. Khác `soat_tu_do` (một symbol): cỗ máy chạy trên cả một RỔ mã."""
+    tu_do = tu_do or {}
+    ma, thay = [], set()
+    for x in tu_do.get("ma") or []:
+        x = str(x or "").strip().upper()
+        if x and x not in thay:
+            if not _RE_SYMBOL.match(x):
+                raise game.LoiGame(f"Mã «{x}» không hợp lệ: chữ in hoa / số, 3–20 ký tự.")
+            thay.add(x)
+            ma.append(x)
+    if not ma:
+        raise game.LoiGame("Rổ chưa có mã nào — thêm ít nhất một mã, vd. EURUSD.")
+    if len(ma) > TRAN_SO_MA:
+        raise game.LoiGame(f"Rổ tối đa {TRAN_SO_MA} mã — {len(ma)} mã là một lượt chạy cả giờ.")
+    loai = tu_do.get("loai") or "forex"
+    if loai not in LOAI_THI_TRUONG:
+        raise game.LoiGame(f"Không có loại thị trường «{loai}».")
+    mot = soat_tu_do({"symbol": ma[0], "tu": tu_do.get("tu"), "den": tu_do.get("den"),
+                      "von": tu_do.get("von")})
+    return {"ma": ma, "loai": loai, "tu": mot["tu"], "den": mot["den"], "von": mot["von"]}
+
+
 class ViecQC:
     """MỘT lượt chạy QC tại một thời điểm, chạy trong luồng nền.
 
@@ -171,6 +205,8 @@ class ViecQC:
                 raise game.LoiGame("Đang có một lượt chạy — chờ nó xong đã.")
         if loai not in game.LOAI:
             raise game.LoiGame(f"Không có kiểu chạy «{loai}».")
+        if M.la_may(doc):
+            return self._bat_dau_may(doc, loai, tu_do)
         doc = core.normalize_process(doc)
         # Soát sơ đồ NGAY (vài chục ms): thiếu tham số, khung chưa chạy được trên QC… báo
         # liền cho giao diện, chứ không để luồng nền đi một vòng rồi mới nói.
@@ -193,6 +229,23 @@ class ViecQC:
                                        daemon=True)
         self._luong.start()
 
+    def _bat_dau_may(self, may, loai, tu_do):
+        """Cỗ máy 5 trạm (D-10). Màn chơi cho cỗ máy 5 trạm chưa có — chạy chế độ Sáng tạo."""
+        loi = [p for p in M.soat(may) if p["severity"] == "error"]
+        if loi:
+            raise game.LoiGame(f"Cỗ máy còn {len(loi)} lỗi, chưa chạy được: {loi[0]['message']}")
+        if loai != "tu_do":
+            raise game.LoiGame("Chiến dịch cho cỗ máy 5 trạm chưa mở — chạy chế độ Sáng tạo.")
+        ch = soat_tu_do_may(tu_do)
+        may = M.chuan_hoa(may)
+        with self._khoa:
+            self._tt = {"dang_chay": True, "loai": loai, "man": None, "chu": "Đóng gói cỗ máy",
+                        "ti_le": None, "ti_le_chung": 0.0, "bat_dau": time.time(),
+                        "xong": None, "loi": None}
+        self._luong = threading.Thread(target=self._chay, args=(may, loai, None, ch),
+                                       daemon=True)
+        self._luong.start()
+
     # ------------------------------------------------------------------ luồng nền
     def _bao(self, viec, ti_le=None):
         with self._khoa:
@@ -205,8 +258,9 @@ class ViecQC:
     def _chay(self, doc, loai, man_id, ch):
         xong, loi = None, None
         try:
-            xong = self._chay_that(doc, loai, man_id, ch)
-        except (qc_api.LoiQC, game.LoiGame, bo_chay.LoiChay) as e:
+            xong = (self._chay_may(doc, loai, ch) if M.la_may(doc)
+                    else self._chay_that(doc, loai, man_id, ch))
+        except (qc_api.LoiQC, game.LoiGame, bo_chay.LoiChay, bo_may.LoiMay) as e:
             loi = str(e)
         except Exception as e:  # noqa: BLE001 — lỗi lập trình vẫn phải nói ra, không treo
             loi = f"Lỗi không lường trước ({type(e).__name__}): {e}"
@@ -266,6 +320,29 @@ class ViecQC:
                       "url": None if an else kq["url"], "duong": kq["duong_nhat_ky"]})
         return tom
 
+    def _chay_may(self, may, loai, ch):
+        """Một lượt cỗ máy 5 trạm trên QC: đóng gói → chạy → tải nhật ký → đọc kết quả."""
+        bat_dau = time.time()
+        self._bao("Đóng gói cỗ máy")
+        vt = M.van_tay(may)
+        khoa = f"cat_studio/may-{vt}-{qc_api.ma_luot()}.jsonl.gz"
+        files = goi_qc.dong_goi_may(may, {**ch, "khoa": khoa}, self._gioi_han)
+        ten_bt = (f"{game.LOAI[loai]} · {len(ch['ma'])} mã {LOAI_THI_TRUONG[ch['loai']]} · "
+                  f"{ch['tu']} → {ch['den']}")
+        kq = qc_api.chay(self._tao_qc(), may, files, ten_bt,
+                         self._thu_muc or luu_tru.thu_muc_nhat_ky(), self._bao, khoa=khoa)
+        k = KetQuaMay(kq["duong_nhat_ky"])
+        k.them = {"loai": loai, "man": None, "an": False, "url": kq["url"],
+                  "giay_tong": round(time.time() - bat_dau, 1), "sao": None, "lan_nop": None}
+        self.ket_qua = k
+        tk = k.thong_ke
+        game.ghi_lan({"dang": M.DANG, "loai": loai, "man": None, "ten": may.get("name"),
+                      "van_tay": vt, "symbol": ", ".join(ch["ma"]), "tu": ch["tu"],
+                      "den": ch["den"], "an": False, "sao": None, "lai_pt": tk.get("lai_pt"),
+                      "mua_giu_pt": tk.get("boss_pt"), "so_lenh": tk.get("so_lenh"),
+                      "url": kq["url"], "duong": kq["duong_nhat_ky"]})
+        return k.tom_tat()
+
     # ------------------------------------------------------------------ xem lại
     def mo_lai(self, duong):
         """Mở một lượt cũ từ lịch sử để xem — đọc file nhật ký, không chạy lại gì.
@@ -280,12 +357,19 @@ class ViecQC:
                 break
         else:
             raise game.LoiGame("Lượt này không có trong lịch sử.")
+        la_may = muc.get("dang") == M.DANG
         try:
-            k = KetQuaQC(duong)
+            k = KetQuaMay(duong) if la_may else KetQuaQC(duong)
         except OSError:
             raise game.LoiGame("File nhật ký của lượt này không còn trên máy.")
-        k.them = {x: muc.get(x) for x in ("symbol", "tu", "den", "loai", "man", "url", "sao")}
-        k.them["an"] = False
-        k.them["cham"] = game.cham(k.meta)
+        except ValueError:
+            raise game.LoiGame("File nhật ký của lượt này không phải của cỗ máy 5 trạm.")
+        if la_may:
+            k.them = {"loai": muc.get("loai"), "man": None, "an": False, "url": muc.get("url"),
+                      "sao": None, "lan_nop": None}
+        else:
+            k.them = {x: muc.get(x) for x in ("symbol", "tu", "den", "loai", "man", "url", "sao")}
+            k.them["an"] = False
+            k.them["cham"] = game.cham(k.meta)
         self.ket_qua = k
         return k.tom_tat()

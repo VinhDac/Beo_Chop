@@ -60,11 +60,16 @@ class QCGia:
     GHI = {"projects/create", "files/create", "files/update", "files/delete",
            "compile/create", "backtests/create", "object/get", "object/delete"}
 
-    def __init__(self, nen1, spread, chon_nen=None):
+    def __init__(self, nen1, spread, chon_nen=None, du_lieu_may=None):
         """`nen1`: nến M1 giả mà "QC" chạy thuật toán trên đó. `chon_nen(cau_hinh)` (tuỳ
         chọn): chọn nến theo khối CẤU HÌNH trong `main.py` — để màn đã thấy và màn ẩn
-        cho ra hai kết quả khác nhau như thật."""
+        cho ra hai kết quả khác nhau như thật.
+
+        `du_lieu_may(cau_hinh)` (cỗ máy 5 trạm, D-10): `{mã: [(t, o, h, l, c, v, spread)…]}`
+        cho rổ mã trong CẤU HÌNH — bộ file khi đó chạy CHÍNH lớp vỏ `vo_may` trên LEAN giả
+        (`tests/lean_gia.py`), không phải một bản mô phỏng của nó."""
         self.nen1, self.spread, self.chon_nen = nen1, spread, chon_nen
+        self.du_lieu_may = du_lieu_may
         self.projects, self.files, self.compiles, self.backtests = [], {}, {}, {}
         self.object_store, self.tai_ve, self.jobs = {}, {}, {}
         self.nhat = []                  # (phương thức, điểm, tham số) mọi yêu cầu API
@@ -287,6 +292,8 @@ class QCGia:
         """Chạy bộ file của project như QC chạy. Trả `(khoá, gz)` hoặc `(None, stderr)`."""
         py = sorted((k, v) for k, v in anh.items() if k.endswith(".py"))
         ma = hashlib.sha1(json.dumps(py).encode("utf-8")).hexdigest()
+        if "import vo_may as _vo" in anh.get("main.py", ""):
+            return self._chay_may(dict(py), ma)
         nen1 = self.nen1
         if self.chon_nen is not None:
             ch = dict(re.findall(r'^    "(\w+)": "?([^",]*)"?,$', anh.get("main.py", ""), re.M))
@@ -313,6 +320,36 @@ class QCGia:
                     with open(os.path.join(td, "ra.gz"), "rb") as f:
                         self._cache[ma] = (r.stdout.strip().splitlines()[-1], f.read())
         return self._cache[ma]
+
+
+def cau_hinh_main(main_py):
+    """Đọc khối CẤU HÌNH của `main.py` cỗ máy 5 trạm: mỗi dòng `    "khoá": <json>,`."""
+    ch, trong = {}, False
+    for dong in main_py.splitlines():
+        if dong.startswith("CAU_HINH_NHUNG = {"):
+            trong = True
+        elif trong and dong == "}":
+            break
+        elif trong:
+            k, _, v = dong.strip().rstrip(",").partition(": ")
+            ch[json.loads(k)] = json.loads(v)
+    return ch
+
+
+def _chay_may(self, py, ma):
+    if ma not in self._cache:
+        import lean_gia
+        ch = cau_hinh_main(py["main.py"])
+        ra, loi = lean_gia.chay_bo_file(py, self.du_lieu_may(ch), GOC)
+        if ra is None:
+            self._cache[ma] = (None, loi)
+        else:
+            k = ch["khoa"]
+            self._cache[ma] = (k, base64.b64decode(ra["kho"][k]))
+    return self._cache[ma]
+
+
+QCGia._chay_may = _chay_may
 
 
 def qc_cho(gia, uid=None, tok=None, ngu=None, gio=None):

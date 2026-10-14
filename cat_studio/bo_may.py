@@ -645,7 +645,9 @@ class BoMay:
         for ma in self.ro:
             if kh not in vua_dong.get(ma, ()):
                 continue
-            q = self._quyet(self._chay_so_do(T.TIN_HIEU, ma, t))
+            r = self._chay_so_do(T.TIN_HIEU, ma, t)
+            q = self._quyet(r)
+            r["doi"] = False
             if not q or q["loai"] != "bao":
                 continue
             huong = {"len": 1, "xuong": -1}.get(q["huong"], 0)
@@ -653,6 +655,9 @@ class BoMay:
             cu = self.tin_hieu.get(ma)
             if cu is None or cu.chu_ky() != moi.chu_ky():
                 doi.add(ma)
+                # Bộ lọc "chỉ dòng có việc" dựa vào cờ này: phát lại y hệt chỉ để gia hạn thì
+                # KHÔNG là chuyện gì — không thì cả nghìn dòng giống nhau che mất lúc đổi chiều.
+                r["doi"] = True
             self.tin_hieu[ma] = moi
         return doi
 

@@ -2756,3 +2756,56 @@ chơi có; núm vặn thành tham số có tên (lắp lại mẫu không đặt
 trên MA · Phá kênh Donchian. ③ Chia đều · Theo tin cậy · Theo trọng số · Rủi ro ngang nhau. ④ Không
 quản · Cắt lỗ · Chốt lời · Trailing · Cầu dao. ⑤ Khớp ngay · Chia lát · Theo độ lệch chuẩn · Theo
 spread. Cỗ máy mẫu (`may_tu_mau`): mọi mã + giao cắt EMA + chia đều + trailing + khớp ngay.
+
+## 21. ⭐ CẦU NỐI QUANTCONNECT CHO CỖ MÁY 5 TRẠM (D-10, phần 4)
+
+> `lean/vo_may.py` (lớp vỏ QC) · `goi_qc.dong_goi_may` (đóng gói) · `ket_qua_may.py` (đọc kết
+> quả) · `qc_chay.ViecQC` (chạy từ app). Bài kiểm: `test_vo_may` — LEAN giả `tests/lean_gia.py`
+> chạy CHÍNH bộ file đóng gói trong một Python sạch; `test_qc_may` — app → máy chủ QC giả
+> `tests/qc_gia.py` (đúng giao thức API) → chạy → tải về → đọc.
+
+**Lớp vỏ không chứa luật.** Luật ở `bo_may` — đúng file chạy trong bài kiểm. Lớp vỏ chỉ làm năm
+việc: đăng ký mã theo loại thị trường (ngoại hối / CFD qua OANDA, tài khoản ký quỹ · cổ phiếu Mỹ
+· crypto Coinbase, tài khoản tiền mặt), độ phân giải phút, KHÔNG lấp nến; khởi động đủ cho chỉ
+báo dài nhất theo LỊCH của thị trường (`giay_lich_khoi_dong`: giờ mở cửa mỗi ngày, số ngày mỗi
+tuần, dư 50% cho lễ — cổ phiếu Mỹ ~7 nến H1 một ngày nên SMA 50 nến H1 cần ~10 ngày lịch, không
+phải 2); mỗi phút gom nến mọi mã (QuoteBar → giá GIỮA, spread = ask − bid), dựng tài khoản từ
+`portfolio`, gọi `BoMay.buoc`, đổi ý định thành lệnh QC; báo khớp / từ chối ngược về bộ máy;
+hết dữ liệu thì ghi nhật ký nén vào Object Store.
+
+**«% vốn» → số lượng là việc của lớp vỏ:** giá × hệ số hợp đồng × tỉ giá ra giá trị một đơn
+vị; làm tròn VỀ PHÍA 0 theo lô của mã (không bao giờ mua lố); dưới cỡ lệnh tối thiểu → 0. Ra 0
+thì không đặt, báo bộ máy «từ chối» (đếm vào `bo_qua`) — và bộ máy KHÔNG đặt lại mỗi phút. Giá
+chờ làm tròn theo bước giá của mã. Còn khởi động thì không đặt lệnh nào.
+
+**Id lệnh đi bằng nhãn:** id của bộ máy (`L-0001`…) gắn vào lệnh QC làm NHÃN (tag). Lệnh thị
+trường khớp ngay trong lúc `market_order` còn chạy — trước khi lớp vỏ kịp cất vé — nên lúc khớp,
+id được tra qua nhãn của lệnh, không qua bảng vé.
+
+**Đóng gói** (`dong_goi_may`): một `main.py` mang cỗ máy (đã chuẩn hoá), bộ máy, lớp vỏ và
+`CAU_HINH` (rổ, loại thị trường, ngày, vốn, khoá Object Store). Cỗ máy còn lỗi thì không đóng
+gói. Đường đóng gói cũ (sơ đồ Entry/Manage) giữ nguyên từng byte.
+
+**Chạy từ app** (`ViecQC`, chế độ Sáng tạo): soát NGAY tại máy, chưa gửi gì lên QC — cỗ máy còn
+lỗi · rổ trống, mã sai dạng, quá 20 mã · loại thị trường lạ · ngày ngược — đều báo bằng câu tiếng
+Việt. Chiến dịch (màn, boss của màn, nộp) cho cỗ máy 5 trạm chưa mở → nói thẳng thế (phần 6).
+Mỗi lượt một khoá Object Store riêng `cat_studio/may-<vân tay>-<mã lượt>.jsonl.gz`, xoá khỏi
+cloud ngay sau khi tải về. Lịch sử ghi lượt (rổ, ngày, lãi, boss = mua-giữ chia đều cả rổ từ lúc
+hết khởi động, link QC); mở lại từ lịch sử là đọc file trên máy, không chạy lại, không gọi QC.
+
+**Đọc kết quả** (`KetQuaMay`): cùng bề mặt với kết quả cũ (tóm tắt · lô «vì sao» · lệnh · soi
+một lượt lên sơ đồ) để cửa sổ Màn chơi gọi cả hai mà không rẽ nhánh. Soi trả: trạm, đường đi,
+cổng đã thử kèm vết từng điều kiện, nhãn khối theo đánh số của CHÍNH trạm đó. Dòng đặt lệnh mang
+id lệnh để tra sang bảng Lệnh.
+
+**Lô «vì sao» chỉ dòng có việc:** ② phát lại tín hiệu y hệt để gia hạn KHÔNG phải việc — bản ghi
+mang `doi = False`, chữ thêm «(giữ nguyên, gia hạn)». ⚠ Gặp khi kiểm: không lọc thì một lượt 5
+ngày × 4 mã ra 556 dòng «có việc», gần hết là gia hạn; lọc còn 79 dòng.
+
+**Một giả định về QC, chờ bằng chứng thật:** tên API đã đối chiếu `quantconnect-stubs` (bản
+18179); LEAN giả bắt chước những gì đã biết (QuoteBar giá giữa + spread · lệnh thị trường khớp
+ĐỒNG BỘ ở giá ask/bid trước khi trả vé · lệnh chờ khớp ở nến sau · cấm đặt lệnh lúc khởi động).
+Chạy trên tài khoản QC thật là bài nghiệm thu còn lại — trên máy người chủ, bằng khoá của họ.
+
+**Bằng chứng:** `test_vo_may` 25/25 (ngoại hối · cổ phiếu, đường bị từ chối vì lô · crypto, lô
+lẻ); `test_qc_may` 23/23 (soát trước khi gửi, chạy trọn, đọc lại, dọn cloud, lịch sử, mở lại).

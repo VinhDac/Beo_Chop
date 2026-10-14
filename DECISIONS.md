@@ -261,4 +261,4 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   · ③ bộ máy chạy · ④ cầu nối QC mới · ⑤ trình vẽ · ⑥ Màn chơi chạy cỗ máy 5 trạm · ⑦ dọn bộ
   máy cũ + tài liệu. Tới phần ⑦, bộ máy cũ (Entry / Manage, `bo_chay`) vẫn sống vì cầu nối QC
   hiện tại còn dùng nó.
-- **Trạng thái:** chốt. Phần ① xong — gỡ những gì, chuyển những gì: core.md §18.
+- **Trạng thái:** chốt. Phần ① xong — gỡ những gì, chuyển những gì: core.md §18. Phần ② (lõi) §19 · ③ (bộ máy chạy) §20 · ④ (cầu nối QC: lớp vỏ, đóng gói, chạy từ app, đọc kết quả) §21 — xong.
