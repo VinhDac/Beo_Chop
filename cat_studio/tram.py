@@ -187,6 +187,8 @@ TOAN_HANG = [
         {"dong": "k"}, dong=DONG_STOCH),
     _th("do_lech_chuan", "Độ lệch chuẩn", "Chỉ báo", "gia", _C, {"chu_ky": 20}),
     _th("kl_tb", "Khối lượng TB", "Chỉ báo", "so", _C, {"chu_ky": 20}),
+    _th("gia_tri_gd_tb", "Giá trị GD TB", "Chỉ báo", "tien", _C, {"chu_ky": 20},
+        mo_ta="trung bình (giá đóng × khối lượng) — thước thanh khoản của bộ lọc QC"),
     # ---- thời gian & tài khoản ----
     _th("gio", "Giờ (UTC)", "Thời gian", "so", mo_ta="0–23"),
     _th("thu", "Thứ", "Thời gian", "so", mo_ta="1 = thứ Hai … 7 = Chủ nhật"),

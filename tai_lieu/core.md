@@ -2647,9 +2647,9 @@ Mỗi khối Làm có **vai**: `quyet_dinh` (chốt kết quả cho đối tư�
 một quyết định). Hai quyết định trên CÙNG một đường là lỗi — cái sau lặng lẽ đè cái trước; báo ở
 khối sau, gợi ý tách thành hai nhánh.
 
-**Đại lượng khối Hỏi đọc được** (`tram.TOAN_HANG`, 41 cái): giá (mở/cao/thấp/đóng, khối lượng,
+**Đại lượng khối Hỏi đọc được** (`tram.TOAN_HANG`, 42 cái): giá (mở/cao/thấp/đóng, khối lượng,
 giá trị giao dịch) · chỉ báo (SMA, EMA, WMA, RMA, ATR, ATR %, RSI, MACD, Bollinger, Đổi giá %,
-Donchian, ADX, Stochastic, độ lệch chuẩn, KL trung bình) · thời gian & tài khoản — đọc được ở mọi
+Donchian, ADX, Stochastic, độ lệch chuẩn, KL trung bình, giá trị GD trung bình) · thời gian & tài khoản — đọc được ở mọi
 trạm; **tín hiệu** chỉ ở ③; **vị thế** (tỷ trọng, lãi/lỗ, rơi từ đỉnh, số nến đã giữ) ở ③④⑤ theo
 từng cái; **khớp lệnh** (lệch mục tiêu, spread, lệnh đang chờ) chỉ ở ⑤. Mỗi đại lượng có ĐƠN VỊ
 (giá · % · số · nến · tiền); so hai đại lượng khác đơn vị là lỗi. Vế phải là một con số, một
