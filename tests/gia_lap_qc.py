@@ -60,7 +60,7 @@ def du_lieu(np, seed=7, ngay=12):
     return np.array(ra, dtype=DTYPE)
 
 
-def chay_qc(cl, core, tt, doc, nen1, spread, giu_nhat_ky=True):
+def chay_qc(cl, core, tt, doc, nen1, spread, giu_nhat_ky=True, them=None):
     """Chạy `doc` qua `cl.PhienQC` y như vỏ QC sẽ chạy, với giá trị chỉ báo tính bằng `tt`.
 
     Chỉ báo lấy từ `tinh_toan` của chính bộ cũ — tức bài này kiểm ỐNG NƯỚC (nhịp, hàng đợi,
@@ -112,5 +112,5 @@ def chay_qc(cl, core, tt, doc, nen1, spread, giu_nhat_ky=True):
         c = float(r["c"])
         p.mot_nhip(t + 60, float(r["o"]), float(r["h"]), float(r["l"]), c,
                    spread, c + spread)
-    p.ket_thuc()
+    p.ket_thuc(them=them)
     return p

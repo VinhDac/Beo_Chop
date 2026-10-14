@@ -17,6 +17,7 @@ import functools
 import inspect
 import json
 import os
+import sys
 import threading
 import time
 import traceback
@@ -26,8 +27,17 @@ from . import kho
 from . import mau
 from . import gui_lenh
 from . import ket_noi
-from . import khung_cua_so
+if sys.platform == "win32":
+    from . import khung_cua_so
+else:
+    # Không phải Windows thì chỉ có BÀI KIỂM chạy tới đây (Linux/CI). Khung tự vẽ là chuyện
+    # của Win32 — `khung_cua_so` gọi `ctypes.windll` ngay lúc nạp — nên thay bằng bản
+    # rỗng cho `api.py` nạp được. Trên Windows không đổi gì.
+    from . import khung_rong as khung_cua_so
 from . import phien_live
+from . import game
+from . import qc_api
+from . import qc_chay
 from . import bo_chay
 from . import lich_su
 from . import luu_tru
@@ -293,6 +303,12 @@ class Api(NenCuaSo):
         self._api_tester = None      # Api RIÊNG của cửa sổ đó
         self._live = None            # cửa sổ Live
         self._api_live = None
+        self._qc = None              # cửa sổ Màn chơi (chạy trên QuantConnect)
+        self._api_qc = None
+        self._doc_qc = None
+        #: Việc chạy QC sống ở CỬA SỔ CHÍNH, không ở cửa sổ Màn chơi: đóng cửa sổ lúc đang
+        #: chạy rồi mở lại vẫn thấy đúng lượt đó, không mất tiến độ hay kết quả.
+        self._viec_qc = None
         self._doc_tester = None
         self._cai_dat = core.load_settings()
         self._khoa = threading.Lock()
@@ -625,6 +641,49 @@ class Api(NenCuaSo):
                          daemon=True).start()
         return _ok({"da_mo": True})
 
+    @_bat_loi
+    def mo_qc(self, doc):
+        """◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect (D-03 · D-05 · D-06).
+
+        Chặn TRƯỚC nếu sơ đồ còn lỗi, y ▶ Test. Cửa sổ còn sống thì giữ, chỉ nạp sơ đồ mới
+        và kéo lên trước — y lý do của `_mo_cua_so_tester`."""
+        probs = core.validate_process(doc)
+        loi = [p for p in probs if p["severity"] == "error"]
+        if loi:
+            return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
+        d = core.normalize_process(doc)
+        self._doc_qc = d
+        if self._qc is not None:
+            self._qc.set_title(f"{d['name']} — Màn chơi")
+            self._api_qc._ban("so_do_moi", d)
+            self._api_qc._khung.keo_len_truoc()
+            return _ok({"da_mo": True})
+
+        import webview
+        trang = luu_tru.trang_giao_dien()
+        co_trang = os.path.exists(trang)
+        self._api_qc = ApiQC(self)
+        self._qc = webview.create_window(
+            f"{d['name']} — Màn chơi",
+            url=f"{trang.replace(os.sep, '/')}?qc=1" if co_trang else None,
+            html=None if co_trang else _TRANG_TESTER_TAM,
+            js_api=self._api_qc,              # ⚠ KHÔNG phải `self` — xem `NenCuaSo`
+            width=1180, height=800, min_size=(900, 600),
+            background_color="#202020",
+            frameless=True, easy_drag=False)
+        self._api_qc._gan_window(self._qc)
+
+        def quen_di():
+            self._qc = None
+            self._api_qc = None
+
+        self._qc.events.closed += quen_di
+        # Khớp theo "— Màn chơi" — cùng luật với tester/Live: tên chiến lược chứa gì cũng
+        # được, không được để nó làm vá nhầm cửa sổ.
+        aq = self._api_qc
+        threading.Thread(target=lambda: aq._va_khung("— Màn chơi"), daemon=True).start()
+        return _ok({"da_mo": True})
+
     def _mo_cua_so_tester(self, doc):
         """Cửa sổ thứ hai.
 
@@ -775,6 +834,11 @@ class Api(NenCuaSo):
         try:
             if self._tester:
                 self._tester.destroy()
+        except Exception:
+            pass
+        try:
+            if self._qc:
+                self._qc.destroy()
         except Exception:
             pass
 
@@ -1995,3 +2059,160 @@ def _so_do_mau():
     """Sơ đồ mẫu Compress. Nội dung sống ở `mau.py` — tách ra để dùng được ở nơi không có
     giao diện (đóng gói sang QuantConnect, bài kiểm). Giữ tên cũ cho mọi chỗ đang gọi."""
     return mau.so_do_mau()
+
+
+# ---------------------------------------------------------------------------
+class ApiQC(NenCuaSo):
+    """Bề mặt của cửa sổ MÀN CHƠI — chạy cỗ máy trên QuantConnect (D-05 · D-06 · D-07).
+
+    Vỏ MỎNG: luật chơi ở `game`, việc chạy ở `qc_chay`, nói chuyện với QC ở `qc_api`. Ở đây
+    chỉ nối chúng với JS và đổi lỗi thành câu. Không nến, không chart nến: kết quả QC không
+    mang chuỗi giá về máy (điều khoản dữ liệu của QC) — mỗi lượt tự mang giờ của nó."""
+
+    _HAU_TO = "Màn chơi"
+
+    def __init__(self, cha):
+        super().__init__()
+        self._cha = cha          # `Api` của cửa sổ chính — giữ sơ đồ và việc chạy QC
+
+    def _viec(self):
+        if self._cha._viec_qc is None:
+            self._cha._viec_qc = qc_chay.ViecQC()
+        return self._cha._viec_qc
+
+    def _ds_man(self):
+        doc = self._cha._doc_qc
+        return game.danh_sach_man(game.van_tay(doc) if doc else None)
+
+    @_bat_loi
+    def ping(self):
+        return _ok("pong")
+
+    @_bat_loi
+    def qc_boot(self):
+        """Mọi thứ cửa sổ Màn chơi cần lúc mở."""
+        test = (self._cha._cai_dat or {}).get("test") or {}
+        return _ok({
+            "phien_ban": core.PHIEN_BAN,
+            "accent": (self._cha._cai_dat or {}).get("accent"),
+            "doc": self._cha._doc_qc,
+            "man": self._ds_man(),
+            "loai": game.LOAI,
+            "khoa": qc_api.trang_thai_khoa(),
+            "do_gon": game.do_gon(self._cha._doc_qc or {}),
+            "tu_do": {"symbol": test.get("symbol") or "XAUUSD", "tu": "2025-10-01",
+                      "den": "2025-12-31", "von": float(test.get("deposit") or 10_000)},
+            "trang_thai": self._viec().trang_thai(),
+            "co_ket_qua": self._viec().ket_qua is not None,
+        })
+
+    # ------------------------------------------------------------------ khoá
+    @_bat_loi
+    def qc_khoa(self):
+        return _ok(qc_api.trang_thai_khoa())
+
+    @_bat_loi
+    def qc_luu_khoa(self, user_id, token):
+        """Lưu khoá từ ô nhập trong app vào `du_lieu/qc_khoa.json`. Không trả lại token."""
+        try:
+            return _ok(qc_api.luu_khoa(user_id, token))
+        except qc_api.LoiKhoa as e:
+            return _loi(str(e))
+
+    @_bat_loi
+    def qc_xoa_khoa(self):
+        return _ok(qc_api.xoa_khoa())
+
+    @_bat_loi
+    def qc_kiem_khoa(self):
+        """Hỏi thử QC khoá có dùng được không (vài trăm mili giây)."""
+        try:
+            qc_api.QC(*qc_api.doc_khoa()).kiem_khoa()
+        except qc_api.LoiQC as e:
+            return _loi(str(e))
+        return _ok(True)
+
+    # ------------------------------------------------------------------ chạy
+    @_bat_loi
+    def qc_chay(self, loai, man_id=None, tu_do=None):
+        """▶ nhanh / ▶ đầy đủ / Nộp / ▶ tự do — chạy NỀN, trả về ngay; JS hỏi `qc_trang_thai`."""
+        doc = self._cha._doc_qc
+        if not doc:
+            return _loi("Chưa có sơ đồ — bấm ◆ Màn chơi ở cửa sổ vẽ.")
+        try:
+            qc_api.doc_khoa()                   # thiếu khoá thì báo NGAY, chưa đóng gói gì
+            self._viec().bat_dau(doc, loai, man_id, tu_do)
+        except (qc_api.LoiQC, game.LoiGame, bo_chay.LoiChay) as e:
+            return _loi(str(e))
+        return _ok(True)
+
+    @_bat_loi
+    def qc_trang_thai(self):
+        return _ok(self._viec().trang_thai())
+
+    # ------------------------------------------------------------------ xem kết quả
+    def _ket_qua(self):
+        k = self._viec().ket_qua
+        if k is None:
+            raise game.LoiGame("Chưa có lượt nào để xem — bấm ▶ trước.")
+        return k
+
+    @_bat_loi
+    def qc_ket_qua(self):
+        k = self._viec().ket_qua
+        return _ok(k.tom_tat() if k is not None else None)
+
+    @_bat_loi
+    def qc_nhat_ky(self, tu=0, so=200, chi_viec=True):
+        try:
+            return _ok(self._ket_qua().lo(tu, so, chi_viec))
+        except game.LoiGame as e:
+            return _loi(str(e))
+
+    @_bat_loi
+    def qc_lenh(self):
+        """Mọi lệnh của lượt đang xem — mỗi lệnh mang giờ đặt/khớp/đóng."""
+        try:
+            return _ok(self._ket_qua().lenh)
+        except game.LoiGame as e:
+            return _loi(str(e))
+
+    @_bat_loi
+    def qc_soi_luot(self, i):
+        """Tô lượt `i` lên sơ đồ ở cửa sổ vẽ — y `ApiTester.test_soi_luot`."""
+        try:
+            k = self._ket_qua()
+        except game.LoiGame as e:
+            return _loi(str(e))
+        i = int(i)
+        if not (0 <= i < len(k.nhat_ky)):
+            return _ok({"da_ban": False})
+        self._cha._ban("soi_luot", k.soi(i))
+        self._cha._khung.keo_len_truoc()
+        return _ok({"da_ban": True})
+
+    @_bat_loi
+    def qc_man(self):
+        return _ok(self._ds_man())
+
+    @_bat_loi
+    def qc_lich_su(self):
+        return _ok(game.lich_su())
+
+    @_bat_loi
+    def qc_mo_lai(self, duong):
+        try:
+            return _ok(self._viec().mo_lai(duong))
+        except game.LoiGame as e:
+            return _loi(str(e))
+
+    @_bat_loi
+    def qc_mo_web(self, url):
+        """Mở trang backtest trên quantconnect.com bằng trình duyệt của máy. CHỈ link của QC."""
+        url = str(url or "")
+        if not url.startswith("https://www.quantconnect.com/"):
+            return _loi("Chỉ mở link của quantconnect.com.")
+        import webbrowser
+        webbrowser.open(url)
+        return _ok(True)
+

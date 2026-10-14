@@ -8,6 +8,7 @@ import './theme.css'
 import './app.css'
 import App from './App'
 import Live from './live/Live'
+import ManChoi from './qc/ManChoi'
 import Tester from './tester/Tester'
 
 /** Rẽ trang bằng `?tester=1` — KHÔNG thêm entry thứ hai cho Vite.
@@ -20,9 +21,10 @@ import Tester from './tester/Tester'
  * toàn cục, dùng chung được `TitleBar` / `Modal` / `Icon` mà không phải tách gì. */
 const laTester = new URLSearchParams(location.search).get('tester') === '1'
 const laLive = new URLSearchParams(location.search).get('live') === '1'
+const laQC = new URLSearchParams(location.search).get('qc') === '1'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {laLive ? <Live /> : laTester ? <Tester /> : <App />}
+    {laQC ? <ManChoi /> : laLive ? <Live /> : laTester ? <Tester /> : <App />}
   </React.StrictMode>,
 )

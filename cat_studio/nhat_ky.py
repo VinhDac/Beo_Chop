@@ -126,7 +126,12 @@ def dong_chu(r, nhan, khoi, ts, nen5):
 
     Dạng:  `11-05 19:00  ENTRY  [1]→[2]→[3]→[3A]→[3A.1]  đặt Mua L-0007 @3986.33 …`
     """
-    t = _gio(nen5["t"][r["nen"]]) if 0 <= r["nen"] < len(nen5) else "—"
+    if r.get("t") is not None:
+        # Lượt chạy trên QuantConnect tự mang giờ: app không có nến của QC để tra chỉ số
+        # `nen` (`nen5` khi đó là None).
+        t = _gio(r["t"])
+    else:
+        t = _gio(nen5["t"][r["nen"]]) if 0 <= r["nen"] < len(nen5) else "—"
     tab = "ENTRY " if r["tab"] == core.TAB_ENTRY else "MANAGE"
     duong = "→".join(f"[{nhan.get(k, '?')}]" for k in r["duong"])
     lenh = f" {r['lenh_id']}" if r.get("lenh_id") else ""
@@ -211,15 +216,20 @@ def _van_tay(doc):
     return hashlib.sha1(loi.encode("utf-8")).hexdigest()[:12]
 
 
-def khoa_qc(doc):
+def khoa_qc(doc, luot=None):
     """Khoá Object Store trên QuantConnect cho nhật ký của sơ đồ `doc` (đã chuẩn hoá).
 
     Cầu nối trên cloud GHI vào khoá này, app (`qc_api`) ĐỌC về từ khoá này — MỘT hàm cho
     cả hai đầu, để hai bên không thể lệch tên. Chỉ ký tự ASCII: khoá đi qua URL và nằm
-    trong file zip QC trả về, dấu tiếng Việt ở đó là chuốc lấy lỗi mã hoá tên file."""
+    trong file zip QC trả về, dấu tiếng Việt ở đó là chuốc lấy lỗi mã hoá tên file.
+
+    `luot` = mã RIÊNG của một lượt chạy (app đặt): khoá khác nhau mỗi lượt, nên lượt này
+    lưu hỏng thì app không thể nhặt nhầm nhật ký của lượt trước."""
     ten = "".join(ch if ch.isascii() and ch.isalnum() else "_"
                   for ch in doc.get("name") or "so_do")
-    return f"cat_studio/{ten}-{_van_tay(doc)}.jsonl.gz"
+    duoi = "".join(ch for ch in str(luot) if ch.isascii() and (ch.isalnum() or ch == "-")) \
+        if luot else ""
+    return f"cat_studio/{ten}-{_van_tay(doc)}{'-' + duoi if duoi else ''}.jsonl.gz"
 
 
 def ghi(kq, cd, ten=None):

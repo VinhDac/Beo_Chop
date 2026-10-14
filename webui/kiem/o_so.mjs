@@ -11,12 +11,15 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 // Biên dịch ĐÚNG MỘT file `src/so.ts` (nó cố ý không import gì) rồi nạp bản .js.
 // Không tự bóc chú thích kiểu bằng regex: bóc bằng tay là một bộ biên dịch thứ hai,
 // và nó sẽ vỡ ngay lần đầu ai đó viết một chữ ký hơi khác.
-const goc = new URL('..', import.meta.url).pathname.replace(/^\//, '')
+// `fileURLToPath`: ra đường dẫn đúng của HỆ ĐANG CHẠY (C:\\… trên Windows, /… trên Linux).
+// Bản cũ cắt dấu `/` đầu bằng tay — đúng trên Windows, nhưng trên Linux thành đường dẫn
+// TƯƠNG ĐỐI, `cwd` không tồn tại và Node báo nhầm thành «spawnSync /bin/sh ENOENT».
+const goc = fileURLToPath(new URL('..', import.meta.url))
 const ra = mkdtempSync(join(tmpdir(), 'catso-'))
 // `--skipLibCheck` + `--types` rỗng: chỉ dịch ĐÚNG file này, đừng lôi cả cây @types
 // của node_modules vào (chúng có lỗi kiểu riêng, không liên quan gì tới ta).

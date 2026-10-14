@@ -178,3 +178,35 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
 - **Lý do:** ta xây game nhưng không giới hạn tiềm năng (lời chủ dự án). Minecraft hay vì
   khối đơn giản ghép ra mọi thứ, không vì màn.
 - **Trạng thái:** locked
+
+---
+
+## D-08 · Bản chơi được đầu tiên: cửa sổ Màn chơi, luật chấm cụ thể  (đề xuất 2026-10-14)
+
+> Chủ dự án giao "làm từ đầu đến cuối cả backend lẫn frontend, rồi mang về máy debug".
+> Những chi tiết D-05 để mở được chọn ở đây **để làm cho chạy được** — chưa phải chốt.
+> Sửa được hết; con số nào nằm ở đâu ghi ở core.md §16.
+
+- **Quyết định (đề xuất):**
+  - Một cửa sổ riêng **◆ Màn chơi** (nút trên ribbon, Ctrl+M), y khuôn cửa sổ Live. Hai
+    chế độ: **Chiến dịch** và **Sáng tạo** (D-07: mọi symbol CFD OANDA, mọi khoảng ngày,
+    không chấm).
+  - Màn đầu tiên **Vàng · 2024**: ▶ nhanh = quý IV/2024 · ▶ đầy đủ = cả năm 2024 ·
+    **màn ẩn = cả năm 2025**. App giữ màn ẩn: không hiện ngày, không link QC, không
+    nhật ký, không lệnh của lượt nộp — chỉ điểm.
+  - **Nộp** chỉ được khi đã ▶ đầy đủ ĐÚNG cỗ máy đó (cùng vân tay — sửa một tham số là cỗ
+    máy khác). Mỗi lần nộp được đếm.
+  - **Sao:** ★ chạy sạch = ▶ đầy đủ có ít nhất một lệnh đóng · ★★ = thêm lãi % trên màn
+    đã thấy hơn % của **Mua rồi giữ** (giá đầu → giá cuối cùng khoảng) · ★★★ = thêm trên
+    màn ẩn cũng hơn. Mỗi sao cần mọi sao trước nó.
+  - **Độ gọn** = số khối (trừ khối Bắt đầu) + số tham số — ghi kèm mỗi lần nộp, không cộng
+    vào sao (chưa có "par" từng màn).
+  - **Không có chart nến** cho lượt chạy trên QC: mang chuỗi giá của QC về máy là trái
+    điều khoản dữ liệu của QC. Thay vào đó mỗi lượt nhật ký mang giờ của nó, có đường vốn,
+    có nút mở trang backtest trên quantconnect.com.
+- **Phương án đã cân nhắc:** (a) cửa sổ riêng ← **chọn** / (b) nhét vào Strategy Tester —
+  tester cần nến tại máy ở mọi chỗ, mà nến QC không được mang về / (c) chỉ công cụ dòng lệnh
+- **Lý do:** đúng vòng chơi D-05 (lắp → ▶ → vì sao → sửa → nộp), màn ẩn là luật thật
+  (D-06), không đụng gì tới Strategy Tester và Live đang chạy.
+- **Trạng thái:** đề xuất — chủ dự án duyệt lại khi chạy thật trên máy (màn, mốc ngày,
+  định nghĩa "chạy sạch", boss so bằng % giá, độ gọn).

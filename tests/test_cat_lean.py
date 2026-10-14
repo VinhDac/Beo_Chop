@@ -77,10 +77,10 @@ SPREAD = CD.spread_gia
 # ================= 1. đối chiếu =================
 print("\n▸ Đối chiếu với bộ chạy cũ — cùng nến, cùng giá trị chỉ báo")
 phu = {"viec": set(), "ly_do": set(), "mo_ho": 0, "tre": 0}
-p = None
+p = kq_p = n_p = None
 for seed in (1, 3, 7):
-    nen1 = gl.du_lieu(np, seed=seed, ngay=12)
-    kq = bc.chay(DOC, nen1, CD)
+    nen1 = n_p = gl.du_lieu(np, seed=seed, ngay=12)
+    kq = kq_p = bc.chay(DOC, nen1, CD)
     p = gl.chay_qc(cl, core, tt, DOC, nen1, SPREAD)
     kiem(f"bộ {seed}: nhật ký trùng khít từng lượt",
          van_tay(kq.nhat_ky) == van_tay(p.nhat_ky), f"({len(p.nhat_ky)} lượt)")
@@ -176,10 +176,27 @@ kiem("`nhat_ky.doc_file` đọc được, meta ghi nguồn QuantConnect",
      meta.get("nguon") == "QuantConnect")
 kiem("đủ lệnh, đủ lượt", len(lenh) == len(p.so.lenh) and len(luot) == p.so_luot,
      f"({len(lenh)} lệnh · {len(luot)} lượt)")
-kiem("lượt đọc lại == lượt đã ghi",
-     [{k: v for k, v in r.items() if k != "loai"} for r in luot] == p.nhat_ky)
+kiem("lượt đọc lại == lượt đã ghi (bỏ trường giờ thêm lúc ghi)",
+     [{k: v for k, v in r.items() if k not in ("loai", "t")} for r in luot] == p.nhat_ky)
+T5 = p.ct.nen5["t"]
+kiem("mỗi lượt mang GIỜ của nến quyết định — app không có nến của QC để tra chỉ số",
+     all(r["t"] == T5[r["nen"]] for r in luot) and len({r["t"] for r in luot}) > 100)
+kiem("lệnh mang giờ đặt / khớp / đóng, khớp đúng chỉ số nến",
+     all(x["t_dat"] == T5[x["nen_dat"]]
+         and x["t_khop"] == (T5[x["nen_khop"]] if x["nen_khop"] is not None else None)
+         and x["t_dong"] == (T5[x["nen_dong"]] if x["nen_dong"] is not None else None)
+         for x in lenh)
+     and [{k: v for k, v in x.items() if not k.startswith("t_")} for x in lenh]
+     == json.loads(json.dumps([x.tom_tat() for x in p.so.lenh])))
 kiem("meta mang bảng tổng kết và vân tay sơ đồ",
      meta["thong_ke"] == p.thong_ke and meta["van_tay"] == nk._van_tay(p.doc))
+mg = (float(n_p[-1]["c"]) / float(n_p[0]["o"]) - 1) * 100
+kiem("meta mang giá đầu / cuối và % Mua rồi giữ — đủ chấm boss, không cần chuỗi giá",
+     meta["gia_dau"] == float(n_p[0]["o"]) and meta["gia_cuoi"] == float(n_p[-1]["c"])
+     and meta["mua_giu_pt"] == round(mg, 2), f"({meta['mua_giu_pt']}%)")
+kiem("meta mang đường vốn, trùng khít bộ cũ",
+     meta["duong_von"] == json.loads(json.dumps(kq_p.duong_von)) and len(kq_p.duong_von) > 0
+     and meta["duong_von"][-1][1] == p.thong_ke["von_cuoi"])
 kiem("nén nhỏ hơn ít nhất 5 lần", len(gz) * 5 < p.byte_tho,
      f"({p.byte_tho / 1e3:.0f} KB → {len(gz) / 1e3:.0f} KB)")
 

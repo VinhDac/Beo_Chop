@@ -714,8 +714,10 @@ select.o { cursor: pointer; }
   padding: 0 10px 4px 16px;
   border-left: 1px solid var(--border-soft);
   /* Chốt bề rộng cụm: để nội dung tự quyết thì ô tên và hàng dưới ra hai bề rộng
-     khác nhau -> mép phải lởm chởm. Chốt lại rồi cho cả hai kéo hết bề rộng đó. */
-  width: 232px;
+     khác nhau -> mép phải lởm chởm. Chốt lại rồi cho cả hai kéo hết bề rộng đó.
+     330 chứ không 232: hàng dưới có thêm nút ◆ Màn chơi — hẹp hơn là nó rớt dòng và
+     đẩy ▶ Test ra khỏi mép phải (đã thấy trên ảnh chụp). */
+  width: 330px;
 }
 /* Chờ dạt trái, Chạy dạt phải -> hai mép thẳng hàng với ô tên phía trên. */
 .hang-chay { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -1883,3 +1885,112 @@ select.o { cursor: pointer; }
 .lv-moc-lap { margin: 10px 0 2px; font-size: 11px; color: var(--dim);
               letter-spacing: .04em; border-top: 1px dashed var(--border);
               padding-top: 6px; }
+
+/* ================= MÀN CHƠI — cỗ máy chạy trên QuantConnect (qc/ManChoi.tsx) =================
+   Không chart nến (kết quả QC không mang chuỗi giá về máy): thẻ màn bên trái, tiến độ /
+   kết quả bên phải, bảng dưới dùng chung vỏ với tester. Sao là ký hiệu đơn sắc ★ ☆. */
+.mc-nut-ribbon { border-color: var(--accent); color: var(--accent); white-space: nowrap; }
+.mc-nut-ribbon:hover:not(:disabled) { background: var(--accent-soft); }
+
+.mc-khoa-nut {
+  font: 11.5px var(--font); padding: 2px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--raised); color: var(--muted);
+  cursor: pointer;
+}
+.mc-khoa-nut.co { color: var(--ok); }
+.mc-khoa-nut.khong { color: var(--warn); border-color: var(--warn); }
+
+.mc-tb { gap: 6px; }
+.mc-che-do { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.mc-che-do button {
+  font: 12px var(--font); padding: 4px 12px; border: 0; background: transparent;
+  color: var(--muted); cursor: pointer;
+}
+.mc-che-do button.bat { background: var(--raised); color: var(--accent); }
+.mc-che-do button:disabled { cursor: default; opacity: .6; }
+.mc-nop { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+/* Hai lớp để thắng `.tb-nut.rong` (rộng cố định 34px → chữ "QC ↗" rớt dòng). */
+.tb-nut.mc-web { width: auto; padding: 0 8px; white-space: nowrap; }
+
+.mc-than { flex: 1; display: flex; min-height: 0; background: var(--bg); }
+.mc-trai {
+  width: 330px; flex: 0 0 auto; overflow-y: auto; padding: 12px;
+  border-right: 1px solid var(--border); background: var(--surface);
+}
+.mc-phai { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+
+.mc-the { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+.mc-the-dau { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mc-ten-man { font-size: 16px; font-weight: 600; color: var(--text); }
+.mc-dan { color: var(--muted); line-height: 1.45; }
+.mc-muc { margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+.mc-bang-nho { border-collapse: collapse; width: 100%; font-size: 12px; }
+.mc-bang-nho td, .mc-bang-nho th { padding: 3px 6px 3px 0; vertical-align: top; text-align: left; }
+.mc-bang-nho td:first-child { color: var(--dim); white-space: nowrap; width: 1%; }
+.mc-bang-nho th { color: var(--dim); font-weight: 500; }
+.mc-mo { color: var(--dim); }
+.mc-o { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); }
+
+.mc-sao { color: var(--dim); letter-spacing: 1px; white-space: nowrap; }
+.mc-sao b { color: var(--accent); font-weight: 400; }
+.mc-sao-to { font-size: 30px; line-height: 1; }
+.mc-bac { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.mc-nac { font-size: 12px; color: var(--dim); }
+.mc-nac.dat { color: var(--text); }
+.mc-nac-dau { display: inline-block; min-width: 34px; color: var(--dim); }
+.mc-nac.dat .mc-nac-dau { color: var(--accent); }
+
+.mc-bao {
+  font-size: 12.5px; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border); color: var(--text);
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.mc-bao .nut-nho { margin-left: auto; flex: 0 0 auto; }
+.mc-bao.canh { border-color: var(--warn); }
+.mc-bao.loi { border-color: var(--err); }
+.mc-bao.loi > b { color: var(--err); }
+.mc-bao.tot { border-color: var(--ok); }
+.mc-loi-chu { white-space: pre-wrap; user-select: text; }
+
+.mc-tien-do { display: flex; flex-direction: column; gap: 8px; max-width: 640px; }
+.mc-td-dau { font-size: 14px; }
+.mc-thanh { height: 8px; background: var(--raised); border-radius: 4px; overflow: hidden; }
+.mc-thanh > div { height: 100%; background: var(--accent); transition: width .3s; }
+.mc-td-chu { font-size: 12.5px; color: var(--muted); }
+.mc-td-giai { font-size: 11.5px; line-height: 1.45; }
+
+.mc-kq { display: flex; flex-direction: column; gap: 10px; }
+.mc-kq-dau { font-size: 14px; }
+.mc-doi { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mc-ben { display: flex; flex-direction: column; gap: 2px; }
+.mc-ben-ten { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.mc-so { font: 600 24px var(--mono); color: var(--text); }
+.mc-so.lai { color: var(--ok); } .mc-so.lo { color: var(--err); }
+.mc-vs { color: var(--dim); font-size: 13px; }
+.mc-ben-dinh { gap: 6px; }
+.mc-dinh { font-weight: 600; font-size: 13px; }
+.mc-dinh.thang { color: var(--ok); } .mc-dinh.thua { color: var(--warn); }
+.mc-chip { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-chip span {
+  font-size: 12px; padding: 3px 8px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft); color: var(--muted);
+}
+.mc-kq-cuoi { font-size: 12px; line-height: 1.45; }
+.mc-hai-man { max-width: 520px; }
+.mc-gioi-thieu { color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 620px; }
+.mc-gioi-thieu p { margin: 0 0 8px; }
+
+.mc-bang { border-collapse: collapse; width: 100%; font-size: 12px; }
+.mc-bang th {
+  position: sticky; top: 0; background: var(--surface); color: var(--dim); font-weight: 500;
+  text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border);
+}
+.mc-bang td { padding: 3px 8px; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+.mc-hang-nut { display: flex; gap: 4px; }
+.mc-them { align-self: center; margin: 6px 0; }
+.mc-diem { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+
+.mc-hop-khoa { display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; line-height: 1.45; }
+.mc-hop-khoa p { margin: 0; }
+.mc-canh-khoa { color: var(--warn); }
+.mc-trang-khoa { color: var(--muted); }

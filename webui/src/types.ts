@@ -569,3 +569,104 @@ export interface KetQuaHieuChuan {
   de_nghi: DeNghi | null
   stops_level_that: number | null
 }
+
+/* ======================= MÀN CHƠI — chạy trên QuantConnect ========================
+ * Hình dạng dữ liệu của `api.ApiQC` (cat_studio/api.py) · luật ở `cat_studio/game.py`.
+ * Không có nến: kết quả QC không mang chuỗi giá về máy — mỗi lượt tự mang giờ `t`. */
+
+export type LoaiChay = 'nhanh' | 'day_du' | 'nop' | 'tu_do'
+
+export interface BossQC { id: string; ten: string; mo_ta: string }
+
+/** Phần chấm của một lần chạy — `game.cham`. */
+export interface ChamQC {
+  lai_pt: number
+  /** `null` = khoảng ngày không có giá → không ai thắng ai. */
+  mua_giu_pt: number | null
+  thang_boss: boolean
+  so_dong: number
+  /** Chạy trọn và có ít nhất một lệnh đóng. */
+  sach: boolean
+}
+
+export interface DoGon { so_khoi: number; so_tham_so: number; tong: number }
+
+export interface LanNop {
+  t: string; ten: string; van_tay: string; sao: number; do_gon: DoGon
+  thay: ChamQC; an: ChamQC
+}
+
+export interface TienDoMan {
+  so_lan_nop: number; sao: number; tot_nhat: LanNop | null; lan_cuoi: LanNop | null
+}
+
+/** Lượt ▶ đầy đủ của ĐÚNG cỗ máy đang mở — có nó mới được Nộp. */
+export interface VeNop extends ChamQC { t: string; ten: string; duong: string }
+
+/** Một màn (KHÔNG có ngày của màn ẩn — app giữ, D-06). */
+export interface ManQC {
+  id: string; ten: string; ban_do: string; symbol: string; von: number
+  thay: [string, string]; nhanh: [string, string]; an_mo_ta: string
+  boss: BossQC; loi_dan: string; tien_do: TienDoMan; ve_nop: VeNop | null
+}
+
+/** Khoá đặt ở đâu. KHÔNG BAO GIỜ có token. */
+export interface KhoaQC {
+  co: boolean; nguon: 'bien_moi_truong' | 'file' | null; user_id: string | null
+  duong: string; loi?: string
+}
+
+export interface TuDoQC { symbol: string; tu: string; den: string; von: number }
+
+export interface KetQuaQC {
+  ten: string; van_tay: string; symbol: string; tu: string; den: string; tf: string
+  thong_ke: ThongKe
+  duong_von: [number, number, number][]
+  gia_dau: number | null; gia_cuoi: number | null; mua_giu_pt: number | null
+  dem: Record<string, number>; giay_chay: number | null; so_luot: number | null
+  duong_nhat_ky: string; do_gon: DoGon
+  t_dau: number | null; t_cuoi: number | null
+  nhip: { entry: string; manage: string }
+  // ---- chỉ có khi vừa chạy xong (mở lại từ lịch sử thì một phần) ----
+  loai?: LoaiChay; man?: string | null; an?: boolean; cham?: ChamQC; url?: string
+  giay_tong?: number; sao?: number | null; lan_nop?: number | null; thay?: VeNop | null
+}
+
+export interface TrangThaiQC {
+  dang_chay: boolean; loai?: LoaiChay; man?: string | null
+  /** Bước đang làm, nói bằng lời. */
+  chu?: string
+  /** Tiến độ TRONG bước (chỉ backtest đo được). */
+  ti_le?: number | null
+  /** Tiến độ cả lượt, 0…1. */
+  ti_le_chung?: number
+  giay?: number
+  xong: KetQuaQC | null
+  loi: string | null
+}
+
+export interface MucLichSuQC {
+  t: string; loai: LoaiChay; man: string | null; ten: string; van_tay: string
+  /** Lượt nộp (`an`): KHÔNG có ngày, KHÔNG có link — app giữ màn ẩn (D-06). */
+  symbol: string; tu: string | null; den: string | null; an: boolean; sao: number | null
+  lai_pt: number; mua_giu_pt: number | null; so_lenh: number; url: string | null; duong: string
+}
+
+export interface BootQC {
+  phien_ban: string; accent: string | null; doc: ProcessDoc | null
+  man: ManQC[]; loai: Record<LoaiChay, string>; khoa: KhoaQC; do_gon: DoGon
+  tu_do: TuDoQC; trang_thai: TrangThaiQC; co_ket_qua: boolean
+}
+
+export interface DongNkQC {
+  i: number; nen: number; tab: Tab; lenh_id: string | null; co_viec: boolean; chu: string
+}
+export interface LoNhatKyQC { tong: number; tu: number; dong: DongNkQC[] }
+
+export interface LenhQC {
+  id: string; huong: string; loai: string; lot: number
+  gia_dat: number; gia_khop: number | null; gia_dong: number | null
+  sl: number | null; tp: number | null; R: number
+  trang_thai: string; ly_do_dong: string | null
+  t_dat: number | null; t_khop: number | null; t_dong: number | null
+}

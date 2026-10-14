@@ -15,17 +15,20 @@ import type { ThongKeChay, XemLichSu } from '../types'
  * KHÔNG có `số vùng nén` dù `thong_ke` đang mang sẵn: đó là khái niệm riêng của một
  * chiến lược, đúng cái bẫy đã gỡ ở bảng số liệu bên phải (core.md §12.9c).
  */
-export default function ThongKe({ nguon, thoiXem }: {
+export default function ThongKe({ nguon, thoiXem, du }: {
   /** Có thì vẽ mục LỊCH SỬ này; `null` thì hỏi lần chạy hiện tại. Cùng một hình dạng dữ
    *  liệu (`_tom_tat_chay` bên Python dựng cả hai), nên không có nhánh vẽ thứ hai. */
   nguon: XemLichSu | null
   thoiXem: () => void
+  /** Dữ liệu ĐƯA SẴN (cửa sổ Màn chơi — lượt chạy trên QuantConnect): không hỏi tester,
+   *  không hiện dải "lần chạy cũ". Cùng hình dạng, nên vẫn không có nhánh vẽ thứ hai. */
+  du?: ThongKeChay | null
 }) {
   const [hienTai, setHienTai] = useState<ThongKeChay | null>(null)
   const [loi, setLoi] = useState('')
 
   useEffect(() => {
-    if (nguon) return                 // đang xem lịch sử, không cần hỏi lần chạy hiện tại
+    if (nguon || du !== undefined) return   // lịch sử / dữ liệu đưa sẵn: không hỏi tester
     let song = true
     void pyTester.test_thong_ke().then(r => {
       if (!song) return
@@ -33,9 +36,9 @@ export default function ThongKe({ nguon, thoiXem }: {
       else setLoi(r.error || 'không đọc được thống kê')
     })
     return () => { song = false }
-  }, [nguon])
+  }, [nguon, du])
 
-  const d = nguon ? nguon.tom_tat : hienTai
+  const d = du !== undefined ? du : nguon ? nguon.tom_tat : hienTai
   if (loi) return <div className="tk-trong">{loi}</div>
   if (!d) return <div className="tk-trong">đang tính…</div>
 
@@ -49,7 +52,7 @@ export default function ThongKe({ nguon, thoiXem }: {
     <div className="tk">
       {/* Dải này bắt buộc: không có nó thì người dùng đang nhìn số của một lần chạy CŨ mà
           tưởng là lần đang mở — kiểu nhầm tốn cả buổi. */}
-      {nguon && (
+      {nguon && du === undefined && (
         <div className="tk-bao-cu">
           Đang xem lần chạy cũ
           <b>{nguon.ten || gio(nguon.t)}</b>

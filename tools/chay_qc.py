@@ -28,10 +28,11 @@ sys.path.insert(0, os.path.join(GOC, "tools"))
 import dong_goi_lean as dgl  # noqa: E402  (nó tự thêm gốc repo và lean/ vào sys.path)
 
 import cat_lean  # noqa: E402
-from cat_studio import bo_chay, luu_tru, qc_api  # noqa: E402
+from cat_studio import bo_chay, core, goi_qc, luu_tru, qc_api  # noqa: E402
+from cat_studio import nhat_ky as nk  # noqa: E402
 
-#: Trần mỗi file của gói Researcher là 64 KB — chừa lề như với gói Free (32 KB → 30 000).
-GIOI_HAN_RESEARCHER = 62_000
+#: Trần mỗi file của gói Researcher (64 KB, chừa lề) — một chỗ khai, ở bộ đóng gói.
+GIOI_HAN_RESEARCHER = goi_qc.GIOI_HAN_RESEARCHER
 _so = cat_lean._so
 
 
@@ -78,7 +79,10 @@ def main(argv=None, qc=None, thu_muc_nhat_ky=None):
     nhan = f"{a.symbol} {a.tu} → {a.den}"
     print(f"Cat Studio → QuantConnect · «{doc.get('name') or 'sơ đồ'}» · {nhan}", flush=True)
     try:
-        files = dgl.dong_goi(doc, {"tu": a.tu, "den": a.den, "symbol": a.symbol}, a.gioi_han)
+        # Khoá nhật ký RIÊNG cho lượt này — nhúng vào gói, app đọc đúng khoá đó rồi xoá.
+        khoa = nk.khoa_qc(core.normalize_process(doc), qc_api.ma_luot())
+        files = dgl.dong_goi(doc, {"tu": a.tu, "den": a.den, "symbol": a.symbol,
+                                   "khoa": khoa}, a.gioi_han)
     except bo_chay.LoiChay as e:
         return _hong(f"Sơ đồ chưa chạy được: {e}")
     except RuntimeError as e:                       # gói vượt trần file
@@ -100,7 +104,7 @@ def main(argv=None, qc=None, thu_muc_nhat_ky=None):
     ten_bt = f"{nhan} · {datetime.now():%H:%M:%S}"
     try:
         kq = qc_api.chay(qc, doc, files, ten_bt,
-                         thu_muc_nhat_ky or luu_tru.thu_muc_nhat_ky(), bao)
+                         thu_muc_nhat_ky or luu_tru.thu_muc_nhat_ky(), bao, khoa=khoa)
     except qc_api.LoiQC as e:
         return _hong(e)
 

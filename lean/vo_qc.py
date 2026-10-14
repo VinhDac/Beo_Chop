@@ -34,10 +34,11 @@ _GOC_GIO = datetime(1970, 1, 1)
 
 
 def _giay(dt):
-    """Giờ của nến LEAN (datetime không múi giờ) → số giây.
+    """Giờ của nến LEAN (datetime không múi giờ) → số giây UTC.
 
-    Cầu nối chỉ dùng HIỆU giữa hai mốc và phép chia lấy dư theo 60/300/900 giây, nên mốc
-    tuyệt đối không quan trọng — miễn mọi nến đi qua đúng một phép đổi này."""
+    Thuật toán đặt múi giờ UTC (`initialize`), nên `dt` là giờ UTC — số giây ra đây là
+    epoch thật, app in thẳng ra được. Bộ luật thì chỉ dùng HIỆU giữa hai mốc và phép chia
+    lấy dư theo 60/300/900 giây: múi giờ nào lệch nguyên giờ cũng cho cùng biên nến."""
     return int(round((dt - _GOC_GIO).total_seconds()))
 
 
@@ -76,6 +77,8 @@ class CatStudioTrenQC(QCAlgorithm):
             raise ValueError("Thiếu sơ đồ — hãy dán bộ file do tools/dong_goi_lean.py "
                              "sinh ra, không dán vo_qc.py.")
         ch = self._ch = CAU_HINH
+        # UTC: giờ trên nhật ký là giờ thật, đọc ra được. Mặc định của LEAN là New York.
+        self.set_time_zone(TimeZones.UTC)
         self._phien = cl.PhienQC(doc, cl.CaiDatQC(symbol=ch["symbol"],
                                                   deposit=float(ch["von"])))
         self.set_start_date(datetime.strptime(ch["tu"], "%Y-%m-%d"))
@@ -140,9 +143,11 @@ class CatStudioTrenQC(QCAlgorithm):
 
     def on_end_of_algorithm(self):
         giay = dong_ho.perf_counter() - self._bat_dau
-        self._phien.ket_thuc(giay)
-        luu, loi = self._cat(self._phien.ten_file(), self._phien.nhat_ky_gz())
         ch = self._ch
+        self._phien.ket_thuc(giay, them=cl.meta_cau_hinh(ch))
+        # Khoá do app đặt cho RIÊNG lượt này (`CAU_HINH["khoa"]`): app chỉ đọc đúng khoá đó,
+        # nên không bao giờ nhặt nhầm nhật ký cũ của lượt trước khi lượt này lưu hỏng.
+        luu, loi = self._cat(cl.khoa_luu(ch, self._phien), self._phien.nhat_ky_gz())
         for dong in self._phien.dong_tong_ket(f"{ch['symbol']} {ch['tu']} → {ch['den']}",
                                               giay, luu):
             self.log(dong)

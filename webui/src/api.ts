@@ -8,6 +8,8 @@ import type {
   LoNhatKy, ProcEdge, ProcessDoc, Reply, Step, Tab, TesterBoot, ThamSo,
   DoanPhat, MucLichSu, ThongKeChay, TrangThaiChay, XemLichSu,
   TinKetNoi, VanDeLive, KetQuaHieuChuan, DePhong,
+  BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
+  TrangThaiQC, TuDoQC,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -66,6 +68,9 @@ export interface GoiNen {
 
 export const py = {
   bootstrap: () => goi<Bootstrap>('bootstrap'),
+  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Sơ đồ còn lỗi thì từ chối
+   *  kèm `loi` (y `mo_tester`). */
+  mo_qc: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
   set_title: (ten: string) => goi<null>('set_title', ten),
 
   // --- tài liệu ---
@@ -243,4 +248,26 @@ export const pyLive = {
   cua_so_dong: () => goi<null>('cua_so_dong'),
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
   keo_cua_so: (ht: number) => goi<boolean>('keo_cua_so', ht),
+}
+
+/** Bề mặt của cửa sổ MÀN CHƠI (`api.ApiQC`). Mọi lỗi từ đây đã là một câu tiếng Việt. */
+export const pyQC = {
+  qc_boot: () => goi<BootQC>('qc_boot'),
+  qc_khoa: () => goi<KhoaQC>('qc_khoa'),
+  qc_luu_khoa: (userId: string, token: string) => goi<KhoaQC>('qc_luu_khoa', userId, token),
+  qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
+  qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
+  /** Chạy NỀN, trả ngay — rồi hỏi `qc_trang_thai` tới khi `dang_chay` tắt. */
+  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoQC | null) =>
+    goi<boolean>('qc_chay', loai, man, tuDo),
+  qc_trang_thai: () => goi<TrangThaiQC>('qc_trang_thai'),
+  qc_ket_qua: () => goi<KetQuaQC | null>('qc_ket_qua'),
+  qc_nhat_ky: (tu: number, so: number, chiViec: boolean) =>
+    goi<LoNhatKyQC>('qc_nhat_ky', tu, so, chiViec),
+  qc_lenh: () => goi<LenhQC[]>('qc_lenh'),
+  qc_soi_luot: (i: number) => goi<{ da_ban: boolean }>('qc_soi_luot', i),
+  qc_man: () => goi<ManQC[]>('qc_man'),
+  qc_lich_su: () => goi<MucLichSuQC[]>('qc_lich_su'),
+  qc_mo_lai: (duong: string) => goi<KetQuaQC>('qc_mo_lai', duong),
+  qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
 }

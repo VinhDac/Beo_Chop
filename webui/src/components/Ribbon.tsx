@@ -136,6 +136,8 @@ export interface RibbonProps {
   datSymbol: (v: string) => void
   chay: () => void
   live: () => void
+  /** ◆ Màn chơi — chạy cỗ máy trên QuantConnect (D-05 · D-06). */
+  manChoi: () => void
   coChon: boolean
   chonDaGhim: boolean
   coTheHoanTac: boolean
@@ -235,6 +237,10 @@ export default function Ribbon(p: RibbonProps) {
               giống nhau. Trái/phải cũng cố ý: tay quen bấm cái bên phải. */}
           <button className="nut do" onClick={p.live}
                   title="Mở cửa sổ Live — chạy trên kết nối thật (Ctrl+L)">● Live</button>
+          {/* Màn chơi đứng GIỮA: không tiêu tiền như Live, không chạy tại máy như Test —
+              gửi cỗ máy lên QuantConnect, chấm sao trên màn ẩn. */}
+          <button className="nut mc-nut-ribbon" onClick={p.manChoi}
+                  title="Mở Màn chơi — chạy cỗ máy trên QuantConnect, chấm sao (Ctrl+M)">◆ Màn chơi</button>
           <button className="nut chinh" onClick={p.chay}
                   title="Mở Strategy Tester để chạy thử sơ đồ này (Ctrl+R)">▶ Test</button>
         </div>

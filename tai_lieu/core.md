@@ -2534,3 +2534,63 @@ lại; QC trả zip rỗng thì app cũng hỏi lại, cùng kết cục); (2) O
 Researcher có nhận một nhật ký cỡ chục MB không (D-03 còn treo); (3) một lượt thật mất bao
 lâu — tiêu chí của slice là ~1 phút. Hỏng ở (1) hay (2) thì công cụ in khoá + link log của
 backtest, dòng «Object Store» trên log nói lý do.
+
+## 16. ⭐ MÀN CHƠI TRONG APP (slice 4) — vòng chơi D-05 chạy trên QuantConnect
+
+> Theo `DECISIONS.md` D-05 · D-06 · D-07 · **D-08 (đề xuất — luật chấm cụ thể)**.
+
+**Một câu:** nút **◆ Màn chơi** (ribbon, Ctrl+M, File → Mở Màn chơi) mở cửa sổ thứ tư —
+Chiến dịch (màn, boss, ▶ nhanh / ▶ đầy đủ / Nộp, sao) và Sáng tạo (mọi symbol, mọi khoảng
+ngày). Mọi lượt chạy trên QuantConnect qua API (§15), không mở web QC.
+
+| Lớp | File | Việc |
+|---|---|---|
+| Luật chơi | `cat_studio/game.py` | màn · boss · `cham` · `sao` · `do_gon` · sổ `du_lieu/game.json` |
+| Việc nền | `cat_studio/qc_chay.py` | `ViecQC`: soát → đóng gói → `qc_api.chay` → chấm → ghi sổ; `KetQuaQC` dựng lại từ nhật ký |
+| Đóng gói | `cat_studio/goi_qc.py` | chuyển từ `tools/dong_goi_lean.py` (giờ là vỏ dòng lệnh) để app gọi được; `.spec` mang nguồn theo |
+| Vỏ API | `api.ApiQC` + `Api.mo_qc` | 15 hàm `qc_*` cho JS — mỏng, không luật nào |
+| Giao diện | `webui/src/qc/ManChoi.tsx`, `HopKhoa.tsx` | thẻ màn · tiến độ · kết quả · tab Vì sao / Thống kê / Lệnh / Điểm / Lịch sử · hộp khoá |
+
+### 16.1 Màn ẩn là ẩn (D-06)
+
+`game.man_cong_khai` không mang ngày màn ẩn. Lượt **Nộp** trả về chỉ con số tổng — không
+ngày, không link QC, không đường vốn, không lượt, không lệnh; lịch sử ghi nó không ngày;
+tên backtest trên QC ghi "màn ẩn" chứ không ghi ngày; không mở lại được để xem từng nến.
+Nộp đòi một lượt ▶ đầy đủ của ĐÚNG cỗ máy đó (cùng vân tay `nhat_ky._van_tay`).
+
+### 16.2 Không nến — nhật ký tự mang giờ
+
+Mang chuỗi giá của QC về máy là trái điều khoản dữ liệu của QC, nên cửa sổ này KHÔNG có
+chart nến. Bù lại, cầu nối ghi thêm (chỉ lúc ghi, bản ghi trong bộ nhớ vẫn trùng khít bộ
+cũ): `t` trên mỗi lượt, `t_dat/t_khop/t_dong` trên mỗi lệnh, và meta có `duong_von`,
+`gia_dau/gia_cuoi/mua_giu_pt` (đủ chấm boss — hai con số, không phải chuỗi giá), `tu/den`.
+Thuật toán đặt múi giờ **UTC** (`vo_qc.initialize`) — giờ in ra là giờ thật. `nhat_ky.dong_chu`
+đọc `t` trên bản ghi khi có, nên tab Vì sao và "Xem trên sơ đồ" dùng lại nguyên văn bộ dựng
+chữ của tester; tab Thống kê dùng lại `ThongKe` (thêm prop `du`).
+
+### 16.3 Mỗi lượt một khoá Object Store
+
+App đặt khoá RIÊNG cho từng lượt (`nhat_ky.khoa_qc(doc, ma_luot)`), nhúng vào
+`CAU_HINH["khoa"]`; cầu nối ghi đúng khoá đó (`cat_lean.khoa_luu`); app tải về xong thì
+XOÁ khỏi Object Store. Lượt nào lưu hỏng thì app không thể nhặt nhầm nhật ký của lượt trước,
+và Object Store không đầy dần. Đường dán tay (không có `khoa`) vẫn dùng khoá theo sơ đồ.
+
+### 16.4 Bằng chứng
+
+- `tests/test_game_qc.py` — luật chấm, màn ẩn là ẩn, luật nộp, việc nền (một lượt một lúc,
+  tiến độ, lỗi thành lời), xem lại, Sáng tạo, và **vỏ `ApiQC`** — trên máy chủ QC giả
+  (`tests/qc_gia.py`, dùng chung với `test_qc_api.py`) chạy THẬT bộ file đẩy lên.
+- `webui/kiem/man_choi.mjs` — cửa sổ Màn chơi trong Chromium với bề mặt Python giả, bấm
+  trọn vòng chơi (cần Playwright; không có thì tự bỏ qua).
+- Lúc làm còn chạy một phép kiểm ĐẦU–CUỐI ngoài repo: Chromium gọi thẳng `api.Api`/`ApiQC`
+  THẬT qua một cầu HTTP, Python gọi máy chủ QC giả — cửa sổ vẽ → ◆ Màn chơi → khoá →
+  ▶ nhanh → Vì sao → soi → ▶ đầy đủ → Nộp → Lịch sử: 19/19, không lỗi console. Nó bắt được
+  hai lỗi thật: cụm nút ribbon rớt dòng đẩy ▶ Test ra ngoài, và kết quả xem lại thiếu thông
+  tin lượt.
+- `cat_studio/khung_rong.py`: ngoài Windows, `api.py` nạp bản khung rỗng thay
+  `khung_cua_so` (vốn gọi `ctypes.windll` lúc nạp) — năm bài kiểm từng chỉ chạy được trên
+  Windows giờ chạy được trên Linux/CI. `webui/kiem/o_so.mjs` đổi sang `fileURLToPath` —
+  bài ô số cũng chạy được trên Linux.
+
+⚠ **Chưa chạy trên QC thật** — như §15.4. Thêm một điều chỉ QC thật trả lời: `set_time_zone(UTC)`
+có đổi gì ngoài giờ in ra không (biên nến M5–H1 thì không, vì lệch nguyên giờ).

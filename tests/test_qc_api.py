@@ -25,24 +25,15 @@ Sáu thứ được canh:
 
 Chạy:  python tests\\test_qc_api.py
 """
-import base64
 import contextlib
 import copy
-import hashlib
 import io
 import json
 import os
 import shutil
 import socket
-import subprocess
 import sys
 import tempfile
-import threading
-import time
-import urllib.parse
-import urllib.request
-import zipfile
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
 GOC = os.path.dirname(TESTS)
@@ -58,6 +49,8 @@ import cat_lean as cl  # noqa: E402
 import chay_qc  # noqa: E402
 import dong_goi_lean as dg  # noqa: E402
 import gia_lap_qc as gl  # noqa: E402
+import qc_gia  # noqa: E402
+from qc_gia import QCGia, mo  # noqa: E402
 from cat_studio import bo_chay as bc  # noqa: E402
 from cat_studio import core  # noqa: E402
 from cat_studio import luu_tru  # noqa: E402
@@ -95,283 +88,8 @@ DOC_CHUAN = core.normalize_process(DOC)
 KHOA_NK = nk.khoa_qc(DOC_CHUAN)
 TU_DEN = ["--tu", "2025-01-02", "--den", "2025-01-06"]
 
-#: Kịch bản "QC chạy thuật toán": Python sạch — repo bị gỡ khỏi sys.path, chỉ còn bộ file
-#: của project — nạp `main.py` y như QC nạp, chạy cầu nối trên nến giả, cất nhật ký.
-KICH_BAN = r'''
-import json, sys
-sys.path[:] = [p for p in sys.path if not p.startswith(GOC)]
-import numpy as np
-import main
-import gia_lap_qc as gl
-cl = sys.modules["cat_lean"]
-vo = sys.modules["vo_qc"]
-nen1 = np.array([tuple(r) for r in json.load(open("nen.json"))], dtype=gl.DTYPE)
-p = gl.chay_qc(cl, sys.modules["cat_studio.core"], sys.modules["cat_studio.tinh_toan"],
-               vo.SO_DO, nen1, SPREAD)
-with open("ra.gz", "wb") as f:
-    f.write(p.nhat_ky_gz())
-print(p.ten_file())
-'''
-
-#: Mở URL KHÔNG qua proxy — máy chủ giả nằm ở 127.0.0.1, proxy của máy (nếu có) không
-#: được chen vào giữa.
-_MO = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
-
-def mo(req, timeout):
-    return _MO.open(req, timeout=timeout)
-
-
-class QCGia:
-    """Máy chủ QuantConnect GIẢ trên 127.0.0.1 — đúng những điểm API mà app dùng."""
-
-    UID, TOK, ORG = "424242", "khoa-bi-mat-0123456789abcdef", "org-cat"
-    GHI = {"projects/create", "files/create", "files/update", "files/delete",
-           "compile/create", "backtests/create", "object/get"}
-
-    def __init__(self):
-        self.projects, self.files, self.compiles, self.backtests = [], {}, {}, {}
-        self.object_store, self.tai_ve, self.jobs = {}, {}, {}
-        self.nhat = []                  # (phương thức, điểm, tham số) mọi yêu cầu API
-        self.tho = []                   # bytes thô mọi yêu cầu: dòng đầu + header + thân
-        self.auth_tai = []              # header Authorization mà link tải nhận được
-        self.sai_xac_thuc = 0
-        self.ma_loi = {}                # điểm → các mã HTTP trả TRƯỚC khi trả thật
-        self.bien_dich_hong = self.bien_dich_treo = False
-        self.backtest_loi = None        # (error, stacktrace)
-        self.chay_that = True           # backtest có chạy bộ file và cất nhật ký không
-        self.chi_b64 = False            # cất nhật ký dạng chữ `<khoá>.b64`
-        self.object_tre = 0             # mấy lần object/get đầu tiên chưa thấy file
-        self.so_lan_job = 2             # object/get: hỏi job mấy lần mới có link
-        self._id, self._cache = 1000, {}
-        gia = self
-
-        class XuLy(BaseHTTPRequestHandler):
-            def log_message(self, *a):
-                pass
-
-            def do_GET(self):
-                gia._xu_ly(self, "GET")
-
-            def do_POST(self):
-                gia._xu_ly(self, "POST")
-
-        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), XuLy)
-        self.cong = self.srv.server_address[1]
-        self.goc = f"http://127.0.0.1:{self.cong}/api/v2/"
-        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
-
-    def dong(self):
-        self.srv.shutdown()
-        self.srv.server_close()
-
-    def goi(self, diem, pt=None):
-        return [ts for p, d, ts in self.nhat if d == diem and (pt is None or p == pt)]
-
-    def _moi_id(self):
-        self._id += 1
-        return self._id
-
-    # ------------------------------------------------------------------ HTTP
-    def _tra(self, h, ma, than, kieu="application/json"):
-        h.send_response(ma)
-        h.send_header("Content-Type", kieu)
-        h.send_header("Content-Length", str(len(than)))
-        h.end_headers()
-        h.wfile.write(than)
-
-    def _xu_ly(self, h, pt):
-        u = urllib.parse.urlsplit(h.path)
-        n = int(h.headers.get("Content-Length") or 0)
-        than = h.rfile.read(n) if n else b""
-        self.tho.append(h.requestline.encode() + b"\n" + str(h.headers).encode() + than)
-        if u.path.startswith("/tai/"):
-            self.auth_tai.append(h.headers.get("Authorization"))
-            goi = self.tai_ve.get(u.path[len("/tai/"):])
-            return self._tra(h, 200 if goi else 404, goi or b"", "application/zip")
-        diem = u.path[len("/api/v2/"):]
-        if pt == "GET":
-            ts = dict(urllib.parse.parse_qsl(u.query))
-            if than:
-                return self._tra(h, 400, b"GET khong co than")
-        else:
-            if h.headers.get("Content-Type") != "application/json":
-                return self._tra(h, 415, b"can JSON")
-            ts = json.loads(than or b"{}")
-        self.nhat.append((pt, diem, ts))
-        if self.ma_loi.get(diem):
-            return self._tra(h, self.ma_loi[diem].pop(0), b"<html>loi</html>", "text/html")
-        d = self._xac_thuc(h) or self._api(pt, diem, ts)
-        self._tra(h, 200, json.dumps(d).encode("utf-8"))
-
-    def _xac_thuc(self, h):
-        moc = h.headers.get("Timestamp") or ""
-        kieu, _, b64 = (h.headers.get("Authorization") or "").partition(" ")
-        try:
-            uid, _, bam = base64.b64decode(b64).decode("utf-8").partition(":")
-        except ValueError:
-            uid = bam = ""
-        if kieu != "Basic" or uid != self.UID:
-            self.sai_xac_thuc += 1
-            return {"success": False, "errors": ["UserID not valid."]}
-        if not moc.isdigit() or abs(int(moc) - time.time()) > 300 or \
-                bam != hashlib.sha256(f"{self.TOK}:{moc}".encode("utf-8")).hexdigest():
-            self.sai_xac_thuc += 1
-            return {"success": False, "errors": ["Hash doesn't match."]}
-        return None
-
-    # ------------------------------------------------------------------ API
-    def _api(self, pt, diem, ts):
-        def ok(**k):
-            return {"success": True, **k}
-
-        def loi(s):
-            return {"success": False, "errors": [s]}
-
-        if (pt == "POST") != (diem in self.GHI):
-            return loi(f"Sai phương thức {pt} cho {diem}")
-        if diem == "projects/read":
-            return ok(projects=list(self.projects))
-        if diem == "projects/create":
-            if ts.get("language") != "Py":
-                return loi("Language must be Py")
-            if any(p["name"] == ts.get("name") for p in self.projects):
-                return loi("Project name already exists")
-            p = {"projectId": self._moi_id(), "organizationId": self.ORG, "name": ts["name"]}
-            self.projects.append(p)
-            # Project mới trên QC có sẵn main.py mẫu và một notebook nghiên cứu.
-            self.files[p["projectId"]] = {
-                "main.py": "# region imports\nfrom AlgorithmImports import *\n# endregion\n",
-                "research.ipynb": "{}"}
-            return ok(projects=[p])
-        pid = int(ts.get("projectId") or 0)
-        if diem.startswith("files/"):
-            f = self.files.get(pid)
-            if f is None:
-                return loi("Project not found")
-            ten = ts.get("name")
-            if diem == "files/read":
-                return ok(files=[{"name": k, "content": v} for k, v in f.items()])
-            if (diem == "files/create") == (ten in f):
-                return loi("File already exists" if ten in f else "File not found")
-            if diem == "files/delete":
-                del f[ten]
-            else:
-                f[ten] = ts["content"]
-            return ok()
-        if diem == "compile/create":
-            cid = f"c-{self._moi_id()}"
-            self.compiles[cid] = {"pid": pid, "anh": dict(self.files[pid]), "lan": 0,
-                                  "state": "InQueue"}
-            return ok(compileId=cid, state="InQueue")
-        if diem == "compile/read":
-            c = self.compiles[ts["compileId"]]
-            c["lan"] += 1
-            if c["lan"] >= 2 and not self.bien_dich_treo:
-                c["state"] = "BuildError" if self.bien_dich_hong else "BuildSuccess"
-            logs = (["Build started", "main.py(14,5): error: invalid syntax",
-                     "Build failed"] if c["state"] == "BuildError" else ["Build Success"])
-            return ok(compileId=ts["compileId"], state=c["state"], logs=logs)
-        if diem == "backtests/create":
-            c = self.compiles.get(ts.get("compileId"))
-            if not c or c["state"] != "BuildSuccess" or c["pid"] != pid:
-                return loi("Compile not found or failed")
-            bt = {"backtestId": f"b-{self._moi_id()}", "projectId": pid,
-                  "name": ts.get("backtestName"), "lan": 0, "loi": self.backtest_loi}
-            if self.chay_that and not bt["loi"]:
-                khoa, kq = self._chay(c["anh"])
-                if khoa is None:                # thuật toán chết trên "cloud"
-                    bt["loi"] = (kq.strip().splitlines()[-1], kq)
-                elif self.chi_b64:
-                    self.object_store[khoa + ".b64"] = base64.b64encode(kq)
-                else:
-                    self.object_store[khoa] = kq
-            self.backtests[bt["backtestId"]] = bt
-            return ok(backtest=self._xem(bt))
-        if diem == "backtests/read":
-            bt = self.backtests[ts["backtestId"]]
-            bt["lan"] += 1
-            return ok(backtest=self._xem(bt))
-        if diem == "object/get":
-            if ts.get("organizationId") != self.ORG:
-                return loi("Organization not found")
-            if "jobId" in ts:
-                j = self.jobs[ts["jobId"]]
-                j["con"] -= 1
-                return ok(jobId=ts["jobId"], url=self._link(j["keys"]) if j["con"] <= 0 else "")
-            keys = ts.get("keys") or []
-            if self.object_tre > 0:
-                self.object_tre -= 1
-                return loi(f"Key {keys[0]} not found")
-            thieu = [k for k in keys if k not in self.object_store]
-            if thieu:
-                return loi(f"Key {thieu[0]} not found")
-            if self.so_lan_job:
-                job = f"job-{self._moi_id()}"
-                self.jobs[job] = {"keys": keys, "con": self.so_lan_job}
-                return ok(jobId=job, url="")
-            return ok(url=self._link(keys))
-        return loi(f"Không có điểm {diem}")
-
-    def _xem(self, bt):
-        """Trạng thái backtest theo số lần đã hỏi — có một nhịp "completed nhưng thống kê
-        chưa ghi xong" (QC làm vậy thật; LEAN CLI chờ qua nó)."""
-        lan = bt["lan"]
-        d = {"backtestId": bt["backtestId"], "projectId": bt["projectId"], "name": bt["name"],
-             "status": "Running", "completed": False, "progress": min(0.35 * lan, 0.9),
-             "error": None, "stacktrace": None, "runtimeStatistics": None,
-             "statistics": None}
-        if bt["loi"] and lan >= 2:
-            d.update(status="Runtime Error", completed=True, progress=0.5,
-                     error=bt["loi"][0], stacktrace=bt["loi"][1])
-        elif lan == 3:
-            d.update(completed=True, progress=1.0, statistics=[])
-        elif lan >= 4:
-            d.update(status="Completed.", completed=True, progress=1.0,
-                     runtimeStatistics={"Equity": "$10,000.00"},
-                     statistics={"Total Orders": "0", "Net Profit": "0%"})
-        return d
-
-    def _link(self, keys):
-        ma = hashlib.sha1(f"{keys}{self._moi_id()}".encode()).hexdigest()
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w") as z:
-            for k in keys:
-                z.writestr(k, self.object_store[k])
-        self.tai_ve[ma] = buf.getvalue()
-        return f"http://127.0.0.1:{self.cong}/tai/{ma}"
-
-    def _chay(self, anh):
-        """Chạy bộ file của project như QC chạy. Trả `(khoá, gz)` hoặc `(None, stderr)`."""
-        py = sorted((k, v) for k, v in anh.items() if k.endswith(".py"))
-        ma = hashlib.sha1(json.dumps(py).encode("utf-8")).hexdigest()
-        if ma not in self._cache:
-            with tempfile.TemporaryDirectory() as td:
-                for ten, nd in py:
-                    with open(os.path.join(td, ten), "w", encoding="utf-8") as f:
-                        f.write(nd)
-                shutil.copy(os.path.join(TESTS, "gia_lap_qc.py"), td)
-                with open(os.path.join(td, "AlgorithmImports.py"), "w", encoding="utf-8") as f:
-                    f.write("class QCAlgorithm:\n    pass\n")
-                with open(os.path.join(td, "nen.json"), "w", encoding="utf-8") as f:
-                    json.dump(NEN1.tolist(), f)
-                with open(os.path.join(td, "kich_ban.py"), "w", encoding="utf-8") as f:
-                    f.write(f"GOC = {GOC!r}\nSPREAD = {SPREAD!r}\n" + KICH_BAN)
-                env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-                r = subprocess.run([sys.executable, "kich_ban.py"], cwd=td, env=env,
-                                   capture_output=True, text=True, encoding="utf-8",
-                                   timeout=300)
-                if r.returncode:
-                    self._cache[ma] = (None, r.stderr[-3000:])
-                else:
-                    with open(os.path.join(td, "ra.gz"), "rb") as f:
-                        self._cache[ma] = (r.stdout.strip().splitlines()[-1], f.read())
-        return self._cache[ma]
-
-
-def qc_cho(gia, uid=None, tok=None, ngu=None, gio=None):
-    return qc_api.QC(uid or gia.UID, tok or gia.TOK, goc=gia.goc, mo=mo,
-                     ngu=ngu or (lambda s: None), gio=gio or time.time, timeout=300)
+def qc_cho(gia, **k):
+    return qc_gia.qc_cho(gia, **k)
 
 
 def cli(argv, **k):
@@ -414,14 +132,19 @@ print("\n▸ Một lượt ▶ trọn vẹn trên QC giả (máy chủ chạy TH
 CH = {"tu": "2025-01-02", "den": "2025-01-06"}
 # Trần gói Free → HAI file (main.py + nguon_1.py): lượt đầu đi được cả nhánh "file chưa có
 # → create". Lượt sau dùng trần Researcher (một file) — đúng cảnh người dùng nâng gói.
-FILES = dg.dong_goi(DOC, CH, dg.GIOI_HAN)
+FILES = dg.dong_goi(DOC, CH, dg.GIOI_HAN)        # không khoá riêng — đường dán tay
+# Đường của APP: khoá nhật ký RIÊNG cho lượt, nhúng vào gói.
+KHOA_K = nk.khoa_qc(DOC_CHUAN, qc_api.ma_luot())
+FILES_K = dg.dong_goi(DOC, {**CH, "khoa": KHOA_K}, dg.GIOI_HAN)
+TEN_NK_MAC_DINH = os.path.basename(KHOA_NK)[:-len(".gz")]
 REF = gl.chay_qc(cl, core, tt, dg.soat(DOC), NEN1, SPREAD)
-gia = QCGia()
+gia = QCGia(NEN1, SPREAD)
 qc = qc_cho(gia)
 tien_do = []
 TD = tempfile.mkdtemp()
 try:
-    kq = qc_api.chay(qc, DOC, FILES, "lượt thử", TD, lambda v, x: tien_do.append((v, x)))
+    kq = qc_api.chay(qc, DOC, FILES_K, "lượt thử", TD, lambda v, x: tien_do.append((v, x)),
+                     khoa=KHOA_K)
 except qc_api.LoiQC as e:
     print(f"    (lỗi: {e})")
     kq = None
@@ -436,11 +159,11 @@ kiem("tạo project «Cat Studio/<tên sơ đồ>», ngôn ngữ Python",
      and gia.goi("projects/create")[0].get("language") == "Py", f"({p.get('name')})")
 fp = gia.files.get(pid, {})
 kiem("đẩy đủ bộ file, đúng nội dung; notebook có sẵn của QC để yên",
-     {k: v for k, v in fp.items() if k.endswith(".py")} == FILES and "research.ipynb" in fp,
-     f"({', '.join(FILES)})")
+     {k: v for k, v in fp.items() if k.endswith(".py")} == FILES_K and "research.ipynb" in fp,
+     f"({', '.join(FILES_K)})")
 kiem("main.py có sẵn → update; nguon_1.py chưa có → create",
      [x["name"] for x in gia.goi("files/update")] == ["main.py"]
-     and [x["name"] for x in gia.goi("files/create")] == [k for k in FILES if k != "main.py"])
+     and [x["name"] for x in gia.goi("files/create")] == [k for k in FILES_K if k != "main.py"])
 kiem("đọc bằng GET, ghi bằng POST — đúng như LEAN CLI (máy giả từ chối nếu sai)",
      all(pt == ("POST" if d in QCGia.GHI else "GET") for pt, d, _ in gia.nhat))
 kiem("backtest mang đúng tên lượt",
@@ -456,16 +179,21 @@ kiem("Object Store bắt chờ job → hỏi lại tới khi có link",
 kiem("link tải ký sẵn: KHÔNG gửi kèm header xác thực", gia.auth_tai == [None])
 meta = kq["meta"] or {}
 duong_nk = kq["duong_nhat_ky"] or ""
-kiem("nhật ký nằm trong thư mục nhật ký, đuôi .jsonl",
+kiem("nhật ký nằm trong thư mục nhật ký, tên mang mã RIÊNG của lượt",
      os.path.isfile(duong_nk) and os.path.dirname(duong_nk) == TD
-     and duong_nk.endswith(".jsonl"), f"({os.path.basename(duong_nk)})")
+     and os.path.basename(duong_nk) == os.path.basename(KHOA_K)[:-len(".gz")],
+     f"({os.path.basename(duong_nk)})")
+kiem("khoá riêng: tải xong thì XOÁ khỏi Object Store — cloud không đầy dần",
+     KHOA_K not in gia.object_store
+     and [x.get("key") for x in gia.goi("object/delete")] == [KHOA_K, KHOA_K + ".b64"])
 _, lenh, luot = nk.doc_file(duong_nk) if os.path.isfile(duong_nk) else ({}, [], [])
 kiem("`nhat_ky.doc_file` mở được: nguồn QuantConnect, đúng vân tay sơ đồ",
      meta.get("nguon") == "QuantConnect" and meta.get("van_tay") == nk._van_tay(DOC_CHUAN))
 kiem("nhật ký tải về == chạy cầu nối ngay tại máy: từng lượt, từng lệnh, bảng tổng kết",
-     [{k: v for k, v in r.items() if k != "loai"} for r in luot]
+     [{k: v for k, v in r.items() if k not in ("loai", "t")} for r in luot]
      == json.loads(json.dumps(REF.nhat_ky))
-     and lenh == json.loads(json.dumps([x.tom_tat() for x in REF.so.lenh]))
+     and [{k: v for k, v in x.items() if not k.startswith("t_")} for x in lenh]
+     == json.loads(json.dumps([x.tom_tat() for x in REF.so.lenh]))
      and meta.get("thong_ke") == json.loads(json.dumps(REF.thong_ke)),
      f"({len(luot)} lượt · {len(lenh)} lệnh)")
 kiem("meta mang bộ đếm — đủ để in lại dòng tổng kết của QC", meta.get("dem") == REF.dem)
@@ -546,10 +274,9 @@ gia.chi_b64 = True
 TD2 = tempfile.mkdtemp()
 e = bat(qc_api.chay, qc, DOC, FILES, "x", TD2)
 gia.chi_b64 = False
-ten_nk = os.path.basename(duong_nk)
 kiem("chỉ có bản chữ .b64 (save_bytes hỏng trên QC) → vẫn ra đúng nhật ký",
      e is None and list(gia.object_store) == [KHOA_NK + ".b64"]
-     and nk.doc_file(os.path.join(TD2, ten_nk))[2] == luot)
+     and nk.doc_file(os.path.join(TD2, TEN_NK_MAC_DINH))[2] == luot)
 
 gia.ma_loi["projects/read"] = [503]
 gia.nhat.clear()
@@ -566,6 +293,10 @@ kiem("5xx khác hai lần → LoiQC nêu mã, không đổ cho khoá",
      isinstance(e, qc_api.LoiQC) and not isinstance(e, qc_api.LoiKhoa) and "502" in str(e))
 
 GIA_MAO = "tok-gia-mao-987654"
+kiem("kiem_khoa: khoá đúng → được; sai → LoiKhoa, không lộ token",
+     qc.kiem_khoa() is True
+     and isinstance(bat(qc_cho(gia, tok=GIA_MAO).kiem_khoa), qc_api.LoiKhoa)
+     and GIA_MAO not in str(bat(qc_cho(gia, tok=GIA_MAO).kiem_khoa)))
 e = bat(qc_api.chay, qc_cho(gia, tok=GIA_MAO), DOC, FILES, "x", TD)
 kiem("token sai → LoiKhoa tiếng Việt, câu lỗi không chứa token",
      isinstance(e, qc_api.LoiKhoa) and "Khoá QuantConnect SAI" in str(e)
@@ -606,8 +337,11 @@ kiem("in đúng hai dòng tổng kết như log của QC",
 kiem("in từng bước, có tiến độ backtest",
      all(s in ra for s in ("Tìm project", "Tải file lên QC", "Biên dịch", "Chạy backtest 100%",
                            "Tải nhật ký về")))
-kiem("in link QC và đường dẫn nhật ký", "Xem trên QC : https://www.quantconnect.com/project/"
-     in ra and f"Nhật ký     : {os.path.join(TD, ten_nk)}" in ra)
+duong_in = ra.split("Nhật ký     : ")[-1].strip() if "Nhật ký     : " in ra else ""
+kiem("in link QC và đường dẫn nhật ký (khoá riêng của lượt, đã tải về)",
+     "Xem trên QC : https://www.quantconnect.com/project/" in ra
+     and os.path.dirname(duong_in) == TD and os.path.isfile(duong_in)
+     and duong_in != os.path.join(TD, TEN_NK_MAC_DINH))
 kiem("không in token", QCGia.TOK not in ra)
 
 ma, ra = cli(TU_DEN, qc=qc_cho(gia, tok=GIA_MAO), thu_muc_nhat_ky=TD)
@@ -631,7 +365,7 @@ hong = copy.deepcopy(DOC)
 for st in hong["entry"]["steps"]:
     if core.is_start_step(st):
         st["nhip"] = "D1"
-gia3 = QCGia()
+gia3 = QCGia(NEN1, SPREAD)
 with tempfile.TemporaryDirectory() as td:
     duong = os.path.join(td, "hong.json")
     with open(duong, "w", encoding="utf-8") as f:

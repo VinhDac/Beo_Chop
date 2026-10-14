@@ -75,6 +75,52 @@ def doc_khoa(moi_truong=None, thu_muc=None):
         "Đừng đưa khoá vào git hay dán vào chat.")
 
 
+def trang_thai_khoa(moi_truong=None, thu_muc=None):
+    """Khoá đang đặt ở đâu — cho giao diện. KHÔNG BAO GIỜ trả token, chỉ nói có hay không."""
+    mt = os.environ if moi_truong is None else moi_truong
+    if thu_muc is None:
+        from . import luu_tru
+        thu_muc = luu_tru.goc()
+    duong = os.path.join(thu_muc, FILE_KHOA)
+    if (mt.get("QC_USER_ID") or "").strip() and (mt.get("QC_API_TOKEN") or "").strip():
+        return {"co": True, "nguon": "bien_moi_truong", "user_id": mt["QC_USER_ID"].strip(),
+                "duong": duong}
+    try:
+        uid, _ = doc_khoa({}, thu_muc)
+    except LoiKhoa as e:
+        return {"co": False, "nguon": None, "user_id": None, "duong": duong, "loi": str(e)}
+    return {"co": True, "nguon": "file", "user_id": uid, "duong": duong}
+
+
+def luu_khoa(user_id, token, thu_muc=None):
+    """Ghi khoá vào `du_lieu/qc_khoa.json` (nằm trong .gitignore) — cho ô nhập trong app.
+    Trả `trang_thai_khoa`. Sai dạng → `LoiKhoa` nói rõ, không nhắc lại token."""
+    uid, tok = str(user_id or "").strip(), str(token or "").strip()
+    if not uid.isdigit():
+        raise LoiKhoa("User ID của QuantConnect là một dãy số — xem ở trang tài khoản QC.")
+    if not tok or any(ch.isspace() for ch in tok) or len(tok) < 16:
+        raise LoiKhoa("API token trông không đúng (rỗng, quá ngắn, hoặc có khoảng trắng). "
+                      "Chép lại nguyên chuỗi token ở trang tài khoản QC.")
+    from . import luu_tru
+    if thu_muc is None:
+        thu_muc = luu_tru.goc()
+    luu_tru.ghi_json_nguyen_tu(os.path.join(thu_muc, FILE_KHOA),
+                               {"user_id": uid, "token": tok})
+    return trang_thai_khoa({}, thu_muc)
+
+
+def xoa_khoa(thu_muc=None):
+    """Xoá file khoá (không đụng biến môi trường). Trả `trang_thai_khoa`."""
+    from . import luu_tru
+    if thu_muc is None:
+        thu_muc = luu_tru.goc()
+    try:
+        os.remove(os.path.join(thu_muc, FILE_KHOA))
+    except FileNotFoundError:
+        pass
+    return trang_thai_khoa(None, thu_muc)
+
+
 def _mo_mac_dinh(req, timeout):
     return urllib.request.urlopen(req, timeout=timeout)
 
@@ -218,6 +264,20 @@ class QC:
 
         return self._hoi_toi_khi(hoi, _backtest_xong, han_giay, "backtest")
 
+    def xoa_object(self, org_id, khoa):
+        """Xoá một khoá khỏi Object Store. Không có khoá đó thì thôi — không phải lỗi."""
+        try:
+            self.post("object/delete", {"organizationId": org_id, "key": khoa})
+        except LoiKhoa:
+            raise
+        except LoiQC:
+            pass
+
+    def kiem_khoa(self):
+        """Hỏi QC khoá có dùng được không (`authenticate`, y LEAN CLI). Sai → `LoiKhoa`."""
+        self.get("authenticate")
+        return True
+
     def tai_object(self, org_id, khoa, han_giay=300):
         """Bytes của một khoá trong Object Store; zip QC gửi về không có file đó → `None`.
 
@@ -286,11 +346,19 @@ def ten_project(doc):
     return f"{THU_MUC_QC}/{ten}"
 
 
-def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None):
+def ma_luot():
+    """Mã riêng của một lượt chạy: giờ UTC + 4 ký tự ngẫu nhiên — đặt vào khoá nhật ký."""
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-") + os.urandom(2).hex()
+
+
+def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None, khoa=None):
     """MỘT lượt ▶ trên QuantConnect, trọn vẹn. Trả dict kết quả.
 
-    `files`: `{tên file: nội dung}` do `tools/dong_goi_lean.py` sinh ra cho `doc`.
-    `tien_do(viec, ti_le)`: báo tiến độ — `ti_le` là None khi không đo được."""
+    `files`: `{tên file: nội dung}` do `goi_qc.dong_goi` sinh ra cho `doc`.
+    `tien_do(viec, ti_le)`: báo tiến độ — `ti_le` là None khi không đo được.
+    `khoa`: khoá Object Store RIÊNG của lượt này — phải trùng `CAU_HINH["khoa"]` đã nhúng
+    trong `files`. Có khoá riêng thì tải xong app XOÁ nó đi, Object Store không đầy dần."""
     from . import core
     from . import nhat_ky as nk
 
@@ -326,7 +394,8 @@ def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None):
         raise LoiQC(f"Backtest LỖI trên QuantConnect: {dau}\n{vet}\nXem đủ ở: {url}")
 
     bao("Tải nhật ký về")
-    khoa = nk.khoa_qc(doc)
+    rieng = bool(khoa)
+    khoa = khoa or nk.khoa_qc(doc)
     du_lieu, loi = qc.tai_nhat_ky(org, khoa)
     if du_lieu is None:
         raise LoiQC("Backtest chạy XONG nhưng không lấy được nhật ký từ Object Store "
@@ -341,5 +410,8 @@ def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None):
     with open(duong, "wb") as f:
         f.write(chu)
     meta, _, _ = nk.doc_file(duong)
+    if rieng:                                   # đã nằm trên máy — dọn khỏi cloud
+        for k in (khoa, khoa + ".b64"):
+            qc.xoa_object(org, k)
     return {"url": url, "project_id": pid, "backtest_id": bt.get("backtestId"),
             "thong_ke_qc": bt.get("statistics") or {}, "duong_nhat_ky": duong, "meta": meta}

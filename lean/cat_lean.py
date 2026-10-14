@@ -189,7 +189,11 @@ class PhienQC:
         self.j = -1
         self.i5 = -1
         self.mo_ho = 0
+        #: Giá mở của nến M1 ĐẦU và giá đóng của nến CUỐI — đủ để chấm boss "Mua rồi giữ"
+        #: (D-05) mà không phải mang chuỗi giá của QC về máy.
+        self.gia_dau = NAN
         self.gia_cuoi = NAN
+        self.duong_von = []
         self.song, self.n_lenh = [], 0
         #: Nến trục đã đóng, chờ nhịp M1 kế tiếp xử lý: (t_mở, t_đóng, o, h, l, c).
         self.cho_truc = deque()
@@ -261,6 +265,8 @@ class PhienQC:
         cd.spread_hien_tai = max(0.0, float(spread))
         ctx.bid_hien = float(c)
         ctx.ask_hien = float(ask) if ask is not None else float(c) + cd.spread_hien_tai
+        if self.gia_dau != self.gia_dau:        # NaN: đây là nến đầu tiên
+            self.gia_dau = float(o)
         self.gia_cuoi = float(c)
 
         # Đồng bộ đầu nến: lệnh sinh ở nhịp TRƯỚC giờ mới được xét khớp.
@@ -345,14 +351,28 @@ class PhienQC:
         self.so_luot += 1
         if self.nhat_ky is not None:
             self.nhat_ky.append(r)
-        self._ghi_dong({"loai": "luot", **r})
+        # Dòng ghi ra mang thêm GIỜ của nến quyết định: app không có nến của QC (mang chuỗi
+        # giá về máy là trái điều khoản dữ liệu của QC), nên chỉ số `nen` trần không đọc ra
+        # được là lúc nào. `r` thì giữ nguyên — nó phải trùng khít bản ghi của bộ cũ.
+        self._ghi_dong({"loai": "luot", **r, "t": self._gio(r["nen"])})
+
+    def _gio(self, i):
+        """Giờ MỞ của nến trục thứ `i` (giây, UTC) — `None` nếu chưa có nến đó."""
+        t = self.ct.nen5["t"]
+        if i is None or not t:
+            return None
+        return int(t[min(int(i), len(t) - 1)])
 
     # ------------------------------------------------------------------ kết sổ
-    def ket_thuc(self, giay=None):
+    def ket_thuc(self, giay=None, them=None):
         """Hết dữ liệu → chốt sổ, ghi lệnh + meta vào nhật ký, trả bảng tổng kết.
 
         `giay` = thời gian chạy trên cloud, lớp vỏ đo rồi đưa vào — meta mang nó cùng bộ
-        đếm, để app đọc về là có đủ những gì dòng tổng kết trên log của QC có.
+        đếm, để app đọc về là có đủ những gì dòng tổng kết trên log của QC có. `them` =
+        vài trường lớp vỏ biết mà phiên không biết (khoảng ngày, symbol) — gộp vào meta.
+
+        Lệnh ghi ra mang thêm `t_dat` / `t_khop` / `t_dong` (giờ của các chỉ số nến), cùng
+        lý do với giờ trên từng lượt.
 
         Định dạng file y `nhat_ky.ghi` (meta · lệnh · lượt) — `nhat_ky.doc_file` đọc
         theo khoá `loai` của từng dòng nên thứ tự dòng không quan trọng."""
@@ -363,12 +383,15 @@ class PhienQC:
             so.dong(x, self.gia_cuoi if x.da_khop else None, ctx.i,
                     "het_du_lieu" if x.da_khop else "huy")
             self.ghi_tien(x)
-        tk, _ = bc._thong_ke(so, self.cd, ct)
+        tk, self.duong_von = bc._thong_ke(so, self.cd, ct)
         tk["nen_mo_ho"] = self.mo_ho
         tk["so_luot"] = self.so_luot
         for x in so.lenh:
-            self._ghi_dong({"loai": "lenh", "lenh": x.tom_tat()})
+            self._ghi_dong({"loai": "lenh", "lenh": {
+                **x.tom_tat(), "t_dat": self._gio(x.nen_dat),
+                "t_khop": self._gio(x.nen_khop), "t_dong": self._gio(x.nen_dong)}})
         cd = self.cd
+        co_gia = self.gia_dau == self.gia_dau and self.gia_dau > 0
         self._ghi_dong({
             "loai": "meta", "phien_ban": core.PHIEN_BAN, "nguon": "QuantConnect",
             "luc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
@@ -379,6 +402,12 @@ class PhienQC:
             "contract_size": cd.contract_size, "deposit": cd.deposit,
             "commission": cd.commission, "thong_ke": tk, "doc": self.doc,
             "dem": dict(self.dem), "giay_chay": giay,
+            "gia_dau": self.gia_dau if co_gia else None,
+            "gia_cuoi": self.gia_cuoi if co_gia else None,
+            "mua_giu_pt": (round((self.gia_cuoi / self.gia_dau - 1.0) * 100.0, 2)
+                           if co_gia else None),
+            "duong_von": self.duong_von,
+            **(them or {}),
         })
         self._gz.append(self._nen.flush())
         self.thong_ke = tk
@@ -401,6 +430,17 @@ class PhienQC:
             f"{_so(self.byte_tho / 1e6, 1)} MB → nén {_so(gz / 1e6, 2)} MB · "
             f"Object Store: {luu}",
         ]
+
+
+def meta_cau_hinh(cau_hinh):
+    """Phần của khối CẤU HÌNH đi vào meta nhật ký — lớp vỏ đưa vào `ket_thuc(them=…)`."""
+    return {k: (cau_hinh or {}).get(k) for k in ("symbol", "tu", "den", "von")}
+
+
+def khoa_luu(cau_hinh, phien):
+    """Khoá Object Store cho nhật ký của lượt này: khoá RIÊNG mà app đặt vào
+    `CAU_HINH["khoa"]`, không có thì khoá theo sơ đồ (đường dán tay)."""
+    return (cau_hinh or {}).get("khoa") or phien.ten_file()
 
 
 def dong_ket_qua(nhan, tk, d, tf, giay):
