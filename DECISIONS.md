@@ -36,3 +36,22 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
     khi build tiếp.
   - Code MT5 hiện có **giữ nguyên cho tới khi phần LEAN thay nó chạy được**, rồi mới gỡ.
 - **Trạng thái:** locked
+
+---
+
+## D-02 · LEAN chạy trên cloud QuantConnect  (chốt 2026-10-14)
+
+- **Quyết định:** backtest, tối ưu và live đều chạy trên **cloud QuantConnect**. Cat Studio
+  gửi sơ đồ lên, kéo kết quả và nhật ký về rồi hiển thị.
+- **Phương án đã cân nhắc:**
+  (a) cloud QuantConnect ← **chọn** /
+  (b) LEAN trên máy (LEAN CLI + Docker) /
+  (c) cả hai: máy cho vòng chơi nhanh, cloud cho data lớn và live
+- **Lý do:** D-01 là "tận dụng tất cả của QC", mà kho data, live node và tối ưu chỉ có đủ
+  trên cloud. Data dùng miễn phí trên cloud; người dùng không phải cài Docker hay LEAN.
+- **Hiện trạng:** tài khoản QC gói **Free**, đủ để chạy backtest trên cloud qua giao diện
+  web. Gọi API từ Cat Studio và chạy live có thể phải nâng gói (bảng giá ghi API từ gói
+  Researcher).
+- **Điều kiện mở lại:** đo thấy ▶ trên cloud chậm tới mức mất cảm giác chơi, hoặc nhật ký
+  không kéo về được vì giới hạn của gói → mở lại, cân nhắc (c).
+- **Trạng thái:** locked
