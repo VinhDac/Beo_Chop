@@ -284,7 +284,8 @@ KHOI_LAM = {
     # ---- ③ Chia vốn ----
     "dat_ty_trong": {"tram": CHIA_VON, "nhan": "Đặt tỷ trọng", "vai": "quyet_dinh",
                      "mo_ta": "Mã này được bao nhiêu phần vốn. Dấu theo hướng tín hiệu: "
-                              "LÊN là mua, XUỐNG là bán.",
+                              "LÊN là mua, XUỐNG là bán. «Rủi ro ngang nhau» chia tỉ lệ "
+                              "nghịch với ATR % (khung, chu kỳ): mã càng giật càng ít vốn.",
                      "truong": [
                          _o("cach", "chon", "cách", chon=CACH_CHIA, mac_dinh="chia_deu"),
                          _o("pt", "so", "%", min=0, max=100, mac_dinh=10,

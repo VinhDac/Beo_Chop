@@ -448,8 +448,8 @@ def dong_khoi(st, tram_key, ts=None):
             return [f"cố định {_so_hoac_ten(st.get('pt'), ts)}% vốn"]
         if cach == "rui_ro_ngang":
             return ["rủi ro ngang nhau",
-                    f"độ biến động {st.get('khung') or '?'}, "
-                    f"{_so_hoac_ten(st.get('chu_ky'), ts)} nến"]
+                    f"theo ATR %({st.get('khung') or '?'}, "
+                    f"{_so_hoac_ten(st.get('chu_ky'), ts, hien_ten=False)})"]
         return [T.CACH_CHIA.get(cach, "?")]
     if t == "ve_0":
         return ["mục tiêu = 0"]
