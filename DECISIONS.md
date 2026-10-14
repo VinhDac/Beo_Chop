@@ -100,3 +100,32 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
 - **Lý do:** app gọn; làm lại thứ QC đã làm tốt vừa tốn công vừa kém hơn họ (D-01: ta chỉ
   build lớp game).
 - **Trạng thái:** locked
+
+---
+
+## D-05 · Trái tim của trò chơi: CHẾ TẠO CỖ MÁY  (chốt 2026-10-14)
+
+- **Quyết định:** Cat Studio là game **lắp cỗ máy giao dịch bằng khối, thả nó vào thị
+  trường thật trong quá khứ, xem nó nghĩ gì ở từng nến, rồi chấm điểm nó trên đoạn thị
+  trường nó chưa từng thấy**. Thể loại game lắp máy (kiểu Factorio / Opus Magnum).
+- **Vòng chơi:** chọn màn → lắp máy → ▶ chạy thử → xem tua + "vì sao" → sửa → nộp, chấm
+  trên **màn ẩn** → mở khoá → (cuối cùng) ra trận.
+- **Phương án đã cân nhắc:**
+  (a) chế tạo cỗ máy ← **chọn** /
+  (b) Bạn vs Máy — luyện "sense" là trọng tâm /
+  (c) Đấu trường — thi đấu, xếp hạng là trọng tâm
+- **Lý do:** dùng đúng thứ Cat Studio đã mạnh (sơ đồ có luật, nhật ký "vì sao", tua lại).
+  QC đưa đồ nghề; ta đưa luật chơi, mục tiêu và một tấm gương. Bệnh tự lừa mình (chỉnh
+  tham số tới khi đẹp) QC chỉ cảnh báo, game của ta biến thành LUẬT: chấm trên màn ẩn.
+- **Chế độ phụ:** Bạn vs Máy · Thử thách tuần · Xưởng tự do · Ra trận.
+- **Khung đề xuất đi kèm** (chưa chốt từng món — bàn tiếp từng phần):
+  - *Chấm điểm:* ⭐ chạy sạch · ⭐⭐ thắng boss trên màn đã thấy · ⭐⭐⭐ vẫn thắng trên màn
+    ẩn · cộng điểm **độ gọn** (ít khối, ít tham số) · boss đầu tiên là **"Mua rồi giữ"**.
+  - *QC thành item:* Bản đồ (dữ liệu giá) · Màn (giai đoạn lịch sử) · Giác quan (chỉ báo,
+    mẫu nến) · Giác quan hiếm (dữ liệu thay thế) · Vũ khí + ma sát (kiểu lệnh, phí) ·
+    5 bộ phận (Algorithm Framework) · Garage (Projects) · ▶ (Backtest) · Dò ngưỡng
+    (Optimization) · Boss + bản vẽ (Strategies) · Sân tập (Paper) · Ra trận (Live) ·
+    Bộ đàm (thông báo) · Cố vấn (AI) · Thư viện ngoài game (notebook, tài liệu — D-04).
+  - *Bản chơi được đầu tiên:* 1 bản đồ (Vàng) · 1 màn (2024) · 1 màn ẩn (2025) · 1 boss
+    (Mua rồi giữ) · khoảng 10 item.
+- **Trạng thái:** locked (phần lõi); khung đi kèm còn mở
