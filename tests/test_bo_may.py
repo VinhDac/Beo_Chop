@@ -96,6 +96,17 @@ except LoiMay as e:
     kiem("cỗ máy trắng → từ chối chạy, câu nói rõ còn mấy lỗi và lỗi gì",
          "còn 4 lỗi" in str(e) and "② Tín hiệu" in str(e), f"— {str(e)[:70]}")
 
+print("\n▸ Cần khởi động bao lâu")
+from cat_studio.bo_may import can_khoi_dong  # noqa: E402
+_m = may_xu_huong()
+kiem("SMA 10 nến H1 → cần 11 nến H1 (10 + một nến dự phòng)", can_khoi_dong(_m) == 11 * SG.GIO,
+     f"— {can_khoi_dong(_m) / SG.GIO} giờ")
+_m["tham_so"].append({"ten": "dai", "nhan": "", "gia_tri": 200, "don_vi": "", "ghi_chu": ""})
+_m["tram"][T.TIN_HIEU]["steps"][1]["conditions"][0]["phai"] = {"ten": "sma", "khung": "D1",
+                                                              "chu_ky": "dai", "lui": 2}
+kiem("SMA(D1, dai = 200) đọc lùi 2 → 203 ngày (tên tham số đọc ra giá trị)",
+     can_khoi_dong(_m) == 203 * SG.NGAY_S, f"— {can_khoi_dong(_m) / SG.NGAY_S} ngày")
+
 # ================= 1. chạy trọn một cỗ máy =================
 print("\n▸ Chạy trọn cỗ máy xu hướng trên 3 mã (A lên, B xuống, C đi ngang)")
 giu = {"A": [], "B": []}

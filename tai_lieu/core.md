@@ -2682,3 +2682,77 @@ từ chối mở.
 **Chữ trên khối** do Python dựng (`may.dong_khoi`, `may.kem_the`): `Mỗi nến H1 · cho mỗi mã trong
 rổ`, `EMA(H1, 20) > EMA(H1, 50)`, `RSI(H1, 14) > nguong_rsi = 70`, `LÊN · hạn 24 nến`,
 `khớp ngay toàn bộ phần lệch`. Thẻ mang nhãn đánh số, màu theo vai (`start` · `hoi` · `lam`).
+
+## 20. ⭐ BỘ MÁY CHẠY CỖ MÁY 5 TRẠM (D-10, phần 3)
+
+> `chuoi_nen.py` (nến + chỉ báo tính dần) · `bo_may.py` (bộ máy) · `mau_tram.py` (mẫu dựng sẵn)
+> · `nhat_ky_may.py` (chữ "vì sao"). Bài kiểm: `test_chuoi_nen`, `test_bo_may`, `test_mau_tram`,
+> sàn giả `tests/san_gia.py`. Thuần Python, không numpy, không QuantConnect — cùng một file chạy
+> trên máy lẫn trong `main.py` gửi lên QC (phần 4).
+
+**Chia việc với QC (D-10 ý 2):** bộ máy chỉ quyết MỤC TIÊU (% vốn từng mã, có dấu) và Ý ĐỊNH
+lệnh (loại, bao nhiêu % vốn, giá chờ, hạn). Số lượng, lô tối thiểu, ký quỹ, phí, trượt giá, khớp:
+việc của QC. Tài khoản đi VÀO bộ máy mỗi bước (`{von, tien_mat, giu: {mã: {pt, gia_von, sl}},
+lenh_cho: {id: {ma, pt}}}`) — nguồn sự thật duy nhất về tiền là QC.
+
+**Một bước (một phút), thứ tự y khung QC:** nạp nến M1 → đóng nến khung lớn tới giờ → tài
+khoản → (còn khởi động thì dừng) → lệnh hết hạn → tín hiệu hết hạn → ① → ② → ③ → ④ → mục tiêu
+đổi thì huỷ lệnh chờ cũ → ⑤.
+
+**Nến và chỉ báo** (`chuoi_nen`): gộp M1 lên khung lớn theo BIÊN GIỜ UTC TUYỆT ĐỐI (nến H1 là
+[10:00, 11:00) dù thiếu phút; giờ trống hẳn thì không bịa nến). Nến chỉ ĐÓNG khi giờ đã qua hẳn
+nó; dữ liệu thủng thì nó đóng ở phút đầu tiên có dữ liệu sau đó. Chỉ báo cập nhật lúc đóng nến,
+NaN khi chưa đủ dữ liệu (EMA/RMA mồi bằng SMA như QC; RSI, ATR, ADX kiểu Wilder; Bollinger và
+độ lệch chuẩn dùng độ lệch TỔNG THỂ; Donchian là N nến TRƯỚC nến đang xét). Hai câu hỏi cùng
+chỉ báo cùng ô dùng chung một bản.
+
+**Lịch:** ① chạy lúc bắt đầu, rồi đầu mỗi kỳ (ngày / tuần / tháng) — kỳ đầu tiên chạy ngay, không
+đợi tới đầu tháng sau. ② chạy cho mỗi mã trong rổ đúng lúc nến khung của nó vừa đóng. ③ "khi tín
+hiệu đổi" chỉ chạy khi hướng / tin cậy / trọng số đổi, hoặc tín hiệu tắt — phát lại y hệt để gia
+hạn KHÔNG tính là đổi (không thì ③ cân lại mỗi nến). ④ chạy cho mỗi mã đang giữ lúc nến khung
+của nó đóng. ⑤ chạy cho mã có mục tiêu CHƯA KHỚP XONG, lúc nến khung của nó đóng.
+
+**Đi sơ đồ:** đúng luật lùi của bộ chạy cũ — cổng trượt thì lùi về ngã rẽ gần nhất, trừ khi lượt
+đã qua một khối Làm. Mỗi cổng ghi vết TỪNG điều kiện (không ngắt ở cái sai đầu).
+
+**① Gom:** mã đi tới «Cho vào rổ» vào rổ; giữ N mã thì xếp theo điểm (không điểm xếp cuối). Mã
+rời rổ thì tín hiệu tắt theo — đang giữ thì ③ đưa về 0.
+
+**③ Gom:** mã được xét = có tín hiệu ∪ đang giữ ∪ đang có mục tiêu. Không quyết gì → giữ mục
+tiêu cũ. Dấu theo hướng tín hiệu (chỉ mua thì XUỐNG → 0). Cố định X% và theo trọng số lấy
+TRƯỚC; chia đều / theo tin cậy / rủi ro ngang (tỉ lệ nghịch ATR %) chia nhau PHẦN CÒN LẠI của
+ngân sách (100 − giữ tiền mặt). Rồi chặn trần mỗi mã; tổng vượt ngân sách thì thu nhỏ đều.
+Mục tiêu mới THAY HẲN mục tiêu cũ.
+
+**④:** «Đưa về 0» → mục tiêu 0; «Giảm về X%» → |mục tiêu| ≤ X; «Cấm vào lại N nến» → suốt quãng
+đó mục tiêu của mã luôn là 0 dù ③ muốn gì; «Dừng cả tài khoản» → mọi mục tiêu 0, ①②③④ thôi
+chạy, ⑤ chỉ còn bán ra.
+
+**⑤ và vòng đời lệnh:** lệch = mục tiêu − đang giữ − đang chờ khớp. Dưới 0,1% vốn coi là đã tới
+(như `MinimumOrderMarginPortfolioPercentage` của QC) và mã RỜI danh sách cần khớp — ⚠ lỗi thật
+đã gặp khi kiểm: thiếu luật này thì tới mục tiêu rồi, giá trôi 0,1% là ⑤ đặt lệnh lắt nhắt ngược
+chiều liên tục (208 lệnh thay vì 46 cho cùng một kết quả). Mã vào lại danh sách khi ③/④ phát mục
+tiêu, hoặc lệnh của nó bị huỷ. Lệnh giới hạn / chờ stop: mua dưới / trên giá X%, bán ngược lại;
+hết hạn (N nến khung ⑤) thì huỷ; mục tiêu đổi thì mọi lệnh chờ của mã đó bị huỷ để ⑤ tính lại.
+Chia nhỏ X%: mỗi lượt khớp X% phần CÒN lệch.
+
+**Khởi động:** `can_khoi_dong(cỗ máy)` = chỉ báo dài nhất × khung của nó + một nến (giây giao
+dịch liên tục). ⚠ Lỗi thật đã gặp: đặt cứng 3 ngày thì mẫu «Giá trên MA» (SMA 200 nến H1 ≈ 8
+ngày) câm suốt lượt. Trước mốc khởi động: chỉ nạp nến, không trạm nào chạy, không lệnh nào.
+
+**Nhật ký:** mỗi lượt chạy sơ đồ một bản ghi `{t, tram, ma, duong, ket, cong[{khoi, khop, ve}],
+viec}`; Gom một bản ghi `{t, tram, gom}`; sự kiện (bắt đầu, tắt tín hiệu, huỷ lệnh, khớp, dừng tài
+khoản) một bản ghi `{t, tram, ma, su_kien, …}`. Không chữ nào lúc chạy; `DocNhatKy.chu(r)` dựng
+chữ khi xem: `01-04 00:00  ② B  [1]  hết lượt tại [1A] · EMA(H1, 20) = 78.77 không > EMA(H1, 50) =
+84.02`.
+
+**Bảo đảm, có bài kiểm canh:** cắt dữ liệu ở T thì nhật ký và ý định mọi bước ≤ T y hệt bản chạy
+trọn (không nhìn trước); chạy lại cùng dữ liệu ra y hệt (duyệt mã theo thứ tự cố định); mọi lệnh
+đều có "cò" ngay trước nó.
+
+**Mẫu dựng sẵn** (`mau_tram.MAU`, 22 mẫu): mỗi mẫu là một sơ đồ thường, dựng từ đúng khối người
+chơi có; núm vặn thành tham số có tên (lắp lại mẫu không đặt lại núm đã vặn).
+① Mọi mã · N mã thanh khoản nhất · N mã mạnh nhất. ② Giao cắt EMA · RSI · MACD · Động lượng · Giá
+trên MA · Phá kênh Donchian. ③ Chia đều · Theo tin cậy · Theo trọng số · Rủi ro ngang nhau. ④ Không
+quản · Cắt lỗ · Chốt lời · Trailing · Cầu dao. ⑤ Khớp ngay · Chia lát · Theo độ lệch chuẩn · Theo
+spread. Cỗ máy mẫu (`may_tu_mau`): mọi mã + giao cắt EMA + chia đều + trailing + khớp ngay.

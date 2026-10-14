@@ -79,6 +79,53 @@ def _moc_lich(t, lich):
     return None
 
 
+def _so_nen_can(ten, o, so):
+    """Một đại lượng cần bao nhiêu nến ĐÃ ĐÓNG mới ra số (không kể `lui`)."""
+    ck = int(so(o["chu_ky"])) if "chu_ky" in o else 0
+    if ten == "macd":
+        return int(so(o["cham"])) + int(so(o["tin_hieu"]))
+    if ten in ("roc_pt", "donchian"):
+        return ck + 1
+    if ten == "rsi":
+        return ck + 1
+    if ten == "adx":
+        return 2 * ck + 1
+    if ten == "stoch":
+        return ck + int(so(o["chu_ky_d"]))
+    return max(ck, 1)
+
+
+def can_khoi_dong(may):
+    """Cỗ máy cần bao nhiêu GIÂY dữ liệu giao dịch trước lúc bắt đầu để MỌI chỉ báo đã có số
+    ngay lượt đầu — chỉ báo dài nhất × khung của nó, cộng một nến dự phòng.
+
+    Là giờ GIAO DỊCH liên tục: thị trường nghỉ cuối tuần / ngoài giờ thì nơi gọi phải nhân
+    thêm (cầu nối QC biết lịch của từng loại thị trường, bộ máy thì không)."""
+    m = M.chuan_hoa(may)
+    ts = M.bang_tham_so(m)
+
+    def so(v):
+        return float(ts[v]) if isinstance(v, str) else float(v)
+
+    can = 0
+    for k in T.TRAM_KEYS:
+        for st in m["tram"][k]["steps"]:
+            ds = [c.get("trai") for c in st.get("conditions") or []]
+            ds += [c["phai"] for c in st.get("conditions") or []
+                   if isinstance(c.get("phai"), dict) and c["phai"].get("ten")]
+            if isinstance(st.get("diem"), dict):
+                ds.append(st["diem"])
+            if st.get("type") == "dat_ty_trong" and st.get("cach") == "rui_ro_ngang":
+                ds.append({"ten": "atr_pt", "khung": st["khung"], "chu_ky": st["chu_ky"]})
+            for o in ds:
+                d = T.TOAN_HANG_THEO_KEY.get((o or {}).get("ten"))
+                if not d or "khung" not in d["tham_so"]:
+                    continue
+                n = _so_nen_can(o["ten"], o, so) + int(so(o.get("lui", 0))) + 1
+                can = max(can, n * KHUNG_GIAY[o["khung"]])
+    return can
+
+
 class _TinHieu:
     __slots__ = ("huong", "het_han", "tin_cay", "trong_so", "t")
 
@@ -736,7 +783,9 @@ class BoMay:
                 y["het_han"] = q["het_han"]
             self._so_lenh += 1
             y["id"] = f"L-{self._so_lenh:04d}"
-            q["lenh_id"] = y["id"]
+            # Ghi ngược vào VIỆC của lượt vừa chạy (cùng một dict với bản ghi nhật ký): đọc lại
+            # thấy ngay lượt đó đặt lệnh nào, bao nhiêu % vốn, ở giá nào.
+            q.update(lenh_id=y["id"], kieu=y["kieu"], pt=_js(pt), gia=_js(y.get("gia")))
             self.lenh[y["id"]] = {"id": y["id"], "ma": ma, "kieu": y["kieu"], "pt": pt,
                                   "gia": y.get("gia"), "het_han": y.get("het_han"),
                                   "t_dat": t, "khoi": q["khoi"], "mo": True, "khop": [],
