@@ -2608,3 +2608,77 @@ giữ khoá còn trong bảng mặc định). Lỗi ngày 29/2 của khoảng ng
 
 **Còn trên máy người dùng** (ngoài repo, app không đọc nữa): `du_lieu/nen/` (bộ nến M1 cũ) và
 `du_lieu/lich_su/` nếu có. Xoá tay được, không ảnh hưởng gì.
+
+## 19. ⭐ CỖ MÁY 5 TRẠM — lõi (D-10, phần 2)
+
+> Từ điển: `cat_studio/tram.py` (chỉ KHAI). Định dạng, chuẩn hoá, soát lỗi, đánh số, chữ trên
+> khối: `cat_studio/may.py`. Bài kiểm: `tests/test_may.py`. Chưa có trên giao diện — trình vẽ là
+> phần 5, bộ máy chạy là phần 3.
+
+**Một cỗ máy = năm sơ đồ khối**, đúng năm phần trong khung thuật toán của QuantConnect. Luật gốc:
+*một sơ đồ = một phạm vi chạy* — mỗi trạm chạy lại từ khối Bắt đầu cho TỪNG đối tượng trong phạm
+vi của nó, theo lịch của nó.
+
+| Trạm | QC | Hỏi câu gì | Chạy cho ai | Lịch | Ra cái gì |
+|---|---|---|---|---|---|
+| ① Chọn mã | Universe Selection | Mã nào đáng để mắt tới? | mỗi mã của màn (hoặc danh sách riêng) | một lần lúc đầu · mỗi ngày · đầu tuần · đầu tháng | rổ mã — Gom giữ N mã điểm cao nhất |
+| ② Tín hiệu | Alpha | Lên, xuống, hay đứng ngoài? | mỗi mã trong rổ | mỗi nến (khung) | tín hiệu có thời hạn, độ tin cậy, trọng số |
+| ③ Chia vốn | Portfolio Construction | Mỗi mã bao nhiêu phần vốn? | mỗi mã có tín hiệu hoặc đang giữ | khi tín hiệu đổi · mỗi ngày · đầu tuần · đầu tháng | tỷ trọng mục tiêu — Gom chia ngân sách |
+| ④ Rủi ro | Risk Management | Có gì phải cắt ngay? | mỗi mã đang giữ | mỗi nến (khung) | mục tiêu đã chỉnh |
+| ⑤ Khớp lệnh | Execution | Lệnh gì, lúc nào? | mỗi mã còn lệch mục tiêu | mỗi nến (khung, mặc định M1) | lệnh gửi sang QC |
+
+**Ngữ pháp chung — y hệt sơ đồ cũ, dùng lại nguyên bộ đồ thị của `core`:** khối Bắt đầu (mang
+lịch, khung, và ở ① phạm vi) · khối **Hỏi** (`type = check_cond`, nên `core.is_branch_gate` nhận
+ra nó là cổng) · khối **Làm**. Hỏi nối tiếp = VÀ; nhiều nhánh = HOẶC, thử từ trên xuống theo vị
+trí trên canvas; luật lùi; đánh số `1 · 1A · 1A.1` riêng cho từng trạm. Câu báo lỗi đồ thị gọi
+cổng là «Hỏi» (`core.validate_flow_graph(…, nhan_cong=…)`).
+
+**Khối Làm — chỗ DUY NHẤT các trạm khác nhau:**
+
+| Trạm | Khối Làm |
+|---|---|
+| ① | Cho vào rổ (điểm = một đại lượng, tuỳ chọn) · Loại khỏi rổ |
+| ② | Báo tín hiệu: LÊN / XUỐNG / ĐỨNG NGOÀI · hạn N nến · tin cậy 0–1 · trọng số 0–1 |
+| ③ | Đặt tỷ trọng: cố định X% / chia đều / theo tin cậy / theo trọng số / rủi ro ngang nhau · Về 0 · Giữ nguyên |
+| ④ | Đưa về 0 · Giảm về X% · Cấm vào lại N nến (khối PHỤ) · Dừng cả tài khoản |
+| ⑤ | Lệnh thị trường (X% phần lệch — dưới 100% là chia nhỏ) · Lệnh giới hạn / Lệnh chờ stop (cách giá X%, hạn N nến) · Chờ |
+
+Mỗi khối Làm có **vai**: `quyet_dinh` (chốt kết quả cho đối tượng đang xét) hoặc `phu` (đi kèm
+một quyết định). Hai quyết định trên CÙNG một đường là lỗi — cái sau lặng lẽ đè cái trước; báo ở
+khối sau, gợi ý tách thành hai nhánh.
+
+**Đại lượng khối Hỏi đọc được** (`tram.TOAN_HANG`, 41 cái): giá (mở/cao/thấp/đóng, khối lượng,
+giá trị giao dịch) · chỉ báo (SMA, EMA, WMA, RMA, ATR, ATR %, RSI, MACD, Bollinger, Đổi giá %,
+Donchian, ADX, Stochastic, độ lệch chuẩn, KL trung bình) · thời gian & tài khoản — đọc được ở mọi
+trạm; **tín hiệu** chỉ ở ③; **vị thế** (tỷ trọng, lãi/lỗ, rơi từ đỉnh, số nến đã giữ) ở ③④⑤ theo
+từng cái; **khớp lệnh** (lệch mục tiêu, spread, lệnh đang chờ) chỉ ở ⑤. Mỗi đại lượng có ĐƠN VỊ
+(giá · % · số · nến · tiền); so hai đại lượng khác đơn vị là lỗi. Vế phải là một con số, một
+tham số, hoặc một đại lượng nhân hệ số (`Giá đóng(D1) > SMA(D1, 200) × 1.02`). `lui = 0` là nến
+VỪA ĐÓNG — bộ máy chạy lúc đóng nến, nên không có nến đang chạy nào để nhìn trộm tương lai.
+
+**Gom** — bước cuối của trạm, chạy một lần cho cả trạm: ① giữ tối đa N mã, điểm cao hay thấp
+nhất · ③ giữ tiền mặt X%, trần mỗi mã Y%, chỉ mua (không bán khống). Tỷ trọng cố định lấy trước;
+các cách tương đối (chia đều, theo tin cậy, rủi ro ngang nhau) chia nhau phần ngân sách còn lại.
+
+**Soát lỗi** (`may.soat` → `[{severity, tram, step, index, message}]`):
+
+- đồ thị: toàn bộ luật của `core.validate_flow_graph`; trạm thiếu khối Bắt đầu là LỖI (không biết
+  chạy lúc nào, cho ai);
+- khối Làm đặt sai trạm · đại lượng không đọc được ở trạm này (câu báo nói trạm nào đọc được) ·
+  hai vế khác đơn vị · MACD nhanh ≥ chậm · hệ số nhân bằng 0;
+- ô số: con số hoặc tên tham số có thật; tên tham số thì soát GIÁ TRỊ của tham số (nguyên? trong
+  khoảng?) — chính con số ấy mới là thứ bộ máy dùng;
+- ①②③⑤ phải có khối ra kết quả được nối tới từ Bắt đầu, không thì cỗ máy không bao giờ giao dịch;
+  ④ được để trống (không quản rủi ro là một lựa chọn — QC cũng mặc định vậy);
+- Gom sai khoảng; ① giữ N mã mà «Cho vào rổ» không có điểm → cảnh báo;
+- giữa hai trạm: ③ chia theo tin cậy / trọng số mà ② không khối Báo nào đặt thứ đó → cảnh báo.
+
+**Chuẩn hoá BẤT BIẾN** (hai lần bằng một lần, qua JSON không đổi, không sửa dict truyền vào).
+Ô bỏ trống của đại lượng nhận mặc định — khung = khung khối Bắt đầu của trạm — và thẻ khối HIỆN
+con số đó, nên không có gì bị giấu. Khối LẠ được GIỮ để soát lỗi gọi tên nó (vứt đi là cắt đôi
+chuỗi nối dây trong im lặng — đúng lỗi bản Entry/Manage từng dính). Cỗ máy của bản mới hơn thì
+từ chối mở.
+
+**Chữ trên khối** do Python dựng (`may.dong_khoi`, `may.kem_the`): `Mỗi nến H1 · cho mỗi mã trong
+rổ`, `EMA(H1, 20) > EMA(H1, 50)`, `RSI(H1, 14) > nguong_rsi = 70`, `LÊN · hạn 24 nến`,
+`khớp ngay toàn bộ phần lệch`. Thẻ mang nhãn đánh số, màu theo vai (`start` · `hoi` · `lam`).
