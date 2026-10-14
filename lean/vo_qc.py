@@ -140,7 +140,7 @@ class CatStudioTrenQC(QCAlgorithm):
 
     def on_end_of_algorithm(self):
         giay = dong_ho.perf_counter() - self._bat_dau
-        self._phien.ket_thuc()
+        self._phien.ket_thuc(giay)
         luu, loi = self._cat(self._phien.ten_file(), self._phien.nhat_ky_gz())
         ch = self._ch
         for dong in self._phien.dong_tong_ket(f"{ch['symbol']} {ch['tu']} → {ch['den']}",

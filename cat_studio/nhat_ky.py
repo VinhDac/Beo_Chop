@@ -211,6 +211,17 @@ def _van_tay(doc):
     return hashlib.sha1(loi.encode("utf-8")).hexdigest()[:12]
 
 
+def khoa_qc(doc):
+    """Khoá Object Store trên QuantConnect cho nhật ký của sơ đồ `doc` (đã chuẩn hoá).
+
+    Cầu nối trên cloud GHI vào khoá này, app (`qc_api`) ĐỌC về từ khoá này — MỘT hàm cho
+    cả hai đầu, để hai bên không thể lệch tên. Chỉ ký tự ASCII: khoá đi qua URL và nằm
+    trong file zip QC trả về, dấu tiếng Việt ở đó là chuốc lấy lỗi mã hoá tên file."""
+    ten = "".join(ch if ch.isascii() and ch.isalnum() else "_"
+                  for ch in doc.get("name") or "so_do")
+    return f"cat_studio/{ten}-{_van_tay(doc)}.jsonl.gz"
+
+
 def ghi(kq, cd, ten=None):
     """Ghi một lần chạy ra `du_lieu/nhat_ky/<tên>.jsonl`. Trả đường dẫn.
 

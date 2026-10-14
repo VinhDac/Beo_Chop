@@ -348,8 +348,11 @@ class PhienQC:
         self._ghi_dong({"loai": "luot", **r})
 
     # ------------------------------------------------------------------ kết sổ
-    def ket_thuc(self):
+    def ket_thuc(self, giay=None):
         """Hết dữ liệu → chốt sổ, ghi lệnh + meta vào nhật ký, trả bảng tổng kết.
+
+        `giay` = thời gian chạy trên cloud, lớp vỏ đo rồi đưa vào — meta mang nó cùng bộ
+        đếm, để app đọc về là có đủ những gì dòng tổng kết trên log của QC có.
 
         Định dạng file y `nhat_ky.ghi` (meta · lệnh · lượt) — `nhat_ky.doc_file` đọc
         theo khoá `loai` của từng dòng nên thứ tự dòng không quan trọng."""
@@ -375,6 +378,7 @@ class PhienQC:
             "spread_diem": "thật (Bid/Ask từng nến)", "point": cd.point,
             "contract_size": cd.contract_size, "deposit": cd.deposit,
             "commission": cd.commission, "thong_ke": tk, "doc": self.doc,
+            "dem": dict(self.dem), "giay_chay": giay,
         })
         self._gz.append(self._nen.flush())
         self.thong_ke = tk
@@ -386,25 +390,31 @@ class PhienQC:
         return b"".join(self._gz)
 
     def ten_file(self):
-        ten = "".join(ch if ch.isalnum() else "_" for ch in self.doc.get("name") or "so_do")
-        return f"cat_studio/{ten}-{nk._van_tay(self.doc)}.jsonl.gz"
+        """Khoá Object Store — chung một hàm với phía app đọc về (`nhat_ky.khoa_qc`)."""
+        return nk.khoa_qc(self.doc)
 
     def dong_tong_ket(self, nhan, giay, luu):
         """Vài dòng ngắn cho log của QC — mỗi dòng một ý, đủ ngắn để không bị cắt."""
-        tk, d = self.thong_ke, self.dem
         gz = sum(len(x) for x in self._gz)
-        return [
-            f"CAT STUDIO · {nhan} · {_so(tk['so_lenh'])} lệnh ({_so(tk['so_dong'])} đóng · "
-            f"{_so(tk['so_huy'])} huỷ) · thắng {tk['thang']}/{tk['thua']} = "
-            f"{_so(tk['ty_le_thang'], 1)}% · tổng {_so(tk['tong_R'], 2)}R · "
-            f"DD {_so(tk['drawdown_pt'], 2)}% · nến mơ hồ {tk['nen_mo_ho']}",
-            f"CAT STUDIO · {_so(d['m1'])} nến M1 · {_so(d['truc'])} nến {self.ct.tf5} · "
-            f"lượt Entry {_so(d['entry'])} (trễ {_so(d['entry_tre'])}) · "
-            f"lượt Manage {_so(d['manage'])} · chạy {_so(giay, 1)} giây",
+        return dong_ket_qua(nhan, self.thong_ke, self.dem, self.ct.tf5, giay) + [
             f"CAT STUDIO · nhật ký {_so(self.so_luot)} lượt = "
             f"{_so(self.byte_tho / 1e6, 1)} MB → nén {_so(gz / 1e6, 2)} MB · "
             f"Object Store: {luu}",
         ]
+
+
+def dong_ket_qua(nhan, tk, d, tf, giay):
+    """Hai dòng kết quả — CHUNG cho log của QC và cho `tools/chay_qc.py` (dựng lại từ meta
+    của nhật ký tải về), để hai nơi không thể kể hai câu chuyện khác nhau về một lượt."""
+    return [
+        f"CAT STUDIO · {nhan} · {_so(tk['so_lenh'])} lệnh ({_so(tk['so_dong'])} đóng · "
+        f"{_so(tk['so_huy'])} huỷ) · thắng {tk['thang']}/{tk['thua']} = "
+        f"{_so(tk['ty_le_thang'], 1)}% · tổng {_so(tk['tong_R'], 2)}R · "
+        f"DD {_so(tk['drawdown_pt'], 2)}% · nến mơ hồ {tk['nen_mo_ho']}",
+        f"CAT STUDIO · {_so(d['m1'])} nến M1 · {_so(d['truc'])} nến {tf} · "
+        f"lượt Entry {_so(d['entry'])} (trễ {_so(d['entry_tre'])}) · "
+        f"lượt Manage {_so(d['manage'])} · chạy {_so(giay or 0, 1)} giây",
+    ]
 
 
 def _so(x, le=0):

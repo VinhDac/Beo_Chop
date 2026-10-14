@@ -118,7 +118,13 @@ tools\setup.bat          # dựng .venv + npm install + build giao diện
 tools\tao_shortcut.bat   # tạo shortcut "Cat Studio" ra Desktop (icon con mèo)
 tools\chay.bat           # mở app từ dòng lệnh
 tools\chay_test.bat      # chạy test
+tools\chay_qc.bat        # chạy sơ đồ trên QuantConnect, không mở web QC (core.md §15)
 ```
+
+`chay_qc` cần gói QuantConnect **Researcher** trở lên (gói Free không có API) và khoá API
+đặt **ngoài repo**: hai biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file
+`du_lieu\qc_khoa.json` dạng `{"user_id": "...", "token": "..."}`. Khoá có toàn quyền tài
+khoản — đừng đưa vào git, đừng dán vào chat.
 
 Shortcut chạy bằng `pythonw.exe` nên **không kèm cửa sổ console đen**. Đổi lại nó
 không có stderr để nhìn, nên `app_web.py` báo mọi lỗi khởi động (thiếu .NET, thiếu
@@ -141,6 +147,7 @@ cat_studio/        toàn bộ lõi app
   luu_tru.py         MỘT chỗ duy nhất biết file nằm ở đâu
   api.py             bề mặt DUY NHẤT giao diện gọi tới  (JS → api.py → core.py)
   mau.py             sơ đồ mẫu Compress (D_02) — dùng được cả khi không có giao diện
+  qc_api.py          chỗ DUY NHẤT biết QuantConnect: đẩy sơ đồ lên, chạy, tải nhật ký về
   khung_cua_so.py    vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo/giãn/phóng to)
 lean/              cầu nối QuantConnect: lõi thuần + lớp vỏ QC (core.md §14)
 tai_lieu/          sổ ghi cốt lõi
@@ -151,6 +158,7 @@ tests/             bộ test — không mở cửa sổ, không cần MT5
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI
                      dong_goi_lean: gói sơ đồ thành vài file dán lên QuantConnect
+                     chay_qc: một lệnh — gửi sơ đồ lên QC, chạy, in tổng kết
 dist/              sản phẩm đóng gói + bản .zip phát hành (không nằm trong repo)
 ```
 

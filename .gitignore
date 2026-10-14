@@ -12,6 +12,10 @@ du_lieu/
 settings.json
 templates/
 
+# Khoá API QuantConnect (D-06) — toàn quyền tài khoản. Chỗ đúng của nó là
+# du_lieu/qc_khoa.json (đã bị `du_lieu/` chặn); dòng này chặn cả khi lỡ đặt chỗ khác.
+qc_khoa.json
+
 # Shortcut do tools/tao_shortcut.bat sinh ra — chứa đường dẫn tuyệt đối của máy này
 Cat Studio.lnk
 

@@ -149,6 +149,9 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   - Khoá API của QC là BÍ MẬT: cất ở máy người chơi (ngoài repo), không bao giờ vào git.
   - Trần mỗi file của Researcher là 64 KB — gói hiện tại vừa một file; qua API thì app tự
     tải bao nhiêu file cũng được, không còn chuyện dán.
+- **Tiến độ:** slice 3 — `tools\chay_qc.bat` gửi sơ đồ lên, chạy, tải nhật ký về, in tổng
+  kết; chưa có nút trong app (core.md §15). Đã kiểm trên máy chủ QC giả; **chưa chạy trên QC
+  thật** — chờ nâng gói và đặt khoá trên máy người chơi.
 - **Trạng thái:** locked
 
 ---

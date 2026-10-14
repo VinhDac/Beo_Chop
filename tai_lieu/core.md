@@ -2465,3 +2465,72 @@ không trùng — chạy là ra nến khác cây, lệch im lặng.
 Giả định: consolidator phát nến khung TRƯỚC `on_data` của nến M1 khép nó. Nếu sai, mọi
 lượt Entry chạy trễ một nhịp. Dòng tổng kết vì thế in **"lượt Entry … (trễ N)"**: bình
 thường N cỡ vài chục (phút cuối ô bị thủng); N xấp xỉ số nến trục là giả định sai.
+
+## 15. ⭐ CHẠY TRÊN QC QUA API (slice 3) — một lệnh, không mở web QC
+
+> Theo `DECISIONS.md` D-06: gói Researcher, app tự gọi API, khoá là bí mật. Chưa có nút
+> trong app — slice này là công cụ dòng lệnh. Nút ▶ trên giao diện sẽ gọi ĐÚNG hàm
+> `qc_api.chay` này, không viết lại.
+
+`tools\chay_qc.bat [file sơ đồ] [--tu YYYY-MM-DD --den YYYY-MM-DD]` làm trọn một lượt ▶:
+
+| Bước | Làm gì |
+|---|---|
+| Đóng gói | y §14.2, trần 62 000 byte/file (Researcher 64 KB) → hiện vừa MỘT file `main.py` ~53 KB |
+| Project | tìm «Cat Studio/<tên sơ đồ>» trên QC, chưa có thì tạo (Python) — mọi cỗ máy chung một thư mục |
+| File | file đã có → ghi đè, chưa có → tạo, `nguon_*.py` thừa của lần đóng gói trước → XOÁ |
+| Biên dịch → backtest | hỏi trạng thái thưa dần 0,25 → 1 → 2 → 5 → 10 giây, y LEAN CLI |
+| Nhật ký | tải từ Object Store về `du_lieu/nhat_ky/<tên>-<vân tay>.jsonl` — `nhat_ky.doc_file` mở được |
+| In | hai dòng tổng kết y log của QC (`cat_lean.dong_ket_qua`, chung một hàm) + vốn + link QC + đường dẫn nhật ký |
+
+`cat_studio/qc_api.py` là chỗ DUY NHẤT trong app biết QuantConnect tồn tại — như
+`nguon_nen` với MT5; lõi không import nó. Chỉ dùng thư viện chuẩn. Từng điểm API (tên,
+GET hay POST, tham số, cách đọc lỗi, khi nào coi backtest là xong) đối chiếu với mã nguồn
+LEAN CLI — công cụ dòng lệnh chính thức của QC, mã nguồn mở — không đoán.
+
+### 15.1 Khoá
+
+- Đọc từ hai biến môi trường `QC_USER_ID` + `QC_API_TOKEN`; thiếu một trong hai thì đọc
+  `du_lieu/qc_khoa.json` (`{"user_id": "...", "token": "..."}`). `du_lieu/` nằm trong
+  `.gitignore` — bài kiểm canh đúng dòng đó.
+- Khoá có **toàn quyền tài khoản, kể cả LIVE**. App chỉ dùng nó để chạy backtest, và không
+  bao giờ: in ra, đưa vào câu lỗi hay `repr`, gửi đi dạng thô (chỉ gửi băm
+  `sha256(token:giờ)`, y LEAN CLI), gửi kèm link tải (link Object Store là link ký sẵn).
+- Dấu giờ trong băm luôn là giờ THẬT — đồng hồ giả chỉ dùng để đo hạn chờ trong bài kiểm.
+  (Lỗi bắt được lúc viết bài kiểm: một đồng hồ dùng cho cả hai việc thì giả hạn chờ là hỏng
+  luôn xác thực.)
+
+### 15.2 Một khoá Object Store cho cả hai đầu
+
+Cầu nối trên cloud GHI nhật ký vào khoá `nhat_ky.khoa_qc(doc)`; app ĐỌC về từ chính hàm
+đó — hai bên không thể lệch tên. Khoá chỉ có ASCII: nó đi qua URL và thành tên file trong
+zip QC gửi về. Lớp vỏ ghi bản chữ `<khoá>.b64` khi `save_bytes` hỏng → app thử cả hai.
+File vừa ghi lúc backtest kết thúc có khi vài giây sau mới hiện → hỏi lại sau 2, 4, 8 giây
+rồi mới chịu thua.
+
+### 15.3 Hỏng thì nói bằng lời
+
+Mọi lỗi là `LoiQC` (khoá: `LoiKhoa`) — một câu tiếng Việt nói phải làm gì. Công cụ in câu
+đó, mã thoát 1, không traceback: ngày gõ sai và thiếu khoá (báo NGAY, chưa đóng gói hay gửi
+gì) · khoá sai (QC trả
+"Hash doesn't match", hoặc 500 hai lần liền — LEAN CLI cũng coi vậy) · User ID sai · mất
+mạng · 5xx khác (thử lại đúng một lần) · biên dịch hỏng (kèm 12 dòng log cuối) · backtest
+lỗi (kèm vết lỗi + link) · thiếu nhật ký (kèm lời QC + link log) · chờ quá hạn. Lỗi xảy ra
+TRÊN cloud — vd. câu "Project THIẾU file nguon_1.py" của gói — về tới người dùng nguyên văn.
+
+### 15.4 Bằng chứng — và chỗ chưa có bằng chứng
+
+`tests/test_qc_api.py` dựng một **máy chủ QC GIẢ** trên 127.0.0.1, nói đúng giao thức LEAN
+CLI nói, và **CHẠY THẬT bộ file được đẩy lên** trong một Python sạch như QC chạy → nhật ký
+tải về trùng khít từng lượt, từng lệnh với chạy cầu nối ngay tại máy. Canh cả lượt sau
+(dùng lại project, dọn file thừa khi nâng từ Free 2 file lên Researcher 1 file) và mọi đường
+hỏng ở §15.3. Đột biến từng chỗ trong `qc_api` / `chay_qc` (bỏ thử lại, bỏ chờ thống kê,
+lộ khoá, bỏ dọn file…) → bài kiểm bắt được.
+
+⚠ **Chưa chạy trên QC thật** — môi trường phát triển không ra được quantconnect.com. Ba
+điều chỉ QC thật trả lời được: (1) khoá thuật toán ghi có hiện ra Y NGUYÊN ở Object Store
+cấp tổ chức không, và `object/get` với khoá chưa có trả về gì (máy giả: báo lỗi → app hỏi
+lại; QC trả zip rỗng thì app cũng hỏi lại, cùng kết cục); (2) Object Store của gói
+Researcher có nhận một nhật ký cỡ chục MB không (D-03 còn treo); (3) một lượt thật mất bao
+lâu — tiêu chí của slice là ~1 phút. Hỏng ở (1) hay (2) thì công cụ in khoá + link log của
+backtest, dòng «Object Store» trên log nói lý do.
