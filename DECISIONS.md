@@ -210,3 +210,51 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   (D-06), không đụng gì tới Strategy Tester và Live đang chạy.
 - **Trạng thái:** đề xuất — chủ dự án duyệt lại khi chạy thật trên máy (màn, mốc ngày,
   định nghĩa "chạy sạch", boss so bằng % giá, độ gọn).
+
+## D-09 · Game trong cửa sổ vẽ, khuôn Opus Magnum — sơ đồ khối CHÍNH LÀ xưởng  (đề xuất 2026-10-14)
+
+> Chủ dự án: *"lấy cảm hứng từ một game thật, upgrade giao diện cho giống game thật, làm kĩ
+> flow chơi"* — và giữa chừng: *"vẽ sơ đồ kiểu này vẫn rất hay, đừng bỏ nhé"*.
+> Mọi con số dưới đây chọn **để chơi được** — chủ dự án duyệt lại. Chi tiết: core.md §17.
+
+- **Cảm hứng: Opus Magnum** (Zachtronics, 2017) — game lắp cỗ máy giả kim: câu đố chia
+  chương có truyện mở/đóng; mỗi câu đố cho sẵn bộ linh kiện; chạy thử bao nhiêu lần cũng
+  được; giải xong thì ba histogram (Cost · Cycles · Area) so với mọi người chơi khác —
+  không lời giải nào đứng đầu cả ba, nên người chơi tự chọn đánh đổi; xong cả chương mới
+  qua chương sau.
+- **Quyết định (đề xuất):**
+  - Game chạy **trong cửa sổ vẽ chính** (◆ Màn chơi / Ctrl+M), không còn là cửa sổ riêng.
+    **Xưởng của game là trình vẽ sơ đồ khối giữ nguyên** — chỉ dải ribbon đổi thành thanh
+    xưởng (khay linh kiện Mắt · Tay vào lệnh · Tay chỉnh lệnh · Núm vặn, độ gọn, ▶ nhanh,
+    ▶ đầy đủ, Nộp) và bảng màu đổi sang đồng thau / giấy cũ. Cửa sổ ◆ cũ ở lại làm
+    **bảng QC kỹ thuật** (File → Bảng QC kỹ thuật).
+  - Luồng màn hình: màn hình chính → bản đồ chương → truyện (lần đầu vào chương) → phiếu
+    đặt máy → xưởng ⇄ kết quả (ba histogram) → xem máy nghĩ (phát lại từng lượt, tô đường
+    đi lên sơ đồ, nói bằng tên khối) → đấu màn ẩn (VS boss, phải bấm «Bắt đầu đấu» — mỗi
+    lần nộp bị đếm) → hoàn thành (mở khoá màn sau, giác quan mới).
+  - **Chương 1 «Tiệm vàng nhà Tư»** — khách Bà Tư, người dẫn đường Mèo Thợ Cả, bốn màn:
+    1-1 Năm đi ngang (thấy 2021 · ẩn 2022) · 1-2 Cắt lỗ cho kịp (2018 · 2019) · 1-3 Biết
+    đứng ngoài (2016 · 2017) · 1-4 Năm vàng (2023 · 2024). Năm đã thấy và năm ẩn KHÔNG BAO
+    GIỜ trùng trong một chương. ▶ nhanh = quý 4 năm đã thấy. Chương 2 «Mùa sập», 3 «Bạc»:
+    khoá, «sắp ra mắt».
+  - **Giác quan mở dần** (như bộ linh kiện từng câu đố): 1-1 chỉ có giá đóng cửa, MA, số
+    vị thế; 1-2 thêm ATR và nhóm «lệnh này» (đã khớp, SL hoà vốn, lãi bao nhiêu R); 1-3
+    thêm giá mở/cao/thấp, số lệnh chờ. Vùng nén chưa mở ở chương 1. Python chặn khi chạy
+    (`game.soat_giac_quan`), hộp sửa khối chỉ bày giác quan đã mở. Sáng tạo: có hết (D-07).
+  - **Mở khoá:** màn sau mở khi màn trước có ★ (nộp được ít nhất chạy sạch); chương sau mở
+    khi mọi màn chương trước có ★. Đi tuần tự (Opus Magnum cho chọn tự do trong chương) vì
+    mỗi màn dạy một thứ màn sau cần.
+  - **Ba histogram:** Lãi % (có vạch boss) · Sụt giảm % · Độ gọn. Chưa có người chơi khác
+    nên **đám đông là các lần ▶ đầy đủ của chính bạn trên màn đó** — có cộng đồng thì chỉ
+    đổi nguồn số.
+  - **Máy gợi ý mới** (`cat_studio/may_mau.py`), không dùng Compress làm ví dụ nữa:
+    «Theo MA» (5 khối, màn 1-1) và «Hai chiều» (7 khối, màn 1-2).
+- **Phương án đã cân nhắc:** (a) Opus Magnum ← **chọn**: lắp cỗ máy + chạy thử thoải mái +
+  ba histogram đánh đổi khớp đúng vòng chơi D-05 / (b) Human Resource Machine: lệnh mở
+  dần theo màn, thử thách kích thước/tốc độ — lấy ý "giác quan mở dần" / (c) giữ cửa sổ
+  Màn chơi riêng — game và sơ đồ ở hai cửa sổ thì người chơi phải đi qua lại.
+- **Lý do:** cái Opus Magnum KHÔNG có mà ta có — **màn ẩn** — là thứ làm game này dạy
+  điều thật (chỉnh tham số tới khi đẹp không cứu được cỗ máy trên năm nó chưa thấy).
+- **Trạng thái:** đề xuất — chủ dự án duyệt: tên/truyện, năm từng màn, thứ tự giác quan,
+  luật mở khoá, đám đông của histogram.
+

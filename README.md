@@ -121,9 +121,10 @@ tools\chay_test.bat      # chạy test
 tools\chay_qc.bat        # chạy sơ đồ trên QuantConnect, không mở web QC (core.md §15)
 ```
 
-Trong app: nút **◆ Màn chơi** (Ctrl+M) mở cửa sổ chơi trên QuantConnect — Chiến dịch (màn,
-boss, ▶ nhanh / ▶ đầy đủ / Nộp, sao) và Sáng tạo (core.md §16). Khoá đặt ngay trong cửa sổ
-đó (bấm huy hiệu "QC · …" trên thanh tiêu đề).
+Trong app: nút **◆ Màn chơi** (Ctrl+M) bật chế độ game ngay trong cửa sổ vẽ — bản đồ chương,
+phiếu đặt máy, xưởng (chính là trình vẽ sơ đồ), ba histogram, xem máy nghĩ, đấu màn ẩn
+(core.md §17, khuôn Opus Magnum). Khoá QC đặt ở màn hình chính của game. Cửa sổ kỹ thuật cũ
+vẫn mở được: File → Bảng QC kỹ thuật (core.md §16).
 
 `chay_qc` cần gói QuantConnect **Researcher** trở lên (gói Free không có API) và khoá API
 đặt **ngoài repo**: hai biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file
@@ -153,7 +154,8 @@ cat_studio/        toàn bộ lõi app
   mau.py             sơ đồ mẫu Compress (D_02) — dùng được cả khi không có giao diện
   qc_api.py          chỗ DUY NHẤT biết QuantConnect: đẩy sơ đồ lên, chạy, tải nhật ký về
   goi_qc.py          đóng gói bộ luật + cầu nối + sơ đồ thành main.py gửi lên QC
-  game.py            luật chơi: màn, boss, sao, độ gọn, sổ nộp (du_lieu/game.json)
+  game.py            luật chơi: chương, màn, giác quan, mở khoá, boss, sao, sổ (du_lieu/game.json)
+  may_mau.py         cỗ máy gợi ý của các màn («Theo MA», «Hai chiều») — không phải Compress
   qc_chay.py         một lượt chạy QC trong luồng nền + kết quả dựng lại từ nhật ký
   khung_cua_so.py    vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo/giãn/phóng to)
 lean/              cầu nối QuantConnect: lõi thuần + lớp vỏ QC (core.md §14)
@@ -161,7 +163,8 @@ tai_lieu/          sổ ghi cốt lõi
   core.md            VÌ SAO mọi thứ như vậy. Đọc file này trước.
   D02_Compress_ban_giao.md   bàn giao chiến lược gốc
 webui/             giao diện: React + TypeScript + React Flow
-                     src/qc/: cửa sổ Màn chơi · kiem/: bài kiểm chạy bằng node
+                     src/game/: các màn hình game · src/qc/: bảng QC kỹ thuật
+                     kiem/: bài kiểm chạy bằng node (game.mjs: chơi trọn màn 1-1)
 tests/             bộ test — không mở cửa sổ, không cần MT5
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI

@@ -69,6 +69,20 @@
 
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: Consolas, "Cascadia Mono", monospace;
+
+  /* ===== GAME (D-09) — xưởng chế tạo kiểu Opus Magnum: đồng thau, giấy cũ, đêm ấm =====
+     Chỉ dùng cho các màn hình game (`game/*.tsx`). Trình vẽ sơ đồ giữ nguyên bảng màu trên. */
+  --g-dem: #15120e;
+  --g-dem-2: #201a13;
+  --g-dem-3: #2b231a;
+  --g-giay: #efe3c8;
+  --g-giay-toi: #e2d2ae;
+  --g-giay-chu: #3a2c1a;
+  --g-dong: #c99a4b;
+  --g-dong-sang: #f0c674;
+  --g-dong-toi: #7a5a2b;
+  --g-khoa: #4a4038;
+  --g-serif: Georgia, "Times New Roman", serif;
 }
 
 :root[data-theme='light'] {

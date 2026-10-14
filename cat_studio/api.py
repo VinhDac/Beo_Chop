@@ -36,6 +36,7 @@ else:
     from . import khung_rong as khung_cua_so
 from . import phien_live
 from . import game
+from . import may_mau
 from . import qc_api
 from . import qc_chay
 from . import bo_chay
@@ -309,6 +310,9 @@ class Api(NenCuaSo):
         #: Việc chạy QC sống ở CỬA SỔ CHÍNH, không ở cửa sổ Màn chơi: đóng cửa sổ lúc đang
         #: chạy rồi mở lại vẫn thấy đúng lượt đó, không mất tiến độ hay kết quả.
         self._viec_qc = None
+        #: `ApiQC` NỘI BỘ (không cửa sổ) — game trong cửa sổ chính dùng chung đúng các
+        #: hàm `qc_*` đó, không viết lại lần hai.
+        self._qc_noi = None
         self._doc_tester = None
         self._cai_dat = core.load_settings()
         self._khoa = threading.Lock()
@@ -683,6 +687,118 @@ class Api(NenCuaSo):
         aq = self._api_qc
         threading.Thread(target=lambda: aq._va_khung("— Màn chơi"), daemon=True).start()
         return _ok({"da_mo": True})
+
+    # ------------------------------------------------------------------ game (D-09)
+    # Game sống NGAY TRONG cửa sổ vẽ: màn hình chính → chọn màn → truyện → phiếu việc →
+    # XƯỞNG (chính là trình vẽ sơ đồ) → chạy → xem máy nghĩ → kết quả → nộp → hoàn thành.
+    # Mọi luật ở `game`, mọi việc chạy ở `qc_chay` — đây chỉ nối JS với chúng.
+    def _qcn(self):
+        if self._qc_noi is None:
+            self._qc_noi = ApiQC(self)
+        return self._qc_noi
+
+    @_bat_loi
+    def game_boot(self):
+        """Màn hình chính + chọn màn: chương, màn, tiến độ, khoá, màn nên chơi tiếp."""
+        doc = self._doc_qc
+        return _ok({"chuong": game.danh_sach_chuong(game.van_tay(doc) if doc else None),
+                    "nhan_vat": game.NHAN_VAT, "loai": game.LOAI,
+                    "khoa": qc_api.trang_thai_khoa(), "man_tiep": game.man_tiep_theo(),
+                    "trang_thai": self._qcn()._viec().trang_thai()})
+
+    @_bat_loi
+    def game_man(self, man_id, doc=None):
+        """Phiếu việc một màn: thông tin, tiến độ, vé nộp của `doc`, dữ liệu histogram."""
+        try:
+            game.man(man_id)
+        except game.LoiGame as e:
+            return _loi(str(e))
+        d = core.normalize_process(doc) if doc else None
+        m = next(x for x in game.danh_sach_man(game.van_tay(d) if d else None)
+                 if x["id"] == man_id)
+        return _ok({**m, "lich_su": game.lich_su_man(man_id),
+                    "do_gon": game.do_gon(d) if d else None})
+
+    @_bat_loi
+    def game_may(self, ten):
+        """Cỗ máy gợi ý của một màn (máy MỚI — `may_mau`, không phải Compress)."""
+        if ten not in may_mau.MAY:
+            return _loi(f"Không có cỗ máy gợi ý «{ten}».")
+        # `_kem_the`: trình vẽ cần THẺ của từng khối (chữ trên hộp do Python dựng) — đúng
+        # đường `demo_process` / `load_process` đi. Thiếu nó thì nạp vào là vỡ.
+        return _ok(_kem_the(may_mau.may(ten)))
+
+    @_bat_loi
+    def game_truyen(self, chuong_id, phan="mo"):
+        try:
+            return _ok({"loi": game.truyen(chuong_id, phan),
+                        "da_xem": game.da_xem_truyen(f"{chuong_id}:{phan}")})
+        except game.LoiGame as e:
+            return _loi(str(e))
+
+    @_bat_loi
+    def game_da_xem_truyen(self, chuong_id, phan="mo"):
+        game.danh_dau_xem_truyen(f"{chuong_id}:{phan}")
+        return _ok(True)
+
+    @_bat_loi
+    def game_chay(self, doc, loai, man_id=None, tu_do=None):
+        """▶ trong xưởng: chặn TRƯỚC nếu sơ đồ còn lỗi (y ▶ Test), rồi chạy nền trên QC."""
+        probs = core.validate_process(doc)
+        loi = [p for p in probs if p["severity"] == "error"]
+        if loi:
+            return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
+        self._doc_qc = core.normalize_process(doc)
+        return self._qcn().qc_chay(loai, man_id, tu_do)
+
+    @_bat_loi
+    def game_trang_thai(self):
+        return self._qcn().qc_trang_thai()
+
+    @_bat_loi
+    def game_ket_qua(self):
+        return self._qcn().qc_ket_qua()
+
+    @_bat_loi
+    def game_nhat_ky(self, tu=0, so=200, chi_viec=True):
+        return self._qcn().qc_nhat_ky(tu, so, chi_viec)
+
+    @_bat_loi
+    def game_lenh(self):
+        return self._qcn().qc_lenh()
+
+    @_bat_loi
+    def game_luot(self, i):
+        """Một lượt để TÔ lên sơ đồ ngay trong cửa sổ này (xem máy nghĩ) — không bắn đi."""
+        return self._qcn().qc_luot(i)
+
+    @_bat_loi
+    def game_lich_su(self):
+        return self._qcn().qc_lich_su()
+
+    @_bat_loi
+    def game_mo_lai(self, duong):
+        return self._qcn().qc_mo_lai(duong)
+
+    @_bat_loi
+    def game_khoa(self):
+        return self._qcn().qc_khoa()
+
+    @_bat_loi
+    def game_luu_khoa(self, user_id, token):
+        return self._qcn().qc_luu_khoa(user_id, token)
+
+    @_bat_loi
+    def game_kiem_khoa(self):
+        return self._qcn().qc_kiem_khoa()
+
+    @_bat_loi
+    def game_xoa_khoa(self):
+        return self._qcn().qc_xoa_khoa()
+
+    @_bat_loi
+    def game_mo_web(self, url):
+        return self._qcn().qc_mo_web(url)
 
     def _mo_cua_so_tester(self, doc):
         """Cửa sổ thứ hai.
@@ -2176,6 +2292,18 @@ class ApiQC(NenCuaSo):
             return _ok(self._ket_qua().lenh)
         except game.LoiGame as e:
             return _loi(str(e))
+
+    @_bat_loi
+    def qc_luot(self, i):
+        """Bản soi một lượt (đường đi, cổng, nhãn, câu chữ, giờ) — TRẢ VỀ, không bắn đi."""
+        try:
+            k = self._ket_qua()
+        except game.LoiGame as e:
+            return _loi(str(e))
+        i = int(i)
+        if not (0 <= i < len(k.nhat_ky)):
+            return _loi("Không có lượt đó.")
+        return _ok({**k.soi(i), "i": i, "t": k.nhat_ky[i].get("t")})
 
     @_bat_loi
     def qc_soi_luot(self, i):

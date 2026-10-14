@@ -34,6 +34,7 @@ BAI = [
     ("test_cat_lean.py", "Cầu nối QC — trùng khít bộ cũ, gói dán được, chạy được khi KHÔNG có repo"),
     ("test_qc_api.py", "Nối QC qua API — máy chủ QC giả chạy thật bộ file, khoá không bao giờ lộ"),
     ("test_game_qc.py", "Màn chơi — luật sao/boss/nộp, màn ẩn là ẩn, việc nền, vỏ API cửa sổ"),
+    ("test_game_giao_dien.py", "Game đầu-cuối — chơi trọn màn 1-1 trong cửa sổ vẽ thật"),
 ]
 
 hong = []

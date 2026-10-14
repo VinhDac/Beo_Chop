@@ -1818,6 +1818,11 @@ def _tham_so_dang_dung(doc):
             for k in ("dem", "sl", "tp", "khoang"):
                 quet_khoang(st.get(k))
             them(st.get("lot"))
+    # Tham số ENGINE LUÔN ĐÒI (`chu_ky_atr`): thiếu là bộ chạy từ chối chạy, và mọi khoảng
+    # "× ATR" ngầm đọc nó. Báo nó "không khối nào dùng" là xui người dùng xoá một dòng mà
+    # xoá đi thì cỗ máy hỏng — đã thấy thật trên máy gợi ý «Theo MA» của Chiến dịch.
+    from .kho.engine_d02 import Engine
+    ra.update(Engine.THAM_SO_CAN)
     return ra
 
 
