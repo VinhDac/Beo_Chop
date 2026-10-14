@@ -129,3 +129,24 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   - *Bản chơi được đầu tiên:* 1 bản đồ (Vàng) · 1 màn (2024) · 1 màn ẩn (2025) · 1 boss
     (Mua rồi giữ) · khoảng 10 item.
 - **Trạng thái:** locked (phần lõi); khung đi kèm còn mở
+
+---
+
+## D-06 · Vòng chơi chạy qua API của QuantConnect — nâng gói Researcher  (chốt 2026-10-14)
+
+- **Quyết định:** nâng tài khoản QC lên gói **Researcher**. App Cat Studio tự gửi sơ đồ lên
+  QC qua API: ▶ một chạm trong app, **app giữ màn ẩn** và **đếm số lần nộp**.
+- **Phương án đã cân nhắc:**
+  (a) nâng Researcher, dùng API ← **chọn** /
+  (b) dựng game trên động cơ cũ trước, nối QC sau /
+  (c) ở gói Free, dán tay
+- **Lý do:** lõi của D-05 là màn ẩn — người chơi tự sửa ngày trong `main.py` được thì
+  màn ẩn không còn ẩn. Chỉ khi app điều khiển việc chạy thì điểm mới là điểm thật. Dán tay
+  mỗi vòng (~1 phút thao tác + 40 giây chạy) cũng không thành vòng chơi. Đúng hướng D-01,
+  D-02; bước ra trận (D-05) đằng nào cũng cần gói trả phí.
+- **Hệ quả:**
+  - Tốn phí gói hằng tháng.
+  - Khoá API của QC là BÍ MẬT: cất ở máy người chơi (ngoài repo), không bao giờ vào git.
+  - Trần mỗi file của Researcher là 64 KB — gói hiện tại vừa một file; qua API thì app tự
+    tải bao nhiêu file cũng được, không còn chuyện dán.
+- **Trạng thái:** locked
