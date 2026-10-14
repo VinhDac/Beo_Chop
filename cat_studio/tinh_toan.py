@@ -34,6 +34,11 @@ from . import core
 #: float32 mất chữ số đúng ở chỗ quan trọng nhất.
 F = np.float64
 
+#: Hình dạng MỘT cây nến mà `gop` và bộ chạy (`bo_chay.chay`) nhận: giờ mở (unix giây) ·
+#: OHLC · khối lượng — 48 byte một nến. (Cầu nối QC thì nhận từng nến một, không cần mảng.)
+DTYPE = np.dtype([("t", "<i8"), ("o", "<f8"), ("h", "<f8"),
+                  ("l", "<f8"), ("c", "<f8"), ("vol", "<i8")])
+
 
 def _f(x):
     return np.asarray(x, dtype=F)

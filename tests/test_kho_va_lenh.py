@@ -152,7 +152,11 @@ kiem("tên file bị chặn thoát ra ngoài thư mục",
      == luu_tru.thu_muc_chien_luoc(),
      f"— {luu_tru.duong_dan_chien_luoc('../../hack')}")
 tt = luu_tru.tom_tat()
-kiem("tóm tắt kho nói rõ đường dẫn thật", tt["goc"] and len(tt["muc"]) == 3)
+kiem("tóm tắt kho nói rõ đường dẫn thật: chiến lược + nhật ký chạy",
+     tt["goc"] and [m["ten"] for m in tt["muc"]] == ["Chiến lược", "Nhật ký chạy"]
+     and all(m["duong_dan"] for m in tt["muc"]))
+kiem("kho KHÔNG còn mục nến trên máy (Strategy Tester đã bỏ — nến là của QC)",
+     not hasattr(luu_tru, "thu_muc_nen") and "test" not in luu_tru.CAI_DAT_MAC_DINH)
 
 # ================= 4. BẢNG THAM SỐ =================
 print("\n▸ Bảng tham số")

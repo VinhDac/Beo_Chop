@@ -10,9 +10,9 @@ const CAO_GAP = 33
  * `▼/▲` ở góc phải, nhấp đúp hàng tab cũng cụp. Nút gập nằm trên chính bảng chứ không ở
  * góc thanh công cụ — tay đang ở đâu thì nút ở đó.
  *
- * ⚠ VỎ NÀY DÙNG CHUNG cho Strategy Tester lẫn cửa sổ Màn chơi — hai cửa sổ khác nhau ở
- * NỘI DUNG tab, không ở cái vỏ. Mỗi cửa sổ tự dựng hàng tab là ra hai bảng trông khác
- * hẳn: mất thanh kéo, mất nút gập, mất số đếm, chữ so le. Nên tab là THAM SỐ.
+ * Tab là THAM SỐ: vỏ giữ thanh kéo, nút gập, số đếm; cửa sổ dùng nó chỉ khai nội dung.
+ * Tự dựng hàng tab ở mỗi nơi là ra những bảng trông khác hẳn nhau — mất thanh kéo, mất nút
+ * gập, mất số đếm, chữ so le.
  */
 
 export interface TabDuoi {
@@ -26,7 +26,7 @@ export interface TabDuoi {
 }
 export default function BangDuoi({ tabs, epTab, epLan = 0 }: {
   tabs: TabDuoi[]
-  /** Ép mở một tab từ ngoài (chọn một mục lịch sử → nhảy sang Thống kê). */
+  /** Ép mở một tab từ ngoài (chạy xong / mở lại một lượt cũ → nhảy sang «Vì sao»). */
   epTab?: string
   /** ĐẾM SỐ LẦN ÉP. Tăng lên là ép lại, kể cả khi `epTab` không đổi giá trị. */
   epLan?: number

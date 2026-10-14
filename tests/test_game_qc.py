@@ -294,6 +294,12 @@ b = aq.qc_boot()
 kiem("qc_boot: sơ đồ, màn (không ngày màn ẩn), độ gọn, trạng thái khoá",
      b["ok"] and b["value"]["doc"]["name"] == DOC["name"] and b["value"]["do_gon"]["tong"] == 22
      and "2025-01-01" not in json.dumps(b["value"]["man"]) and b["value"]["khoa"]["co"] is False)
+kiem("qc_boot: chế độ Sáng tạo mặc định theo «Mã mặc định» ở Cài đặt, vốn 10.000",
+     b["value"]["tu_do"]["symbol"] == cha._cai_dat["symbol"] and b["value"]["tu_do"]["von"] == 10_000)
+kiem("Strategy Tester đã bỏ: không lớp ApiTester, không đường mở, không cài đặt «test»",
+     not hasattr(api, "ApiTester") and "test" not in cha._cai_dat
+     and not [x for x in ("mo_tester", "save_test_settings", "nguon_xoa") if hasattr(cha, x)]
+     and "nguon" not in cha.bootstrap()["value"])
 r = aq.qc_chay("nhanh", "vang-2024")
 kiem("chưa có khoá → bấm ▶ là báo NGAY cách đặt khoá", not r["ok"]
      and "Chưa có khoá QuantConnect" in r["error"])
@@ -333,7 +339,7 @@ kiem("qc_ket_qua mang ĐỦ thông tin lượt (kiểu chạy, phần chấm, li
      and {k: kq[k] for k in ("loai", "cham", "url")}
      == {k: aq.qc_trang_thai()["value"]["xong"][k] for k in ("loai", "cham", "url")})
 r = aq.qc_soi_luot(nk_["dong"][0]["i"])
-kiem("qc_soi_luot: bắn «soi_luot» sang cửa sổ vẽ, đúng dạng tester vẫn bắn",
+kiem("qc_soi_luot: bắn «soi_luot» sang cửa sổ vẽ, đúng dạng cửa sổ vẽ tô được",
      r["ok"] and ban and ban[-1][0] == "soi_luot" and {"tab", "duong", "cong", "nhan", "chu"}
      <= set(ban[-1][1]))
 kiem("qc_soi_luot ngoài phạm vi → không bắn", aq.qc_soi_luot(10 ** 9)["value"]["da_ban"] is False)

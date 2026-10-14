@@ -5,8 +5,8 @@
     đóng gói (`goi_qc`) → `qc_api.chay` (project · file · biên dịch · backtest · nhật ký
     về máy) → dựng `KetQuaQC` từ nhật ký → chấm (`game`) → ghi sổ
 
-và ghi tiến độ vào `trang_thai()`. Cùng khuôn với `ApiTester.test_chay`: giao diện hỏi
-vài lần mỗi giây, Python không đẩy gì sang.
+và ghi tiến độ vào `trang_thai()`. Giao diện hỏi vài lần mỗi giây, Python không đẩy gì
+sang.
 
 Không biết giao diện, không biết pywebview — `api.ApiQC` chỉ là lớp vỏ mỏng gọi vào đây,
 nên mọi thứ ở đây kiểm được trên máy chủ QC giả (`tests/test_game_qc.py`).
@@ -89,15 +89,8 @@ class KetQuaQC:
         return nk.dung_lo(self, int(tu), int(so), bool(chi_co_viec))
 
     def soi(self, i):
-        """Bản soi một lượt cho cửa sổ vẽ — đúng dạng `ApiTester.test_soi_luot` bắn đi."""
-        r = self.nhat_ky[int(i)]
-        nhan = nk.nhan_khoi(self.doc)
-        return {"tab": r["tab"], "duong": list(r["duong"]), "cong": r["cong"],
-                "ket": r["ket"], "lenh_id": r.get("lenh_id"),
-                "nhan": {k: nhan.get(k, "?") for k in
-                         set(r["duong"]) | {c["khoi"] for c in r["cong"]}},
-                "chu": nk.dong_chu(r, nhan, nk._khoi_theo_id(self.doc),
-                                   core.bang_tham_so(self.doc), None)}
+        """Bản soi một lượt cho cửa sổ vẽ (`nhat_ky.ban_soi`)."""
+        return nk.ban_soi(self.doc, self.nhat_ky[int(i)])
 
 
 # ---------------------------------------------------------------------------

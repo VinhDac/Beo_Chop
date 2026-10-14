@@ -4,9 +4,7 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  BoNen, Bootstrap, Card, ChangRay, KetQuaChay, KetQuaSoat, KhoDanhMuc, Khung, CuaSoNen,
-  LoNhatKy, ProcEdge, ProcessDoc, Reply, Step, Tab, TesterBoot, ThamSo,
-  DoanPhat, MucLichSu, ThongKeChay, TrangThaiChay, XemLichSu,
+  Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab, ThamSo,
   BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
   TrangThaiQC, TuDoQC,
 } from './types'
@@ -36,8 +34,8 @@ export function cho_cau_noi(ham = 'bootstrap', timeout = 10000): Promise<void> {
   const t0 = Date.now()
   return new Promise((ok, hong) => {
     const thu = () => {
-      // Chờ ĐÚNG hàm mà trang này sắp gọi: cửa sổ tester có `ApiTester` riêng, KHÔNG
-      // có `bootstrap`. Chờ cứng `bootstrap` ở đó là treo 10 giây rồi báo mất kết nối.
+      // Chờ ĐÚNG hàm mà trang này sắp gọi: cửa sổ Màn chơi có `ApiQC` riêng, KHÔNG có
+      // `bootstrap`. Chờ cứng `bootstrap` ở đó là treo 10 giây rồi báo mất kết nối.
       if (typeof window.pywebview?.api?.[ham] === 'function') return ok()
       if (Date.now() - t0 > timeout) return hong(new Error('Không kết nối được tới Python'))
       setTimeout(thu, 40)
@@ -58,17 +56,10 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
   }
 }
 
-/** Gói nến. `zone` là HỘP phông nền — `[t_đầu, t_cuối, đáy, đỉnh]`, mốc THỜI GIAN nên
- *  đổi khung hiển thị vẫn nằm đúng chỗ. Python đã cắt ở con trỏ, không lộ tương lai. */
-export interface GoiNen {
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]; j: number
-  zone?: [number, number, number, number][]
-}
-
 export const py = {
   bootstrap: () => goi<Bootstrap>('bootstrap'),
   /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Sơ đồ còn lỗi thì từ chối
-   *  kèm `loi` (y `mo_tester`). */
+   *  kèm `loi` (danh sách lỗi y bảng Vấn đề). */
   mo_qc: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
   set_title: (ten: string) => goi<null>('set_title', ten),
 
@@ -117,13 +108,6 @@ export const py = {
     goi<Record<string, unknown>>('save_settings', s),
   save_ui: (state: Record<string, unknown>) =>
     goi<Record<string, unknown>>('save_ui', state),
-  save_test_settings: (t: Record<string, unknown>) =>
-    goi<Record<string, unknown>>('save_test_settings', t),
-
-  nguon_xoa: (symbol: string) => goi<{ ds: BoNen[] }>('nguon_xoa', symbol),
-
-  // --- ▶ Chạy → cửa sổ Strategy Tester ---
-  mo_tester: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_tester', doc),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
@@ -134,56 +118,14 @@ export const py = {
   cua_so_dong: () => goi<null>('cua_so_dong'),
 }
 
-/** Bề mặt của CỬA SỔ Strategy Tester.
+/** Bề mặt của cửa sổ MÀN CHƠI (`api.ApiQC`). Mọi lỗi từ đây đã là một câu tiếng Việt.
  *
- * Tách hẳn khỏi `py`: cửa sổ đó chạy `ApiTester` bên Python, một lớp cố ý HẸP — không
- * lưu chiến lược, không mở hộp thoại file, không đổi cài đặt. Gọi nhầm `py.*` ở đó sẽ
- * trả "api.py không có hàm …" chứ không âm thầm đụng vào cửa sổ chính.
+ * Tách hẳn khỏi `py`: cửa sổ đó chạy `ApiQC` bên Python, một lớp cố ý HẸP — không lưu
+ * chiến lược, không mở hộp thoại file, không đổi cài đặt. Gọi nhầm `py.*` ở đó sẽ trả
+ * "api.py không có hàm …" chứ không âm thầm đụng vào cửa sổ chính.
  *
- * Nhóm `cua_so_*` trùng TÊN với `py` nhưng là hàm KHÁC — mỗi cửa sổ một thể hiện, nên
- * bấm ✕ ở tester chỉ đóng tester. Nhờ vậy `TitleBar` dùng lại được nguyên vẹn.
- */
-export const pyTester = {
-  bootstrap_tester: () => goi<TesterBoot>('bootstrap_tester'),
-
-
-  // --- chạy (luồng nền + tiến trình) ---
-  test_chay: (ci: Record<string, unknown>) => goi<boolean>('test_chay', ci),
-  test_trang_thai: () => goi<TrangThaiChay>('test_trang_thai'),
-
-  // --- PHÁT LẠI: một lô = 300 khung hình, JS không hỏi gì thêm ---
-  test_doan: (j0: number, n: number) => goi<DoanPhat>('test_doan', j0, n),
-  /** TOÀN BỘ nến khung `tf` từ đầu dữ liệu tới con trỏ — chart kéo đi đâu cũng đủ. */
-  test_nen_tf: (tf: string, j: number) =>
-    goi<GoiNen>(
-      'test_nen_tf', tf, j),
-  test_luot_ke: (j: number) => goi<{ j: number; i: number }>('test_luot_ke', j),
-  /** Ngược lại: sự kiện gần nhất TRƯỚC `j`. `j = -1` nghĩa là phía trước không còn gì. */
-  test_luot_truoc: (j: number) => goi<{ j: number; i: number }>('test_luot_truoc', j),
-  /** Kéo cửa sổ VẼ lên trước và tô đường mà lượt `i` đã đi — tới tận điều kiện hỏng. */
-  test_soi_luot: (i: number) => goi<{ da_ban: boolean }>('test_soi_luot', i),
-  /** ĐƯỜNG RAY của một lệnh: nó đã đi qua những khối nào. Gọi MỘT lần cho mỗi lệnh
-   *  người dùng rê chuột vào — không nhét vào lô phát, vì 300 lệnh mà 99% không ai xem. */
-  test_duong_ray: (lenh_id: string) => goi<{ chang: ChangRay[] }>('test_duong_ray', lenh_id),
-  /** Mốc thời gian (unix, giây) → nến M1 CÓ THẬT gần nhất về phía sau. */
-  test_tim_moc: (t: number) => goi<{ j: number; t: number }>('test_tim_moc', t),
-  /** Tổng kết cả lượt chạy + đường vốn. Gọi MỘT lần lúc mở tab Thống kê. */
-  test_thong_ke: () => goi<ThongKeChay>('test_thong_ke'),
-
-  // --- lịch sử các lần chạy ---
-  test_lich_su: () =>
-    goi<{ ds: MucLichSu[]; dang_xem: string | null }>('test_lich_su'),
-  test_lich_su_xem: (ma: string) => goi<XemLichSu>('test_lich_su_xem', ma),
-  test_lich_su_chay: (ma: string) => goi<boolean>('test_lich_su_chay', ma),
-  test_lich_su_ten: (ma: string, ten: string) =>
-    goi<MucLichSu>('test_lich_su_ten', ma, ten),
-  test_lich_su_xoa: (ma: string) => goi<boolean>('test_lich_su_xoa', ma),
-
-  test_luot: (i: number) => goi<{ j: number; nen: number; tab: string }>('test_luot', i),
-  test_ghi_nhat_ky: () => goi<{ duong_dan: string }>('test_ghi_nhat_ky'),
-}
-
-/** Bề mặt của cửa sổ MÀN CHƠI (`api.ApiQC`). Mọi lỗi từ đây đã là một câu tiếng Việt. */
+ * Nhóm `cua_so_*` trùng TÊN với `py` nhưng là hàm KHÁC — mỗi cửa sổ một thể hiện, nên bấm
+ * ✕ ở Màn chơi chỉ đóng Màn chơi. Nhờ vậy `TitleBar` dùng lại được nguyên vẹn. */
 export const pyQC = {
   qc_boot: () => goi<BootQC>('qc_boot'),
   qc_khoa: () => goi<KhoaQC>('qc_khoa'),

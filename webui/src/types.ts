@@ -200,9 +200,6 @@ export interface Bootstrap {
   sua_che_do: Record<string, string>
   sua_can_gia: string[]
 
-  /** Bộ nến đã có trên máy — hộp thoại Cài đặt quản lý (xem · xoá · số MB). */
-  nguon: BoNen[]
-
   /** Đơn vị của những ô CỐ ĐỊNH ngoài điều kiện: `chu_ky` → nến, `lot` → lot. */
   don_vi_o: Record<string, string>
   template_kinds: Record<string, string>
@@ -238,33 +235,10 @@ export interface KetQuaSoat extends Reply<Problem[]> {
   luong?: Record<Tab, LuongSoDo>
 }
 
-
-/* ======================= STRATEGY TESTER =======================
- * Mọi hình dạng dưới đây do `api.ApiTester` sinh. Giao diện KHÔNG tự tính con số nào —
+/* ======================= KẾT QUẢ MỘT LƯỢT CHẠY =======================
+ * Do Python dựng (`qc_chay.KetQuaQC` · `nhat_ky`). Giao diện KHÔNG tự tính con số nào —
  * kể cả một phép cộng. Chữ trong nhật ký cũng do Python dựng (core.md §12.8).
  */
-
-export interface BoNen {
-  symbol: string
-  tu: number | null; den: number | null
-  tu_chu: string; den_chu: string
-  so_nen: number
-  /** Dung lượng đang chiếm — thứ người dùng cần để quyết có xoá không. */
-  mb: number
-  digits?: number; point?: number; contract_size?: number
-  /** Spread TRUNG VỊ đo trên chính dữ liệu đã tải — gợi ý cho ô spread. */
-  spread_tb?: number | null
-  tai_luc?: string
-}
-
-export interface TesterBoot {
-  phien_ban: string
-  accent?: string
-  doc: ProcessDoc | null
-  cai_dat: Record<string, unknown>
-  timeframes: string[]
-  nguon: BoNen[]
-}
 
 export interface ThongKe {
   so_lenh: number; so_dong: number; so_huy: number
@@ -293,69 +267,13 @@ export interface ThongKeChay {
   duong_von: [number, number, number][]
   /** Khoảng THẬT SỰ có nến. */
   t_dau: number; t_cuoi: number
-  /** Khoảng ĐÃ YÊU CẦU trong Cài đặt — lệch với trên là chuyện thường. */
+  /** Khoảng ĐÃ YÊU CẦU cho lượt chạy — lệch với trên là chuyện thường. */
   yc_tu: string; yc_den: string
   symbol: string
   nhip: { entry: string; manage: string }
 }
 
-/** Một mục lịch sử, bản GỌN cho danh sách. `ten === null` = mục mềm (bị cuốn chiếu);
- *  có tên = đã lưu, không bao giờ bị cuốn. */
-export interface MucLichSu {
-  ma: string
-  t: number
-  ten: string | null
-  ten_chien_luoc: string
-  van_tay: string
-  cai_dat: { symbol?: string; tu?: string; den?: string } & Record<string, unknown>
-  nguon: { symbol: string; so_nen: number; t_dau: number; t_cuoi: number }
-  thong_ke: ThongKe
-}
-
-export interface XemLichSu {
-  tom_tat: ThongKeChay
-  nguon: { symbol: string; so_nen: number; t_dau: number; t_cuoi: number }
-  ten: string | null
-  t: number
-  /** Nến nguồn còn khớp lúc chạy không — không khớp thì KHÔNG mở lại phát lại được. */
-  chay_lai_duoc: boolean
-  vi_sao: string
-}
-
-export interface KetQuaChay {
-  so_nen_m1: number; so_nen_truc: number; tf: string
-  t_dau: number; t_cuoi: number
-  thong_ke: ThongKe
-  /** Một dòng trả lời "so với lần trước thì sao" — vòng lặp nâng cấp model. */
-  so_hai_lan: string
-  digits: number
-}
-
-/** Cửa sổ nến M1 kết thúc Ở CON TRỎ. Không có nến nào bên phải — nến chưa xảy ra thì
- *  chưa tồn tại, đó là cả điểm của replay. */
-export interface CuaSoNen {
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]
-  j0: number; j: number
-}
-
-export interface LenhVe {
-  id: string; huong: string; trang_thai: string
-  t_dat: number; t_khop: number | null; t_dong: number | null
-  gia_dat: number | null; gia_khop: number | null; gia_dong: number | null
-  sl: number | null; tp: number | null
-  ly_do_dong: string | null; lot: number; lai_R: number | null
-  /** Đường đi của SL theo thời gian `[[t, sl], …]`, dựng từ chính nhật ký. Nhờ nó chart
-   *  vẽ được cái BẬC THANG lúc `Dời SL về hoà vốn` chạy — bản trước chỉ có SL cuối cùng
-   *  nên khoảnh khắc đó tàng hình. */
-  /** Lệnh do BÀI KIỂM đặt, không phải chiến lược — chart vẽ mờ, không nhãn. */
-  la_kiem?: boolean
-  sl_lich_su?: [number, number][]
-  /** Y hệt `sl_lich_su` nhưng cho TP. Cần riêng vì chế độ `Dời Take Profit` làm TP nhảy
-   *  bậc giữa đời lệnh — vẽ bằng mức cuối là lộ tương lai. */
-  tp_lich_su?: [number, number][]
-}
-
-/** SOI MỘT LƯỢT trên sơ đồ — do `api.test_soi_luot` bắn sang cửa sổ vẽ.
+/** SOI MỘT LƯỢT trên sơ đồ — do `api.ApiQC.qc_soi_luot` bắn sang cửa sổ vẽ.
  *
  *  `cong` mang MỌI cổng lượt đó đã thử, kèm vết TỪNG điều kiện theo đúng thứ tự các
  *  dòng trong hộp — nhờ vậy tô được tới đúng dòng điều kiện hỏng, không chỉ tô cả hộp. */
@@ -376,95 +294,6 @@ export interface SoiKhoi {
   /** `dat` của từng điều kiện, cùng thứ tự với `card.lines`. Rỗng = không tô dòng nào
    *  (khối không phải cổng, hoặc số điều kiện đã đổi từ lúc chạy). */
   dieuKien: boolean[]
-}
-
-/** Một chặng trên ĐƯỜNG RAY của một lệnh — xem `api.test_duong_ray`.
- *  `tab = null` nghĩa là chặng này do THỊ TRƯỜNG, không phải sơ đồ (khớp, chạm SL/TP). */
-export interface ChangRay {
-  tab: string | null
-  moc?: string
-  khoi: string[]
-  dem: number
-  viec: string[]
-  /** Chặng bắt đầu / kết thúc lúc nào. Cần cả hai: hiện theo `t`, nhưng `t_het` còn ở
-   *  tương lai thì con số lặp chưa chốt — in ra như đã xong là lộ tương lai. */
-  t: number
-  t_het: number
-}
-
-export interface DongBang { ten: string; gia_tri: number | string | boolean | null }
-
-export interface Khung {
-  j: number; i: number; t: number
-  bang: {
-    toan_hang: DongBang[]
-    engine: DongBang[]
-    tai_khoan: DongBang[]
-    /** Mỗi lệnh đang sống MỘT HÀNG — nhóm "Lệnh này" không có một giá trị duy nhất
-     *  tại nến i, vì Manage chạy một lượt cho mỗi lệnh. */
-    lenh: {
-      id: string; huong: string; da_khop: boolean
-      gia_vao: number | null; sl: number | null; tp: number | null
-      lai_R: number | null; sl_hoa_von: boolean; so_nen_song: number
-    }[]
-  }
-  lenh: LenhVe[]
-}
-
-export interface LoNhatKy {
-  tong: number; tu: number
-  dong: { i: number; nen: number; tab: string; lenh_id: string | null
-          co_viec: boolean; chu: string }[]
-}
-
-
-/** Tiến trình một lần chạy — backtest chạy trên luồng nền, giao diện hỏi 200 ms/lần.
- *  Ba giây im lặng không phân biệt được với treo. */
-export interface TrangThaiChay {
-  dang_chay: boolean
-  da: number; tong: number; chu: string
-  xong: KetQuaChay | null
-  loi: string | null
-}
-
-/** MỘT LÔ khung hình để PHÁT LẠI — cửa duy nhất dùng lúc phát.
- *
- * Mang đủ mọi thứ ba vùng cần cho ~300 nhịp, nên khi phát thì JS không hỏi Python một
- * câu nào. Gọi cầu nối 33 lần/giây thì phát sẽ giật, mà nhịp đều mới là thứ quan trọng
- * nhất khi xem nến hình thành. */
-export interface DoanPhat {
-  j0: number; n: number
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]
-  /** ZONE lớn dần trong cửa sổ lô: `[t_zone_mở, t_nến, đáy, đỉnh]`.
-   *
-   *  ⚠ Lô phải mang zone vì lúc phát lại `nhip()` KHÔNG hỏi Python câu nào. Thiếu nó
-   *  thì zone chỉ nhúc nhích ở đường NHẢY — bấm ▶ zone đứng yên, bấm "tới sự kiện" mới
-   *  thấy nó nhảy một phát. Lệnh không bị vậy vì lô vốn mang cả sự kiện tương lai và
-   *  `Chart` tự cắt theo `tBayGio`; giờ zone theo đúng luật đó. */
-  zone?: [number, number, number, number][]
-  /** BẢNG SỐ LIỆU: nhóm do `kho/` khai, hàng do SƠ ĐỒ quyết (`core.toan_hang_dung`),
-   *  mỗi hàng một mảng giá trị theo TỪNG khung hình. Không nhóm nào viết cứng ở JS —
-   *  thêm engine mới là bảng có ngay. */
-  bang: {
-    /** KHÔNG in ra. Giao diện chỉ dùng nó để biết chỗ kẻ một đường mảnh — xem
-     *  `BangSoLieu`. */
-    nhom: string
-    dong: {
-      ten: string
-      /** Bổ nghĩa: `M15·50·SMA`. Rỗng với toán hạng không có khung/chu kỳ. */
-      phu: string
-      gia_tri: (number | string | boolean | null)[]
-    }[]
-  }[]
-  lenh_song: {
-    id: string; huong: string; da_khop: boolean
-    loai: string; gia_dat: number | null
-    gia_vao: number | null; sl: number | null; tp: number | null
-    lai_R: number | null; sl_hoa_von: boolean
-  }[][]
-  tai_khoan: { cho: number; mo: number; gia: number }[]
-  lenh: LenhVe[]
-  nhat_ky: { i: number; j: number; co_viec: boolean; lenh_id: string | null; chu: string }[]
 }
 
 /* ======================= MÀN CHƠI — chạy trên QuantConnect ========================

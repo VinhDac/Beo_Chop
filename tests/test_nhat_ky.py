@@ -9,6 +9,8 @@ Nên bài này canh đúng những chỗ hỏng mà vẫn "trông có vẻ chạ
   3. **Ghi rồi đọc ngược không mất gì** — kể cả khi một khoá của lệnh trùng tên nhãn dòng.
   4. **Vân tay** đổi khi LOGIC đổi, không đổi khi chỉ kéo khối.
   5. Phân biệt "chưa có số" với "so xong thấy không đạt".
+  6. **Soi một lượt trên sơ đồ**: mỗi cổng mang đúng một vết cho mỗi điều kiện.
+  7. Chiến lược TRẮNG (chỉ có khối Bắt đầu) không làm vỡ lô nhật ký.
 
 Chạy:  python tests\\test_nhat_ky.py
 """
@@ -22,11 +24,10 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import api  # noqa: E402
 from cat_studio import bo_chay as bc  # noqa: E402
 from cat_studio import core  # noqa: E402
-from cat_studio import nguon_nen as nn  # noqa: E402
 from cat_studio import nhat_ky as nk  # noqa: E402
+from cat_studio import tinh_toan as tt  # noqa: E402
 
 dung = sai = 0
 
@@ -45,7 +46,7 @@ def kiem(ten, dk, chi_tiet=""):
 # Một lần chạy nhỏ trên dữ liệu giả — đủ để có cả lượt CÓ VIỆC lẫn lượt HẾT LƯỢT.
 def nen_m1(gia):
     g = np.asarray(gia, dtype=float)
-    a = np.empty(len(g), dtype=nn.DTYPE)
+    a = np.empty(len(g), dtype=tt.DTYPE)
     a["t"] = np.arange(0, len(g) * 60, 60, dtype=np.int64)[:len(g)]
     for k in ("o", "h", "l", "c"):
         a[k] = g
@@ -158,94 +159,17 @@ d6 = json.loads(json.dumps(d))
 d6["tham_so"][0]["gia_tri"] = 123.0
 kiem("đổi một THAM SỐ cũng đổi vân tay", nk._van_tay(d) != nk._van_tay(d6))
 
-# ================= 6. so hai lần chạy =================
-print("\n▸ So hai lần chạy")
-a = {"thong_ke": {"so_lenh": 10, "tong_R": 5.0, "ty_le_thang": 40.0, "drawdown_pt": 2.0},
-     "van_tay": "aaa"}
-b = {"thong_ke": {"so_lenh": 7, "tong_R": 8.0, "ty_le_thang": 40.0, "drawdown_pt": 2.0},
-     "van_tay": "aaa"}
-c = nk.so_hai_lan(a, b)
-kiem("nêu đúng thứ ĐỔI, bỏ qua thứ không đổi",
-     "-3 lệnh" in c and "+3.0 R" in c and "% thắng" not in c, f"— {c}")
-kiem("hai lần y hệt → nói y hệt", "y hệt" in nk.so_hai_lan(a, a))
-kiem("sơ đồ đã đổi thì nói ra — số khác nhau vì lý do khác hẳn",
-     "sơ đồ ĐÃ ĐỔI" in nk.so_hai_lan(a, dict(b, van_tay="bbb")))
-kiem("chưa có lần trước thì không bịa ra gì", nk.so_hai_lan(None, b) == "")
-
-# ================= 7. hai nút nhảy sự kiện là NGHỊCH ĐẢO của nhau =================
+# ================= 6. soi một lượt trên sơ đồ =================
 #
-# `test_luot_ke` và `test_luot_truoc` là hai nút ►► / ◄◄ trên thanh phát lại. Chúng chỉ
-# dùng được nếu là nghịch đảo thật của nhau: bấm tới rồi bấm lui phải về ĐÚNG chỗ cũ.
-# Hai cách hỏng, cả hai đều "trông có vẻ chạy":
-#   • điều kiện lỏng (`<=` thay vì `<`) → bấm ba lần vẫn đứng yên tại chỗ;
-#   • hai hàm hiểu "sự kiện" khác nhau → đi tới một đường, đi lui một đường khác.
-print("\n▸ Nhảy sự kiện — tới và lui phải là nghịch đảo")
+# `nk.ban_soi` dựng gói bắn sang CỬA SỔ VẼ để nó tô đường lượt đó đã đi (cửa sổ Màn chơi
+# gọi nó qua `KetQuaQC.soi`). Giao diện tô tới tận DÒNG điều kiện hỏng, và nó làm được
+# điều đó chỉ nhờ một giả định: `ve` có đúng một phần tử cho mỗi điều kiện của cổng, ĐÚNG
+# THỨ TỰ các dòng trong hộp. Giả định đó không nằm ở đâu ngoài đây — lệch một cái là giao
+# diện tô đỏ nhầm dòng, mà nhìn vẫn "có vẻ chạy". Bài này giữ nó.
+print("\n▸ Soi một lượt trên sơ đồ")
 
-# Giá lên xuống nhiều lần để có NHIỀU lượt có việc, không phải một lượt duy nhất.
-song = []
-for _ in range(6):
-    song += [90.0] * 12 + [110.0] * 12
-kq7 = bc.chay(d, nen_m1(song), cd)
-
-at = api.ApiTester(object())
-at._kq = kq7
-
-moc_that = [int(r["j"]) for r in kq7.nhat_ky if r["viec"]]
-kiem("dựng được lượt chạy có nhiều sự kiện để soi", len(moc_that) >= 3,
-     f"— {len(moc_that)} sự kiện")
-
-# Đi XUÔI từ trước điểm đầu tiên, rồi đi NGƯỢC từ sau điểm cuối — gom lại cả hai.
-#
-# ⚠ PHẢI có chặn. Đúng cái lỗi bài này canh (điều kiện lỏng `<=`) làm hàm trả về CHÍNH
-# chỗ đang đứng, nên vòng `while True` không bao giờ thoát: bài test treo thay vì trượt,
-# mà treo thì không ai đọc được nó hỏng ở đâu. Chặn ở gấp đôi số sự kiện thật.
-def di(buoc, tu):
-    ra, cur = [], tu
-    for _ in range(len(moc_that) * 2 + 4):
-        v = buoc(cur)["value"]
-        if v["j"] < 0:
-            return ra
-        ra.append(v["j"])
-        cur = v["j"]
-    return ra + ["KHÔNG DỪNG"]
-
-
-xuoi = di(at.test_luot_ke, -1)
-nguoc = di(at.test_luot_truoc, len(kq7.nen1))
-
-kiem("đi xuôi ghé đúng mọi sự kiện", xuoi == moc_that, f"— {len(xuoi)} chặng")
-kiem("đi ngược ghé ĐÚNG BẤY NHIÊU chặng đó — cùng một định nghĩa 'sự kiện'",
-     nguoc == list(reversed(moc_that)), f"— {len(nguoc)} chặng")
-
-# Đây là bài chặn cái bẫy `<=`: đứng ĐÚNG TRÊN một sự kiện mà bấm lui thì phải nhích
-# được sang sự kiện trước nó, không được trả về chính nó.
-dung_yen = [x for x in moc_that[1:]
-            if at.test_luot_truoc(x)["value"]["j"] == x]
-kiem("đứng đúng trên một sự kiện, bấm lui thì NHÍCH — không trả về chính nó",
-     not dung_yen, f"— {len(dung_yen)} chỗ đứng yên")
-
-vong = [(e, at.test_luot_ke(e)["value"]["j"]) for e in moc_that[:-1]]
-kiem("tới rồi lui về đúng chỗ cũ",
-     all(at.test_luot_truoc(ke)["value"]["j"] == e for e, ke in vong),
-     f"— {len(vong)} vòng")
-
-kiem("trước sự kiện đầu tiên thì báo hết (-1) — giao diện lấy đó làm hiệu lệnh về đầu",
-     at.test_luot_truoc(moc_that[0])["value"]["j"] == -1)
-kiem("sau sự kiện cuối cùng thì báo hết (-1)",
-     at.test_luot_ke(moc_that[-1])["value"]["j"] == -1)
-
-# ================= 8. đường ray của một lệnh =================
-#
-# Đường ray trả lời "lệnh này đi qua những khối nào". Nó GỘP các lượt giống nhau lại,
-# và chính chỗ gộp là chỗ dễ kể sai chuyện:
-#   • gộp TRƯỚC rồi mới xếp thời gian → một cục "manage ×22" nuốt cả các lượt trước lẫn
-#     sau lúc khớp, đẩy mốc "khớp" xuống dưới nó;
-#   • và vì cục đó mang dấu thời gian của lượt ĐẦU, con trỏ mới tới giữa chừng đã thấy
-#     đủ 22 — lộ tương lai, đúng thứ cả chart đang cấm.
-print("\n▸ Đường ray — gộp mà không được kể sai thứ tự")
-
-# Cần một lệnh CHỜ thật (đặt xong còn treo mấy nến rồi mới khớp) thì pha "trước khi
-# khớp" mới tồn tại. Lệnh thị trường khớp ngay nên không soi được chỗ này.
+# Lệnh CHỜ thật (đặt xong còn treo mấy nến rồi mới khớp) để có cả lượt có việc lẫn lượt
+# hết lượt ở cổng.
 # MỐC NEO = giá hiện tại, CỐ Ý: sơ đồ thử này không có cổng zone nào, nên không có
 # zone để neo vào. Trước đây một cỗ máy ẩn dựng sẵn zone cho mọi sơ đồ nên chỗ này
 # không phải khai gì — chính cái ẩn đó là thứ vừa bị bỏ.
@@ -270,83 +194,24 @@ g8 = core.make_action_step({
                     "phai": {"value": 1000.0}}]})
 g8["pos"] = [0.0, 0.0]
 d8 = core.normalize_process({
-    "name": "thử ray", "symbol": "X", "tham_so": d["tham_so"],
+    "name": "thử soi", "symbol": "X", "tham_so": d["tham_so"],
     "entry": {"steps": [bd, g8, v8],
               "edges": [{"from": bd["id"], "to": g8["id"], "port": "out"},
                         {"from": g8["id"], "to": v8["id"], "port": "out"}]},
     "manage": {"steps": [bdm8], "edges": []}})
 kq8 = bc.chay(d8, nen_m1([90.0] * 20 + [110.0] * 12 + [116.0] * 15), cd)
-at8 = api.ApiTester(object())
-at8._kq = kq8
 
-l8 = kq8.so.lenh[0]
-ray = at8.test_duong_ray(l8.id)["value"]["chang"]
-kiem("lệnh mẫu có pha CHỜ thật (đặt xong còn treo rồi mới khớp)",
-     l8.nen_khop is not None and l8.nen_khop > l8.nen_dat,
-     f"— đặt nến {l8.nen_dat}, khớp nến {l8.nen_khop}")
-
-vi_khop = next((k for k, c in enumerate(ray) if c.get("moc") == "khop"), -1)
-truoc = [c for c in ray[:vi_khop] if c["tab"] == "manage"]
-sau = [c for c in ray[vi_khop + 1:] if c["tab"] == "manage"]
-kiem("mốc KHỚP nằm giữa — có chặng manage cả trước lẫn sau nó",
-     vi_khop > 0 and truoc and sau,
-     f"— {len(truoc)} chặng trước, {len(sau)} chặng sau")
-
-kiem("thời gian không lùi dọc đường ray",
-     all(ray[k]["t"] <= ray[k + 1]["t"] for k in range(len(ray) - 1)))
-
-# Đây là bài chặn chính: một chặng KHÔNG được kéo dài vắt qua chặng kế tiếp. Gộp trước
-# rồi xếp sau là vi phạm đúng chỗ này.
-vat = [k for k in range(len(ray) - 1) if ray[k]["t_het"] > ray[k + 1]["t"]]
-kiem("không chặng nào gộp VẮT QUA một mốc sau nó", not vat,
-     f"— {len(vat)} chỗ vắt")
-
-# Cắt theo con trỏ phải ra một TIỀN TỐ liền mạch, không lỗ chỗ.
-moc_cat = int(kq8.nen5["t"][l8.nen_khop]) - 1
-cat = [c for c in ray if c["t"] <= moc_cat]
-kiem("cắt ở ngay trước lúc khớp → đúng phần đã xảy ra, chưa thấy 'khớp'",
-     cat == ray[:len(cat)] and all(c.get("moc") != "khop" for c in cat),
-     f"— {len(cat)}/{len(ray)} chặng")
-kiem("chặng còn dở thì `t_het` vẫn ở tương lai — giao diện lấy đó để KHÔNG in số lặp",
-     any(c["t_het"] > moc_cat for c in ray) or len(cat) == len(ray))
-
-# ================= 9. soi một lượt trên sơ đồ =================
-#
-# `test_soi_luot` bắn sang CỬA SỔ VẼ để nó tô đường lượt đó đã đi. Giao diện tô tới tận
-# DÒNG điều kiện hỏng, và nó làm được điều đó chỉ nhờ một giả định: `ve` có đúng một
-# phần tử cho mỗi điều kiện của cổng, ĐÚNG THỨ TỰ các dòng trong hộp. Giả định đó không
-# nằm ở đâu ngoài đây — lệch một cái là giao diện tô đỏ nhầm dòng, mà nhìn vẫn "có vẻ
-# chạy". Bài này giữ nó.
-print("\n▸ Soi một lượt trên sơ đồ")
-
-
-class ChaGia:
-    """Cửa sổ VẼ giả — chỉ để bắt xem tester bắn sang đúng chỗ."""
-    def __init__(self):
-        self.ban = []
-        self._khung = type("K", (), {"keo_len_truoc": lambda s: True})()
-
-    def _ban(self, ten, d):
-        self.ban.append((ten, d))
-
-
-cha = ChaGia()
-at9 = api.ApiTester(cha)
-at9._kq = kq8
-khoi9 = {s["id"]: s for s in d8["entry"]["steps"] + d8["manage"]["steps"]}
+khoi6 = {s["id"]: s for s in d8["entry"]["steps"] + d8["manage"]["steps"]}
 
 k_truot = next(k for k, r in enumerate(kq8.nhat_ky) if r["ket"] == "het_luot" and r["cong"])
-at9.test_soi_luot(k_truot)
-kiem("bắn sang CỬA SỔ VẼ, không phải cửa sổ tester",
-     len(cha.ban) == 1 and cha.ban[0][0] == "soi_luot")
-goi = cha.ban[0][1]   # ⚠ KHÔNG đặt tên `d`: `d` là sơ đồ gốc, các mục sau còn dùng
+goi = nk.ban_soi(kq8.doc, kq8.nhat_ky[k_truot], kq8.nen5)   # ⚠ KHÔNG đặt tên `d`
 kiem("mang đủ đường đi, cổng đã thử và nhãn để gọi tên khối",
      goi["duong"] and goi["cong"] and goi["chu"]
      and all(k in goi["nhan"] for k in goi["duong"]))
 
 # ĐÂY là hợp đồng: mỗi cổng có đúng một vết cho mỗi điều kiện, đúng thứ tự.
 lech = [c["khoi"] for c in goi["cong"]
-        if len(c["ve"]) != len(khoi9[c["khoi"]].get("conditions") or [])]
+        if len(c["ve"]) != len(khoi6[c["khoi"]].get("conditions") or [])]
 kiem("mỗi cổng: số VẾT khớp đúng số ĐIỀU KIỆN — giao diện tô theo chỉ số này",
      not lech, f"— {len(lech)} cổng lệch")
 
@@ -358,121 +223,36 @@ kiem("cổng ĐỖ thì mọi điều kiện đều đạt — không có cái n
      all(all(v["dat"] for v in c["ve"]) for c in goi["cong"] if c["khop"]))
 
 # Lượt CÓ VIỆC: đường đi phải dài hơn một khối, và mọi cổng trên đường đều có nhãn.
-cha.ban.clear()
 k_viec = next(k for k, r in enumerate(kq8.nhat_ky) if r["viec"])
-at9.test_soi_luot(k_viec)
-dv = cha.ban[0][1]
+dv = nk.ban_soi(kq8.doc, kq8.nhat_ky[k_viec], kq8.nen5)
 kiem("lượt có việc: đi qua nhiều khối, mọi cổng đã thử đều có nhãn",
      len(dv["duong"]) > 1 and all(c["khoi"] in dv["nhan"] for c in dv["cong"]),
      f"— {len(dv['duong'])} khối")
 
-cha.ban.clear()
-at9.test_soi_luot(999999)
-kiem("chỉ số ngoài khoảng thì im lặng, không bắn gì", not cha.ban)
-
-# ============ 10. hai lỗi đường ray đã sửa — canh không cho quay lại ============
-print("\n▸ Đường ray — thứ tự trong CÙNG một nến, và đoạn kết của lệnh treo")
-
-# (a) Khớp GIỮA nến trục. Manage chạy nhịp M1 nên một nến M5 đẻ ra 5 lượt; những lượt
-#     chạy TRƯỚC lúc khớp phải nằm TRÊN mốc "khớp". Xếp theo nến trục thôi thì cả 5 lượt
-#     bị đẩy xuống dưới — vẫn là kể sai thứ tự, chỉ ở thang đo nhỏ hơn một bậc.
-ray_a = at9.test_duong_ray(l8.id)["value"]["chang"]
-vk = next(k for k, c in enumerate(ray_a) if c.get("moc") == "khop")
-kiem("khớp giữa nến: có lượt Manage nằm TRÊN mốc khớp",
-     any(c["tab"] == "manage" for c in ray_a[:vk]),
-     f"— {sum(1 for c in ray_a[:vk] if c['tab'] == 'manage')} chặng")
-kiem("bộ chạy ghi lại nhịp M1 lúc khớp — thứ duy nhất xếp nổi thứ tự TRONG một nến",
-     getattr(l8, "j_khop", None) is not None, f"— j_khop = {getattr(l8, 'j_khop', None)}")
-
-# (b) Lệnh chờ không bao giờ khớp, treo tới hết dữ liệu. Nó bị đóng SAU vòng lặp nên
-#     KHÔNG có bản ghi nhật ký nào. Lọc theo chuỗi `ly_do_dong == "huy"` là loại nhầm nó
-#     cùng với lệnh bị khối "Huỷ chờ" huỷ — và đường ray im lặng, không có đoạn kết.
-v10 = json.loads(json.dumps(v8))
-v10["id"] = v8["id"] + "x"
-v10["dem"] = {"tinh": "gia", "value": 500.0}
-d10 = core.normalize_process({
-    "name": "treo", "symbol": "X", "tham_so": d["tham_so"],
-    "entry": {"steps": [bd, g8, v10],
-              "edges": [{"from": bd["id"], "to": g8["id"], "port": "out"},
-                        {"from": g8["id"], "to": v10["id"], "port": "out"}]},
-    "manage": {"steps": [bdm8], "edges": []}})
-kq10 = bc.chay(d10, nen_m1([90.0] * 10 + [110.0] * 20), cd)
-at10 = api.ApiTester(object())
-at10._kq = kq10
-l10 = kq10.so.lenh[0]
-ray_b = at10.test_duong_ray(l10.id)["value"]["chang"]
-kiem("lệnh mẫu treo tới hết dữ liệu, chưa khớp bao giờ",
-     l10.nen_khop is None and l10.ly_do_dong == "huy")
-kiem("đường ray của nó CÓ đoạn kết — không im lặng giữa chừng",
-     bool(ray_b) and ray_b[-1]["tab"] is None,
-     f"— chặng cuối {ray_b[-1].get('moc') if ray_b else None}")
-
-# Ngược lại: lệnh do chính SƠ ĐỒ huỷ đã có chặng `viec` kể rồi, không được kể thêm lần nữa.
-#
-# ⚠ `kq8` KHÔNG có lệnh nào bị sơ đồ huỷ (Manage của nó rỗng), nên tập `tu_huy` luôn
-# rỗng và phép kiểm dưới xanh vô điều kiện — nó không canh gì suốt một thời gian dài.
-# Dựng riêng một lần chạy CÓ huỷ: lệnh chờ STOP treo xa không bao giờ khớp, Manage mở
-# cổng rồi kết thúc nó.
-v11 = core.make_action_step({
-    "type": core.VAO_LENH, "name": "chờ xa", "huong": "mua", "loai": "stop",
-    "lot": 0.01, "entry": {"moc": "gia_hien_tai"},
-    "dem": {"tinh": "gia", "value": 500.0},          # treo xa, không nến nào chạm
-    "sl": {"tinh": "gia", "value": 1.0}})
-v11["pos"] = [0.0, 0.0]
-g11 = core.make_action_step({
-    "type": core.CHECK_COND, "name": "chưa khớp thì huỷ",
-    "conditions": [{"trai": {"ten": "lenh_da_khop"}, "phep": "la_sai"}]})
-g11["pos"] = [0.0, 0.0]
-h11 = core.make_action_step({"type": core.SUA_LENH, "name": "kết thúc",
-                             "che_do": "ket_thuc"})
-h11["pos"] = [0.0, 10.0]
-bdm11 = core.make_start_step("theo dõi", "M1")
-bdm11["pos"] = [0.0, 0.0]
-d11 = core.normalize_process({
-    "name": "thử huỷ", "symbol": "X", "tham_so": d["tham_so"],
-    "entry": {"steps": [bd, g8, v11],
-              "edges": [{"from": bd["id"], "to": g8["id"], "port": "out"},
-                        {"from": g8["id"], "to": v11["id"], "port": "out"}]},
-    "manage": {"steps": [bdm11, g11, h11],
-               "edges": [{"from": bdm11["id"], "to": g11["id"], "port": "out"},
-                         {"from": g11["id"], "to": h11["id"], "port": "out"}]}})
-kq11 = bc.chay(d11, nen_m1([110.0] * 40), cd)
-at11 = api.ApiTester(ChaGia())
-at11._kq = kq11
-
-tu_huy = {v["lenh_id"] for r in kq11.nhat_ky for v in r["viec"] if v["loai"] == "lenh_huy"}
-thua = [i for i in tu_huy
-        if any(c["tab"] is None and c.get("moc") not in (None, "khop")
-               for c in at11.test_duong_ray(i)["value"]["chang"])]
-# ⚠ CHỐT CHẶN: `tu_huy` rỗng thì `thua` cũng rỗng, và phép dưới xanh vô điều kiện — bài
-# kiểm không canh gì cả mà vẫn báo đạt. Bắt ngay tại chỗ.
-kiem("có lệnh nào do SƠ ĐỒ tự huỷ để mà canh (không thì phép dưới xanh giả)",
-     bool(tu_huy), f"— {len(tu_huy)} lệnh")
-kiem("sơ đồ tự huỷ thì chỉ kể MỘT lần, không chèn thêm mốc trùng", not thua,
-     f"— {len(tu_huy)} lệnh tự huỷ, {len(thua)} cái bị kể hai lần")
-
-print("\n--- 11. CHIẾN LƯỢC TRẮNG phải chạy được, không vỡ tester ---")
+# ================= 7. chiến lược trắng =================
+print("\n▸ CHIẾN LƯỢC TRẮNG phải chạy được, không vỡ lô nhật ký")
 #
 # Lỗi thật: `cuoi = r.get("cong") and r["cong"][-1]["khoi"]` — trong Python `[] and x`
 # trả về `[]`, KHÔNG phải `False`. Lượt nào không có cổng nào thì `cuoi` thành một list,
-# rồi `nhan.get(list)` ném TypeError và vỡ cả `test_doan`.
+# rồi `nhan.get(list)` ném TypeError và vỡ cả lô nhật ký.
 #
 # Ca đó không hề hiếm: `File → Mới` cho ra đúng hai khối Bắt đầu, không cổng nào. Thêm
 # `chu_ky_atr` cho đủ tham số là soát tĩnh 0 lỗi, backtest chạy ngon — bấm ▶ mới nổ.
-d11b = core.new_process()
-d11b["tham_so"] = [core.make_tham_so("chu_ky_atr", "", 14, "nen")]
-d11b = core.normalize_process(d11b)
+d7 = core.new_process()
+d7["tham_so"] = [core.make_tham_so("chu_ky_atr", "", 14, "nen")]
+d7 = core.normalize_process(d7)
 kiem("chiến lược trắng đi qua soát tĩnh sạch",
-     not [p for p in core.validate_process(d11b) if p["severity"] == "error"])
-kq11b = bc.chay(d11b, nen_m1([100.0] * 200), cd)
-_rong11 = [r for r in kq11b.nhat_ky if not r["viec"] and not r["cong"]]
+     not [p for p in core.validate_process(d7) if p["severity"] == "error"])
+kq7 = bc.chay(d7, nen_m1([100.0] * 200), cd)
+_rong7 = [r for r in kq7.nhat_ky if not r["viec"] and not r["cong"]]
 kiem("và sinh ra lượt KHÔNG việc KHÔNG cổng (đúng ca làm vỡ)",
-     bool(_rong11), f"— {len(_rong11)}/{len(kq11b.nhat_ky)} lượt")
-at11b = api.ApiTester(ChaGia())
-at11b._kq = kq11b
-_r11b = at11b.test_doan(0, 200)
-kiem("`test_doan` KHÔNG vỡ", bool(_r11b.get("ok")),
-     "" if _r11b.get("ok") else f"— {str(_r11b.get('error'))[:70]}")
+     bool(_rong7), f"— {len(_rong7)}/{len(kq7.nhat_ky)} lượt")
+try:
+    _lo7, _loi7 = nk.dung_lo(kq7, 0, 200, False), ""
+except Exception as e:          # đúng thứ bài này canh: vỡ thì phải ra chữ đỏ, không treo
+    _lo7, _loi7 = None, f"{type(e).__name__}: {e}"
+kiem("dựng lô nhật ký KHÔNG vỡ, mọi dòng đều có chữ",
+     bool(_lo7) and all(x["chu"] for x in _lo7["dong"]), _loi7 and f"— {_loi7[:70]}")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

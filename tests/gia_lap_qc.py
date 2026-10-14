@@ -17,7 +17,7 @@ vì thế không nằm im: lần chạy thật nào cũng tự khai nó đúng h
 """
 import random
 
-#: Đúng `nguon_nen.DTYPE` — chép số chứ không import, vì file này không được chạm repo.
+#: Đúng `tinh_toan.DTYPE` — chép số chứ không import, vì file này không được chạm repo.
 DTYPE = [("t", "<i8"), ("o", "<f8"), ("h", "<f8"), ("l", "<f8"), ("c", "<f8"),
          ("vol", "<i8")]
 

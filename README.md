@@ -5,7 +5,7 @@
 
 <p align="center">
   Vẽ sơ đồ khối cho một chiến lược giao dịch, mỗi khối mang <b>một số thứ tự do chính
-  bộ máy tính ra</b>, bấm ▶ Chạy để mở <b>Strategy Tester</b>.
+  bộ máy tính ra</b>, bấm <b>◆ Màn chơi</b> để chạy nó trên QuantConnect.
 </p>
 
 ---
@@ -161,7 +161,8 @@ tai_lieu/          sổ ghi cốt lõi
   core.md            VÌ SAO mọi thứ như vậy. Đọc file này trước.
   D02_Compress_ban_giao.md   bàn giao chiến lược gốc
 webui/             giao diện: React + TypeScript + React Flow
-                     src/qc/: cửa sổ Màn chơi · kiem/: bài kiểm chạy bằng node
+                     src/qc/: cửa sổ Màn chơi · src/chung/: bảng dưới dùng chung
+                     kiem/: bài kiểm chạy bằng node
 tests/             bộ test — không mở cửa sổ, không nối mạng thật
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI

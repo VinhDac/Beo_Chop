@@ -216,9 +216,9 @@ function Ung() {
 
   /* ---------------- SOI MỘT LƯỢT trên sơ đồ ----------------
    *
-   * Nhật ký ở cửa sổ tester trả lời "chuyện gì đã xảy ra" bằng chữ. Câu tiếp theo luôn
-   * là "chỗ nào trên sơ đồ", mà dò tay 20 hộp thì mất cả phút. Chuột phải một dòng →
-   * cửa sổ này nhảy lên trước và tự tô đúng đường lượt đó đã đi. */
+   * Bảng «Vì sao» ở cửa sổ Màn chơi trả lời "chuyện gì đã xảy ra" bằng chữ. Câu tiếp
+   * theo luôn là "chỗ nào trên sơ đồ", mà dò tay 20 hộp thì mất cả phút. Chuột phải một
+   * dòng → cửa sổ này nhảy lên trước và tự tô đúng đường lượt đó đã đi. */
   const [soi, setSoi] = useState<SoiLuot | null>(null)
   const soiRef = useRef<((d: SoiLuot) => void) | null>(null)
   soiRef.current = (d: SoiLuot) => {
@@ -774,22 +774,9 @@ function Ung() {
     ghi(`đã ngắt ${dinh.length} kết nối (Ctrl+Z để lấy lại)`)
   }, [edges, chup, setEdges, ghi])
 
-  /* ------------------------------- ▶ Chạy --------------------------------- */
-  const chay = useCallback(async () => {
-    const r = await py.mo_tester(layDoc())
-    if (!r.ok) {
-      const ds = ((r as any).loi as Problem[] | undefined)?.map(p => '✖ ' + p.message).join('\n\n')
-      window.alert((r.error ?? 'không chạy được') + (ds ? '\n\n' + ds : ''))
-      setTabDuoi('van-de')
-      return
-    }
-    ghi('▶ mở Strategy Tester', 'ok')
-    setTrangThai('đã mở Strategy Tester')
-  }, [layDoc, ghi])
-
   /* ------------------------------ ◆ Màn chơi ------------------------------
-   * Chạy cỗ máy trên QuantConnect (D-05 · D-06). Cùng cổng chặn với ▶ Test: sơ đồ còn
-   * lỗi thì không mở, và liệt kê lỗi y hệt. */
+   * Chạy cỗ máy trên QuantConnect (D-05 · D-06). Sơ đồ còn lỗi thì không mở, và liệt kê
+   * đúng những lỗi bảng Vấn đề đang hiện. */
   const moQC = useCallback(async () => {
     const r = await py.mo_qc(layDoc())
     if (!r.ok) {
@@ -1029,16 +1016,16 @@ function Ung() {
       else if (ctrl && ev.key.toLowerCase() === 'v') { ev.preventDefault(); danKhoi() }
       else if (ctrl && ev.key.toLowerCase() === 's') { ev.preventDefault(); luu() }
       else if (ctrl && ev.key.toLowerCase() === 'g') { ev.preventDefault(); doiGhim() }
-      // Ctrl+R: `preventDefault` BẮT BUỘC — mặc định của Chromium là nạp lại trang, tức
-      // mất trắng sơ đồ đang vẽ dở. Chặn nó cũng là một cái lợi kèm theo.
-      else if (ctrl && ev.key.toLowerCase() === 'r') { ev.preventDefault(); void chay() }
+      // Ctrl+R: vẫn CHẶN dù không còn gán việc gì — mặc định của Chromium là nạp lại
+      // trang, tức mất trắng sơ đồ đang vẽ dở.
+      else if (ctrl && ev.key.toLowerCase() === 'r') { ev.preventDefault() }
       else if (ctrl && ev.key.toLowerCase() === 'm') { ev.preventDefault(); void moQC() }
       else if (ev.key === 'Delete') { ev.preventDefault(); xoa() }
       else if (ev.key === 'F2') { ev.preventDefault(); doiTen() }
     }
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, chay, moQC])
+  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, moQC])
 
   /* Kéo hộp: chụp ảnh MỘT lần lúc bắt đầu kéo, không phải mỗi frame — nếu không thì một
      cú kéo tạo ra 60 bước undo và Ctrl+Z thành vô dụng. */
@@ -1132,9 +1119,8 @@ function Ung() {
                                      xong: t => { setMoPicker(null); void themKhoiTu(t) } }) },
       { ten: 'Sơ đồ mẫu Compress (xem thử)', onClick: moMau },
       { ngan: true },
-      // Trỏ thẳng về `chay` — đúng hàm mà nút ▶ trên ribbon gọi, nên hai lối vào không
-      // thể lệch nhau (cùng luật với 4 menu còn lại).
-      { ten: 'Mở Strategy Tester', icon: 'chay', phim: 'Ctrl+R', onClick: chay },
+      // Trỏ thẳng về `moQC` — đúng hàm mà nút ◆ trên ribbon gọi, nên hai lối vào không
+      // thể lệch nhau.
       { ten: 'Mở Màn chơi (QuantConnect)', icon: 'chay', phim: 'Ctrl+M', onClick: moQC },
       { ngan: true },
       { ten: 'Lưu thành template…', icon: 'save', onClick: luu },
@@ -1179,7 +1165,7 @@ function Ung() {
     ] },
   ], [soDoMoi, moFile, moMau, luu, luuRaFile, moChienLuoc, hoanTac, lamLai, coLui, coToi,
       chepKhoi, danKhoi, nhanBan, doiGhim, xoa, dangChon, zoomIn, zoomOut, fitView,
-      panelGap, boot, setMoKho, setMoThamSo, chay, themKhoiTu])
+      panelGap, boot, setMoKho, setMoThamSo, moQC, themKhoiTu])
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
@@ -1204,7 +1190,6 @@ function Ung() {
         mucLuu={mucLuu} mucMo={mucMo}
         ten={ten} datTen={setTen}
         symbol={symbol} datSymbol={setSymbol}
-        chay={chay}
         manChoi={moQC}
         coChon={dangChon.length > 0}
         chonDaGhim={dangChon.length > 0

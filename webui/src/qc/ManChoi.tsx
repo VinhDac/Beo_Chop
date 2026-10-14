@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cho_cau_noi, py, pyQC } from '../api'
 import { useKhungCuaSo } from '../useKhungCuaSo'
 import TitleBar, { type NhomMenu } from '../components/TitleBar'
-import BangDuoi from '../tester/BangDuoi'
-import Journey, { type DongNk } from '../tester/Journey'
-import ThongKe from '../tester/ThongKe'
+import BangDuoi from '../chung/BangDuoi'
+import Journey, { type DongNk } from '../chung/Journey'
+import ThongKe from '../chung/ThongKe'
 import HopKhoa from './HopKhoa'
 import type {
   BootQC, DongNkQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, ManQC, MucLichSuQC,
@@ -214,7 +214,7 @@ export default function ManChoi() {
 
   /* ------------------------------ dữ liệu cho bảng ------------------------------ */
   const dongNk: DongNk[] = useMemo(
-    () => nk.map(d => ({ i: d.i, j: d.i, co_viec: d.co_viec, lenh_id: d.lenh_id, chu: d.chu })),
+    () => nk.map(d => ({ i: d.i, co_viec: d.co_viec, lenh_id: d.lenh_id, chu: d.chu })),
     [nk])
 
   const thongKe: ThongKeChay | null = useMemo(() => kq && ({
@@ -318,7 +318,7 @@ export default function ManChoi() {
                 <div className="nk-moc">
                   ▶ {kq.ten} · {kq.symbol} {kq.tu} → {kq.den} · chuột phải một dòng → «Xem trên sơ đồ»
                 </div>
-                <Journey dong={dongNk} jBayGio={-1} chiViec={chiViec} soi={soi} />
+                <Journey dong={dongNk} chiViec={chiViec} soi={soi} />
                 {nk.length < nkTong && (
                   <button className="nut-nho mc-them" onClick={() => napNk(nk.length, chiViec)}>
                     tải thêm {Math.min(LO_NK, nkTong - nk.length)} dòng ({nk.length}/{nkTong})
@@ -332,7 +332,7 @@ export default function ManChoi() {
                  chỉ dòng có việc
                </label> },
         { khoa: 'thong-ke', nhan: 'Thống kê',
-          ve: () => thongKe ? <ThongKe nguon={null} thoiXem={() => {}} du={thongKe} />
+          ve: () => thongKe ? <ThongKe d={thongKe} />
                             : <div className="cd-rong">Chưa có lượt nào.</div> },
         { khoa: 'lenh', nhan: 'Lệnh', dem: kq ? lenh.length : undefined,
           ve: () => <BangLenh ds={lenh} /> },

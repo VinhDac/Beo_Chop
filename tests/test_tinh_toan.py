@@ -25,7 +25,6 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import nguon_nen as nn  # noqa: E402
 from cat_studio import tinh_toan as tt  # noqa: E402
 
 dung = sai = 0
@@ -46,7 +45,7 @@ def gan(a, b, sai_so=1e-9):
 
 
 def nen(ts, o, h, l, c, vol=None):
-    a = np.empty(len(ts), dtype=nn.DTYPE)
+    a = np.empty(len(ts), dtype=tt.DTYPE)
     a["t"], a["o"], a["h"], a["l"], a["c"] = ts, o, h, l, c
     a["vol"] = 1 if vol is None else vol
     return a
@@ -162,7 +161,7 @@ kiem("ô GIỮA thiếu vài phút vẫn giữ — nó đã đóng thật, sàn 
 kiem("chart muốn thấy cây nến đang chạy thì xin `giu_nen_do_dang=True`",
      len(tt.gop(do_dang, "M5", giu_nen_do_dang=True)) == 2)
 kiem("gộp lên M1 là phép đồng nhất", tt.gop(m1, "M1") is m1)
-kiem("mảng rỗng không nổ", len(tt.gop(np.empty(0, dtype=nn.DTYPE), "M15")) == 0)
+kiem("mảng rỗng không nổ", len(tt.gop(np.empty(0, dtype=tt.DTYPE), "M15")) == 0)
 
 # ================= 6. Không nhìn trước tương lai =================
 print("\n▸ Khung lớn KHÔNG được nhìn trước tương lai")

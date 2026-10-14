@@ -31,8 +31,7 @@ import tokenize
 from datetime import datetime, timezone
 
 #: Module nhúng: (tên khi import, đường dẫn trong repo). Đúng những gì `bo_chay` và cầu
-#: nối cần — KHÔNG có `api`, `nguon_nen`: chúng kéo theo cửa sổ Win32 và kho nến trên
-#: máy, thứ cloud không có.
+#: nối cần — KHÔNG có `api`: nó kéo theo cửa sổ Win32, thứ cloud không có.
 NGUON = [
     ("cat_studio", "cat_studio/__init__.py"),
     ("cat_studio.luu_tru", "cat_studio/luu_tru.py"),

@@ -36,12 +36,8 @@ from . import game
 from . import qc_api
 from . import qc_chay
 from . import bo_chay
-from . import lich_su
 from . import luu_tru
-from . import nguon_nen
-from . import nhat_ky
 from . import so_lenh
-from . import tinh_toan
 
 
 def _bat_loi(fn):
@@ -197,15 +193,15 @@ class NenCuaSo:
     """Phần CHUNG của một cửa sổ tự vẽ khung: giữ cửa sổ của CHÍNH MÌNH và vá khung
     của CHÍNH MÌNH.
 
-    ⚠ Vì sao phải tách ra thành lớp nền — ba lỗi đã có thật, không phải giả định:
+    ⚠ Vì sao phải tách ra thành lớp nền — ba lỗi đã có thật, không phải giả định (gặp ở
+    cửa sổ thứ hai đầu tiên của app, Strategy Tester, nay đã bỏ — cửa sổ Màn chơi y vậy):
 
-      1. `_mo_cua_so_tester` truyền `js_api=self`, tức cửa sổ tester dùng CHUNG một
-         `Api` với cửa sổ chính, mà `self._window` lại trỏ cửa sổ chính. Bấm ✕ trên
-         thanh tiêu đề tự vẽ của tester gọi `cua_so_dong()` → `self._window.destroy()`
-         → ĐÓNG CỬA SỔ CHÍNH. Thu nhỏ, phóng to, đổi tiêu đề, hộp thoại file: nhắm
-         nhầm cửa sổ y hệt.
+      1. Mở cửa sổ thứ hai với `js_api=self`, tức nó dùng CHUNG một `Api` với cửa sổ
+         chính, mà `self._window` lại trỏ cửa sổ chính. Bấm ✕ trên thanh tiêu đề tự vẽ
+         của cửa sổ thứ hai gọi `cua_so_dong()` → `self._window.destroy()` → ĐÓNG CỬA SỔ
+         CHÍNH. Thu nhỏ, phóng to, đổi tiêu đề, hộp thoại file: nhắm nhầm cửa sổ y hệt.
       2. `KhungTuVe` giữ đúng MỘT `hwnd` và MỘT bảng vùng-cấm. Kéo thanh tiêu đề của
-         tester `PostMessage` vào hwnd cửa sổ chính → kéo nhầm cửa sổ.
+         cửa sổ thứ hai `PostMessage` vào hwnd cửa sổ chính → kéo nhầm cửa sổ.
       3. Hai cửa sổ ghi đè vùng cấm của nhau, nên chỗ có nút bấm ở cửa sổ này lại
          thành chỗ kéo được ở cửa sổ kia.
 
@@ -296,15 +292,12 @@ class Api(NenCuaSo):
 
     def __init__(self):
         super().__init__()
-        self._tester = None          # cửa sổ Strategy Tester (pywebview Window)
-        self._api_tester = None      # Api RIÊNG của cửa sổ đó
         self._qc = None              # cửa sổ Màn chơi (chạy trên QuantConnect)
         self._api_qc = None
         self._doc_qc = None
         #: Việc chạy QC sống ở CỬA SỔ CHÍNH, không ở cửa sổ Màn chơi: đóng cửa sổ lúc đang
         #: chạy rồi mở lại vẫn thấy đúng lượt đó, không mất tiến độ hay kết quả.
         self._viec_qc = None
-        self._doc_tester = None
         self._cai_dat = core.load_settings()
         self._khoa = threading.Lock()
 
@@ -323,7 +316,6 @@ class Api(NenCuaSo):
             "phien_ban": core.PHIEN_BAN,
             "settings": self._cai_dat,
             "app_dir": core.app_dir(),
-            "nguon": nguon_nen.liet_ke(),
 
             "kinds": [core.KIND_START, core.KIND_ACTION],
             "kind_labels": core.KIND_LABELS,
@@ -562,26 +554,14 @@ class Api(NenCuaSo):
 
     # ------------------------------------------------------------------ chạy
     @_bat_loi
-    def mo_tester(self, doc):
-        """▶ Chạy — mở cửa sổ Strategy Tester.
-
-        Chặn TRƯỚC nếu còn lỗi ở BẤT KỲ tab nào: mở tester ra để nó báo lại đúng mấy
-        lỗi mà bảng Vấn đề đã hiện sẵn là bắt người dùng đi hai vòng cho một thông tin."""
-        probs = core.validate_process(doc)
-        loi = [p for p in probs if p["severity"] == "error"]
-        if loi:
-            return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
-        canh_bao = [p for p in probs if p["severity"] == "warning"]
-        d = core.normalize_process(doc)
-        self._mo_cua_so_tester(d)
-        return _ok({"da_mo": True}, canh_bao=canh_bao)
-
-    @_bat_loi
     def mo_qc(self, doc):
         """◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect (D-03 · D-05 · D-06).
 
-        Chặn TRƯỚC nếu sơ đồ còn lỗi, y ▶ Test. Cửa sổ còn sống thì giữ, chỉ nạp sơ đồ mới
-        và kéo lên trước — y lý do của `_mo_cua_so_tester`."""
+        Chặn TRƯỚC nếu sơ đồ còn lỗi: mở cửa sổ ra để nó báo lại đúng mấy lỗi mà bảng Vấn
+        đề đã hiện sẵn là bắt người chơi đi hai vòng cho một thông tin.
+
+        CỬA SỔ CÒN SỐNG THÌ GIỮ, chỉ nạp sơ đồ mới và kéo lên trước: vòng chơi thật là
+        *sửa → chạy → so*, huỷ rồi tạo lại mỗi lần là mất lượt đang xem, mất bộ lọc nhật ký."""
         probs = core.validate_process(doc)
         loi = [p for p in probs if p["severity"] == "error"]
         if loi:
@@ -595,13 +575,18 @@ class Api(NenCuaSo):
             return _ok({"da_mo": True})
 
         import webview
+        # Trang giao diện chắc chắn đã có: thiếu nó thì cửa sổ chính đã không mở lên được
+        # (`app_web.main`), nên ở đây không có nhánh "chưa build".
+        #
+        # ⚠ KHÔNG được viết `file:///{trang}`. pywebview coi mọi url mở đầu `file://` là
+        # KHÔNG phải local url nên không dựng http server cho cửa sổ đó, mà trang build ra
+        # là ES module → origin "null" → Chromium chặn → TRANG TRẮNG. Truyền đường dẫn cục
+        # bộ TRẦN thì pywebview tự phục vụ qua http.
         trang = luu_tru.trang_giao_dien()
-        co_trang = os.path.exists(trang)
         self._api_qc = ApiQC(self)
         self._qc = webview.create_window(
             f"{d['name']} — Màn chơi",
-            url=f"{trang.replace(os.sep, '/')}?qc=1" if co_trang else None,
-            html=None if co_trang else _TRANG_TESTER_TAM,
+            url=f"{trang.replace(os.sep, '/')}?qc=1",
             js_api=self._api_qc,              # ⚠ KHÔNG phải `self` — xem `NenCuaSo`
             width=1180, height=800, min_size=(900, 600),
             background_color="#202020",
@@ -613,59 +598,12 @@ class Api(NenCuaSo):
             self._api_qc = None
 
         self._qc.events.closed += quen_di
-        # Khớp theo "— Màn chơi" — cùng luật với tester: tên chiến lược chứa gì cũng
-        # được, không được để nó làm vá nhầm cửa sổ.
+        # Vá khung phải đợi cửa sổ được map xong — `_va_khung` tự thử lại. Khớp theo
+        # "— Màn chơi" chứ không theo tên chiến lược: tên có thể chứa bất cứ chữ gì, kể cả
+        # "Cat Studio", và khớp nhầm là vá lên cửa sổ chính.
         aq = self._api_qc
         threading.Thread(target=lambda: aq._va_khung("— Màn chơi"), daemon=True).start()
         return _ok({"da_mo": True})
-
-    def _mo_cua_so_tester(self, doc):
-        """Cửa sổ thứ hai.
-
-        CỬA SỔ CÒN SỐNG THÌ GIỮ, chỉ nạp sơ đồ mới. Bản cũ huỷ rồi tạo lại mỗi lần bấm
-        ▶ — mà vòng lặp debug thật là *sửa → chạy → so*, nên mỗi lần chạy là mất con
-        trỏ nến, mất mức thu phóng, mất vị trí cuộn nhật ký, mất cả bộ lọc đang đặt."""
-        self._doc_tester = doc
-        if self._tester is not None:
-            self._tester.set_title(f"{doc['name']} — Strategy Tester")
-            # Cửa sổ còn sống: đẩy sơ đồ mới xuống, nó TỰ CHẠY LẠI. Bấm ▶ là chạy, không
-            # phải mở ra một bảng cài đặt nữa rồi bấm tiếp.
-            self._api_tester._ban("so_do_moi", doc)
-            return
-
-        import webview
-        trang = luu_tru.trang_giao_dien()
-        co_trang = os.path.exists(trang)
-
-        # ⚠ KHÔNG được viết `file:///{trang}`. pywebview coi mọi url mở đầu `file://`
-        # là KHÔNG phải local url nên không dựng http server cho cửa sổ đó, mà trang
-        # build ra là ES module (`<script type="module" crossorigin>`) → origin "null"
-        # → Chromium chặn → TRANG TRẮNG. Đúng bài học `app_web.py` đã ghi cho cửa sổ
-        # chính. Truyền đường dẫn cục bộ TRẦN thì pywebview tự phục vụ qua http.
-        self._api_tester = ApiTester(self)
-        self._tester = webview.create_window(
-            f"{doc['name']} — Strategy Tester",
-            url=f"{trang.replace(os.sep, '/')}?tester=1" if co_trang else None,
-            html=None if co_trang else _TRANG_TESTER_TAM,
-            js_api=self._api_tester,          # ⚠ KHÔNG phải `self` — xem `NenCuaSo`
-            width=1180, height=780, min_size=(900, 600),
-            background_color="#202020",
-            frameless=True, easy_drag=False)
-        self._api_tester._gan_window(self._tester)
-
-        def quen_di():
-            """Người dùng đóng tester → quên tham chiếu, nếu không lần bấm ▶ sau sẽ
-            `set_title` lên một cửa sổ đã chết."""
-            self._tester = None
-            self._api_tester = None
-
-        self._tester.events.closed += quen_di
-        # Vá khung phải đợi cửa sổ được map xong — `_va_khung` tự thử lại. Khớp theo
-        # "— Strategy Tester" chứ không theo tên chiến lược: tên có thể chứa bất cứ
-        # chữ gì, kể cả "Cat Studio", và khớp nhầm là vá lên cửa sổ chính.
-        at = self._api_tester
-        threading.Thread(target=lambda: at._va_khung("— Strategy Tester"),
-                         daemon=True).start()
 
     # ------------------------------------------------------------------ kho
     @_bat_loi
@@ -702,44 +640,6 @@ class Api(NenCuaSo):
         return _ok(self._cai_dat)
 
     @_bat_loi
-    def save_test_settings(self, t):
-        """Điều kiện chạy Strategy Test. Danh sách trắng RIÊNG, không nhét vào
-        `save_settings`: hàm kia đang giữ nghĩa "cài đặt của trình soạn thảo", trộn vào
-        là hai thứ khác hẳn nhau cùng một cửa và sớm muộn giẫm chân nhau."""
-        t = t or {}
-        cu = dict(luu_tru.CAI_DAT_MAC_DINH["test"])
-        cu.update(self._cai_dat.get("test") or {})
-        for k in ("tu", "den"):
-            if k in t:
-                cu[k] = str(t[k]).strip()
-        if t.get("symbol"):
-            cu["symbol"] = str(t["symbol"]).strip().upper()
-        for k in ("spread_diem", "deposit", "commission"):
-            if k in t:
-                try:
-                    cu[k] = float(t[k])
-                except (TypeError, ValueError):
-                    pass
-        for k in ("don_bay", "delay_ms"):
-            if k in t:
-                try:
-                    cu[k] = int(t[k])
-                except (TypeError, ValueError):
-                    pass
-        cd = dict(self._cai_dat)
-        cd["test"] = cu
-        self._cai_dat = core.save_settings(cd)
-        return _ok(cu)
-
-    # ---------------------------------------------------------- nguồn dữ liệu
-    # Nằm ở Api CHÍNH vì kho nến là tài sản của APP, không phải của một lần chạy: mọi
-    # chiến lược dùng chung, và xoá thì xoá hẳn.
-    @_bat_loi
-    def nguon_xoa(self, symbol):
-        nguon_nen.xoa(symbol)
-        return _ok({"ds": nguon_nen.liet_ke()})
-
-    @_bat_loi
     def save_ui(self, state):
         """Bố cục bảng dưới.
 
@@ -755,704 +655,13 @@ class Api(NenCuaSo):
         return _ok(ui)
 
     def dong_app(self):
-        """Cửa sổ chính đóng — dọn cửa sổ tester theo. KHÔNG bọc `_bat_loi`: pywebview
+        """Cửa sổ chính đóng — dọn cửa sổ Màn chơi theo. KHÔNG bọc `_bat_loi`: pywebview
         gọi nó từ sự kiện `closing`, không phải từ JS."""
-        try:
-            if self._tester:
-                self._tester.destroy()
-        except Exception:
-            pass
         try:
             if self._qc:
                 self._qc.destroy()
         except Exception:
             pass
-
-
-#: Chart của tester nhận tối đa ngần này nến một lần (~ 8 tháng M5). Hơn nữa thì gói
-#: qua cầu nối pywebview (đồng bộ, mã hoá payload hai lần) nặng mà mắt không đọc thêm được.
-TRAN_NEN_CHART = 60000
-
-
-class ApiTester(NenCuaSo):
-    """Bề mặt của CỬA SỔ Strategy Tester. Tách hẳn khỏi `Api` — xem `NenCuaSo`.
-
-    Cố ý HẸP: cửa sổ tester không được lưu chiến lược, không mở hộp thoại file, không
-    đổi cài đặt. Nó chỉ đọc sơ đồ đã đóng băng rồi chạy. Bề mặt hẹp là cách rẻ nhất để
-    một cửa sổ phụ không lặng lẽ sửa trạng thái của cửa sổ chính."""
-
-    _HAU_TO = "Strategy Tester"
-
-    def __init__(self, cha):
-        super().__init__()
-        self._cha = cha          # `Api` của cửa sổ chính — chỉ ĐỌC
-        self._kq = None          # kết quả lần chạy gần nhất (bất biến)
-        self._cd = None
-        self._chi_co_viec = True
-
-    @_bat_loi
-    def ping(self):
-        return _ok("pong")
-
-    @_bat_loi
-    def bootstrap_tester(self):
-        """Mọi thứ giao diện tester cần, lấy MỘT lần lúc mở cửa sổ."""
-        return _ok({
-            "phien_ban": core.PHIEN_BAN,
-            "accent": (self._cha._cai_dat or {}).get("accent"),
-            "doc": self._cha._doc_tester,
-            # Điều kiện chạy do CỬA SỔ CHÍNH giữ (File → Cài đặt → Strategy Test).
-            # Tester chỉ đọc rồi chạy — nó không có ô nhập nào.
-            "cai_dat": (self._cha._cai_dat or {}).get("test") or {},
-            "timeframes": core.TIMEFRAMES,
-        })
-
-    # ------------------------------------------------------------- chạy
-    @_bat_loi
-    def test_chay(self, ci):
-        """▶ Chạy backtest TRÊN LUỒNG NỀN, trả về ngay. Giao diện hỏi `test_trang_thai`.
-
-        Chạy nền chứ không đồng bộ vì người dùng phải THẤY tiến trình: một năm mất ~3
-        giây, và ba giây im lặng thì không phân biệt được với treo. Luồng nền ở đây an
-        toàn vì nó KHÔNG chia sẻ trạng thái nào — nó dựng một `KetQua` mới rồi mới gán
-        vào `self._kq` bằng một phép gán duy nhất."""
-        self._ma_lich_su = None      # ▶ thường = lần chạy MỚI, không phải mở lại mục cũ
-        self._tt = {"dang_chay": True, "da": 0, "tong": 0, "chu": "đang nạp nến…",
-                    "xong": None, "loi": None}
-        threading.Thread(target=self._chay_nen, args=(ci or {},), daemon=True).start()
-        return _ok(True)
-
-    @_bat_loi
-    def test_trang_thai(self):
-        """Tiến trình lần chạy đang diễn ra. Giao diện hỏi ~200 ms một lần."""
-        return _ok(getattr(self, "_tt", {"dang_chay": False}))
-
-    def _chay_nen(self, ci, doc=None):
-        try:
-            self._tt.update(self._chay_that(ci, doc))
-        except Exception as e:
-            self._tt.update({"loi": f"{type(e).__name__}: {e}"})
-        finally:
-            self._tt["dang_chay"] = False
-
-    def _kiem_du_nen(self, sym, tu, den):
-        """Kho nến trên máy có đủ cho khoảng này không — thiếu ĐẦU thì dừng và nói rõ.
-
-        App KHÔNG còn nguồn tải nến (DECISIONS.md D-09: app chỉ phục vụ QuantConnect, mà
-        dữ liệu của QC không được mang về máy). Tester chỉ chạy trên những bộ nến đã có
-        trong `du_lieu/nen/`.
-
-        Thiếu phần ĐẦU khoảng thì chặn: chạy tiếp trên một khoảng ngắn hơn là người dùng
-        tưởng mình đang thử từ 2015 trong khi thật ra từ 2016. Thiếu phần ĐUÔI thì cho
-        chạy — bảng Thống kê luôn in khoảng THẬT SỰ có nến cạnh khoảng đã đặt."""
-        # ⚠ Chặn khoảng RỖNG ngay đây. `khoang_thieu` trả `[]` cho cả hai trường hợp
-        # "đã đủ nến" LẪN "không đọc nổi mốc thời gian" — mà `[]` nghĩa là "đủ rồi".
-        t0 = nguon_nen.thoi_diem(tu)
-        if t0 is None or nguon_nen.thoi_diem(den) is None:
-            raise RuntimeError(
-                "Chưa đặt khoảng thời gian để chạy.\n\n"
-                "Mở Cài đặt → Strategy Test và điền hai ô Từ / Đến "
-                "(dạng 2025-01-01), rồi bấm ▶ lại.")
-        thieu = nguon_nen.khoang_thieu(sym, tu, den)
-        if not thieu or thieu[0][0] > t0:       # đủ, hoặc chỉ hụt phần đuôi
-            return
-        tt = nguon_nen.tom_tat(sym)
-        co = (f"Trên máy chỉ có {sym} từ {tt['tu_chu'][:10]} đến {tt['den_chu'][:10]}."
-              if tt.get("so_nen") else f"Trên máy chưa có bộ nến {sym} nào.")
-        raise RuntimeError(
-            f"Thiếu nến {sym} khoảng {nguon_nen._ngay(thieu[0][0])[:10]} → "
-            f"{nguon_nen._ngay(thieu[0][1])[:10]}.\n{co}\n\n"
-            "App không tải nến. Sửa ô Từ / Đến ở Cài đặt → Strategy Test cho nằm trong "
-            "khoảng đã có rồi chạy lại.")
-
-    def _chay_that(self, ci, doc=None):
-        # ĐỌC LẠI cài đặt từ cửa sổ chính mỗi lần chạy, không dùng bản JS nhớ từ lúc mở
-        # cửa sổ: người dùng sửa Cài đặt rồi bấm ▶ lại thì phải ăn ngay. Cửa sổ tester
-        # sống lâu hơn một lần chạy, nên mọi thứ nó "nhớ" đều có nguy cơ cũ.
-        #
-        # `doc` truyền vào = đang MỞ LẠI một mục lịch sử: sơ đồ và cài đặt lấy từ mục đó
-        # chứ không phải từ cửa sổ chính, nếu không thì "mở lại" chạy ra một lần chạy
-        # khác hẳn và cái tên lịch sử thành nói dối.
-        luu = dict(luu_tru.CAI_DAT_MAC_DINH["test"])
-        luu.update((self._cha._cai_dat or {}).get("test") or {})
-        luu.update(ci or {})
-        ci = luu
-        doc = doc or self._cha._doc_tester
-        if not doc:
-            raise RuntimeError("Chưa có sơ đồ nào để chạy.")
-        sym = ci.get("symbol") or "XAUUSD"
-        self._kiem_du_nen(sym, ci.get("tu"), ci.get("den"))
-        m = nguon_nen.doc_meta(sym) or {}
-        nen = nguon_nen.doc(sym, ci.get("tu"), ci.get("den"))
-        if not len(nen):
-            raise RuntimeError(
-                f"Không có nến nào cho {sym} trong khoảng này. Kiểm tra lại mã symbol và "
-                f"khoảng From→To ở Cài đặt → Strategy Test.")
-        cd = bo_chay.CaiDat(
-            symbol=ci.get("symbol") or "XAUUSD", tu=ci.get("tu"), den=ci.get("den"),
-            spread_diem=ci.get("spread_diem", m.get("spread_tb") or 20),
-            point=m.get("point") or 0.01,
-            contract_size=m.get("contract_size") or 100.0,
-            digits=m.get("digits") or 2,
-            deposit=ci.get("deposit", 10000.0),
-            commission=ci.get("commission", 0.0),
-            don_bay=ci.get("don_bay", 100))
-        cu = self._tom_tat_lan_truoc()
-        self._tt.update({"tong": 0, "chu": "đang biên dịch sơ đồ…"})
-
-        def tien_do(i, tong):
-            self._tt.update({"da": int(i), "tong": int(tong),
-                             "chu": f"đang chạy {i:,}/{tong:,} nến".replace(",", ".")})
-
-        kq = bo_chay.chay(doc, nen, cd, tien_do=tien_do)
-        self._kq, self._cd = kq, cd          # gán MỘT lần, sau khi đã tính xong
-        self._chi_co_viec = True
-        # Vào lịch sử NGAY, không đợi người dùng bấm gì: lưới an toàn chỉ có tác dụng
-        # khi nó tự giăng. Bản tóm tắt dùng ĐÚNG payload của `test_thong_ke` nên mở một
-        # mục cũ và xem lần chạy hiện tại đi qua cùng một đường vẽ.
-        try:
-            lich_su.ghi(kq, cd, self._tom_tat_chay())
-        except Exception:
-            pass                             # hỏng lịch sử KHÔNG được làm hỏng lần chạy
-        return {"xong": {
-            "so_nen_m1": int(len(self._kq.nen1)),
-            "so_nen_truc": int(len(self._kq.nen5)),
-            "tf": self._kq.tf,
-            "t_dau": int(self._kq.nen1["t"][0]), "t_cuoi": int(self._kq.nen1["t"][-1]),
-            "thong_ke": self._kq.thong_ke,
-            # Vân tay PHẢI lấy trên bản ĐÃ CHUẨN HOÁ ở cả hai lần: `normalize_process`
-            # sắp lại khoá và dọn rác, nên hash bản thô ở lần này rồi so với bản đã
-            # chuẩn hoá ở lần trước là lúc nào cũng kêu "sơ đồ ĐÃ ĐỔI".
-            "so_hai_lan": nhat_ky.so_hai_lan(
-                cu, {"thong_ke": self._kq.thong_ke,
-                     "van_tay": nhat_ky._van_tay(self._kq.doc)}),
-            "digits": cd.digits,
-        }}
-
-    def _tom_tat_lan_truoc(self):
-        """Lần chạy trước — để trả lời "so với lần trước thì sao".
-
-        Chưa chạy lần nào TRONG PHIÊN NÀY thì lấy mục mới nhất trong lịch sử: trước đây
-        đóng cửa sổ tester là câu trả lời đó mất sạch, mà vòng lặp nâng cấp model thì
-        chẳng ai làm gọn trong một phiên."""
-        if getattr(self, "_kq", None) is not None:
-            return {"thong_ke": self._kq.thong_ke,
-                    "van_tay": nhat_ky._van_tay(self._kq.doc)}
-        ds = lich_su.liet_ke()
-        if not ds:
-            return None
-        return {"thong_ke": ds[0]["thong_ke"], "van_tay": ds[0]["van_tay"]}
-
-    # ------------------------------------------------- đọc dòng thời gian
-    @_bat_loi
-    def test_nen_tf(self, tf, j):
-        """TOÀN BỘ nến khung `tf` từ ĐẦU dữ liệu tới con trỏ — để chart kéo đi đâu cũng đủ.
-
-        Chart phải hành xử như một cuốn VIDEO: quá khứ luôn có sẵn, kéo qua kéo lại thoải
-        mái. Bản trước mỗi lần nhảy lại dựng chart từ một cửa sổ 720 nhịp, nên kéo ra
-        ngoài khoảng đó là trắng — sai hẳn bản chất.
-
-        Trả mảng SONG SONG (`t[] o[] h[] l[] c[]`) chứ không phải danh sách object: một
-        năm M5 là 71.000 nến, dạng object thì JSON phình gấp mấy lần mà chẳng thêm gì.
-
-        Nến CUỐI cố ý để DỞ DANG (`giu_nen_do_dang`) — nó chính là cây đang hình thành
-        tại con trỏ. Còn `gop` mặc định bỏ nó đi, vì lúc QUYẾT ĐỊNH thì đọc một cây nến
-        chưa đóng là nhìn trước tương lai."""
-        kq = self._doi_kq()
-        j = max(0, min(int(j), len(kq.nen1) - 1))
-        a = tinh_toan.gop(kq.nen1[:j + 1], tf if tf in core.TF_PHUT else kq.tf,
-                          giu_nen_do_dang=True)
-        if len(a) > TRAN_NEN_CHART:
-            a = a[-TRAN_NEN_CHART:]
-        return _ok({"t": a["t"].tolist(), "o": a["o"].tolist(), "h": a["h"].tolist(),
-                    "l": a["l"].tolist(), "c": a["c"].tolist(), "j": j,
-                    "zone": self._hop_zone(kq, a)})
-
-    @staticmethod
-    def _hop_zone(kq, a):
-        """Zone thành HỘP để chart vẽ phông nền: `[t_đầu, t_cuối, đáy, đỉnh]`.
-
-        Đi kèm gói nến chứ không làm một lệnh riêng: nến với zone luôn phải nói cùng một
-        con trỏ, mà tách hai lệnh thì giữa hai lời gọi con trỏ đã có thể nhảy.
-
-        Trả MỐC THỜI GIAN, không phải chỉ số nến — người dùng đổi khung hiển thị
-        (M1/M5/M15) thì hộp vẫn nằm đúng chỗ, vì thời gian thì khung nào cũng như nhau.
-
-        ⚠ CẮT Ở CON TRỎ THEO **CẢ HAI CHIỀU**.
-
-        Ngang: `kq.so.zone` là danh sách của CẢ lần chạy, kể cả zone hình thành SAU chỗ
-        đang xem — vẽ hết là lộ tương lai.
-
-        Dọc: `v.dinh` / `v.day` là đỉnh–đáy CUỐI CÙNG của zone, tức đã gồm cả những nến
-        chưa tới. Bản đầu của hàm này chỉ cắt chiều ngang nên hộp vẫn CAO BẰNG TƯƠNG LAI:
-        đo được trên nến thật — con trỏ ở nến thứ 2 của zone, đáy thật là 4484,49 mà hộp
-        vẽ 4476,62, tức đáy của 13 nến sau đó. Nên đỉnh–đáy phải tính lại từ chính đoạn
-        nến `[b0..b1]` đã cắt, không đọc thuộc tính của zone.
-
-        MỘT hộp mỗi zone, không phải bậc thang từng nến: rẻ hơn ~20 lần, và ở độ mờ này
-        thì cái bậc không ai đọc được. Cái cần kể là "chỗ này có một đợt nén, rộng chừng
-        này, cao chừng này"."""
-        if not len(a):
-            return []
-        n5 = getattr(getattr(kq, "_ct", None), "nen5", None)
-        if n5 is None or not len(n5):
-            return []
-        t_cuoi = int(a["t"][-1])
-        ra = []
-        for v in getattr(kq.so, "zone", ()) or ():
-            if v.dinh is None or v.day is None or v.so_nen <= 0:
-                continue
-            b0 = int(v.nen_bat_dau)
-            if not (0 <= b0 < len(n5)):
-                continue
-            t0 = int(n5["t"][b0])
-            if t0 > t_cuoi:                 # chưa tới con trỏ
-                continue
-            b1 = min(len(n5) - 1, b0 + int(v.so_nen) - 1)
-            # Cắt DỌC: chỉ lấy tới cây nến cuối cùng người xem đã thấy.
-            while b1 > b0 and int(n5["t"][b1]) > t_cuoi:
-                b1 -= 1
-            t1 = min(int(n5["t"][b1]), t_cuoi)
-            doan = n5[b0:b1 + 1]
-            if not len(doan):
-                continue
-            ra.append([t0, t1, float(doan["l"].min()), float(doan["h"].max())])
-        return ra
-
-    @_bat_loi
-    def test_doan(self, j0, n=300):
-        """MỘT lô khung hình liên tiếp — cửa DUY NHẤT dùng lúc PHÁT LẠI.
-
-        ⚠ Vì sao phải kéo theo lô: phát ở 60 ms/nhịp mà mỗi nhịp gọi cầu nối hai lần
-        (nến + số liệu) là ~33 lời gọi/giây. `evaluate_js` của pywebview ĐỒNG BỘ và
-        payload bị mã hoá hai lần, nên phát sẽ giật và tụt nhịp — mà "xem nến hình thành
-        như thật" thì nhịp đều mới là cái quan trọng nhất.
-        Một lời gọi cho 300 nhịp là 0,1 lời gọi/giây. Khác nhau 300 lần.
-
-        Lô mang đủ MỌI thứ ba vùng cần, nên khi phát thì JS không hỏi Python một câu nào."""
-        kq = self._doi_kq()
-        n = max(1, min(int(n), 2000))
-        j0 = max(0, min(int(j0), len(kq.nen1) - 1))
-        j1 = min(len(kq.nen1), j0 + n)
-        a = kq.nen1[j0:j1]
-        i5 = kq._ct.m1_to_5[j0:j1]
-        cv = kq.cot_zone
-
-        def cot_theo_khung(mang):
-            return [(float(mang[k]) if 0 <= k < len(mang)
-                     and mang[k] == mang[k] else None) for k in i5]
-
-        # BẢNG SỐ LIỆU — sinh TỪ SƠ ĐỒ, nhóm theo `nhom` mà `kho/` đã khai.
-        #
-        # ⚠ Trước đây khối "Vùng nén (engine)" bị VIẾT CỨNG ở đây. Hôm nay nó đúng vì
-        # chiến lược mẫu là D_02; mai thêm một engine khác là bảng nói dối, và ai đó phải
-        # nhớ sửa tay. Giờ bảng chỉ liệt kê đúng những toán hạng SƠ ĐỒ THẬT SỰ ĐỌC, và
-        # nhóm lấy thẳng từ danh mục — thêm engine là bảng có ngay, không sửa giao diện.
-        bang, nhom_dau, ct_ = [], {}, kq._ct
-        for o in core.toan_hang_dung(kq.doc):
-            ds = self._cot_toan_hang(kq, o, i5, a)
-            if ds is None:
-                continue
-            # Ô khung để trống nghĩa là "khung quyết định" (`ChuongTrinh.khoa`). Bảng ghi
-            # rõ khung THẬT chứ không bỏ trống: `ATR` trơ ra một mình thì người dùng
-            # không biết đang xem ATR của khung nào. Toán hạng engine vốn không có khung.
-            tf = o.get("tf")
-            if not tf and (o["ten"] in tinh_toan.BANG or o["ten"] in ct_.COT_GIA):
-                tf = ct_.tf5
-            phan = [tf] if tf else []
-            if o.get("period"):
-                phan.append(str(ct_.so(o["period"]) if isinstance(o["period"], str)
-                                else o["period"]).rstrip("0").rstrip("."))
-            if o.get("method"):
-                phan.append(str(o["method"]))
-            # Nhãn tách LÀM ĐÔI. Trước đây nối thành `ATR chuẩn hoá (bps)(M5, 14)` rồi
-            # giao diện dán cả cục vào cột trái, nên tên dài bị cắt cụt trong khi giữa
-            # nhãn và số là một khe rỗng dài. Giờ phần bổ nghĩa (khung · chu kỳ · kiểu)
-            # là một cột riêng, nằm đúng vào cái khe đó.
-            if o["nhom"] not in nhom_dau:
-                nhom_dau[o["nhom"]] = {"nhom": o["nhom"], "dong": []}
-                bang.append(nhom_dau[o["nhom"]])
-            nhom_dau[o["nhom"]]["dong"].append(
-                {"ten": o["nhan"], "phu": "·".join(phan), "gia_tri": ds})
-
-        # Lệnh SỐNG tại từng khung + lệnh đã đóng còn nằm trong tầm nhìn (để vẽ).
-        song, tk = [], []
-        for x, k in enumerate(i5):
-            ds = kq.lenh_tai(int(k))
-            gia = float(a["c"][x])
-            # Cắt theo `k` — KHÔNG đọc thẳng `l.da_khop`/`l.sl`, đó là trạng thái cuối
-            # backtest. Xem `bo_chay.lenh_tai_nen`.
-            song.append([bo_chay.lenh_tai_nen(kq, l, int(k), gia) for l in ds])
-            tk.append({"cho": sum(1 for l in ds if not l.da_khop),
-                       "mo": sum(1 for l in ds if l.da_khop),
-                       "gia": gia})
-
-        i_cuoi = int(i5[-1]) if len(i5) else 0
-        nk = nhat_ky.dung_lo_theo_nen(kq, j0, int(a["t"][-1]) if len(a) else 0)
-        return _ok({
-            "j0": j0, "n": int(j1 - j0),
-            "t": a["t"].tolist(), "o": a["o"].tolist(), "h": a["h"].tolist(),
-            "l": a["l"].tolist(), "c": a["c"].tolist(),
-            "bang": bang, "lenh_song": song, "tai_khoan": tk,
-            "lenh": kq.the_lenh(i_cuoi), "nhat_ky": nk,
-            "zone": self._zone_trong_lo(kq, i5),
-        })
-
-    @staticmethod
-    def _zone_trong_lo(kq, i5):
-        """Zone LỚN DẦN qua từng nến trục của lô: `[t_zone_mở, t_nến, đáy, đỉnh]`.
-
-        ⚠ VÌ SAO LÔ PHẢI MANG ZONE. Lúc phát lại, `nhip()` lấy khung hình TỪ LÔ và không
-        hỏi Python một câu nào — đó là cả điểm của lô (phát 60 ms/nhịp mà gọi cầu nối
-        mỗi nhịp thì giật). Nhưng zone thì chỉ được nạp ở đường NHẢY, nên suốt lúc phát
-        nó đứng yên: bấm ▶ zone không nhúc nhích, bấm "tới sự kiện" mới thấy nó nhảy một
-        phát. Đúng lỗi người dùng gặp.
-        Lệnh không bị vậy vì lô mang sẵn cả sự kiện tương lai và `Chart` tự cắt theo
-        `tBayGio`. Giờ zone theo đúng luật đó.
-
-        Rẻ: lô 300 nhịp M1 = 60 nến trục, nên nhiều nhất 60 bản ghi (~2 KB). Gửi kèm còn
-        rẻ hơn một lời gọi riêng.
-
-        Mỗi bản ghi là trạng thái zone TÍNH TỚI nến đó — nên `Chart` chỉ việc lấy bản
-        ghi mới nhất có `t_nến ≤ tBayGio`, và không bao giờ lộ tương lai."""
-        n5 = getattr(getattr(kq, "_ct", None), "nen5", None)
-        if n5 is None or not len(i5):
-            return []
-        lo0, lo1 = int(i5[0]), int(i5[-1])
-        ra = []
-        for v in getattr(kq.so, "zone", ()) or ():
-            if v.dinh is None or v.so_nen <= 0:
-                continue
-            b0 = int(v.nen_bat_dau)
-            b1 = min(len(n5) - 1, b0 + int(v.so_nen) - 1)
-            if b1 < lo0 or b0 > lo1:            # zone không chạm cửa sổ lô
-                continue
-            t0 = int(n5["t"][b0])
-            for b in range(max(b0, lo0), min(b1, lo1) + 1):
-                doan = n5[b0:b + 1]
-                ra.append([t0, int(n5["t"][b]),
-                           float(doan["l"].min()), float(doan["h"].max())])
-        return ra
-
-    def _cot_toan_hang(self, kq, o, i5, a):
-        """Giá trị một toán hạng tại TỪNG khung hình của lô. `None` = chưa ghi lại được.
-
-        Ba nguồn, theo đúng thứ tự rẻ dần: cột đã tính sẵn (chỉ báo + giá), cột engine đã
-        ghi lúc chạy (vùng nén), rồi mới tới thứ suy được từ sổ lệnh/thời gian."""
-        ten = o["ten"]
-        ct = kq._ct
-
-        def theo(mang, ep_bool=False):
-            ra = []
-            for k in i5:
-                if not (0 <= k < len(mang)):
-                    ra.append(None); continue
-                v = mang[k]
-                if ep_bool:
-                    ra.append(bool(v) if v == v else None)
-                else:
-                    ra.append(float(v) if v == v else None)
-            return ra
-
-        k = ct.khoa(o) if (ten in tinh_toan.BANG or ten in ct.COT_GIA) else None
-        if k is not None and k in ct._cot:
-            return theo(ct._cot[k])
-        if ten in kq.cot_zone:
-            return theo(kq.cot_zone[ten], ten in core.TOAN_HANG_DUNG_SAI)
-        if ten in ("so_lenh_cho", "so_vi_the"):
-            cho = ten == "so_lenh_cho"
-            return [sum(1 for l in kq.lenh_tai(int(x)) if l.da_khop != cho) for x in i5]
-        if ten == "bid":
-            return [float(v) for v in a["c"]]
-        if ten == "ask":
-            return [float(v) + self._cd.spread_gia for v in a["c"]]
-        if ten == "spread":
-            return [self._cd.spread_diem] * len(i5)
-        if ten in ("gio", "thu"):
-            return [float((int(t) // 3600) % 24) if ten == "gio"
-                    else float((int(t) // 86400 + 4) % 7 + 2) for t in a["t"]]
-        return None     # chưa ghi lại theo nến — thà bỏ trống còn hơn bịa một con số
-
-    @_bat_loi
-    def test_luot(self, i):
-        """Một lượt cụ thể → vị trí con trỏ, để bấm dòng nhật ký là chart nhảy tới."""
-        kq = self._doi_kq()
-        r = kq.nhat_ky[int(i)]
-        return _ok({"j": r["j"], "nen": r["nen"], "tab": r["tab"],
-                    "lenh_id": r.get("lenh_id"), "cong": r.get("cong")})
-
-    @_bat_loi
-    def test_luot_ke(self, j):
-        """Lượt CÓ VIỆC gần nhất sau vị trí `j`. `j = -1` nghĩa là hết.
-
-        Không ai ngồi xem hết 71.000 nến buồn tẻ để đợi một cây nến có chuyện. Nút này
-        là thứ biến "phát lại" từ một món đồ chơi thành một công cụ dùng được."""
-        kq = self._doi_kq()
-        j = int(j)
-        for r in kq.nhat_ky:
-            if r["j"] > j and r["viec"]:
-                return _ok({"j": int(r["j"]), "i": int(r["nen"])})
-        return _ok({"j": -1, "i": -1})
-
-    @_bat_loi
-    def test_soi_luot(self, i):
-        """SOI một lượt TRÊN SƠ ĐỒ: kéo cửa sổ vẽ lên trước và tô đường lượt đó đã đi.
-
-        Nhật ký trả lời "chuyện gì đã xảy ra" bằng chữ; câu hỏi tiếp theo luôn là "chỗ
-        nào trên sơ đồ", mà dò tay một sơ đồ 20 hộp thì mất cả phút. Cái này nối thẳng
-        hai đầu đó.
-
-        Gửi nguyên `duong` và `cong` chứ không tự tóm tắt: `cong` đã ghi MỌI cổng đã
-        thử kèm vết TỪNG điều kiện (`_xet_cong` cố ý tính đủ, không ngắt ở cái sai đầu
-        tiên), nên giao diện tô được tới đúng dòng điều kiện hỏng. Tóm tắt ở đây là vứt
-        đi đúng phần đắt nhất."""
-        kq = self._doi_kq()
-        i = int(i)
-        if not (0 <= i < len(kq.nhat_ky)):
-            return _ok({"da_ban": False})
-        r = kq.nhat_ky[i]
-        nhan = nhat_ky.nhan_khoi(kq.doc)
-        self._cha._ban("soi_luot", {
-            "tab": r["tab"],
-            "duong": list(r["duong"]),
-            "cong": r["cong"],
-            "ket": r["ket"],
-            "lenh_id": r.get("lenh_id"),
-            "nhan": {k: nhan.get(k, "?") for k in
-                     set(r["duong"]) | {c["khoi"] for c in r["cong"]}},
-            "chu": nhat_ky.dong_chu(r, nhan, nhat_ky._khoi_theo_id(kq.doc),
-                                    core.bang_tham_so(kq.doc), kq.nen5),
-        })
-        # Bắn TRƯỚC rồi mới kéo cửa sổ: kéo trước thì cửa sổ hiện ra trong một nhịp còn
-        # chưa có gì được tô, nhìn như bấm hụt.
-        self._cha._khung.keo_len_truoc()
-        return _ok({"da_ban": True})
-
-    @_bat_loi
-    def test_luot_truoc(self, j):
-        """Bản soi gương của `test_luot_ke`: lượt CÓ VIỆC gần nhất TRƯỚC `j`.
-
-        Cùng MỘT định nghĩa "sự kiện" với hàm kia (`viec` khác rỗng) — khác đi thì hai
-        nút thôi là nghịch đảo của nhau, bấm tới rồi bấm lui sẽ không về chỗ cũ.
-
-        Duyệt ngược chứ không lọc rồi tìm: nhật ký một năm là ~135.000 lượt, dựng thêm
-        một danh sách chỉ để lấy một phần tử là phí. `j = -1` nghĩa là phía trước không
-        còn sự kiện nào — giao diện lấy đó làm hiệu lệnh về đầu."""
-        kq = self._doi_kq()
-        j = int(j)
-        for r in reversed(kq.nhat_ky):
-            if r["j"] < j and r["viec"]:
-                return _ok({"j": int(r["j"]), "i": int(r["nen"])})
-        return _ok({"j": -1, "i": -1})
-
-    # Thứ tự hiện các mốc RƠI VÀO CÙNG một nến M5. Trong nến thì không có thứ tự thật —
-    # đây là thứ tự KỂ CHUYỆN: đặt rồi mới khớp, khớp rồi Manage mới thấy nó đã khớp.
-    _HANG_RAY = {"dat": 0, "khop": 1, "so_do": 2, "dong": 3}
-
-    def _chi_muc_ray(self, kq):
-        """Nhật ký → {lenh_id: [lượt]}. Dựng MỘT LẦN cho mỗi lần chạy.
-
-        Quét thẳng 77.000 lượt cho từng lệnh thì rê chuột qua 300 lệnh là 23 triệu vòng.
-        Dựng chỉ mục một lần rồi dùng lại: một vòng quét, xong."""
-        cu = getattr(self, "_ray_cua", None)
-        if cu is not None and cu[0] is kq:
-            return cu[1]
-        cm = {}
-        for r in kq.nhat_ky:
-            ids = {r["lenh_id"]} if r.get("lenh_id") else set()
-            ids.update(v["lenh_id"] for v in r["viec"] if v.get("lenh_id"))
-            for i in ids:
-                cm.setdefault(i, []).append(r)
-        self._ray_cua = (kq, cm)
-        return cm
-
-    @_bat_loi
-    def test_duong_ray(self, lenh_id):
-        """ĐƯỜNG RAY của một lệnh: từ lúc đặt tới lúc đóng, nó đi qua những khối nào.
-
-        Đây là câu hỏi mà cả app sinh ra để trả lời — "vì sao lệnh này ra đời, và khối
-        nào đã động vào nó". Nhật ký đã ghi đủ (`duong` = dãy khối của mỗi lượt), việc ở
-        đây chỉ là GOM cho người đọc nổi.
-
-        Hai thứ được gom:
-          • các lượt LIỀN NHAU đi cùng một đường mà không làm gì → một chặng kèm `dem`.
-            Manage chạy mỗi nến, một lệnh sống 3 giờ là 36 lượt y hệt nhau;
-          • KHỚP và CHẠM SL/TP không có trong nhật ký — chúng là việc của thị trường,
-            không phải của sơ đồ. Chèn từ chính bản ghi lệnh, và để `tab = None` để
-            giao diện tách được "sơ đồ quyết" với "thị trường quyết". Đó thường là câu
-            cần phân biệt nhất lúc soi một lệnh thua.
-
-        Trả CẢ ĐỜI lệnh; cắt theo con trỏ là việc của giao diện (mỗi chặng có `t`) — nhờ
-        vậy rê chuột một lệnh chỉ tốn đúng một lời gọi, không phải mỗi nhịp một lời."""
-        kq = self._doi_kq()
-        lid = str(lenh_id)
-        l = next((x for x in kq.so.lenh if x.id == lid), None)
-        if l is None:
-            return _ok({"chang": []})
-
-        nhan = nhat_ky.nhan_khoi(kq.doc)
-        t5 = kq.nen5["t"]
-
-        # XẾP THỜI GIAN TRƯỚC, GỘP SAU. Làm ngược lại thì một cục "manage ×96" nuốt cả
-        # các lượt trước lẫn sau lúc khớp, đẩy "khớp" xuống dưới nó — kể sai thứ tự câu
-        # chuyện. Và vì cục đó mang dấu thời gian của lượt ĐẦU, con trỏ mới tới giữa
-        # chừng đã thấy đủ 96, tức lộ tương lai.
-        moc = []
-        for r in self._chi_muc_ray(kq).get(lid, []):
-            viec = [v["loai"] for v in r["viec"] if v.get("lenh_id") == lid]
-            moc.append({"tab": r["tab"], "khoi": [nhan.get(k, "?") for k in r["duong"]],
-                        "viec": viec, "t": int(t5[r["nen"]]), "j": int(r["j"]),
-                        "hang": self._HANG_RAY["dat" if "lenh_dat" in viec else "so_do"]})
-        if l.nen_khop is not None:
-            # ⚠ Xếp theo NHỊP M1 (`j`), không chỉ theo nến trục. Một nến M5 chứa 5 nhịp
-            # M1 mà Manage chạy từng nhịp, nên nếu chỉ so nến trục thì mọi lượt Manage
-            # rơi cùng nến với cú khớp đều bị đẩy xuống DƯỚI mốc "khớp" — kể cả những
-            # lượt chạy TRƯỚC lúc khớp, lúc lệnh còn đang chờ. Đúng cái kể-sai-thứ-tự
-            # mà hàm này sinh ra để chặn, chỉ là ở thang đo nhỏ hơn một bậc.
-            moc.append({"tab": None, "moc": "khop", "khoi": [], "viec": [],
-                        "t": int(t5[l.nen_khop]),
-                        "j": getattr(l, "j_khop", None) if getattr(l, "j_khop", None) is not None else -1,
-                        "hang": self._HANG_RAY["khop"]})
-        # Sơ đồ TỰ TAY hạ màn thì đã có chặng `viec` kể rồi — thêm nữa là kể hai lần cùng
-        # một chuyện. Nhưng KHÔNG lọc theo `ly_do_dong`: chuỗi `"huy"` dùng chung cho hai
-        # đường khác hẳn nhau — khối "Huỷ chờ" (có ghi nhật ký) và lệnh chờ còn treo lúc
-        # HẾT DỮ LIỆU (đóng sau vòng lặp, không có bản ghi nào). Lọc theo chuỗi là loại
-        # nhầm cái thứ hai, và đường ray của nó không bao giờ có đoạn kết.
-        da_ke = any(("lenh_dong" in m["viec"] or "lenh_huy" in m["viec"]) for m in moc)
-        if l.nen_dong is not None and not da_ke:
-            moc.append({"tab": None, "moc": l.ly_do_dong or "dong", "khoi": [], "viec": [],
-                        "t": int(t5[l.nen_dong]), "j": float("inf"),
-                        "hang": self._HANG_RAY["dong"]})
-        moc.sort(key=lambda c: (c["t"], c["j"], c["hang"]))
-
-        chang = []
-        for m in moc:
-            cu = chang[-1] if chang else None
-            if (cu is not None and m["tab"] is not None and cu["tab"] == m["tab"]
-                    and cu["khoi"] == m["khoi"] and not m["viec"] and not cu["viec"]):
-                cu["dem"] += 1
-                cu["t_het"] = m["t"]
-                continue
-            m.pop("hang"); m.pop("j")
-            # `t` = chặng bắt đầu lúc nào, `t_het` = kết thúc lúc nào. Giao diện cần cả
-            # hai: hiện chặng theo `t`, nhưng `t_het` còn ở tương lai thì con số lặp
-            # chưa chốt, không được in ra như thể đã xong.
-            chang.append(dict(m, dem=1, t_het=m["t"]))
-        return _ok({"chang": chang})
-
-    def _tom_tat_chay(self):
-        """Tổng kết cả lượt chạy. DỰNG Ở ĐÚNG MỘT CHỖ.
-
-        Vừa là thứ tab Thống kê vẽ, vừa là thứ lịch sử cất đi — nên mở một mục cũ và xem
-        lần chạy hiện tại đi qua cùng một đường vẽ, không có hai hình dạng để lệch nhau.
-
-        Kèm cả khoảng ĐÃ YÊU CẦU lẫn khoảng THẬT SỰ có nến: hai cái lệch nhau là chuyện
-        thường (thiếu dữ liệu đầu/cuối), mà đọc số không biết nó tính trên quãng nào thì
-        con số vô nghĩa."""
-        kq = self._doi_kq()
-        return {
-            "tk": kq.thong_ke,
-            "duong_von": kq.duong_von,
-            "t_dau": int(kq.nen1["t"][0]), "t_cuoi": int(kq.nen1["t"][-1]),
-            "yc_tu": self._cd.tu, "yc_den": self._cd.den,
-            "symbol": self._cd.symbol,
-            "nhip": dict(kq._ct.nhip),
-        }
-
-    @_bat_loi
-    def test_thong_ke(self):
-        """Tab Thống kê của lần chạy ĐANG XEM. Gọi một lần lúc mở tab."""
-        return _ok(self._tom_tat_chay())
-
-    # ------------------------------------------------------------- lịch sử
-    @_bat_loi
-    def test_lich_su(self):
-        """Danh sách mục lịch sử, mới nhất trước. Bản GỌN — không kèm sơ đồ, không kèm
-        đường vốn; hai thứ đó chiếm gần hết dung lượng mà danh sách không dùng tới."""
-        return _ok({"ds": lich_su.liet_ke(),
-                    "dang_xem": getattr(self, "_ma_lich_su", None)})
-
-    @_bat_loi
-    def test_lich_su_xem(self, ma):
-        """Bản tóm tắt của một mục — hiện NGAY, không phải chạy lại gì.
-
-        Kèm `chay_lai_duoc`: nến nguồn còn khớp thì mới mở lại xem phát lại được."""
-        m = lich_su.doc(ma)
-        if not m:
-            return _loi("Không đọc được mục lịch sử này.")
-        return _ok({"tom_tat": m.get("tom_tat"), "nguon": m.get("nguon"),
-                    "ten": m.get("ten"), "t": m.get("t"),
-                    **self._soat_nguon(m)})
-
-    def _soat_nguon(self, m):
-        """Nến nguồn còn y nguyên như lúc chạy không?
-
-        `Mở lại` chỉ ra đúng bộ số cũ nếu dữ liệu chưa đổi. Không soát thì ba tháng nữa
-        nó lặng lẽ chạy ra một kết quả khác mà vẫn mang cái tên cũ — đúng loại nói dối
-        khó phát hiện nhất."""
-        ng = m.get("nguon") or {}
-        ci = m.get("cai_dat") or {}
-        nen = nguon_nen.doc(ng.get("symbol") or ci.get("symbol") or "XAUUSD",
-                            ci.get("tu"), ci.get("den"))
-        if not len(nen):
-            return {"chay_lai_duoc": False, "vi_sao": "không còn nến nào cho khoảng này"}
-        if (int(len(nen)) != int(ng.get("so_nen") or -1)
-                or int(nen["t"][0]) != int(ng.get("t_dau") or -1)
-                or int(nen["t"][-1]) != int(ng.get("t_cuoi") or -1)):
-            return {"chay_lai_duoc": False,
-                    "vi_sao": f"dữ liệu nguồn đã đổi ({ng.get('so_nen'):,} → "
-                              f"{len(nen):,} nến)".replace(",", ".")}
-        return {"chay_lai_duoc": True, "vi_sao": ""}
-
-    @_bat_loi
-    def test_lich_su_chay(self, ma):
-        """MỞ LẠI một mục: chạy lại đúng sơ đồ và cài đặt đã cất, trên luồng nền."""
-        m = lich_su.doc(ma)
-        if not m:
-            return _loi("Không đọc được mục lịch sử này.")
-        s = self._soat_nguon(m)
-        if not s["chay_lai_duoc"]:
-            return _loi(f"Không mở lại được — {s['vi_sao']}.")
-        self._ma_lich_su = str(ma)
-        self._tt = {"dang_chay": True, "da": 0, "tong": 0, "chu": "đang nạp nến…",
-                    "xong": None, "loi": None}
-        threading.Thread(target=self._chay_nen,
-                         args=(m.get("cai_dat") or {}, m.get("doc")), daemon=True).start()
-        return _ok(True)
-
-    @_bat_loi
-    def test_lich_su_ten(self, ma, ten):
-        """Đặt tên = chuyển mục mềm thành ĐÃ LƯU (không bao giờ bị cuốn chiếu). Tên rỗng
-        thì trả nó về mục mềm."""
-        return _ok(lich_su.dat_ten(ma, ten))
-
-    @_bat_loi
-    def test_lich_su_xoa(self, ma):
-        return _ok(lich_su.xoa(ma))
-
-    @_bat_loi
-    def test_tim_moc(self, t):
-        """Nến M1 đầu tiên có thời điểm ≥ `t` — cho ô "nhảy tới mốc" trên thanh công cụ.
-
-        Phải hỏi Python chứ không nhẩm ở JS: dữ liệu có 271 lỗ hổng (chợ đóng cửa), nên
-        `(t − t_đầu) / 60` ra một chỉ số lệch hẳn. `searchsorted` thì luôn rơi đúng vào
-        cây nến CÓ THẬT gần nhất về phía sau — chọn nhằm chiều thứ Bảy thì nhảy tới đúng
-        lúc mở cửa, chứ không rơi vào khoảng trống."""
-        kq = self._doi_kq()
-        j = int(kq.nen1["t"].searchsorted(int(t), side="left"))
-        j = max(0, min(j, len(kq.nen1) - 1))
-        return _ok({"j": j, "t": int(kq.nen1["t"][j])})
-
-    @_bat_loi
-    def test_ghi_nhat_ky(self):
-        kq = self._doi_kq()
-        return _ok({"duong_dan": nhat_ky.ghi(kq, self._cd)})
-
-    def _doi_kq(self):
-        kq = getattr(self, "_kq", None)
-        if kq is None:
-            raise RuntimeError("Chưa chạy backtest nào — bấm ▶ Chạy trước.")
-        return kq
 
 
 def _so_do_mau():
@@ -1491,17 +700,17 @@ class ApiQC(NenCuaSo):
     @_bat_loi
     def qc_boot(self):
         """Mọi thứ cửa sổ Màn chơi cần lúc mở."""
-        test = (self._cha._cai_dat or {}).get("test") or {}
+        cd = self._cha._cai_dat or {}
         return _ok({
             "phien_ban": core.PHIEN_BAN,
-            "accent": (self._cha._cai_dat or {}).get("accent"),
+            "accent": cd.get("accent"),
             "doc": self._cha._doc_qc,
             "man": self._ds_man(),
             "loai": game.LOAI,
             "khoa": qc_api.trang_thai_khoa(),
             "do_gon": game.do_gon(self._cha._doc_qc or {}),
-            "tu_do": {"symbol": test.get("symbol") or "XAUUSD", "tu": "2025-10-01",
-                      "den": "2025-12-31", "von": float(test.get("deposit") or 10_000)},
+            "tu_do": {"symbol": cd.get("symbol") or "XAUUSD", "tu": "2025-10-01",
+                      "den": "2025-12-31", "von": 10_000.0},
             "trang_thai": self._viec().trang_thai(),
             "co_ket_qua": self._viec().ket_qua is not None,
         })
@@ -1579,7 +788,9 @@ class ApiQC(NenCuaSo):
 
     @_bat_loi
     def qc_soi_luot(self, i):
-        """Tô lượt `i` lên sơ đồ ở cửa sổ vẽ — y `ApiTester.test_soi_luot`."""
+        """SOI một lượt TRÊN SƠ ĐỒ: bắn sang cửa sổ vẽ để nó tô đường lượt `i` đã đi —
+        tới tận dòng điều kiện hỏng — rồi kéo cửa sổ vẽ lên trước. Bắn TRƯỚC rồi mới kéo:
+        kéo trước thì cửa sổ hiện ra trong một nhịp còn chưa có gì được tô, nhìn như hụt."""
         try:
             k = self._ket_qua()
         except game.LoiGame as e:

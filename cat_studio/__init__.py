@@ -6,7 +6,6 @@ Mọi module của app nằm trong gói này; ở thư mục gốc chỉ còn `a
 Thứ tự phụ thuộc, đọc từ dưới lên — không có vòng nào:
 
     luu_tru      chỗ DUY NHẤT biết file nằm ở đâu
-    nguon_nen    kho nến M1 đã có trên máy (chỉ đọc)
     tinh_toan    chỉ báo thuần (mảng vào, mảng ra)
     khop_lenh    mô hình khớp lệnh thuần
     so_lenh      sổ lệnh + vùng nén
@@ -14,7 +13,6 @@ Thứ tự phụ thuộc, đọc từ dưới lên — không có vòng nào:
     kho/         danh mục toán hạng · chỉ báo · engine (app TỰ GOM từ đây)
     bo_chay      vòng lặp backtest — ráp tất cả những thứ trên
     nhat_ky      nhật ký lượt chạy
-    lich_su      lịch sử các lần chạy
     khung_cua_so vá khung cửa sổ Win32 cho thanh tiêu đề tự vẽ
     api          bề mặt DUY NHẤT giao diện gọi tới
 

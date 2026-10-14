@@ -6,12 +6,13 @@
 > File này là **nguồn sự thật về Ý ĐỊNH**. Code là nguồn sự thật về hành vi.
 > Sửa cơ chế → sửa file này cùng lúc, đừng để hai bên nói khác nhau.
 
-> ⚠ **2026-10-14 — ĐỔI HƯỚNG, xem `DECISIONS.md` D-01 và D-09.** Động cơ chuyển hẳn sang
-> LEAN / QuantConnect; Cat Studio chỉ giữ lớp game (ngôn ngữ sơ đồ + lời giải thích).
+> ⚠ **2026-10-14 — ĐỔI HƯỚNG, xem `DECISIONS.md` D-01, D-09 và D-10.** Động cơ chuyển hẳn
+> sang LEAN / QuantConnect; Cat Studio chỉ giữ lớp game (ngôn ngữ sơ đồ + lời giải thích).
 > **App chỉ phục vụ QuantConnect (D-09): MT5 đã gỡ sạch** — không cửa sổ Live, không nối
-> sàn, không tải nến (§17). Các mục về động cơ riêng bên dưới (§12, `nguon_nen`,
-> `khop_lenh`) mô tả Strategy Tester chạy tại máy trên những bộ nến ĐÃ CÓ sẵn; chỗ nào nói
-> về việc tải nến là lịch sử.
+> sàn, không tải nến (§17). **Strategy Tester đã bỏ (D-10)** — không còn chạy tại máy; lối
+> chạy duy nhất là ◆ Màn chơi trên QuantConnect (§18). Mục §12 (thiết kế tester) và những
+> chỗ nói về `nguon_nen` là LỊCH SỬ; bộ chạy cũ (`bo_chay`, `khop_lenh`) còn sống tới khi
+> cỗ máy 5 trạm thay hai sơ đồ Entry/Manage (D-10, phần 7).
 
 Cập nhật: 2026-08-10 · Trạng thái: **P0–P4 + kho/lưu trữ/sổ lệnh xong** · test 332/332 · giao diện tester đã chạy thật
 Thiết kế **Strategy Tester chốt xong** → §12. Bộ chạy chưa viết một dòng nào.
@@ -21,7 +22,7 @@ Thiết kế **Strategy Tester chốt xong** → §12. Bộ chạy chưa viết 
 ## 0. Một câu
 
 > Vẽ sơ đồ khối cho một chiến lược giao dịch, mỗi khối mang **một số thứ tự do chính bộ máy tính ra**,
-> bấm ▶ Chạy thì mở **Strategy Tester** để xem chiến lược đó hành xử ra sao.
+> bấm **◆ Màn chơi** để chạy nó trên QuantConnect và xem nó hành xử ra sao, vì sao.
 
 ---
 
@@ -1008,7 +1009,7 @@ Bốn chỗ dễ làm sai, ghi lại để khỏi trượt về:
 
 ---
 
-## 12. ⭐⭐ STRATEGY TESTER — thiết kế đã chốt
+## 12. ⭐⭐ STRATEGY TESTER — thiết kế đã chốt  ⛔ ĐÃ BỎ (D-10, §18) — giữ làm lịch sử
 
 > Chốt ngày 2026-08-10 sau một đợt đọc lại toàn bộ `core.py` / `api.py` / `kho/` và cả 6 file
 > MQL5 của D_02. Mười một quyết định dưới đây **quyết định kết quả backtest**, không phải chi
@@ -2572,3 +2573,38 @@ True Range; MA mồi bằng SMA; `nến[1]` = nến vừa đóng; nến dựng b
 **Còn trên máy người dùng** (ngoài repo, app không đọc nữa): `du_lieu/ho_so_ket_noi.json` — hồ sơ
 kết nối của cửa sổ Live cũ. Xoá tay được, không ảnh hưởng gì.
 
+## 18. ⛔ BỎ STRATEGY TESTER — lối chạy duy nhất là ◆ Màn chơi
+
+> Theo `DECISIONS.md` **D-10 (chốt)**, phần 1 trong 7 phần xây cỗ máy 5 trạm. Chủ dự án:
+> *"đồng ý cả 3, xoá luôn tester, xây 5 trạm đi"*.
+
+**Vì sao:** tester chạy tại máy trên nến tại máy, mà nến của QuantConnect không được mang về
+(D-08) — giữ nó là giữ một thế giới thứ hai với bộ khớp lệnh riêng, lệch luật với nơi cỗ máy
+thật sự chạy. Khớp lệnh từ nay là việc của QC (D-10).
+
+**Đã gỡ:**
+
+| Thứ | Ở đâu (trước) |
+|---|---|
+| Cửa sổ **Strategy Tester** — chart nến phát lại, bảng số liệu, đường ray lệnh, nút nhảy sự kiện, lịch sử các lần chạy, "so với lần trước" | `api.ApiTester` · `api.mo_tester` · `webui/src/tester/` (`Tester`, `Chart`, `BangSoLieu`, `LichSu`, `NutChart`) · `main.tsx ?tester=1` |
+| Nút **▶ Test**, mục **File → Mở Strategy Tester**, việc của **Ctrl+R** | `Ribbon` · `App` — Ctrl+R vẫn bị CHẶN (mặc định Chromium là nạp lại trang, mất sơ đồ đang vẽ) |
+| **Cài đặt → Strategy Test** (symbol, khoảng ngày, spread, vốn, phí, đòn bẩy, delay) và bảng **nến trên máy** | `SettingsDialog` · `api.save_test_settings` · `api.nguon_xoa` · `luu_tru.CAI_DAT_MAC_DINH["test"]` |
+| **Kho nến trên máy** và **lịch sử chạy** | `cat_studio/nguon_nen.py` · `cat_studio/lich_su.py` · `luu_tru.thu_muc_nen` · mục "Nến đã tải" trong hộp Kho |
+| Hàm nhật ký chỉ tester dùng | `nhat_ky.dung_lo_theo_nen` (phát lại) · `nhat_ky.so_hai_lan` |
+| Thư viện vẽ chart nến | `lightweight-charts` (package.json) |
+| Bài kiểm của những thứ trên | `tests/test_nguon_nen.py` · các mục nhảy sự kiện / đường ray / phát lại trong `test_nhat_ky`, hộp zone trên chart trong `test_zone` |
+
+**Chuyển chứ không bỏ** (Màn chơi đang dùng):
+
+- Ba bảng dưới — vỏ bảng `BangDuoi`, nhật ký «Vì sao» `Journey`, `ThongKe` → `webui/src/chung/`.
+  `Journey` bỏ phần theo con trỏ phát lại; `ThongKe` chỉ nhận dữ liệu đưa sẵn.
+- Gói **soi một lượt lên sơ đồ** → `nhat_ky.ban_soi` (một chỗ dựng, `KetQuaQC.soi` gọi; bài kiểm
+  hợp đồng "một vết cho mỗi điều kiện" nằm ở `test_nhat_ky` mục 6).
+- Kiểu **một cây nến** → `tinh_toan.DTYPE` (bộ chạy cũ và bài kiểm của nó cần tới phần 7).
+- Chế độ **Sáng tạo** của Màn chơi lấy mã mặc định từ Cài đặt → **Mã mặc định**, vốn 10.000.
+
+Cài đặt cũ trong `du_lieu/cai_dat.json` tự rơi khoá `test` ở lần mở app sau (`doc_cai_dat` chỉ
+giữ khoá còn trong bảng mặc định). Lỗi ngày 29/2 của khoảng ngày mặc định biến mất theo.
+
+**Còn trên máy người dùng** (ngoài repo, app không đọc nữa): `du_lieu/nen/` (bộ nến M1 cũ) và
+`du_lieu/lich_su/` nếu có. Xoá tay được, không ảnh hưởng gì.

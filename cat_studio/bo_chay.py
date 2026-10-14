@@ -1,6 +1,6 @@
 """BỘ CHẠY — chỗ mọi thứ ráp lại: đồ thị + nến + chỉ báo + sổ lệnh → một lần backtest.
 
-    nguon_nen  →  nến M1
+    nến M1     →  mảng kiểu `tinh_toan.DTYPE`
     tinh_toan  →  chỉ báo (mảng), gộp khung
     khop_lenh  →  lệnh khớp lúc nào, giá nào
     core       →  đồ thị đã chuẩn hoá, thứ tự nhánh
@@ -55,7 +55,7 @@ class LoiChay(Exception):
 # Cấu hình một lần chạy
 # ---------------------------------------------------------------------------
 class CaiDat:
-    """Điều kiện chạy — đúng những ô trong Cài đặt Strategy Test."""
+    """Điều kiện chạy: symbol, spread, vốn, phí, đòn bẩy, kích thước hợp đồng."""
 
     def __init__(self, symbol="XAUUSD", tu=None, den=None, spread_diem=20.0,
                  point=0.01, contract_size=100.0, digits=2,

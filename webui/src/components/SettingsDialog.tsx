@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { py } from '../api'
-import type { BoNen, Bootstrap } from '../types'
+import type { Bootstrap } from '../types'
 import Modal from './Modal'
 
-/** CÀI ĐẶT của app — hai mục: giao diện, và Strategy Test.
+/** CÀI ĐẶT của app — mã mặc định và màu nhấn.
  *
- * Điều kiện chạy backtest nằm Ở ĐÂY chứ không ở cửa sổ tester. Cài đặt là thứ đặt một
- * lần rồi quên; để nó trong cửa sổ tester thì mỗi lần bấm ▶ lại phải đi qua một bảng
- * nữa mới chạy được — một thao tác hoá ba. Giờ bấm ▶ ở cửa sổ vẽ là tester mở ra và
- * CHẠY LUÔN bằng đúng những gì lưu ở đây.
+ * Điều kiện chạy (khoảng ngày, vốn, phí, khớp lệnh) KHÔNG nằm ở đây: mỗi màn chơi tự mang
+ * điều kiện của nó, còn chế độ Sáng tạo đặt ngay trong cửa sổ Màn chơi.
  */
 export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }: {
   boot: Bootstrap
@@ -18,22 +16,8 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   onDong: () => void
 }) {
   const s = boot.settings as Record<string, any>
-  const t = (s.test ?? {}) as Record<string, any>
   const [symbol, setSymbol] = useState(String(s.symbol ?? 'XAUUSD'))
   const [accent, setAccent] = useState(String(s.accent ?? '#ffa657'))
-
-  const [tSymbol, setTSymbol] = useState(String(t.symbol ?? 'XAUUSD'))
-  const [tu, setTu] = useState(String(t.tu ?? ''))
-  const [den, setDen] = useState(String(t.den ?? ''))
-  const [spread, setSpread] = useState(Number(t.spread_diem ?? 20))
-  const [deposit, setDeposit] = useState(Number(t.deposit ?? 10000))
-  const [phi, setPhi] = useState(Number(t.commission ?? 0))
-  const [donBay, setDonBay] = useState(Number(t.don_bay ?? 100))
-  const [delay, setDelay] = useState(Number(t.delay_ms ?? 60))
-
-  const [nguon, setNguon] = useState<BoNen[]>(boot.nguon ?? [])
-
-  const bo = nguon.find(n => n.symbol === tSymbol)
 
   const [loiLuu, setLoiLuu] = useState('')
 
@@ -41,31 +25,14 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
     setLoiLuu('')
     // ⚠ PHẢI xem kết quả. Trước đây bỏ qua rồi `onDong()` vô điều kiện, nên đĩa đầy hay
     // mất quyền ghi thì hộp thoại vẫn đóng như đã lưu xong — im lặng, không dấu vết.
-    for (const r of [
-      await py.save_settings({ symbol, accent }),
-      await py.save_test_settings({
-        symbol: tSymbol, tu, den, spread_diem: spread,
-        deposit, commission: phi, don_bay: donBay, delay_ms: delay,
-      }),
-    ]) {
-      if (!r.ok) return setLoiLuu(r.error ?? 'không lưu được cài đặt')
-    }
+    const r = await py.save_settings({ symbol, accent })
+    if (!r.ok) return setLoiLuu(r.error ?? 'không lưu được cài đặt')
     // ⚠ NẠP LẠI `boot` rồi mới đóng. `boot` vốn chỉ nạp MỘT LẦN lúc mở app, mà hộp thoại
     // này lấy giá trị ban đầu từ đó — nên lưu xong, mở lại là thấy y nguyên số CŨ, và
     // người dùng kết luận "bấm lưu không lưu được" (thật ra đĩa đã ghi đúng). `bootstrap`
-    // chỉ 1 ms / 7 KB nên nạp lại là rẻ nhất, và nó đồng bộ luôn cả danh sách nguồn nến.
+    // chỉ 1 ms / 7 KB nên nạp lại là rẻ nhất.
     await lamMoiBoot()
     onDong()
-  }
-
-  /* App KHÔNG tải nến (DECISIONS.md D-09: app chỉ phục vụ QuantConnect, mà dữ liệu của
-     QC không được mang về máy). Bảng dưới chỉ cho xem và xoá những bộ nến đã có sẵn;
-     thiếu nến cho khoảng đã đặt thì ▶ Test báo rõ thiếu khoảng nào (`api._kiem_du_nen`).
-     Xoá không đảo ngược được — nên phải do tay người, có hỏi lại. */
-  async function xoa(sym: string) {
-    if (!confirm(`Xoá hẳn bộ nến ${sym}?`)) return
-    const r = await py.nguon_xoa(sym)
-    if (r.ok) setNguon(r.value?.ds ?? [])
   }
 
   return (
@@ -96,65 +63,6 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
           ))}
         </div>
       </label>
-
-      {/* ---------------- STRATEGY TEST ---------------- */}
-      <div className="cd-muc">Strategy Test</div>
-
-      <div className="cd-nguon-bang">
-        <div className="cd-nguon-dau">Nến M1 có sẵn trên máy — app không tải thêm</div>
-        {nguon.length === 0
-          ? <div className="cd-rong">chưa có bộ nến nào trên máy</div>
-          : nguon.map(n => (
-            <div key={n.symbol} className="cd-dong">
-              <b>{n.symbol}</b>
-              <span className="mono">{n.tu_chu} → {n.den_chu}</span>
-              <span className="mono">{n.so_nen.toLocaleString('vi')} nến</span>
-              <b className="mono">{n.mb} MB</b>
-              <button className="nut nho" onClick={() => xoa(n.symbol)}>Xoá</button>
-            </div>
-          ))}
-      </div>
-
-      <div className="hang cd-hang">
-        <label>Symbol<input className="o nho" value={tSymbol} spellCheck={false}
-               onChange={e => setTSymbol(e.target.value.toUpperCase())} /></label>
-        <label>Từ<input className="o nho" value={tu} placeholder="2025-01-01"
-               onChange={e => setTu(e.target.value)} /></label>
-        <label>Đến<input className="o nho" value={den} placeholder="2026-01-01"
-               onChange={e => setDen(e.target.value)} /></label>
-      </div>
-
-      <div className="hang cd-hang">
-        <label title="Nến là giá Bid; Ask = Bid + spread">
-          Spread<input className="o nho" type="number" value={spread}
-                 onChange={e => setSpread(+e.target.value)} />points
-        </label>
-        <label>Vốn<input className="o nho" type="number" value={deposit}
-               onChange={e => setDeposit(+e.target.value)} />USD</label>
-        <label title="Tính round-turn — trừ một lần khi lệnh đóng">
-          Phí<input className="o nho" type="number" value={phi}
-              onChange={e => setPhi(+e.target.value)} />USD/lot
-        </label>
-        <label>Đòn bẩy 1:<input className="o nho" type="number" value={donBay}
-               onChange={e => setDonBay(+e.target.value)} /></label>
-        <label title="Nhịp PHÁT LẠI — không phải tốc độ mô phỏng">
-          Delay<input className="o nho" type="number" value={delay}
-                onChange={e => setDelay(+e.target.value)} />ms
-        </label>
-      </div>
-
-      {/* Spread tính bằng POINT chỉ có nghĩa khi biết point size của symbol: XAUUSD 3
-          chữ số thì 20 points = 0,02 USD — quá nhỏ. Hiện quy đổi ngay cạnh ô, kèm trung
-          vị đo được trên chính bộ nến trên máy, để không phải đoán. */}
-      {bo?.point != null && (
-        <div className="chu-dan">
-          {tSymbol}: 1 point = {bo.point} · spread {spread} points ={' '}
-          <b>{(spread * bo.point).toFixed(3)} USD</b>
-          {bo.spread_tb != null && (
-            <> · trung vị đo được trên bộ nến trên máy: <b>{bo.spread_tb} points</b></>
-          )}
-        </div>
-      )}
 
       <div className="chu-dan">
         Cài đặt lưu vào <code>du_lieu/cai_dat.json</code> cạnh app, không nằm trong repo.

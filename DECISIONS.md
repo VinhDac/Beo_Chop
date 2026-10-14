@@ -229,5 +229,36 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   Bộ chạy cũ vẫn là chuẩn đối chiếu cho cầu nối QuantConnect.
 - **Hệ quả cần biết:** máy chưa có bộ nến nào thì Strategy Tester không chạy được — dữ liệu
   của QC không được mang về máy (D-08), nên app không còn nguồn nến nào để tải.
-- **Trạng thái:** chốt. Chi tiết gỡ những gì, ở đâu: core.md §17.
+- **Trạng thái:** chốt. Chi tiết gỡ những gì, ở đâu: core.md §17. Ý "Còn lại" (Strategy
+  Tester chạy trên nến tại máy) đã bị **D-10** thay: tester bỏ hẳn.
 
+
+## D-10 · Cỗ máy 5 trạm theo khung của QuantConnect · khớp lệnh để QC làm · bỏ Strategy Tester  (chốt 2026-10-14)
+
+> Chủ dự án: *"đồng ý cả 3, xoá luôn tester, xây 5 trạm đi"* — sau khi được trình bày rằng hai
+> sơ đồ Entry / Manage là khuôn của EA MetaTrader (chạy theo từng nến, theo từng lệnh), còn
+> QuantConnect chia một thuật toán làm 5 phần. Trước đó: *"tôi muốn xây hết 1 mạch, tất cả
+> những gì xây được… ta đang làm game mà"*.
+
+- **Quyết định (ba ý, duyệt cùng lúc):**
+  1. **Một cỗ máy = 5 trạm**, đúng 5 phần trong khung thuật toán của QC:
+     ① **Chọn mã** (Universe) → ② **Tín hiệu** (Alpha) → ③ **Chia vốn** (Portfolio
+     Construction) → ④ **Rủi ro** (Risk Management) → ⑤ **Khớp lệnh** (Execution).
+     Mỗi trạm là một sơ đồ khối CÙNG một ngữ pháp — khối Bắt đầu mang lịch chạy và phạm vi,
+     cổng Hỏi (nối tiếp = VÀ, nhiều nhánh = HOẶC thử từ trên xuống), luật lùi, đánh số —
+     chỉ khác **phạm vi chạy** và bộ khối **Làm**. Luật gốc: *một sơ đồ = một phạm vi chạy*.
+     Thay hẳn hai sơ đồ Entry / Manage.
+  2. **Khớp lệnh để QC làm.** Bộ máy của ta chỉ ra **tỷ trọng mục tiêu** và **ý định lệnh**;
+     QC đổi ra số lượng, đặt lệnh, khớp (phí, trượt giá, ký quỹ). Bỏ bộ khớp lệnh riêng.
+  3. **Bỏ Strategy Tester.** Không còn chạy tại máy; lối chạy duy nhất là ◆ Màn chơi trên QC.
+- **Phương án đã cân nhắc:** (a) 5 trạm ← **chọn** / (b) giữ hai sơ đồ, thêm chọn mã — vẫn là
+  khuôn EA, không khớp cách QC chạy / (c) một sơ đồ to gộp hết — mất "một sơ đồ = một phạm vi
+  chạy", số thứ tự hết còn nghĩa.
+- **Lý do:** đúng thực tế của nơi cỗ máy thật sự chạy; mỗi trạm trả lời đúng một câu hỏi, nên
+  người chơi học đúng cách một quỹ thật chia việc. Tester cần nến tại máy mà nến của QC không
+  được mang về (D-08) — giữ nó là giữ một thế giới thứ hai với bộ khớp lệnh lệch luật.
+- **Làm theo 7 phần**, mỗi phần một bài kiểm và một commit: ① xoá tester · ② lõi cỗ máy 5 trạm
+  · ③ bộ máy chạy · ④ cầu nối QC mới · ⑤ trình vẽ · ⑥ Màn chơi chạy cỗ máy 5 trạm · ⑦ dọn bộ
+  máy cũ + tài liệu. Tới phần ⑦, bộ máy cũ (Entry / Manage, `bo_chay`) vẫn sống vì cầu nối QC
+  hiện tại còn dùng nó.
+- **Trạng thái:** chốt. Phần ① xong — gỡ những gì, chuyển những gì: core.md §18.

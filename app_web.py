@@ -117,9 +117,9 @@ def duong_dan_giao_dien():
 
 
 def tim_cua_so(chua_chuoi=TIEU_DE_GOC):
-    """HWND của cửa sổ app. Bản cài đặt nằm ở `khung_cua_so.tim_hwnd` — giờ có HAI cửa
-    sổ cần tìm hwnd để vá khung (app chính và Strategy Tester), nên nó thuộc về file lo
-    chuyện khung chứ không phải file khởi động."""
+    """HWND của cửa sổ app. Bản cài đặt nằm ở `khung_cua_so.tim_hwnd` — có HAI cửa sổ
+    cần tìm hwnd để vá khung (app chính và Màn chơi), nên nó thuộc về file lo chuyện khung
+    chứ không phải file khởi động."""
     from cat_studio import khung_cua_so
     return khung_cua_so.tim_hwnd(chua_chuoi)
 
