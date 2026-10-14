@@ -39,12 +39,17 @@ export function Histogram({ ten, donVi, giaTri, cuaBan, boss, tot, so = 3 }: {
   const x = (v: number) => LE + (v - lo) / (hi - lo) * (W - 2 * LE)
   const rong = (W - 2 * LE) / NGAN
   const nganBan = cuaBan != null ? ngan(cuaBan) : -1
-  const vach = (v: number, lop: string, chu: string) => (
-    <g className={lop}>
-      <line x1={x(v)} x2={x(v)} y1={13} y2={H - 16} />
-      <text x={x(v)} y={10} textAnchor="middle">{chu}</text>
-    </g>
-  )
+  /* Nhãn đứng CẠNH vạch, không đè lên đầu vạch: đặt giữa thì dấu nặng của "Bạn" dính
+     liền vào đầu vạch cùng màu và đọc ra "Ban". Sát mép phải thì lật sang trái. */
+  const vach = (v: number, lop: string, chu: string) => {
+    const xv = x(v), trai = xv > W - 44
+    return (
+      <g className={lop}>
+        <line x1={xv} x2={xv} y1={4} y2={H - 16} />
+        <text x={trai ? xv - 4 : xv + 4} y={12} textAnchor={trai ? 'end' : 'start'}>{chu}</text>
+      </g>
+    )
+  }
   return (
     <div className="g-histo">
       <div className="g-histo-dau">
