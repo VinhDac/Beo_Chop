@@ -2407,3 +2407,61 @@ Chưa liên quan tới tester:
 - [ ] **Chồng lệnh** — D_02: nhiều VỊ THẾ (`Max_Positions`) nhưng đúng MỘT lệnh chờ. Giữa hai lần vào lệnh bắt buộc có một đợt ATR bung ra (`CONSUMED` chỉ thoát bằng `atr_bps ≥ N`).
 - [ ] Có cần `HOẶC` giữa các điều kiện không? *(đang thiết kế: **không** — dùng nhiều nhánh, vì "hoặc" giấu trong hộp thoại thì nhìn sơ đồ không thấy)*
 - [ ] Đóng gói `.exe` (PyInstaller) — chưa làm spec.
+
+---
+
+## 14. ⭐ CẦU NỐI QUANTCONNECT (slice 2a) — bộ luật y hệt, chỉ thay ống nước
+
+> Theo `DECISIONS.md` D-01…D-04. Động cơ cũ + MT5 vẫn còn nguyên — cầu nối là đường
+> chạy thứ hai, tới khi nó thay hẳn được (D-01) thì mới gỡ đường cũ.
+
+**Một câu:** sơ đồ chạy trên dữ liệu và chỉ báo của QuantConnect mà bộ luật KHÔNG đổi một
+dòng — `_chay_so_do`, `_xet_cong`, `_vao_lenh`, `_sua_lenh`, `_nuoi_zone` được GỌI LẠI
+nguyên văn từ `bo_chay`. Cầu nối chỉ thay chỗ dữ liệu đi vào.
+
+| | Bộ chạy cũ | Cầu nối (`lean/cat_lean.py`) |
+|---|---|---|
+| Nến | M1 từ MT5, tải trước cả năm | M1 từ QC, tới từng cây |
+| Chỉ báo | `tinh_toan` tính trước cả mảng | chỉ báo LEAN, lớp vỏ đẩy vào từng nến |
+| Spread | ô nhập cố định | Bid/Ask thật của từng nến (`CaiDatQC.spread_gia`) |
+| Khớp lệnh | đường đi 4 điểm | VẪN đường đi 4 điểm — đổi sang LEAN ở slice 2b |
+
+`ChuongTrinhQC` kế thừa `ChuongTrinh`, chỉ thay `_dung_truc` (trục lớn dần) và
+`_xin_cot` (ghi danh khoá thay vì tính cột). `doc_cot` của lớp cha chạy nguyên văn trên
+list — nên quy ước `shift` không thể lệch với bộ cũ.
+
+**Bằng chứng, không phải niềm tin:** `tests/test_cat_lean.py` cho bộ cũ và cầu nối chạy
+trên CÙNG nến, CÙNG giá trị chỉ báo → nhật ký, sổ lệnh, bảng tổng kết trùng khít tới từng
+byte, trên ba bộ dữ liệu giả đi đủ mọi nhánh của sơ đồ mẫu (bài tự kiểm độ phủ).
+
+### 14.1 Hai chỗ khác bộ cũ — CỐ Ý
+
+1. **Nến trục xếp hàng.** Dữ liệu nối lại sau lỗ hổng đúng phút CUỐI của một ô (ô trước
+   lại mất phút cuối) thì hai nến trục cùng đóng trong một nhịp M1. `la_nhip5` của bộ cũ
+   chỉ bật MỘT lần → cây trước không bao giờ được chạy Entry, cổng zone không được xét.
+   Trái với chính lời hứa "mỗi nến trục có ĐÚNG MỘT nhịp" ở `_dung_truc`. Cầu nối chạy
+   từng cây theo thứ tự. ⚠ **Bộ cũ còn mang lỗi này** — chưa sửa vì nó sắp được thay
+   (D-01); bài kiểm ghi lại đúng ca đó để không ai tưởng là trùng khít.
+2. **Spread sống** — mọi chỗ đọc spread vẫn đọc qua đúng một cửa, chỉ đổi nguồn.
+
+### 14.2 Gói dán lên QC
+
+Gói Free không có API (D-02) và giới hạn **mỗi file 32 KB** (Researcher 64 · Team 128) —
+riêng `core.py` đã 113 KB. `tools/dong_goi_lean.py` vì thế:
+
+- **làm gọn** từng module trên TỪNG TOKEN: bỏ comment, docstring → `pass`. Không đụng một
+  token code nào, và **giữ số dòng** mọi câu lệnh — lỗi báo trên QC ở `core.py` dòng N
+  là đúng dòng N trong repo;
+- nén lzma + base85, chia vào `main.py` + `nguon_*.py` dưới trần (hiện: 2 file);
+- **soát sơ đồ tại máy** trước khi đóng gói — lỗi biên dịch nổ ở đây kèm nhãn khối, không
+  nổ sau 15 giây dựng máy trên cloud;
+- gắn **mã gói** vào mọi file — dán lệch lần đóng gói là báo ngay, chỉ đúng file.
+
+Khung H4/D1 bị chặn: biên nến của chúng đặt theo giờ sàn, mà giờ MT5 và giờ dữ liệu QC
+không trùng — chạy là ra nến khác cây, lệch im lặng.
+
+### 14.3 Một giả định về LEAN — tự khai đúng sai mỗi lần chạy
+
+Giả định: consolidator phát nến khung TRƯỚC `on_data` của nến M1 khép nó. Nếu sai, mọi
+lượt Entry chạy trễ một nhịp. Dòng tổng kết vì thế in **"lượt Entry … (trễ N)"**: bình
+thường N cỡ vài chục (phút cuối ô bị thủng); N xấp xỉ số nến trục là giả định sai.

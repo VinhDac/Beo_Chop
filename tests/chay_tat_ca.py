@@ -31,6 +31,7 @@ BAI = [
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
     ("test_lean_do_nhip.py", "Đo nhịp LEAN — một lượt một dòng, không ngắt sớm, JSON sạch"),
+    ("test_cat_lean.py", "Cầu nối QC — trùng khít bộ cũ, gói dán được, chạy được khi KHÔNG có repo"),
 ]
 
 hong = []

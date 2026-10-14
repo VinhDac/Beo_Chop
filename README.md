@@ -140,7 +140,9 @@ cat_studio/        toàn bộ lõi app
   so_lenh.py         bảng lệnh + vùng nén, id của CHÍNH TA
   luu_tru.py         MỘT chỗ duy nhất biết file nằm ở đâu
   api.py             bề mặt DUY NHẤT giao diện gọi tới  (JS → api.py → core.py)
+  mau.py             sơ đồ mẫu Compress (D_02) — dùng được cả khi không có giao diện
   khung_cua_so.py    vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo/giãn/phóng to)
+lean/              cầu nối QuantConnect: lõi thuần + lớp vỏ QC (core.md §14)
 tai_lieu/          sổ ghi cốt lõi
   core.md            VÌ SAO mọi thứ như vậy. Đọc file này trước.
   D02_Compress_ban_giao.md   bàn giao chiến lược gốc
@@ -148,6 +150,7 @@ webui/             giao diện: React + TypeScript + React Flow
 tests/             bộ test — không mở cửa sổ, không cần MT5
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI
+                     dong_goi_lean: gói sơ đồ thành vài file dán lên QuantConnect
 dist/              sản phẩm đóng gói + bản .zip phát hành (không nằm trong repo)
 ```
 
