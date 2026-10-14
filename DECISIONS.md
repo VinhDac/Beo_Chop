@@ -150,3 +150,28 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   - Trần mỗi file của Researcher là 64 KB — gói hiện tại vừa một file; qua API thì app tự
     tải bao nhiêu file cũng được, không còn chuyện dán.
 - **Trạng thái:** locked
+
+---
+
+## D-07 · Sáng tạo không trần — game có màn, nhưng thế giới mở  (chốt 2026-10-14)
+
+- **Quyết định:** như Minecraft: màn chơi để dẫn đường và chấm điểm thật, nhưng người chơi
+  xây được BẤT CỨ THỨ GÌ thị trường và LEAN cho phép, kể cả thứ ta chưa nghĩ ra. Năm thứ:
+  1. **Chế độ Sáng tạo** — mọi bản đồ, giai đoạn, giác quan, bộ phận mở NGAY từ ngày đầu.
+     Mở khoá dần CHỈ là lộ trình của chế độ Chiến dịch (sửa khung đề xuất ở D-05).
+  2. **Khối tự chế** — gói một cụm khối thành khối mới, đặt tên, dùng lại, chia sẻ ("vùng
+     nén", "phá đỉnh 20 phiên"…). Đây là "mạch đỏ" của game: vài khối gốc ghép ra vô số
+     khái niệm.
+  3. **Khối code** — lối thoát cho thứ khối chưa diễn tả được: một ô Python dùng thẳng
+     dữ liệu LEAN, nằm trên sơ đồ như khối thường, mang dấu "hộp đen", nhật ký ghi vào/ra.
+     Trần của game = trần của LEAN.
+  4. **Người chơi tự tạo màn** — chọn thị trường, giai đoạn, màn ẩn, mục tiêu → thử thách
+     cho người khác.
+  5. **Chia sẻ và remix** — mở cỗ máy người khác, xem tua, sửa thành bản của mình.
+- **Rào duy nhất: tiền thật.** Ra trận bằng tiền thật vẫn phải qua kiểm định — dây an
+  toàn, không phải giới hạn. Điểm thật vẫn luôn chấm trên dữ liệu chưa thấy.
+- **Phương án đã cân nhắc:** (a) cả gói ← **chọn** / (b) không có khối code (mọi thứ là sơ
+  đồ nhìn thấy) / (c) bỏ rào tiền thật
+- **Lý do:** ta xây game nhưng không giới hạn tiềm năng (lời chủ dự án). Minecraft hay vì
+  khối đơn giản ghép ra mọi thứ, không vì màn.
+- **Trạng thái:** locked
