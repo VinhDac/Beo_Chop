@@ -1,62 +1,38 @@
-"""Nguồn nến — chỗ DUY NHẤT trong app biết MetaTrader 5 tồn tại.
+"""Kho nến trên máy — đọc những bộ nến M1 ĐÃ CÓ trong `du_lieu/nen/`.
 
-Mọi module khác chỉ thấy một mảng numpy. Nhờ vậy đổi nguồn (CSV, sàn khác, dữ liệu
-tick) chỉ phải sửa một file, và backtest chạy được khi MT5 đang TẮT — miễn là đã tải.
+App KHÔNG tải nến nữa (DECISIONS.md D-09: app chỉ phục vụ QuantConnect, mà dữ liệu của
+QC không được mang về máy). Module này chỉ còn ĐỌC và XOÁ những bộ nến đã nằm sẵn trên
+máy, cho Strategy Tester chạy tại máy. Mọi module khác chỉ thấy một mảng numpy.
 
-BA QUYẾT ĐỊNH ĐÃ CHỐT (core.md §12.1, §12.11)
----------------------------------------------
-1. **Chỉ tải M1.** M5 / M15 / H1 gộp từ M1. Một bộ dữ liệu, không tải chồng nhiều khung.
-   M1 cũng là nền mô phỏng: giá đi tới đâu, lệnh khớp lúc nào đều xét theo nến M1.
+BA LUẬT CỦA KHO
+---------------
+1. **Chỉ có M1.** M5 / M15 / H1 gộp từ M1 (`tinh_toan.gop`). M1 cũng là nền mô phỏng:
+   giá đi tới đâu, lệnh khớp lúc nào đều xét theo nến M1.
 
-2. **Một symbol giữ đúng MỘT DẢI LIỀN.** Chọn khoảng chồng lấn thì chỉ tải phần thiếu;
-   chọn khoảng rời hẳn thì tải luôn phần ở giữa cho liền. Dữ liệu vụn thành nhiều mảnh
-   là mời gọi một lớp lỗi rất khó thấy: backtest chạy qua chỗ thủng mà không biết.
+2. **Một symbol là ĐÚNG MỘT DẢI LIỀN** (một file `.npy` + một file meta `.json`). Dữ
+   liệu vụn thành nhiều mảnh là mời gọi một lớp lỗi rất khó thấy: backtest chạy qua chỗ
+   thủng mà không biết.
 
-3. **Không bao giờ tải lén.** `khoang_thieu()` + `uoc_tinh()` cho biết sẽ tải bao nhiêu
-   nến, bao nhiêu MB; giao diện hỏi rồi mới gọi `tai()`.
+3. **`t` là giờ của nguồn đã dựng nến** (giờ server của sàn), không phải UTC. Đừng "sửa
+   cho đúng UTC" — biên nến M5, phiên, cuối tuần đều phải theo đúng cái đồng hồ đã dựng
+   nến, nếu không biên nến sẽ lệch và vùng nén đếm sai.
 
-MẤY CÁI BẪY ĐÃ ĐO, ĐỌC TRƯỚC KHI SỬA
--------------------------------------
-* **`t` là giờ SERVER của sàn, không phải UTC.** MT5 trả epoch tính theo múi giờ server.
-  Đừng "sửa cho đúng UTC" — mọi thứ khác trong app (nến M5 khép lúc nào, phiên nào,
-  cuối tuần ở đâu) đều phải theo đúng cái đồng hồ mà sàn dựng nến, nếu không biên nến
-  sẽ lệch và vùng nén đếm sai.
-
-* **`copy_rates_range` bị chặn bởi "Max bars in chart" của terminal.** Xin một năm M1
-  (~374 000 nến) một phát thì có thể trả về thiếu mà KHÔNG báo lỗi — đúng kiểu hỏng im
-  lặng tệ nhất. Nên chia lô theo `NGAY_MOI_LO` ngày và ghép lại.
-
-* **Không lưu spread từng nến.** MT5 có trả cột đó, nhưng mô hình đã chốt là spread một
-  con số trong cài đặt (§12.3). Lưu thêm 4 B mỗi nến để rồi không ai đọc là phình dữ
-  liệu vô ích. Thay vào đó `tai()` đo TRUNG VỊ spread và cất vào meta — đủ để giao diện
-  gợi ý một con số đúng thay vì bắt người dùng đoán.
+Không lưu spread từng nến: mô hình đã chốt là spread một con số trong Cài đặt (§12.3);
+meta có sẵn `spread_tb` (trung vị lúc dựng bộ nến) để gợi ý con số đó.
 """
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 
 from . import luu_tru
 
-try:
-    import MetaTrader5 as mt5
-    CO_MT5 = True
-except Exception:                                        # pragma: no cover
-    mt5 = None
-    CO_MT5 = False
-
 
 #: Một nến M1. 48 byte — một năm XAUUSD (~374k nến) khoảng 18 MB.
-#: `t` = epoch giây, GIỜ SERVER. `vol` = tick volume.
+#: `t` = epoch giây, giờ của nguồn. `vol` = tick volume.
 DTYPE = np.dtype([("t", "<i8"), ("o", "<f8"), ("h", "<f8"),
                   ("l", "<f8"), ("c", "<f8"), ("vol", "<i8")])
-
-#: Chia lô khi tải. 30 ngày M1 ≈ 31 000 nến — thoải mái dưới mọi giới hạn terminal.
-NGAY_MOI_LO = 30
-
-#: Số nến M1 ước tính mỗi ngày lịch. Forex chạy ~5/7 ngày, 1440 nến/ngày giao dịch.
-NEN_MOI_NGAY = 1440 * 5 / 7
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +83,7 @@ def _duong(symbol):
 
 
 def doc_meta(symbol):
-    """Meta của một bộ nến đã tải. None nghĩa là chưa có gì."""
+    """Meta của một bộ nến trên máy. None nghĩa là chưa có gì."""
     _, mj = _duong(symbol)
     try:
         with open(mj, encoding="utf-8") as f:
@@ -117,7 +93,7 @@ def doc_meta(symbol):
 
 
 def doc(symbol, tu=None, den=None):
-    """Mảng nến M1 đã tải, cắt theo [tu, den]. Chưa có thì trả mảng RỖNG đúng dtype.
+    """Mảng nến M1 trên máy, cắt theo [tu, den]. Chưa có thì trả mảng RỖNG đúng dtype.
 
     Trả mảng rỗng chứ không None: chỗ gọi cứ `len()` và cắt lát như thường, không phải
     rải `if is None` khắp bộ chạy."""
@@ -190,10 +166,10 @@ def xoa(symbol):
 def file_du(symbol, m):
     """File `.npy` có thật sự chứa đủ số nến mà meta khai không?
 
-    Meta và mảng nến là HAI file. Một `.npy` cụt (hỏng từ trước bản vá ghi nguyên tử, hay
-    do antivirus/đồng bộ đám mây xén) vẫn để meta nguyên vẹn — mà `doc()` bắt mọi lỗi rồi
-    lặng lẽ trả mảng RỖNG, còn `khoang_thieu()` chỉ nhìn meta nên khẳng định "đủ rồi".
-    App tự khoá mình vào trạng thái chết: không đọc được nến, cũng không bao giờ tải lại.
+    Meta và mảng nến là HAI file. Một `.npy` cụt (antivirus, đồng bộ đám mây xén, ghi dở)
+    vẫn để meta nguyên vẹn — mà `doc()` bắt mọi lỗi rồi lặng lẽ trả mảng RỖNG, còn
+    `khoang_thieu()` nếu chỉ nhìn meta sẽ khẳng định "đủ rồi". File cụt phải bị coi như
+    không có, để người dùng được báo thiếu nến thay vì chạy trên mảng rỗng.
 
     Chỉ một lệnh `stat`, không đọc file, nên gọi mỗi lần bấm ▶ cũng không tốn gì."""
     try:
@@ -203,28 +179,21 @@ def file_du(symbol, m):
 
 
 def khoang_thieu(symbol, tu, den):
-    """Muốn có [tu, den] thì còn phải tải những khoảng nào.
+    """Những phần của [tu, den] mà kho trên máy KHÔNG phủ tới — `[(từ, đến), …]`.
 
-    Một symbol giữ đúng MỘT DẢI LIỀN, nên câu trả lời nhiều nhất là hai khoảng: phần
-    trước dải đang có và phần sau nó. Nếu khoảng xin nằm rời hẳn thì phần "ở giữa" tự
-    động nằm trong một trong hai khoảng đó — dải vẫn liền sau khi tải.
-
-    Trả `[]` nghĩa là đã đủ, không cần đụng tới MT5."""
+    Một symbol là một dải liền, nên nhiều nhất là hai khoảng: phần trước dải và phần sau
+    dải. Chưa có bộ nến nào (hoặc file cụt) thì thiếu trọn khoảng xin. Trả `[]` nghĩa là
+    đủ — và cả khi mốc không đọc được: chỗ gọi phải tự chặn mốc rỗng trước."""
     t0, t1 = thoi_diem(tu), thoi_diem(den)
     if t0 is None or t1 is None or t1 <= t0:
         return []
     m = doc_meta(symbol)
-    if not m or not m.get("so_nen"):
-        return [(t0, t1)]
-    if not file_du(symbol, m):
+    if not m or not m.get("so_nen") or not file_du(symbol, m):
         return [(t0, t1)]
     a, b = int(m["tu"]), int(m["den"])
+    if t1 <= a or t0 >= b:                 # rời hẳn dải đang có
+        return [(t0, t1)]
     ra = []
-    # ⚠ Khoảng trái PHẢI kéo tới tận `a`, khoảng phải PHẢI bắt đầu từ tận `b` — kể cả
-    # khi khoảng xin nằm RỜI HẲN dải đang có. Viết `min(t1, a)` / `max(t0, b)` thì với
-    # một khoảng rời, ta chỉ tải đúng phần mới và để THỦNG một lỗ ở giữa: dải không còn
-    # liền, mà bộ chạy sẽ chạy qua chỗ thủng đó mà không biết. Thà tải thừa phần giữa —
-    # người dùng đã được báo số MB trước khi bấm.
     if t0 < a:
         ra.append((t0, a))
     if t1 > b:
@@ -232,218 +201,9 @@ def khoang_thieu(symbol, tu, den):
     return ra
 
 
-def uoc_tinh(khoang):
-    """Ước lượng số nến và số MB của một danh sách khoảng, TRƯỚC khi tải.
-
-    Cố ý ước lượng thô (1440 nến × 5/7 ngày): mục đích chỉ là để người dùng biết mình
-    sắp tải 2 MB hay 200 MB. Con số thật hiện ra sau khi tải xong."""
-    ngay = sum((b - a) for a, b in khoang) / 86400.0
-    so_nen = int(ngay * NEN_MOI_NGAY)
-    return {"so_nen": so_nen,
-            "mb": round(so_nen * DTYPE.itemsize / (1024 * 1024), 2),
-            "so_khoang": len(khoang)}
-
-
-# ---------------------------------------------------------------------------
-# MT5
-# ---------------------------------------------------------------------------
-class LoiNguon(Exception):
-    """Lỗi nói được thành lời cho người dùng, không phải traceback."""
-
-
-class _KetNoi:
-    """`with _KetNoi(): …` — mở MT5, xong thì đóng.
-
-    Đóng lại sau mỗi việc chứ không giữ mãi: app có thể mở hàng giờ, mà giữ một kết nối
-    treo tới terminal suốt thời gian đó chỉ để thỉnh thoảng tải nến là chuốc rắc rối
-    (người dùng đóng MT5, đổi tài khoản, mất mạng…)."""
-
-    #: ĐẾM LỒNG NHAU. `mt5` giữ MỘT kết nối toàn cục cho cả tiến trình, nên `shutdown()`
-    #: của bất kỳ ai cũng giết kết nối của tất cả. Đo được: cửa sổ Live poll sức khoẻ mỗi
-    #: giây, mỗi lần vào/ra một `_KetNoi` — trong khi bài hiệu chuẩn đang chạy dở thì cú
-    #: `shutdown()` của nó cắt ngang, và mọi lệnh từ vòng 2 trở đi trả `10031 mất kết nối`.
-    #: Chỉ NGƯỜI CUỐI CÙNG rời mới được đóng.
-    _sau = 0
-
-    #: Khoá. `_sau` bị đọc/ghi từ NHIỀU LUỒNG (giao diện, vòi cấp nến, bài kiểm) —
-    #: không khoá thì hai luồng cùng thấy 0, cùng `initialize`, rồi luồng ra trước
-    #: `shutdown()` cắt ngang luồng kia.
-    _khoa = __import__("threading").Lock()
-
-    def __enter__(self):
-        if not CO_MT5:
-            raise LoiNguon("Máy chưa cài thư viện MetaTrader5 (pip install MetaTrader5).")
-        with _KetNoi._khoa:
-            if _KetNoi._sau > 0:
-                _KetNoi._sau += 1
-                return self
-            if not mt5.initialize():
-                ma, mo_ta = mt5.last_error()
-                raise LoiNguon(
-                    f"Không nối được MetaTrader 5 ({ma}: {mo_ta}).\n"
-                    "Hãy MỞ MT5 và đăng nhập, rồi thử lại. Tải xong thì đóng MT5 vẫn "
-                    "backtest bình thường.")
-            _KetNoi._sau = 1        # ⚠ DÒNG NÀY. Thiếu nó thì mọi `__exit__` đều
-            return self             # `shutdown()`, kể cả khi khối ngoài đang dùng.
-
-    def __exit__(self, *a):
-        with _KetNoi._khoa:
-            _KetNoi._sau = max(0, _KetNoi._sau - 1)
-            if _KetNoi._sau > 0:
-                return
-            try:
-                mt5.shutdown()
-            except Exception:               # noqa: BLE001
-                pass
-        return False
-
-
-def thong_tin_symbol(symbol):
-    """`digits` / `point` / `contract_size` / spread hiện tại của một symbol.
-
-    Ba con số đầu PHẢI cất cạnh nến: thiếu chúng thì "20 points" không quy ra được tiền,
-    và tính lãi/lỗ ra một con số vô nghĩa. Cất rồi thì backtest lại vẫn đúng dù MT5 tắt."""
-    with _KetNoi():
-        return _thong_tin(symbol)
-
-
-def _thong_tin(symbol):
-    si = mt5.symbol_info(symbol)
-    if si is None:
-        raise LoiNguon(f'Sàn không có symbol "{symbol}". '
-                       f"Kiểm tra lại tên (nhiều sàn thêm hậu tố, ví dụ XAUUSDm).")
-    if not si.visible:
-        # Symbol ẩn khỏi Market Watch thì `copy_rates_*` trả về rỗng mà không báo lỗi.
-        mt5.symbol_select(symbol, True)
-        si = mt5.symbol_info(symbol) or si
-    return {"symbol": si.name, "digits": si.digits, "point": si.point,
-            "contract_size": si.trade_contract_size, "spread_hien_tai": si.spread}
-
-
-def _lay_lo(symbol, t0, t1):
-    """Một lô nến M1 trong [t0, t1] (epoch). Trả mảng thô của MT5."""
-    # Nới hai đầu một ngày rồi cắt lại theo epoch: `copy_rates_range` nhận datetime và
-    # diễn giải theo UTC, trong khi mốc nến là giờ server — lệch vài giờ là mất nguyên
-    # phần rìa. Nới rồi cắt thì không phải đoán múi giờ của sàn.
-    d0 = datetime.fromtimestamp(t0, timezone.utc) - timedelta(days=1)
-    d1 = datetime.fromtimestamp(t1, timezone.utc) + timedelta(days=1)
-    r = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M1, d0, d1)
-    if r is None:
-        ma, mo_ta = mt5.last_error()
-        raise LoiNguon(f"MT5 từ chối trả nến ({ma}: {mo_ta}).")
-    return r
-
-
-def _sang_dtype(tho):
-    """Mảng thô của MT5 -> `DTYPE` của ta. Bỏ cột spread/real_volume (xem đầu file)."""
-    a = np.empty(len(tho), dtype=DTYPE)
-    a["t"] = tho["time"]
-    for k, g in (("o", "open"), ("h", "high"), ("l", "low"), ("c", "close")):
-        a[k] = tho[g]
-    a["vol"] = tho["tick_volume"]
-    return a
-
-
-def _gop(cu, moi):
-    """Ghép hai mảng nến thành MỘT DẢI LIỀN: nối, sắp theo thời gian, bỏ trùng."""
-    if not len(cu):
-        a = moi
-    elif not len(moi):
-        a = cu
-    else:
-        a = np.concatenate([cu, moi])
-    a = a[np.argsort(a["t"], kind="stable")]
-    if len(a) > 1:
-        a = a[np.concatenate([[True], np.diff(a["t"]) != 0])]
-    return a
-
-
-def tai(symbol, tu, den, tien_do=None):
-    """Tải phần CÒN THIẾU của [tu, den] rồi ghép vào bộ nến của `symbol`.
-
-    `tien_do(da, tong, chu)` được gọi sau mỗi lô — giao diện dùng để vẽ thanh tiến độ.
-    Không có gì để tải thì về ngay, KHÔNG đụng tới MT5 (mở terminal không phải chuyện rẻ).
-    """
-    thieu = khoang_thieu(symbol, tu, den)
-    if not thieu:
-        m = doc_meta(symbol) or {}
-        return {"da_tai": 0, "bo_qua": True, "meta": m,
-                "chu": "Đã có đủ dữ liệu cho khoảng này — không tải gì thêm."}
-
-    # Chia nhỏ TRƯỚC khi mở kết nối, để biết tổng số lô mà báo tiến độ.
-    lo = []
-    for a, b in thieu:
-        x = a
-        while x < b:
-            y = min(x + NGAY_MOI_LO * 86400, b)
-            lo.append((x, y))
-            x = y
-
-    with _KetNoi():
-        tt = _thong_tin(symbol)
-        gom, spreads = [], []
-        for i, (a, b) in enumerate(lo, 1):
-            tho = _lay_lo(tt["symbol"], a, b)
-            if len(tho):
-                gom.append(_sang_dtype(tho))
-                if "spread" in (tho.dtype.names or ()):
-                    spreads.append(np.asarray(tho["spread"], dtype=np.int64))
-            if tien_do:
-                tien_do(i, len(lo), f"{_ngay(a)} → {_ngay(b)}")
-
-    moi = np.concatenate(gom) if gom else np.empty(0, dtype=DTYPE)
-    a = _gop(doc(symbol), moi)
-    if not len(a):
-        raise LoiNguon(
-            f'Sàn không trả về nến M1 nào cho "{symbol}" trong khoảng này.\n'
-            "Thường là do khoảng ngày nằm ngoài lịch sử sàn giữ, hoặc symbol chưa được "
-            "bật trong Market Watch.")
-
-    # Spread TRUNG VỊ, không phải trung bình: vài nến tin tức có spread giãn gấp chục
-    # lần sẽ kéo lệch trung bình, mà cái người dùng cần là con số THƯỜNG GẶP để điền
-    # vào ô spread.
-    sp = int(np.median(np.concatenate(spreads))) if spreads else None
-
-    m = {
-        "symbol": tt["symbol"], "tf": "M1",
-        "tu": int(a["t"][0]), "den": int(a["t"][-1]), "so_nen": int(len(a)),
-        "digits": tt["digits"], "point": tt["point"],
-        "contract_size": tt["contract_size"],
-        "spread_tb": sp,
-        "tai_luc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
-    }
-    mn, mj = _duong(symbol)
-    _ghi_nguyen_tu(mn, lambda f: np.save(f, a, allow_pickle=False))
-    _ghi_nguyen_tu(mj, lambda f: f.write(
-        json.dumps(m, ensure_ascii=False, indent=2).encode("utf-8")))
-
-    return {"da_tai": int(len(moi)), "bo_qua": False, "meta": m,
-            "chu": f"Đã tải {len(moi):,} nến · giữ tổng {len(a):,} nến "
-                   f"({_ngay(m['tu'])} → {_ngay(m['den'])})".replace(",", ".")}
-
-
 # ---------------------------------------------------------------------------
 # Soát chất lượng — thứ bộ chạy PHẢI biết trước khi tin vào dữ liệu
 # ---------------------------------------------------------------------------
-def _ghi_nguyen_tu(duong, ghi):
-    """Ghi ra file TẠM rồi đổi tên đè lên — đổi tên trên NTFS là một thao tác nguyên tử.
-
-    Vì sao bắt buộc riêng ở đây: `np.save` ghi thẳng lên file đích, tức nó CẮT CỤT bộ nến
-    cũ rồi mới ghi lại. Ngắt giữa chừng (bấm ✕, mất điện, antivirus xen vào) thì `.npy`
-    cụt còn `.json` meta vẫn mô tả bộ dữ liệu không còn tồn tại nữa — và từ đó `doc()`
-    lặng lẽ trả mảng rỗng trong khi `khoang_thieu()` (chỉ nhìn meta) khẳng định không
-    thiếu gì, nên app KHÔNG BAO GIỜ tải lại. Tự khoá mình vào trạng thái chết. Đo được:
-    ngắt tiến trình đúng lúc `np.save` thì 20/20 lần khoá chết.
-
-    Cách này ngắt ở đâu cũng chỉ để lại một file `.tmp` rác, còn bản cũ nguyên vẹn."""
-    tam = duong + ".tmp"
-    with open(tam, "wb") as f:
-        ghi(f)
-        f.flush()
-        os.fsync(f.fileno())        # ép xuống đĩa TRƯỚC khi đổi tên, không chỉ vào cache
-    os.replace(tam, duong)
-
-
 def lo_hong(symbol, tu=None, den=None, nguong_phut=2):
     """Những chỗ THỦNG trong chuỗi nến M1: (bắt đầu, kết thúc, số phút).
 
@@ -475,53 +235,3 @@ def tom_tat(symbol, tu=None, den=None):
         "digits": m.get("digits"), "point": m.get("point"),
         "contract_size": m.get("contract_size"), "spread_tb": m.get("spread_tb"),
     }
-
-
-def kiem_ket_noi(symbol=None):
-    """Nối thử tới MetaTrader 5 và trả về SỰ THẬT, không ném lỗi.
-
-    Sinh ra vì câu hỏi "sao máy mới không tự tải được?" hiện không có chỗ nào trả lời:
-    người dùng chỉ thấy một lỗi lúc bấm ▶, mà lúc đó đã muộn và câu lỗi thì nói về khoảng
-    thời gian chứ không nói về kết nối. Đây là chỗ hỏi TRƯỚC, ngay trong Cài đặt.
-
-    Không bao giờ ném: mọi hỏng hóc đều là một câu trả lời có ích chứ không phải sự cố.
-    """
-    ra = {"noi_duoc": False, "chu": "", "terminal": "", "tai_khoan": "",
-          "symbol": symbol, "co_symbol": False, "goi_y": []}
-    if not CO_MT5:
-        ra["chu"] = "Máy chưa cài thư viện MetaTrader5 (pip install MetaTrader5)."
-        return ra
-    try:
-        with _KetNoi():
-            ra["noi_duoc"] = True
-            tt = mt5.terminal_info()
-            tk = mt5.account_info()
-            if tt:
-                ra["terminal"] = f"{tt.name} · {tt.company}"
-            if tk:
-                ra["tai_khoan"] = f"{tk.login} · {tk.server}"
-            ra["chu"] = "Đã nối được MetaTrader 5."
-            if symbol:
-                try:
-                    ra["co_symbol"] = bool(_thong_tin(symbol))
-                    ra["chu"] += f' Sàn có symbol "{symbol}".'
-                except LoiNguon as e:
-                    ra["chu"] += f" {e}"
-                    # Nhiều sàn thêm hậu tố (XAUUSDm, XAUUSD.r…). Gợi ý những mã CÓ THẬT
-                    # trên sàn này thay vì để người dùng đoán mò.
-                    #
-                    # Thử tiền tố NGẮN DẦN: gõ nhầm một chữ ở giữa ("XAUUZSD") thì tìm
-                    # theo 6 ký tự đầu là hụt sạch, mà đúng lúc đó mới cần gợi ý nhất.
-                    for n in (6, 4, 3):
-                        try:
-                            ds = mt5.symbols_get(f"*{symbol[:n]}*") or ()
-                        except Exception:
-                            break
-                        if ds:
-                            ra["goi_y"] = sorted(s.name for s in ds)[:12]
-                            break
-    except LoiNguon as e:
-        ra["chu"] = str(e)
-    except Exception as e:                      # noqa: BLE001 - bao gì cũng phải trả lời
-        ra["chu"] = f"{type(e).__name__}: {e}"
-    return ra

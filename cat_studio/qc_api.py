@@ -1,7 +1,6 @@
 """NỐI QUANTCONNECT QUA API — chỗ DUY NHẤT trong app biết QuantConnect tồn tại.  (slice 3 · D-06)
 
-Như `nguon_nen` là chỗ duy nhất biết MetaTrader5: lõi (`core`, `bo_chay`) KHÔNG import
-file này. Chỉ dùng thư viện chuẩn (`urllib`) — không thêm gì vào requirements.
+Lõi (`core`, `bo_chay`) KHÔNG import file này. Chỉ dùng thư viện chuẩn (`urllib`) — không thêm gì vào requirements.
 
 CÁCH GỌI API — đối chiếu với LEAN CLI, công cụ dòng lệnh chính thức của QC, mã nguồn mở
 (`lean/components/api/*.py`), không đoán:

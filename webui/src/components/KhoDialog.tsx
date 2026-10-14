@@ -156,12 +156,11 @@ export default function KhoDialog({ onDong }: { onDong: () => void }) {
             </div>
           </Muc>
 
-          <Muc ten="Sổ lệnh" phu="id của ta, không mượn ticket MT5">
+          <Muc ten="Sổ lệnh" phu="id của ta, không mượn mã lệnh của sàn">
             <div className="chu-dan">
               Mỗi lệnh mang một id <code>L-0001</code> và nhớ <code>zone_id</code> đẻ ra
               nó. Nhờ vậy <b>“vùng này đã sinh lệnh”</b> chỉ là một phép tra bảng, và
               không phải đoán như <code>HasOpenPosition()</code> của D_02.
-              <code>ticket</code> của MT5 chỉ là một cột phụ, để trống khi backtest.
             </div>
             <table className="kho-bang">
               <thead><tr><th>Trạng thái lệnh</th><th>Nghĩa</th></tr></thead>

@@ -6,7 +6,7 @@ Mọi module của app nằm trong gói này; ở thư mục gốc chỉ còn `a
 Thứ tự phụ thuộc, đọc từ dưới lên — không có vòng nào:
 
     luu_tru      chỗ DUY NHẤT biết file nằm ở đâu
-    nguon_nen    chỗ DUY NHẤT biết MetaTrader5
+    nguon_nen    kho nến M1 đã có trên máy (chỉ đọc)
     tinh_toan    chỉ báo thuần (mảng vào, mảng ra)
     khop_lenh    mô hình khớp lệnh thuần
     so_lenh      sổ lệnh + vùng nén
@@ -19,6 +19,6 @@ Thứ tự phụ thuộc, đọc từ dưới lên — không có vòng nào:
     api          bề mặt DUY NHẤT giao diện gọi tới
 
 Gói CỐ Ý không re-export gì ở đây: `from cat_studio import core` phải nạp đúng module đó,
-không kéo theo cả cây. Nạp `api` là kéo theo numpy và MetaTrader5, mà `tests/test_danh_so`
+không kéo theo cả cây. Nạp `api` là kéo theo numpy và cả lớp cửa sổ, mà `tests/test_danh_so`
 chỉ cần `core`.
 """

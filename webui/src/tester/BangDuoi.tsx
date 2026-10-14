@@ -10,9 +10,9 @@ const CAO_GAP = 33
  * `▼/▲` ở góc phải, nhấp đúp hàng tab cũng cụp. Nút gập nằm trên chính bảng chứ không ở
  * góc thanh công cụ — tay đang ở đâu thì nút ở đó.
  *
- * ⚠ VỎ NÀY DÙNG CHUNG cho cả Strategy Tester lẫn Live — hai cửa sổ khác nhau ở NỘI
- * DUNG tab, không ở cái vỏ. Trước đây Live tự dựng lại hàng tab và ra một bảng trông
- * khác hẳn: mất thanh kéo, mất nút gập, mất số đếm, chữ so le. Nên tab là THAM SỐ.
+ * ⚠ VỎ NÀY DÙNG CHUNG cho Strategy Tester lẫn cửa sổ Màn chơi — hai cửa sổ khác nhau ở
+ * NỘI DUNG tab, không ở cái vỏ. Mỗi cửa sổ tự dựng hàng tab là ra hai bảng trông khác
+ * hẳn: mất thanh kéo, mất nút gập, mất số đếm, chữ so le. Nên tab là THAM SỐ.
  */
 
 export interface TabDuoi {

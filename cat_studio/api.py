@@ -25,8 +25,6 @@ import traceback
 from . import core
 from . import kho
 from . import mau
-from . import gui_lenh
-from . import ket_noi
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -34,7 +32,6 @@ else:
     # của Win32 — `khung_cua_so` gọi `ctypes.windll` ngay lúc nạp — nên thay bằng bản
     # rỗng cho `api.py` nạp được. Trên Windows không đổi gì.
     from . import khung_rong as khung_cua_so
-from . import phien_live
 from . import game
 from . import qc_api
 from . import qc_chay
@@ -301,8 +298,6 @@ class Api(NenCuaSo):
         super().__init__()
         self._tester = None          # cửa sổ Strategy Tester (pywebview Window)
         self._api_tester = None      # Api RIÊNG của cửa sổ đó
-        self._live = None            # cửa sổ Live
-        self._api_live = None
         self._qc = None              # cửa sổ Màn chơi (chạy trên QuantConnect)
         self._api_qc = None
         self._doc_qc = None
@@ -329,7 +324,6 @@ class Api(NenCuaSo):
             "settings": self._cai_dat,
             "app_dir": core.app_dir(),
             "nguon": nguon_nen.liet_ke(),
-            "co_mt5": nguon_nen.CO_MT5,
 
             "kinds": [core.KIND_START, core.KIND_ACTION],
             "kind_labels": core.KIND_LABELS,
@@ -583,65 +577,6 @@ class Api(NenCuaSo):
         return _ok({"da_mo": True}, canh_bao=canh_bao)
 
     @_bat_loi
-    def mo_live(self, doc=None):
-        """Mở cửa sổ LIVE. KHÔNG kiểm gì ở đây.
-
-        ⚠ Cổng chốt (chọn chiến lược · symbol · kiểm kết nối) nằm TRONG chính cửa sổ
-        Live, không phải ở cửa sổ vẽ — xem `ApiLive.live_boot`. Hàm này chỉ mở cửa, và
-        đưa sang sơ đồ đang vẽ để cổng bên kia có cái mà gợi ý.
-        """
-        import webview
-        trang = luu_tru.trang_giao_dien()
-        co_trang = os.path.exists(trang)
-
-        if self._live is not None:
-            self._api_live._goi_y(doc)
-            # Cửa sổ còn sống thì KÉO NÓ LÊN. Không có dòng này thì bấm ● Live hay
-            # Ctrl+L lúc cửa sổ đang bị lấp sau trông y như nút hỏng.
-            self._api_live._khung.keo_len_truoc()
-            return _ok({"da_mo": True})
-
-        self._api_live = ApiLive(self)
-        self._api_live._goi_y(doc)
-        self._live = webview.create_window(
-            # ⚠ Tiêu đề mang đuôi riêng "— Live" để bản vá khung khớp được chắc chắn —
-            # xem dưới. Cửa sổ không khung vẫn có tiêu đề Win32 (taskbar, Alt+Tab).
-            "Cat Studio — Live",
-            url=f"{trang.replace(os.sep, '/')}?live=1" if co_trang else None,
-            html=None if co_trang else _TRANG_TESTER_TAM,
-            js_api=self._api_live,            # ⚠ KHÔNG phải `self` — xem `NenCuaSo`
-            width=1180, height=780, min_size=(900, 600),
-            background_color="#202020",
-            frameless=True, easy_drag=False)
-        self._api_live._gan_window(self._live)
-
-        al0 = self._api_live
-
-        def quen_di():
-            # ⚠ PHẢI DỪNG LUỒNG MÁY. Đo được: không có `_dung = True` thì `_vong()`
-            # chạy mãi sau khi cửa sổ đóng — điều kiện `self._window is not None` không
-            # bao giờ đổi vì không ai gán lại. Mở Live lần hai là có HAI luồng cùng kéo
-            # nến và cùng giành cầu nối MT5.
-            #
-            # Chọn nghĩa: ĐÓNG CỬA SỔ = DỪNG PHIÊN. Chưa có luồng đặt lệnh nên không có
-            # gì phải giữ chạy ngầm; ngày thêm nó thì đây là chỗ phải bàn lại, và chú
-            # thích này là lời nhắc.
-            al0._dung = True
-            al0._window = None
-            self._live = None
-            self._api_live = None
-
-        self._live.events.closed += quen_di
-        # Khớp theo "— Live" chứ không theo "Live" trần: `tim_hwnd` khớp CHUỖI CON, mà
-        # một chiến lược đặt tên "Live" sẽ làm tiêu đề tester ("Live — Strategy Tester")
-        # khớp trước → vá nhầm cửa sổ, và cửa sổ Live thì không kéo/giãn được gì cả.
-        # Cùng luật với tester, xem `_mo_cua_so_tester`.
-        al = self._api_live
-        threading.Thread(target=lambda: al._va_khung("— Live"),
-                         daemon=True).start()
-        return _ok({"da_mo": True})
-
-    @_bat_loi
     def mo_qc(self, doc):
         """◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect (D-03 · D-05 · D-06).
 
@@ -678,7 +613,7 @@ class Api(NenCuaSo):
             self._api_qc = None
 
         self._qc.events.closed += quen_di
-        # Khớp theo "— Màn chơi" — cùng luật với tester/Live: tên chiến lược chứa gì cũng
+        # Khớp theo "— Màn chơi" — cùng luật với tester: tên chiến lược chứa gì cũng
         # được, không được để nó làm vá nhầm cửa sổ.
         aq = self._api_qc
         threading.Thread(target=lambda: aq._va_khung("— Màn chơi"), daemon=True).start()
@@ -797,17 +732,8 @@ class Api(NenCuaSo):
         return _ok(cu)
 
     # ---------------------------------------------------------- nguồn dữ liệu
-    # Nằm ở Api CHÍNH vì nguồn nến là tài sản của APP, không phải của một lần chạy:
-    # tải một lần rồi mọi chiến lược đều dùng chung, và xoá thì xoá hẳn.
-    @_bat_loi
-    def nguon_kiem_ket_noi(self, symbol):
-        """Nối thử tới MT5 ngay trong Cài đặt, TRƯỚC khi bấm ▶.
-
-        Câu "sao máy mới không tự tải được?" trước đây không có chỗ nào trả lời: người
-        dùng chỉ gặp một lỗi lúc chạy, mà câu lỗi đó nói về khoảng thời gian chứ không
-        nói gì về kết nối. Nút này hỏi thẳng và trả lời thẳng."""
-        return _ok(nguon_nen.kiem_ket_noi(symbol))
-
+    # Nằm ở Api CHÍNH vì kho nến là tài sản của APP, không phải của một lần chạy: mọi
+    # chiến lược dùng chung, và xoá thì xoá hẳn.
     @_bat_loi
     def nguon_xoa(self, symbol):
         nguon_nen.xoa(symbol)
@@ -841,6 +767,11 @@ class Api(NenCuaSo):
                 self._qc.destroy()
         except Exception:
             pass
+
+
+#: Chart của tester nhận tối đa ngần này nến một lần (~ 8 tháng M5). Hơn nữa thì gói
+#: qua cầu nối pywebview (đồng bộ, mã hoá payload hai lần) nặng mà mắt không đọc thêm được.
+TRAN_NEN_CHART = 60000
 
 
 class ApiTester(NenCuaSo):
@@ -904,61 +835,35 @@ class ApiTester(NenCuaSo):
         finally:
             self._tt["dang_chay"] = False
 
-    def _tai_neu_thieu(self, sym, tu, den):
-        """Thiếu nến cho khoảng này thì TỰ TẢI đúng phần thiếu, rồi chạy tiếp.
+    def _kiem_du_nen(self, sym, tu, den):
+        """Kho nến trên máy có đủ cho khoảng này không — thiếu ĐẦU thì dừng và nói rõ.
 
-        Bỏ nút "Tải thêm" đi được là nhờ chỗ này. Luật cũ ghi ở `nguon_uoc_tinh` là
-        *"không bao giờ tải lén"*, và nó vẫn đúng — chỉ là cách giữ luật đổi: thay vì bắt
-        bấm thêm một nút, tải cứ tải nhưng **nói ra** trên chính thanh tiến trình, kèm số
-        MB. Gõ nhầm `2015` thay vì `2025` thì thấy ngay `≈180 MB` mà đóng lại, không cần
-        một hộp xác nhận nào.
+        App KHÔNG còn nguồn tải nến (DECISIONS.md D-09: app chỉ phục vụ QuantConnect, mà
+        dữ liệu của QC không được mang về máy). Tester chỉ chạy trên những bộ nến đã có
+        trong `du_lieu/nen/`.
 
-        `khoang_thieu` vốn chỉ trả về những mẩu CÒN THIẾU nên đây là tải bổ sung, không
-        phải tải lại từ đầu; đủ rồi thì không đụng tới MT5 một lần nào."""
+        Thiếu phần ĐẦU khoảng thì chặn: chạy tiếp trên một khoảng ngắn hơn là người dùng
+        tưởng mình đang thử từ 2015 trong khi thật ra từ 2016. Thiếu phần ĐUÔI thì cho
+        chạy — bảng Thống kê luôn in khoảng THẬT SỰ có nến cạnh khoảng đã đặt."""
         # ⚠ Chặn khoảng RỖNG ngay đây. `khoang_thieu` trả `[]` cho cả hai trường hợp
-        # "đã đủ nến" LẪN "không đọc nổi mốc thời gian" — mà `[]` được hiểu là "khỏi
-        # tải". Nên máy mới, ô From/To chưa đặt, bấm ▶ là KHÔNG tải gì rồi báo "Không có
-        # nến nào cho XAUUSD", đổ tội cho mã symbol trong khi lỗi thật là chưa đặt khoảng.
-        if nguon_nen.thoi_diem(tu) is None or nguon_nen.thoi_diem(den) is None:
+        # "đã đủ nến" LẪN "không đọc nổi mốc thời gian" — mà `[]` nghĩa là "đủ rồi".
+        t0 = nguon_nen.thoi_diem(tu)
+        if t0 is None or nguon_nen.thoi_diem(den) is None:
             raise RuntimeError(
                 "Chưa đặt khoảng thời gian để chạy.\n\n"
                 "Mở Cài đặt → Strategy Test và điền hai ô Từ / Đến "
                 "(dạng 2025-01-01), rồi bấm ▶ lại.")
         thieu = nguon_nen.khoang_thieu(sym, tu, den)
-        if not thieu:
+        if not thieu or thieu[0][0] > t0:       # đủ, hoặc chỉ hụt phần đuôi
             return
-        ut = nguon_nen.uoc_tinh(thieu)
-        self._tt.update({"da": 0, "tong": 0,
-                         "chu": f"đang tải nến {sym} từ MT5 (≈{ut['mb']} MB)…"})
-        try:
-            nguon_nen.tai(sym, tu, den, tien_do=lambda i, n, c: self._tt.update(
-                {"da": int(i), "tong": int(n),
-                 "chu": f"đang tải nến {sym} từ MT5 · {c}"}))
-        except nguon_nen.LoiNguon as e:
-            # Trước đây lỗi này rơi vào nút "Tải thêm" nên tự nó đã rõ. Giờ nó rơi vào
-            # GIỮA một lần chạy, nên phải tự nói ra là đang thiếu gì.
-            a, b = thieu[0][0], thieu[-1][1]
-            raise RuntimeError(
-                f"Thiếu nến {sym} khoảng {nguon_nen._ngay(a)} → {nguon_nen._ngay(b)} "
-                f"và không tải được.\n\n{e}") from None
-
-        # ⚠ Tải xong mà ĐẦU khoảng vẫn thiếu = nguồn không có dữ liệu xa tới thế. Phải
-        # dừng, vì hai lý do:
-        #   1. chạy tiếp trên một khoảng ngắn hơn thì người dùng tưởng mình đang backtest
-        #      từ 2015 trong khi thật ra từ 2016;
-        #   2. khoảng đó KHÔNG BAO GIỜ lấp được, nên mỗi lần bấm ▶ lại mở MT5 tải lại một
-        #      lượt vô ích — cái giá này chỉ xuất hiện từ khi bỏ nút "Tải thêm".
-        # Chỉ xét đầu khoảng: thiếu ở ĐUÔI là chuyện thường (dữ liệu chỉ có tới hôm nay),
-        # không có lý do gì chặn.
-        con = nguon_nen.khoang_thieu(sym, tu, den)
-        t0 = nguon_nen.thoi_diem(tu)
-        if con and t0 is not None and con[0][0] <= t0:
-            tt = nguon_nen.tom_tat(sym)
-            raise RuntimeError(
-                f"MT5 không có nến {sym} sớm tới {nguon_nen._ngay(t0)}.\n"
-                f"Nguồn chỉ có từ {tt['tu_chu']} đến {tt['den_chu']}.\n\n"
-                f'Sửa ô "Từ" ở Cài đặt → Strategy Test thành {tt["tu_chu"][:10]} '
-                f"trở đi rồi chạy lại.")
+        tt = nguon_nen.tom_tat(sym)
+        co = (f"Trên máy chỉ có {sym} từ {tt['tu_chu'][:10]} đến {tt['den_chu'][:10]}."
+              if tt.get("so_nen") else f"Trên máy chưa có bộ nến {sym} nào.")
+        raise RuntimeError(
+            f"Thiếu nến {sym} khoảng {nguon_nen._ngay(thieu[0][0])[:10]} → "
+            f"{nguon_nen._ngay(thieu[0][1])[:10]}.\n{co}\n\n"
+            "App không tải nến. Sửa ô Từ / Đến ở Cài đặt → Strategy Test cho nằm trong "
+            "khoảng đã có rồi chạy lại.")
 
     def _chay_that(self, ci, doc=None):
         # ĐỌC LẠI cài đặt từ cửa sổ chính mỗi lần chạy, không dùng bản JS nhớ từ lúc mở
@@ -976,7 +881,7 @@ class ApiTester(NenCuaSo):
         if not doc:
             raise RuntimeError("Chưa có sơ đồ nào để chạy.")
         sym = ci.get("symbol") or "XAUUSD"
-        self._tai_neu_thieu(sym, ci.get("tu"), ci.get("den"))
+        self._kiem_du_nen(sym, ci.get("tu"), ci.get("den"))
         m = nguon_nen.doc_meta(sym) or {}
         nen = nguon_nen.doc(sym, ci.get("tu"), ci.get("den"))
         if not len(nen):
@@ -1040,7 +945,7 @@ class ApiTester(NenCuaSo):
 
     # ------------------------------------------------- đọc dòng thời gian
     @_bat_loi
-    def test_nen_tf(self, tf, j, tran=60000, tu_t=0):
+    def test_nen_tf(self, tf, j):
         """TOÀN BỘ nến khung `tf` từ ĐẦU dữ liệu tới con trỏ — để chart kéo đi đâu cũng đủ.
 
         Chart phải hành xử như một cuốn VIDEO: quá khứ luôn có sẵn, kéo qua kéo lại thoải
@@ -1057,22 +962,14 @@ class ApiTester(NenCuaSo):
         j = max(0, min(int(j), len(kq.nen1) - 1))
         a = tinh_toan.gop(kq.nen1[:j + 1], tf if tf in core.TF_PHUT else kq.tf,
                           giu_nen_do_dang=True)
-        # `tu_t > 0` = XIN ĐUÔI: chỉ những cây từ mốc đó trở đi.
-        #
-        # ⚠ Đây là chỗ tốn nhất của cửa sổ Live, đo được: mỗi lần nến đóng nó xin lại
-        # cả 2.000 cây = **134 KB** qua cầu nối pywebview — mà cầu nối đó ĐỒNG BỘ và
-        # mã hoá payload HAI LẦN. Chép 133 KB không đổi chỉ để thêm một cây. Xin đuôi
-        # thì gói còn khoảng trăm byte, và chart `update()` thay vì dựng lại series.
-        if int(tu_t or 0) > 0:
-            a = a[a["t"] >= int(tu_t)]
-        if len(a) > int(tran):
-            a = a[-int(tran):]
+        if len(a) > TRAN_NEN_CHART:
+            a = a[-TRAN_NEN_CHART:]
         return _ok({"t": a["t"].tolist(), "o": a["o"].tolist(), "h": a["h"].tolist(),
                     "l": a["l"].tolist(), "c": a["c"].tolist(), "j": j,
-                    "zone": self._hop_zone(kq, a, int(tu_t or 0))})
+                    "zone": self._hop_zone(kq, a)})
 
     @staticmethod
-    def _hop_zone(kq, a, tu_t):
+    def _hop_zone(kq, a):
         """Zone thành HỘP để chart vẽ phông nền: `[t_đầu, t_cuối, đáy, đỉnh]`.
 
         Đi kèm gói nến chứ không làm một lệnh riêng: nến với zone luôn phải nói cùng một
@@ -1116,8 +1013,6 @@ class ApiTester(NenCuaSo):
             while b1 > b0 and int(n5["t"][b1]) > t_cuoi:
                 b1 -= 1
             t1 = min(int(n5["t"][b1]), t_cuoi)
-            if tu_t > 0 and t1 < tu_t:      # xin ĐUÔI: bỏ zone đã nằm hẳn phía trước
-                continue
             doan = n5[b0:b1 + 1]
             if not len(doan):
                 continue
@@ -1137,11 +1032,7 @@ class ApiTester(NenCuaSo):
         Lô mang đủ MỌI thứ ba vùng cần, nên khi phát thì JS không hỏi Python một câu nào."""
         kq = self._doi_kq()
         n = max(1, min(int(n), 2000))
-        # `j0 < 0` = "lấy ĐOẠN CUỐI". Live không tua nên nó không bao giờ biết chỉ số
-        # cuối là bao nhiêu — mà hỏi thêm một lời gọi nữa chỉ để biết con số đó thì
-        # giữa hai lời gọi sàn đã có thể đóng thêm nến, và hai bên nói lệch nhau.
-        j0 = (len(kq.nen1) - n) if int(j0) < 0 else int(j0)
-        j0 = max(0, min(j0, len(kq.nen1) - 1))
+        j0 = max(0, min(int(j0), len(kq.nen1) - 1))
         j1 = min(len(kq.nen1), j0 + n)
         a = kq.nen1[j0:j1]
         i5 = kq._ct.m1_to_5[j0:j1]
@@ -1562,497 +1453,6 @@ class ApiTester(NenCuaSo):
         if kq is None:
             raise RuntimeError("Chưa chạy backtest nào — bấm ▶ Chạy trước.")
         return kq
-
-
-class ApiLive(ApiTester):
-    """Bề mặt của CỬA SỔ LIVE. Hẹp hơn cả `ApiTester`.
-
-    ⚠ NGUYÊN TẮC: máy live KHÔNG sống trong cửa sổ. Phiên live là một luồng trong tiến
-    trình app; cửa sổ chỉ là cái để nhìn. Nhờ vậy đóng cửa sổ không dừng live, mở lại
-    thì xem tiếp — giống Discord. Ở bản này chưa có luồng đặt lệnh, nhưng cấu trúc đã
-    đặt đúng chỗ để không phải bẻ lại sau.
-
-    ĐỢT NÀY CHẠY CHẾ ĐỘ QUAN SÁT: nối, đo sức khoẻ kết nối, soi vấn đề. KHÔNG đặt lệnh.
-    Lý do ở kế hoạch: chưa ai nên để một cái máy đặt lệnh thật khi chưa ngồi nhìn nó
-    chạy câm vài ngày và so nhật ký với tester.
-    """
-
-    _HAU_TO = "Live"
-
-    def __init__(self, cha):
-        super().__init__(cha)
-        self.doc = None
-        self.symbol = ""
-        self.doc_goi_y = None
-        self.suc_khoe = None
-        self.phien = None            # `phien_live.PhienLive` — vòi cấp nến
-        self.bat_dau = time.time()
-        self._dung = False
-        #: Đang chạy bài hiệu chuẩn → TẠM DỪNG mọi thứ khác đụng vào cầu nối.
-        #: ⚠ Đo được: `mt5` giữ MỘT kết nối cho cả tiến trình, và `_KetNoi` đóng nó khi
-        #: thoát. Nhịp đo sức khoẻ 1 giây và vòi cấp nến 10 giây cắt ngang bài kiểm đang
-        #: chạy dở → mọi lệnh từ vòng 2 trả `10031 mất kết nối`. Người dùng chỉ thấy
-        #: "bài kiểm hỏng" mà không có cách nào biết vì sao. Đúng loại lỗi ẩn cần chặn.
-        self._dang_kiem = False
-        # (vòng, tổng vòng, lượt, tổng lượt) — cho nút hiện tiến độ THẬT
-        self._kiem_vong = (0, 0, 0, 0)
-        self._kiem_dong = []         # từng bước bài kiểm, chảy ra nhật ký NGAY
-
-        # ⚠ HAI MẶT PHẲNG TÁCH HẲN — đây là chỗ sửa gốc của cả chuyện lag.
-        #
-        # Bản trước: `live_tin()` do JS gọi MỖI GIÂY, và chính nó giành ổ khoá MT5 rồi
-        # bắn 5 lượt IPC sang terminal. Tức việc NHÌN xếp hàng chung với việc LÀM —
-        # cùng ổ khoá mà vòi cấp nến đang dùng, và (ngày mai) cùng ổ khoá mà `order_send`
-        # sẽ dùng. Lần nào rơi trúng lúc bận thì đứng, lần nào không thì mượt: đúng cảm
-        # giác "lúc lag lúc không", và nó là kiến trúc chứ không phải cảm giác.
-        #
-        # Giờ: LUỒNG MÁY LIVE sở hữu kết nối và tự đo, cất vào đây. `live_tin()` chỉ đọc
-        # bộ nhớ — không IPC, không giành khoá, không bao giờ chờ ai.
-        self._tin = None             # bản đo sức khoẻ mới nhất
-        self._van_de = []            # danh sách vấn đề tương ứng
-        self._tin_luc = 0.0
-        # `SucKhoe.do()` sửa bộ đếm rớt và hàng đo độ trễ tại chỗ — hai luồng cùng gọi
-        # là hỏng số liệu. Gần như luôn chỉ luồng máy gọi; khoá này chỉ để bịt khe hẹp
-        # lúc `_tin_hien()` phải tự đo nhịp đầu.
-        self._khoa_do = threading.Lock()
-
-    # ⚠ KẾ THỪA `ApiTester` là CỐ Ý, và chỉ để lấy BỀ MẶT ĐỌC: `test_doan`,
-    # `test_nen_tf`, `test_luot`, `test_duong_ray`, `test_soi_luot`… Nhờ đó `Chart`,
-    # `BangSoLieu`, `Journey` chạy ở cửa sổ Live mà KHÔNG sửa một dòng — hai cửa sổ đọc
-    # cùng một hình dạng dữ liệu từ cùng một đoạn code, đúng như đã chốt.
-    #
-    # Đổi lại phải BỊT những cửa không có nghĩa ở live. Để hở thì bấm nhầm là chạy
-    # backtest đè lên phiên live đang chạy.
-    def test_chay(self, ci=None):
-        return _loi("Cửa sổ Live không chạy backtest — dùng cửa sổ Strategy Tester.")
-
-    def test_lich_su_chay(self, ma=None):
-        return _loi("Cửa sổ Live không mở lại lần chạy cũ.")
-
-    @_bat_loi
-    def test_doan(self, j0, n=300):
-        """Như tester, nhưng LỆNH LẤY TỪ SÀN chứ không từ sổ mô phỏng.
-
-        ⚠ Đây là cốt lõi phân biệt hai cửa sổ. Tester không có sàn nên sự thật là sổ mô
-        phỏng. Live thì có: chiến lược chỉ QUYẾT ĐỊNH, còn cái gì tồn tại thật thì chỉ
-        MT5 biết. Vẽ theo sổ mô phỏng sai hai chiều — lệnh bài kiểm đặt (có ticket thật)
-        thì không hiện, mà lệnh engine tưởng đã đặt nhưng sàn từ chối thì lại vẽ ra."""
-        r = super().test_doan(j0, n)
-        if r.get("ok") and r.get("value") and self.phien:
-            t0 = getattr(self.phien, "t_bat_dau", None)
-            if t0:
-                r["value"]["lenh"] = ket_noi.lenh_san(self.symbol, int(t0))
-        return r
-
-    def _doi_kq(self):
-        """Ảnh chụp SỐNG của phiên live, thay cho kết quả backtest bất biến.
-
-        Đây là chỗ duy nhất phải đổi để cả bề mặt đọc kia dùng được cho live."""
-        kq = self.phien.anh_chup() if self.phien else None
-        if kq is None:
-            raise RuntimeError("Phiên live chưa nạp xong nến.")
-        return kq
-
-    def _goi_y(self, doc):
-        """Sơ đồ đang mở ở cửa sổ vẽ — chỉ là GỢI Ý cho cổng chốt, chưa phải cái sẽ chạy."""
-        self.doc_goi_y = doc
-
-    @_bat_loi
-    def live_boot(self):
-        """Cửa sổ Live vừa mở. `san_sang = False` nghĩa là CỔNG CHỐT chưa qua.
-
-        ⚠ Cổng chốt nằm Ở ĐÂY, trong chính cửa sổ Live — không phải ở cửa sổ vẽ. Vào
-        bằng Ctrl+L hay bằng nút thì cũng đáp xuống đúng một chỗ, và cửa sổ vẽ không
-        phải gánh thêm một hộp thoại chẳng liên quan gì tới việc vẽ."""
-        cd = (self._cha._cai_dat or {}).get("test") or {}
-        return _ok({
-            "phien_ban": core.PHIEN_BAN,
-            "accent": (self._cha._cai_dat or {}).get("accent"),
-            "san_sang": self.doc is not None,
-            # Khung hình SỐ 0 của cuộn phim — giao diện ghim nó lên đầu nhật ký.
-            "bat_dau_luc": (self.phien.t_bat_dau if self.phien else None),
-            "ten": (self.doc or {}).get("name", ""),
-            "symbol": self.symbol,
-            "goi_y": (self.doc_goi_y or {}).get("name") or "",
-            "ds_luu": core.list_templates("strategy"),
-            "symbol_mac_dinh": self.symbol or cd.get("symbol") or "XAUUSD",
-            # ⚠ SỐ LẺ CỦA SYMBOL. Cửa sổ Live viết cứng `digits=2` — đúng cho XAUUSD
-            # nhưng ô Symbol ở cổng chốt là ô gõ tự do: chọn EURUSD (5 số) thì bước giá
-            # 0.01 gộp 1.08501 và 1.08528 vào một mức, nến dẹp thành một vạch, và mọi
-            # con số in ra `.toFixed(2)` thành "1.09". Lấy từ chính engine đang chạy.
-            "digits": int(getattr(getattr(self.phien, "cd", None), "digits", 0) or 0)
-                      or int((nguon_nen.doc_meta(self.symbol) or {}).get("digits") or 2),
-            "cai_dat": cd,
-        })
-
-    @_bat_loi
-    def live_kiem_ket_noi(self, symbol):
-        """Nối thử — DÙNG CHUNG hàm với Cài đặt, không viết lại.
-
-        Phải khai lại ở đây vì cửa sổ Live chạy `ApiLive`, không thấy `Api` chính: gọi
-        `py.nguon_kiem_ket_noi` ở cửa sổ này chỉ ra "api.py không có hàm…"."""
-        return _ok(nguon_nen.kiem_ket_noi(symbol))
-
-    @_bat_loi
-    def live_soat_so_do(self, ten):
-        """Sơ đồ định chạy có lỗi gì không — hỏi TRƯỚC khi bấm, không phải sau.
-
-        ⚠ Bản trước chỉ soát trong `live_chon`, tức người dùng phải bấm "Bắt đầu" mới
-        biết sơ đồ hỏng. Mà cổng chốt sinh ra để nói TRƯỚC. Một chiến lược mới tinh chưa
-        vẽ gì cũng phải bị chặn ở đây."""
-        doc = core.load_template("strategy", str(ten)) if ten else self.doc_goi_y
-        if not doc:
-            return _ok({"ten": "", "loi": ["Chưa chọn chiến lược."], "canh_bao": []})
-        doc = core.normalize_process(doc)
-        ds = core.validate_process(doc)
-        loi = [p["message"] for p in ds if p["severity"] == "error"]
-        return _ok({
-            "ten": doc.get("name", ""),
-            "loi": loi + self._loi_live(doc),
-            "canh_bao": [p["message"] for p in ds if p["severity"] != "error"],
-        })
-
-    @staticmethod
-    def _loi_live(doc):
-        """Những thứ CHỈ Live mới coi là lỗi.
-
-        ⚠ `validate_process` cố ý dễ tính — nó soát một sơ đồ ĐANG VẼ DỞ, mà vẽ dở thì
-        chưa vào lệnh được là chuyện thường. Đo được: một "Chiến lược 1" mới tinh, chưa
-        có gì ngoài khối Bắt đầu, đi qua nó với 0 lỗi 0 cảnh báo.
-        Ở cửa sổ vẽ thế là đúng. Ở Live thì đó là một cái máy sẽ nối vào sàn rồi ngồi im
-        mãi mãi — và người dùng tưởng nó đang canh. Nên thêm đúng một câu hỏi:
-        **sơ đồ này có thể đặt nổi một lệnh không.**"""
-        so = doc.get("entry") or {}
-        steps, edges = so.get("steps") or [], so.get("edges") or []
-        vao = [s for s in steps if s.get("type") == core.VAO_LENH]
-        if not vao:
-            return ["Sơ đồ Entry không có khối \"Vào lệnh\" nào — chạy Live thì nó "
-                    "không bao giờ đặt lệnh."]
-        # Có khối nhưng không nối tới thì cũng như không. `flow_order` đã tính sẵn phần
-        # KHÔNG BAO GIỜ CHẠY TỚI, dùng lại chứ không tự đi đồ thị lần nữa.
-        try:
-            xa = set(core.flow_order(steps, edges).get("unreachable") or ())
-        except Exception:                       # noqa: BLE001
-            xa = set()
-        if all(s["id"] in xa for s in vao):
-            return ["Khối \"Vào lệnh\" không nối tới được từ khối Bắt đầu — chạy Live "
-                    "thì nó không bao giờ chạy tới đó."]
-        return []
-
-    @_bat_loi
-    def live_chon(self, ten, symbol):
-        """Qua cổng chốt: chốt chiến lược + symbol rồi mới cho cửa sổ chạy.
-
-        `ten` rỗng = dùng sơ đồ đang mở ở cửa sổ vẽ. Sơ đồ còn lỗi thì CHẶN CỨNG —
-        ở tester sai thì mất một lần chạy, ở live thì mất tiền."""
-        symbol = str(symbol or "").strip().upper()
-        if not symbol:
-            raise RuntimeError("Chưa chọn symbol.")
-        doc = core.load_template("strategy", str(ten)) if ten else self.doc_goi_y
-        if not doc:
-            raise RuntimeError("Chưa chọn chiến lược.")
-        doc = core.normalize_process(doc)
-        # Chốt THỨ HAI, sau cái ở giao diện — đây là cửa duy nhất giữa một sơ đồ vẽ dở
-        # và một kết nối tiêu tiền thật, nên soát hai lớp bằng CÙNG một bộ luật.
-        loi = [p["message"] for p in core.validate_process(doc)
-               if p["severity"] == "error"] + self._loi_live(doc)
-        if loi:
-            raise RuntimeError("Sơ đồ chưa chạy Live được:\n"
-                               + "\n".join("· " + m for m in loi[:5]))
-        self.doc = doc
-        self.symbol = symbol
-        self.suc_khoe = ket_noi.SucKhoe(symbol)
-        self._window.set_title(f"{doc['name']} · {symbol} — Live")
-
-        # Vòi cấp nến chạy trong LUỒNG RIÊNG, không trong cửa sổ. Đóng cửa sổ không
-        # dừng phiên; cửa sổ chỉ là cái để nhìn.
-        # Điều kiện chạy lấy ĐÚNG bộ của Strategy Tester — cùng spread, cùng phí, cùng
-        # đòn bẩy. Live mà chạy trên một bộ số khác thì so nhật ký hai cửa sổ vô nghĩa.
-        ci = (self._cha._cai_dat or {}).get("test") or {}
-        m = nguon_nen.doc_meta(symbol) or {}
-        cd = bo_chay.CaiDat(
-            symbol=symbol,
-            spread_diem=ci.get("spread_diem", m.get("spread_tb") or 20),
-            point=m.get("point") or 0.01,
-            contract_size=m.get("contract_size") or 100.0,
-            digits=m.get("digits") or 2,
-            deposit=ci.get("deposit", 10000.0),
-            commission=ci.get("commission", 0.0),
-            don_bay=ci.get("don_bay", 100))
-        self.phien = phien_live.PhienLive(doc, symbol, cd)
-        threading.Thread(target=self._vong, daemon=True).start()
-        return _ok({"ten": doc["name"], "symbol": symbol})
-
-    #: Nhịp của LUỒNG MÁY. Mọi thứ chạm sàn đều nằm trên đúng luồng này.
-    NHIP_DO = 1.0          # giây — đo sức khoẻ, và cũng là nhịp giá cho chart
-    NHIP_NEN = 10          # cứ ngần này nhịp đo thì hỏi nến mới một lần (~10 s)
-
-    def _vong(self):
-        """LUỒNG MÁY LIVE — nơi DUY NHẤT được chạm vào sàn trong lúc chạy.
-
-        ⚠ Trước đây có HAI chỗ chạm sàn: luồng này (10 giây một lần, kéo nến) và
-        `live_tin()` do JS gọi (mỗi giây, 5 lượt IPC). Hai bên giành cùng một ổ khoá
-        `_KetNoi`, nên nhịp nào của bên này rơi trúng lúc bên kia đang giữ là đứng —
-        đó chính là "lúc lag lúc không". Gộp về một luồng thì KHÔNG CÒN AI ĐỂ GIÀNH.
-
-        Và quan trọng hơn cho ngày mai: khi luồng gửi lệnh vào đây, nó nối tiếp trên
-        cùng luồng này chứ không cạnh tranh với giao diện. Giao diện đọc bộ nhớ, mãi mãi.
-
-        Nhịp nến 10 giây chứ không 60: nến đóng theo giờ SERVER, mà giờ server lệch giờ
-        máy — canh đúng phút là có lúc trễ cả một nhịp. Hỏi thừa thì rẻ, trễ thì không.
-        """
-        # Đo NGAY một nhịp trước khi nạp: `nap()` kéo 7.200 nến, mất vài giây, mà
-        # trong lúc đó đèn kết nối phải sáng chứ không được nằm ở "MẤT KẾT NỐI".
-        try:
-            self._do_suc_khoe()
-        except Exception:                       # noqa: BLE001
-            pass
-        if not self.phien.nap():
-            self._ban("live_nen", {"loi": self.phien.loi})
-            return
-        self._ban("live_nen", {"moi": len(self.phien.nen1), "nap_xong": True})
-        dem = 0
-        while not self._dung and self._window is not None:
-            time.sleep(self.NHIP_DO)
-            if self._dang_kiem:
-                # Bài kiểm đang giữ cầu nối — không đo, không kéo nến. Nhưng KHÔNG
-                # xoá `_tin`: giao diện giữ số liệu cuối còn hơn nhấp nháy về rỗng.
-                continue
-            try:
-                self._do_suc_khoe()
-            except Exception:                   # noqa: BLE001
-                pass
-            dem += 1
-            if dem < self.NHIP_NEN:
-                continue
-            dem = 0
-            try:
-                n = self.phien.nhip()
-                if n:
-                    self._ban("live_nen", {"moi": n, "nap_xong": True})
-            except Exception:                   # noqa: BLE001
-                pass
-
-    def _do_suc_khoe(self):
-        """Một nhịp đo, CẤT VÀO BỘ NHỚ. Gần như chỉ luồng máy gọi."""
-        if self.suc_khoe is None:
-            return None
-        with self._khoa_do:
-            tin = self.suc_khoe.do()
-            self._tin = tin
-            self._van_de = self.suc_khoe.van_de(tin)
-            self._tin_luc = time.time()
-        return tin
-
-    def _tin_hien(self):
-        """Bản đo mới nhất. Chưa có thì đo MỘT lần rồi cất — chỉ lần đầu mới chờ.
-
-        Cần vì `live_de_phong` chạy ngay lúc mở cửa sổ, trước khi luồng
-        máy kịp đo nhịp đầu. Không có nhánh này thì tên sàn rỗng → tra hồ sơ trượt →
-        khối Đề phòng báo "chưa hiệu chuẩn" trong khi hồ sơ nằm sẵn đó."""
-        if self._tin is None and self.suc_khoe is not None and not self._dang_kiem:
-            try:
-                self._do_suc_khoe()
-            except Exception:                   # noqa: BLE001
-                pass
-        return self._tin or {}
-
-    @_bat_loi
-    def live_tin(self, da_co=0):
-        """Bản đo mới nhất + vấn đề. **ĐỌC BỘ NHỚ, không chạm sàn.**
-
-        ⚠ Đây là hàm mà giao diện gọi thường xuyên nhất, nên nó phải là hàm RẺ NHẤT.
-        Bản trước nó tự đi đo — mỗi lời gọi là 5 lượt IPC sang terminal MT5 dưới ổ khoá
-        chung. Giờ luồng máy đo sẵn, hàm này chỉ trả cái đã có.
-
-        `da_co` = số bước bài kiểm giao diện ĐÃ nhận. Chỉ gửi phần MỚI: bài hiệu chuẩn
-        sinh vài chục bước, gửi lại cả danh sách mỗi giây là chép một thứ không đổi qua
-        cầu nối hàng trăm lần.
-
-        Gộp mọi thứ vào MỘT lời gọi: tách ra thì bảng vấn đề và dải kết nối đọc hai lần
-        đo khác nhau, và sẽ có lúc dải báo xanh còn bảng báo mất kết nối."""
-        n = len(self._kiem_dong)
-        # ⚠ TUỔI của bản đo, và nó phải chảy ra ngoài.
-        #
-        # Đọc bộ nhớ thì rẻ, nhưng đổi lại số liệu có thể CŨ mà vẫn trông như đang
-        # sống: lúc hiệu chuẩn ta cố ý ngừng đo, và nếu luồng máy chết thì nó đứng
-        # hẳn. Hiện `tuổi tick 1.4 s` đông cứng suốt ba phút là đúng loại nói dối im
-        # lặng mà cả app này sinh ra để chống — nên gửi kèm tuổi, để giao diện nói
-        # thẳng "đang tạm dừng" thay vì giả vờ tươi.
-        cu = round(time.time() - self._tin_luc, 1) if self._tin_luc else None
-        return _ok({
-            "tin": self._tin,
-            "van_de": list(self._van_de),
-            "dang_kiem": self._dang_kiem,
-            "tin_cu_giay": cu,
-            # Ngưỡng 3 nhịp: trễ một nhịp là bình thường, ba nhịp là có chuyện.
-            "tam_dung": bool(self._dang_kiem
-                             or (cu is not None and cu > self.NHIP_DO * 3)),
-            "kiem_vong": list(self._kiem_vong),
-            "kiem_tong": n,
-            "kiem_dong": self._kiem_dong[max(0, int(da_co or 0)):],
-        })
-
-    @_bat_loi
-    def live_de_phong(self):
-        """Khối ĐỀ PHÒNG — hệ thống đang tự bảo vệ bằng những gì, và mỗi con số từ đâu ra.
-
-        Trình bày như khối Tài khoản: nhãn · giá trị · ghi chú. Nó BÁO CÁO, không phải
-        để chỉnh — chỉnh là việc của bài hiệu chuẩn, tự ghi vào hồ sơ.
-
-        Ghi chú nói NGUỒN mới là chỗ có giá trị, và nó có BA mức chứ không hai:
-          *đã chỉnh*  — bài kiểm gặp lỗi rồi tự sửa con số này. Bằng chứng mạnh nhất.
-          *đã kiểm*   — chạy qua bài kiểm mà không hỏng lần nào → giả thuyết ĐÚNG SẴN.
-                        Đây là chỗ dễ hiểu nhầm nhất: không đổi gì KHÔNG phải là chưa
-                        thử, mà là thử rồi và không cần đổi.
-          *đang đoán* — chưa hiệu chuẩn lần nào. Con số bịa.
-        """
-        tin = self._tin_hien()
-        hs = ket_noi.doc_ho_so(tin.get("sàn") or "", self.symbol) or {}
-        L = dict(gui_lenh.LUAT_MAC_DINH, **(hs.get("luat") or {}))
-        do = bool(hs.get("do_luc"))
-        # Khoá nào bài kiểm đã ĐỘNG VÀO — đọc từ chính lịch sử chỉnh, mỗi dòng dạng
-        # "kep_stops: 0 → 258 — vì sao". Không đoán lại, không lưu trùng.
-        da_chinh = {c.split(":", 1)[0].strip(): c.split("—", 1)[-1].strip()
-                    for c in (hs.get("da_chinh") or []) if ":" in c}
-
-        def chu(khoa, mac_dinh):
-            if not do:
-                return "đang đoán — chưa hiệu chuẩn"
-            if khoa in da_chinh:
-                return f"đã chỉnh · {da_chinh[khoa]}"
-            return f"đã kiểm {hs.get('do_luc')} — chạy qua bài kiểm không hỏng lần nào" \
-                if not mac_dinh else f"đã kiểm — {mac_dinh}"
-
-        la = dict.fromkeys(list(gui_lenh.CHUA_BIET) + list(hs.get("ma_la") or []))
-        tt = hs.get("trang_thai")
-        return _ok({
-            "da_hieu_chuan": do,
-            "trang_thai": tt,
-            # Đo ở tài khoản nào, đang chạy ở tài khoản nào — hai câu khác nhau, và chỗ
-            # lệch giữa chúng là toàn bộ rủi ro của luồng "đo demo, chạy thật".
-            "la_that": tin.get("la_that"),
-            "chep_tu": hs.get("chep_tu"),
-            "do_o_server": hs.get("server", ""),
-            # Chưa có hồ sơ cho sàn này, nhưng CÙNG SYMBOL đã đo ở sàn khác → mời chép.
-            "ho_so_khac": ([] if do else
-                           ket_noi.ho_so_khac(tin.get("sàn") or "", self.symbol)),
-            "dong": [
-                {"ten": "SL/TP tối thiểu", "loai": gui_lenh.LOAI["kep_stops"],
-                 "gia": f"{L['kep_stops']} điểm" if L.get("kep_stops") else "theo sàn khai",
-                 "chu": (f"đo được ngưỡng thật {hs.get('stops_level_that')} điểm — "
-                         f"sàn khai {hs.get('stops_level', '?')}")
-                        if hs.get("stops_level_that")
-                        else chu("kep_stops", "sàn khai thường SAI")},
-                {"ten": "Trượt cho phép", "loai": gui_lenh.LOAI["deviation"],
-                 "gia": f"{L['deviation']} điểm",
-                 "chu": chu("deviation", "")},
-                {"ten": "Kiểu khớp", "loai": gui_lenh.LOAI["filling"],
-                 "gia": "theo sàn khai" if L["filling"] is None
-                        else ("FOK", "IOC", "RETURN")[int(L["filling"]) % 3],
-                 "chu": chu("filling", "tự đổi nếu sàn không nhận")},
-                {"ten": "Thử lại", "loai": gui_lenh.LOAI["thu_lai"],
-                 "gia": f"{L['thu_lai']} lần · giãn {L['cho_ms']} ms",
-                 "chu": chu("thu_lai", "chỉ với lỗi ĐÁNG thử")},
-                {"ten": "Mất kết nối", "loai": gui_lenh.LOAI["cho_noi_giay"],
-                 "gia": f"chờ nối lại tối đa {L['cho_noi_giay']} s",
-                 "chu": chu("cho_noi_giay", "chờ NỐI LẠI rồi gửi, không ngủ rồi gửi mù")},
-                {"ten": "Vị thế đóng băng", "loai": gui_lenh.LOAI["cho_bang_ms"],
-                 "gia": f"chờ {L['cho_bang_ms']} ms",
-                 "chu": chu("cho_bang_ms", "mã 10029 — băng tự tan, chờ là qua")},
-                {"ten": "Lỗi đã có luật", "loai": "ta",
-                 "gia": f"{len(gui_lenh.XU_LY)} mã",
-                 "chu": "mã nào thử lại, mã nào dừng hẳn, mã nào vốn đã đạt"},
-                {"ten": "Cần người ra tay", "loai": "ta",
-                 "gia": f"{len(gui_lenh.CAN_NGUOI)} mã",
-                 "chu": "hết tiền · chợ đóng · AlgoTrading tắt — chỉnh số vô ích"},
-                {"ten": "Lỗi CHƯA có luật", "loai": "ta",
-                 "gia": ", ".join(str(k) for k in la) if la else "0",
-                 "chu": ("đã gặp mà chưa biết cách xử — đang thử lại tạm"
-                         if la else "chưa gặp mã lạ nào")},
-            ]})
-
-    @_bat_loi
-    def live_chep_ho_so(self, tu_khoa):
-        """Dùng hồ sơ đã đo ở sàn khác cho sàn đang chạy.
-
-        ⚠ Đây là cây cầu DEMO → THẬT, và là chỗ duy nhất người dùng phải tự quyết. Máy
-        không tự chép được: nó không biết `Exness Technologies Ltd` với `Exness (SC)
-        Ltd` là một sàn hay hai. Nhưng nó BIẾT mình đang không có hồ sơ, và im lặng rơi
-        về số mặc định đang đoán là đúng kiểu chết ngầm cả tầng này sinh ra để chặn.
-
-        Bản chép để lại vết `chep_tu` — và mấy dòng loại `khop` (trượt giá) vẫn phải
-        đọc là CHẶN DƯỚI, vì chúng đo ở một tài khoản khác."""
-        tin = self._tin_hien()
-        san = tin.get("sàn") or ""
-        if not san:
-            return _loi("Chưa đọc được tên sàn — kiểm tra kết nối trước.")
-        d = ket_noi.chep_ho_so(str(tu_khoa), san, self.symbol)
-        if d is None:
-            return _loi(f"Không thấy hồ sơ «{tu_khoa}».")
-        return _ok({"san": san, "tu": str(tu_khoa), "do_luc": d.get("do_luc")})
-
-    @_bat_loi
-    def live_ve_so_do(self):
-        """Kéo cửa sổ VẼ lên trước. Cùng lối với "Xem trên sơ đồ" ở nhật ký tester.
-
-        Live chạy ngầm hàng giờ nên cửa sổ vẽ hay bị lấp sau — mà không có đường quay
-        về thì người dùng phải đi tìm trên taskbar."""
-        self._cha._khung.keo_len_truoc()
-        return _ok({"da_keo": True})
-
-    @_bat_loi
-    def live_don_rac(self):
-        return _ok(ket_noi.don_rac(self.symbol))
-
-    @_bat_loi
-    def live_test_ket_noi(self, so_vong=3, nghi_giay=15, lap_toi_da=4):
-        """HIỆU CHUẨN: vòng lặp TỰ CHỈNH bằng lệnh thật trên demo.
-
-        Không phải "chạy một bài rồi báo lỗi". Chạy → chỗ nào phòng vệ bó tay thì suy
-        ra giá trị đúng từ chính lỗi đó → ghi vào hồ sơ → chạy lại, tới khi hết chỗ
-        phải chỉnh. Kết thúc ở một trong ba trạng thái, không có "N/M bước đạt".
-
-        ⚠ Giành cầu nối trong suốt thời gian chạy. Không có chốt này thì nhịp đo sức
-        khoẻ và vòi cấp nến cắt ngang, và bài kiểm hỏng từ vòng 2 — đã đo được."""
-        if self._dang_kiem:
-            return _loi("Bài kiểm đang chạy rồi.")
-        self._dang_kiem = True
-        # (vòng, tổng vòng, lượt, tổng lượt) — PHẢI có cả lượt. Chỉ đẩy vòng thì nó
-        # reset về 1/3 sau mỗi lượt và cả bài kiểm trông như chạy vô tận.
-        self._kiem_vong = (0, int(so_vong), 0, int(lap_toi_da))
-        self._kiem_dong = []
-        try:
-            # Tiến độ chảy ra ngoài qua `live_tin` — bài kiểm chạy vài phút, bấm xong
-            # không thấy gì thì không phân biệt được với treo.
-            return _ok(ket_noi.hieu_chuan(
-                self.symbol, so_vong=int(so_vong), nghi_giay=float(nghi_giay),
-                lap_toi_da=int(lap_toi_da),
-                tien_do=lambda k, n, l, lm: setattr(
-                    self, "_kiem_vong", (k + 1, n, l + 1, lm)),
-                ghi_ra=self._kiem_dong.append))
-        finally:
-            self._dang_kiem = False
-            self._kiem_vong = (0, 0, 0, 0)
-
-
-_TRANG_TESTER_TAM = """
-<!doctype html><meta charset="utf-8">
-<body style="margin:0;background:#202020;color:#e8e8e8;
-             font:14px 'Segoe UI',system-ui,sans-serif;display:grid;
-             place-items:center;height:100vh">
-  <div style="text-align:center">
-    <div style="font-size:15px;color:#ffa657;margin-bottom:6px">Strategy Tester</div>
-    <div style="color:#9a9a9a">Chưa build giao diện — chạy <code>npm run build</code>
-      trong <code>webui/</code>.</div>
-  </div>
-</body>
-"""
-
-
-# ---------------------------------------------------------------------------
-# Sơ đồ mẫu — chiến lược Compress (D_02)
-# ---------------------------------------------------------------------------
 
 
 def _so_do_mau():

@@ -30,15 +30,14 @@ interface Nhom {
  * ra. Chỉ gộp dãy LIỀN KỀ, không gộp cách quãng: gộp cách quãng là xáo trộn thứ tự thật.
  */
 /** ⚠ BỌC `memo` — xem cuối file.
- *  Ở Live, cửa sổ vẽ lại ít nhất mỗi giây (đèn kết nối, tuổi tick, giá đang chạy),
- *  mà nhật ký thì hàng trăm dòng và chỉ đổi mỗi phút một lần. Không chặn ở đây thì
- *  60 lần vẽ thừa cho mỗi lần vẽ thật. */
+ *  Lúc phát lại, cửa sổ vẽ lại mỗi nhịp, mà nhật ký thì hàng trăm dòng và hiếm khi đổi.
+ *  Không chặn ở đây thì hàng chục lần vẽ thừa cho mỗi lần vẽ thật. */
 function Journey({ dong, jBayGio, nhay, soi, chiViec }: {
   dong: DongNk[]
   /** Nến M1 con trỏ đang đứng — quyết định dòng nào được tô sáng. */
   jBayGio: number
-  /** Nhảy con trỏ tới lượt đó. KHÔNG truyền = ẩn luôn mục menu — cửa sổ Live không có
-   *  quá khứ để nhảy về, con trỏ của nó luôn là bây giờ. */
+  /** Nhảy con trỏ tới lượt đó. KHÔNG truyền = ẩn luôn mục menu — cửa sổ Màn chơi không
+   *  có nến để nhảy tới (lượt chạy trên QuantConnect không mang chuỗi giá về). */
   nhay?: (i: number) => void
   /** Kéo cửa sổ vẽ lên trước và tô đường lượt này đã đi. */
   soi: (i: number) => void

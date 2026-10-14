@@ -350,7 +350,7 @@ export default function Tester() {
         {nut('undo', 'Lùi 1 nến',
              () => { setPhat(false); void veDau(Math.max(0, j - 1)) }, false, !kq)}
         <button className="tb-nut rong" disabled={!kq} onClick={() => setPhat(v => !v)}
-                title={phat ? 'Dừng' : 'Phát — nến hình thành từng cây như live'}>
+                title={phat ? 'Dừng' : 'Phát — nến hình thành từng cây như thời gian thực'}>
           {phat ? '❚❚' : '▶'}
         </button>
         {nut('redo', 'Tới 1 nến', () => { setPhat(false); nhip() }, false, !kq)}
@@ -450,9 +450,7 @@ function nenTai(L: DoanPhat, k: number): NenM1 {
 
 /** Bảng số liệu tại khung hình thứ k của lô. Chỉ CẮT LÁT, không tính gì —
  *  mọi con số đã do Python tính lúc chạy. */
-/** Cắt bảng số liệu tại khung `k`. EXPORT để cửa sổ Live dùng CHUNG —
- *  copy sang bản thứ hai là hai bên sẽ trôi xa nhau. */
-export function dungBang(L: DoanPhat, k: number): BangCat {
+function dungBang(L: DoanPhat, k: number): BangCat {
   return {
     nhom: L.bang.map(g => ({
       nhom: g.nhom,
@@ -471,7 +469,7 @@ function gio(t: number) {
 
 /** unix (giây) → chuỗi của ô `datetime-local`.
  *
- * Dựng tay theo giờ UTC, KHÔNG dùng `toISOString`/`Date` tự định dạng: nến của MT5 là
+ * Dựng tay theo giờ UTC, KHÔNG dùng `toISOString`/`Date` tự định dạng: nến trong kho là
  * giờ sàn và cả app hiển thị nguyên như thế, còn `Date` thì cộng lệch múi giờ của máy —
  * ô nhập sẽ lệch vài tiếng so với chính cái đồng hồ ngay cạnh nó. */
 function chuoiMoc(t: number) {

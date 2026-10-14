@@ -162,7 +162,7 @@ tai_lieu/          sổ ghi cốt lõi
   D02_Compress_ban_giao.md   bàn giao chiến lược gốc
 webui/             giao diện: React + TypeScript + React Flow
                      src/qc/: cửa sổ Màn chơi · kiem/: bài kiểm chạy bằng node
-tests/             bộ test — không mở cửa sổ, không cần MT5
+tests/             bộ test — không mở cửa sổ, không nối mạng thật
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI
                      dong_goi_lean: gói sơ đồ thành vài file dán lên QuantConnect

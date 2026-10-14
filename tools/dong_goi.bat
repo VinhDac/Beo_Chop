@@ -73,10 +73,7 @@ echo [5/6] Them file huong dan...
 >> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo CAN CO:
 >> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo   - Microsoft Edge WebView2 Runtime (Windows 10/11 co san cung Edge)
 >> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo   - .NET Framework 4.7.2 tro len
->> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo   - MetaTrader 5 (chi can khi TAI NEN lan dau; backtest thi khong can)
->> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo.
->> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo Lan dau chay chua co nen: mo Cai dat, chon symbol va khoang From/To,
->> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo roi bam Chay - app tu tai phan con thieu tu MT5.
+>> dist\Cat_Studio\DOC-TRUOC-KHI-CHAY.txt echo   - Tai khoan QuantConnect goi Researcher tro len (de chay co may tren QC)
 
 REM  Nen bang ZipFile.CreateFromDirectory cua .NET, KHONG dung Compress-Archive:
 REM  Compress-Archive gom het vao bo nho truoc khi ghi nen voi goi 211 file / 67 MB thi

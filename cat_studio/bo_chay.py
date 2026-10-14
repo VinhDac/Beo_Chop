@@ -299,7 +299,7 @@ class ChuongTrinh:
         if a is None:
             raise LoiChay(f"Chỉ báo {o['ten']} chưa được tính trước — lỗi biên dịch.")
         # `shift` ĐẾM NGƯỢC TỪ NẾN ĐÃ ĐÓNG. Mọi cột ở đây vốn đã là "giá trị của nến đã
-        # đóng gần nhất", nên `nến[1]` (quy ước MT5: nến vừa đóng) chính là lệch 0.
+        # đóng gần nhất", nên `nến[1]` (quy ước của D_02: nến vừa đóng) chính là lệch 0.
         # Mặc định 1 để công thức không ghi `shift` vẫn ra đúng nến đã đóng.
         if shift is None:
             shift = o.get("shift")
@@ -363,7 +363,7 @@ def _lay_toan_hang(o, ctx):
     # một tháng thật: 66,5 % số nến trả sai số, lệch tối đa 11,37.
     #
     # Gọi Y HỆT đường chỉ báo ở trên, không phải chỉ "cũng dùng doc_cot": `gia_nen` hiểu
-    # `shift` là *lùi shift nến*, còn `doc_cot` hiểu `nến[1]` là *lệch 0* (quy ước MT5).
+    # `shift` là *lùi shift nến*, còn `doc_cot` hiểu `nến[1]` là *lệch 0* (quy ước của D_02).
     # Hai vế của một cổng đi hai đường thì lệch nhau thêm một nến nữa.
     if ten in ct.COT_GIA:
         return ct.doc_cot(o, ctx.i, o.get("shift", 0))
@@ -869,15 +869,15 @@ class PhienChay:
     """MỘT lần chạy đang diễn ra — trạng thái sống, đi từng nhịp một.
 
     ⚠ VÌ SAO PHẢI CÓ LỚP NÀY. Trước đây toàn bộ chuyện này là thân của `chay()`: một
-    vòng lặp quét trọn mảng nến, với mười mấy biến trạng thái nằm trong lòng hàm. Backtest
-    thì hợp, nhưng LIVE thì ngược hẳn — mỗi phút về đúng MỘT nến.
+    vòng lặp quét trọn mảng nến, với mười mấy biến trạng thái nằm trong lòng hàm. Chạy tại
+    máy thì hợp, nhưng trên QuantConnect thì ngược hẳn — nến về từng cây MỘT.
 
-    Nếu viết một bộ chạy thứ hai cho live thì hai bộ sẽ trôi xa nhau, và lời hứa "test
-    như nào thì live như thế" chết ngay ngày đầu. Nên trạng thái ra khỏi thân hàm, thân
-    vòng lặp thành `mot_nhip(j)`, và:
+    Nếu viết một bộ chạy thứ hai cho QC thì hai bộ sẽ trôi xa nhau, và lời hứa "chạy tại
+    máy như nào thì trên QC như thế" chết ngay ngày đầu. Nên trạng thái ra khỏi thân hàm,
+    thân vòng lặp thành `mot_nhip(j)`, và:
 
-        backtest = vòng lặp gọi `mot_nhip`
-        live     = gọi `mot_nhip` mỗi khi sàn đóng một nến
+        tại máy        = vòng lặp gọi `mot_nhip`
+        cầu nối QC     = gọi `mot_nhip` mỗi khi QC đưa tới một nến M1 (`lean/cat_lean.py`)
 
     ĐÚNG MỘT ĐOẠN CODE, không phải hai bản song song.
 
@@ -963,8 +963,8 @@ class PhienChay:
 
     # ----------------------------------------------------------------- một nhịp
     def mot_nhip(self, j):
-        """Xử lý ĐÚNG một nến M1. Đây là toàn bộ bộ máy — backtest gọi nó trong vòng
-        lặp, live gọi nó mỗi khi sàn đóng một nến."""
+        """Xử lý ĐÚNG một nến M1. Đây là toàn bộ bộ máy — chạy tại máy gọi nó trong vòng
+        lặp, cầu nối QC gọi nó mỗi khi QC đưa tới một nến."""
         ct, so, ctx, cd = self.ct, self.so, self.ctx, self.cd
 
         # Đồng bộ đầu nến: lệnh mới sinh ở lượt Entry nến TRƯỚC giờ mới được xét khớp —
@@ -1048,31 +1048,11 @@ class PhienChay:
             self.so_zone[i5] = len(so.zone)
             self.i5_chup = i5
 
-    # ------------------------------------------------------------------ ảnh chụp
-    def anh_chup(self):
-        """`KetQua` đọc được TẠI ĐÂY, mà KHÔNG chốt sổ.
-
-        ⚠ Live phải có cái này. `ket_thuc()` đóng sạch lệnh còn sống — gọi nó lúc đang
-        chạy live là tự tay đóng lệnh thật. Ảnh chụp thì không đụng vào gì cả: nó chỉ
-        gói `ct`/`so`/`nhat_ky` lại cho mấy hàm đọc (`bang`, `the_lenh`, `lenh_tai`)
-        dùng — đúng những hàm mà cửa sổ tester đang ăn.
-
-        Nhờ vậy `Chart`, `BangSoLieu`, `Journey` chạy ở Live mà không sửa một dòng: hai
-        cửa sổ đọc CÙNG một hình dạng dữ liệu, từ cùng một đoạn code."""
-        kq = KetQua(self.ct, self.so, self.nhat_ky, self.ct._cot,
-                    {"so_luot": len(self.nhat_ky), "nen_mo_ho": self.mo_ho})
-        kq.duong_von = []
-        kq.cot_zone = self.cot_zone
-        kq.zone_id = self.zone_id
-        kq.so_zone = self.so_zone
-        return kq
-
     # ------------------------------------------------------------------- kết sổ
     def ket_thuc(self):
         """Hết dữ liệu → chốt sổ, trả `KetQua` bất biến.
 
-        ⚠ CHỈ backtest gọi hàm này. Live thì không bao giờ "hết dữ liệu" nên không được
-        chốt sổ — gọi nhầm nó lúc đang live là đóng sạch lệnh thật."""
+        ⚠ Chỉ gọi khi THẬT SỰ hết dữ liệu: nó đóng sạch mọi lệnh còn sống."""
         ct, so, ctx = self.ct, self.so, self.ctx
         # Lệnh còn sống lúc hết dữ liệu: đóng theo giá đóng nến cuối, ghi rõ lý do, và
         # tách riêng trong thống kê (core.md §12.13).

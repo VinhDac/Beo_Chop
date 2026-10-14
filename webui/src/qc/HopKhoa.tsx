@@ -5,7 +5,7 @@ import type { KhoaQC } from '../types'
 
 /** HỘP KHOÁ QUANTCONNECT — đặt User ID + API token ngay trong app.  (D-06)
  *
- * Khoá có TOÀN QUYỀN tài khoản QC, kể cả live. Nên:
+ * Khoá có TOÀN QUYỀN tài khoản QC, kể cả giao dịch thật. Nên:
  *   · ô token là ô mật khẩu; lưu xong thì xoá khỏi ô, Python không bao giờ trả nó lại;
  *   · khoá nằm ở `du_lieu/qc_khoa.json` trên máy này (trong .gitignore), không đi đâu khác;
  *   · biến môi trường QC_USER_ID / QC_API_TOKEN (nếu đặt) THẮNG file — hộp này nói rõ khi

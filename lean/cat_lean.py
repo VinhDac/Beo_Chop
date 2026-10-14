@@ -8,7 +8,7 @@ ký — vẫn là `cat_studio.bo_chay` nguyên văn. File này chỉ thay ỐNG 
 
     bộ chạy cũ (máy bạn)                    cầu nối (QuantConnect)
     -------------------------------------   ---------------------------------------------
-    nến M1 từ MT5, tải trước cả năm          nến M1 từ QC, tới từng cây một
+    nến M1 trong kho trên máy, đọc cả năm    nến M1 từ QC, tới từng cây một
     chỉ báo tính trước cả mảng (numpy)       chỉ báo LEAN cập nhật từng nến, ĐẨY vào đây
     spread cố định 20 điểm                   spread THẬT của từng nến (ask − bid)
     khớp lệnh: đường đi 4 điểm               khớp lệnh: VẪN đường đi 4 điểm (slice 2a)
@@ -47,8 +47,8 @@ from cat_studio import tinh_toan as tt
 NAN = float("nan")
 
 #: Khung chạy được trên QC ở slice này: độ dài chia hết một giờ, nên biên nến KHÔNG phụ
-#: thuộc múi giờ. H4/D1 thì khác — biên của chúng đặt theo giờ của sàn, mà giờ sàn MT5
-#: và giờ dữ liệu QC không trùng nhau: chạy là ra nến H4 khác cây, lệch im lặng.
+#: thuộc múi giờ. H4/D1 thì khác — biên của chúng đặt theo giờ của sàn đã dựng nến, mà
+#: giờ đó và giờ dữ liệu QC không trùng nhau: chạy là ra nến H4 khác cây, lệch im lặng.
 KHUNG_HO_TRO = ("M1", "M5", "M15", "M30", "H1")
 
 #: Toán hạng giá → cột của nến, y như `ChuongTrinh.COT_GIA`.

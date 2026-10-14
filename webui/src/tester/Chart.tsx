@@ -169,7 +169,7 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
                                 duoi = null,
                                 kieu = 'nen', mauThuong = false, hienLenh = true,
                                 zone = [], hienZone = true,
-                                veHienTai = 0, tranNen = TRAN }: {
+                                veHienTai = 0 }: {
   tfPhut: number
   digits: number
   lenh: LenhVe[]
@@ -206,13 +206,6 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
   /** Tăng số này = kéo chart về nến đang chạy. Dùng số chứ không dùng hàm: prop hàm
    *  đổi mỗi lần render cha, mà việc này chỉ được xảy ra khi người dùng BẤM. */
   veHienTai?: number
-  /** Trần số nến giữ trong bộ nhớ chart.
-   *
-   *  ⚠ Hai cửa sổ dùng hai giá trị khác hẳn nhau, và đó là chủ ý:
-   *    • **Test** = cuộn phim đã quay xong → phải giữ TOÀN BỘ, kéo về tháng trước vẫn có.
-   *    • **Live** = chart quan sát như chart trading → chỉ cần cửa sổ gần đây.
-   *  Live mà giữ 60.000 nến là tải cả lịch sử về chỉ để hiện một màn hình. */
-  tranNen?: number
 }) {
   const boc = useRef<HTMLDivElement>(null)
   const chart = useRef<IChartApi | null>(null)
@@ -316,10 +309,9 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
   useEffect(() => {
     const s = nen.current
     if (!s) return
-    // Cắt theo trần NGAY khi nhận: Live chỉ cần cửa sổ gần đây, giữ cả lịch sử là
-    // tải về rồi vứt đi.
+    // Cắt theo trần NGAY khi nhận (`TRAN` — thực tế là không có trần với một năm M5).
     const nguon = dat ?? []
-    bars.current = nguon.length > tranNen ? nguon.slice(nguon.length - tranNen) : nguon.slice()
+    bars.current = nguon.length > TRAN ? nguon.slice(nguon.length - TRAN) : nguon.slice()
     tfCuaBars.current = tfPhut
     // Line series ăn `{time, value}`, hai kiểu kia ăn OHLC — cùng một mảng nguồn.
     s.setData(kieu === 'line'
@@ -332,7 +324,7 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
     // cũ, tức tự tay mở lại đúng cái cổng mà `tfCuaBars` sinh ra để chặn.
     // Không có nó, effect chỉ chạy khi `dat` thật sự về — lúc đó `tfPhut` đã đúng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batDau, dat, tranNen])
+  }, [batDau, dat])
 
   // ---------------- một nhịp phát: nến lớn dần ----------------
   useEffect(() => {
@@ -350,8 +342,8 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
     const truoc = bars.current.length
     const moc = bars.current[bars.current.length - 1]?.time as number | undefined
     gop(bars.current, them, tfPhut)
-    if (bars.current.length > tranNen)
-      bars.current.splice(0, bars.current.length - tranNen)
+    if (bars.current.length > TRAN)
+      bars.current.splice(0, bars.current.length - TRAN)
     const cuoi = bars.current[bars.current.length - 1]
     // Chốt THỨ HAI, canh thẳng điều kiện bất hợp lệ thay vì canh cách nó xảy ra: mốc
     // mới mà LÙI so với cây cuối thì `s.update` ném `Cannot update oldest data`, và lỗi
@@ -405,8 +397,8 @@ export default function Chart({ tfPhut, digits, lenh, tBayGio, batDau, them, dat
         ;(s.update as (b: unknown, h?: boolean) => void)(gt, true)
       } catch { /* mô hình đã đúng, để lần nạp đầy sau vẽ lại */ }
     }
-    if (bars.current.length > tranNen)
-      bars.current.splice(0, bars.current.length - tranNen)
+    if (bars.current.length > TRAN)
+      bars.current.splice(0, bars.current.length - TRAN)
     // KHÔNG `scrollToRealTime()` ở đây: người dùng có thể đang kéo xem chỗ khác, và
     // giật họ về mép phải mỗi phút là đúng thứ làm chart trading khó dùng.
     // eslint-disable-next-line react-hooks/exhaustive-deps

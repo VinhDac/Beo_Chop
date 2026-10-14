@@ -1,8 +1,8 @@
 """SƠ ĐỒ MẪU — chiến lược Compress (D_02), dựng bằng code, ID cố định.
 
-Tách khỏi `api.py` để dùng được ở nơi KHÔNG có giao diện: `api` nạp kèm cửa sổ Win32 và
-MetaTrader5, còn công cụ đóng gói sang QuantConnect (`tools/dong_goi_lean.py`) và bài kiểm
-chạy trên máy không có cả hai. Nội dung giữ NGUYÊN VĂN — chỉ đổi chỗ ở, không đổi một khối,
+Tách khỏi `api.py` để dùng được ở nơi KHÔNG có giao diện: `api` nạp kèm cửa sổ Win32,
+còn công cụ đóng gói sang QuantConnect (`tools/dong_goi_lean.py`) và bài kiểm chạy trên
+máy không có cửa sổ nào. Nội dung giữ NGUYÊN VĂN — chỉ đổi chỗ ở, không đổi một khối,
 một id hay một tham số nào, nên vân tay của sơ đồ mẫu không đổi.
 """
 from . import core
@@ -12,9 +12,8 @@ from . import kho
 # Sơ đồ mẫu — chiến lược Compress (D_02)
 # ---------------------------------------------------------------------------
 #
-# Chép lại từ EA thật:
-#   MQL5\Experts\D_02_Compress\Projects\Experts\Compress.mq5
-#                             \Include\Controller\{FilterEngine,TradeManager}.mqh
+# Chép lại từ mã gốc của chiến lược D_02 (tai_lieu/D02_Compress_ban_giao.md):
+#   Compress.mq5 · FilterEngine.mqh · TradeManager.mqh
 #
 # HAI SƠ ĐỒ, và ranh giới giữa chúng là điều quan trọng nhất:
 #

@@ -1,13 +1,10 @@
 import IconNet from '../components/Icon'
 import type { KieuChart } from './Chart'
 
-/** CỤM NÚT XEM CHART — dùng chung cho Strategy Tester và Live.
+/** CỤM NÚT XEM CHART của Strategy Tester — tách riêng cạnh `Chart` mà nó điều khiển:
+ * thêm một kiểu vẽ là sửa một chỗ.
  *
- * ⚠ Ở đây chứ không viết hai lần: `Chart` đã là component dùng chung, thì cái điều
- * khiển nó cũng phải vậy. Thêm một kiểu vẽ là sửa một chỗ, cả hai cửa sổ có ngay.
- *
- * Toàn ICON, không chữ — thanh công cụ live vốn đã phải nhường chỗ cho đèn kết nối và
- * badge tài khoản. Nghĩa nằm ở `title`, rê chuột là ra.
+ * Toàn ICON, không chữ — thanh công cụ vốn chật. Nghĩa nằm ở `title`, rê chuột là ra.
  */
 const KIEU: [KieuChart, string, string][] = [
   ['nen', 'kieu-nen', 'Nến'],

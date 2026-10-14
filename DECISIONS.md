@@ -210,3 +210,24 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   (D-06), không đụng gì tới Strategy Tester và Live đang chạy.
 - **Trạng thái:** đề xuất — chủ dự án duyệt lại khi chạy thật trên máy (màn, mốc ngày,
   định nghĩa "chạy sạch", boss so bằng % giá, độ gọn).
+
+## D-09 · Gỡ sạch MT5 — app chỉ phục vụ QuantConnect  (chốt 2026-10-14)
+
+> Chủ dự án: *"xóa sạch dấu vết của MT5 ra khỏi app hiện tại đi, vì bây giờ trò chơi chỉ
+> phục vụ cho QuantConnect thôi"*. Đây là bước "rồi mới gỡ" mà D-01 hẹn trước.
+
+- **Quyết định:** gỡ khỏi app mọi thứ nói chuyện với MetaTrader 5 —
+  - cửa sổ **Live** (chạy sơ đồ trên tài khoản MT5, đo kết nối, hiệu chuẩn, đề phòng) cùng
+    nút ● Live, Ctrl+L, mục File → Mở Live;
+  - **tải nến** từ terminal MT5 (kể cả tự tải khi bấm ▶) và nút "Kiểm tra kết nối MT5";
+  - thư viện `MetaTrader5` khỏi requirements, gói phát hành và hướng dẫn;
+  - cột `ticket` (mã lệnh của sàn) trong sổ lệnh;
+  - mọi câu chữ nhắc MT5 trong giao diện và chú thích mã (nay nói đúng điều nó canh:
+    công thức D_02 đã dò).
+- **Còn lại:** Strategy Tester chạy tại máy trên những bộ nến **đã có** sẵn trong
+  `du_lieu/nen/` — kho nến thành chỉ đọc. Thiếu phần đầu khoảng đã đặt thì ▶ dừng và nói rõ.
+  Bộ chạy cũ vẫn là chuẩn đối chiếu cho cầu nối QuantConnect.
+- **Hệ quả cần biết:** máy chưa có bộ nến nào thì Strategy Tester không chạy được — dữ liệu
+  của QC không được mang về máy (D-08), nên app không còn nguồn nến nào để tải.
+- **Trạng thái:** chốt. Chi tiết gỡ những gì, ở đâu: core.md §17.
+

@@ -14,7 +14,7 @@ CẦN (D-06)
 * Gói Researcher trở lên — gói Free không có API.
 * Khoá API đặt NGOÀI repo: hai biến môi trường QC_USER_ID / QC_API_TOKEN, hoặc file
   `du_lieu/qc_khoa.json` dạng {"user_id": "...", "token": "..."} (`du_lieu/` nằm trong
-  .gitignore). Khoá có toàn quyền tài khoản, kể cả live — công cụ này chỉ dùng nó để
+  .gitignore). Khoá có toàn quyền tài khoản, kể cả giao dịch thật — công cụ này chỉ dùng nó để
   chạy backtest, và không bao giờ in nó ra.
 """
 import argparse

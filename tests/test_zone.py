@@ -379,7 +379,7 @@ kiem("dữ liệu thử PHÂN BIỆT ĐƯỢC các mốc (không thì bài dư�
 
 for _k in (1, 2, 5):
     _a = _tt.gop(_kq.nen1[:(_b0 + _k) * 5], "M5", giu_nen_do_dang=True)
-    _hop = _api.ApiTester._hop_zone(_kq, _a, 0)
+    _hop = _api.ApiTester._hop_zone(_kq, _a)
     _that = (float(_n5["l"][_b0:_b0 + _k].min()), float(_n5["h"][_b0:_b0 + _k].max()))
     kiem(f"con trỏ ở nến thứ {_k}: hộp cao đúng bằng những gì ĐÃ THẤY",
          bool(_hop) and abs(_hop[-1][2] - _that[0]) < 1e-9
@@ -390,7 +390,7 @@ for _k in (1, 2, 5):
 # Zone hình thành SAU con trỏ thì không được hiện.
 _a0 = _tt.gop(_kq.nen1[:_b0 * 5], "M5", giu_nen_do_dang=True)
 kiem("zone chưa bắt đầu thì KHÔNG có hộp nào",
-     not [h for h in _api.ApiTester._hop_zone(_kq, _a0, 0)
+     not [h for h in _api.ApiTester._hop_zone(_kq, _a0)
           if h[0] >= int(_n5["t"][_b0])])
 
 print("\n▸ 11. ZONE phải LỚN DẦN trong lúc PHÁT LẠI, không đợi tới lúc nhảy")

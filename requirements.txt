@@ -6,7 +6,3 @@
 #   chết ngay lúc khởi động với
 #   "System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft'".
 pywebview
-
-# Nối MetaTrader 5 — kéo nến, đọc chỉ báo, đặt lệnh trong Strategy Tester.
-# Chỉ chạy trên Windows và cần MT5 terminal đang mở.
-MetaTrader5

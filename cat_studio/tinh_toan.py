@@ -11,12 +11,13 @@ BA LUẬT CỦA FILE NÀY
    có chỉ báo nào. `NaN` thì mọi phép so đều trả False — cổng trượt, và nhật ký ghi
    được lý do.
 
-2. **Khớp MT5, không khớp sách giáo khoa.** Con số của D_02 dò ra trên `iATR`/`iMA` của
-   MT5; đúng theo sách mà lệch MT5 thì mọi tham số đã tinh chỉnh đều mất nghĩa. Chỗ nào
-   MT5 làm khác thông lệ đều có chú thích kèm dòng mã gốc.
+2. **Khớp công thức D_02 đã dò, không khớp sách giáo khoa.** Ngưỡng và chu kỳ của D_02
+   được dò trên ATR kiểu SMA-của-TR và MA mồi bằng SMA; tính "đúng theo sách" mà lệch
+   công thức đó thì mọi tham số đã tinh chỉnh đều mất nghĩa. Chỗ nào khác thông lệ đều
+   có chú thích.
 
 3. **Không hàm nào biết tới đồ thị, sổ lệnh hay pywebview.** Nhờ vậy kiểm thử được bằng
-   vài mảng dựng tay, và sau này chạy live dùng lại nguyên vẹn.
+   vài mảng dựng tay, và cầu nối QuantConnect dùng lại nguyên vẹn.
 
 GỘP KHUNG THỜI GIAN — CHỖ DỄ SAI NHẤT
 --------------------------------------
@@ -45,7 +46,7 @@ def gop(nen, tf, giu_nen_do_dang=False):
     """Gộp mảng nến M1 lên khung `tf` ("M5", "M15", …).
 
     Trả về mảng cùng `dtype` với đầu vào. Một nến khung lớn được tạo khi có ÍT NHẤT MỘT
-    nến M1 rơi vào ô thời gian đó — đúng cách MT5 dựng nến: cuối tuần không đẻ ra nến
+    nến M1 rơi vào ô thời gian đó — đúng cách sàn dựng nến: cuối tuần không đẻ ra nến
     rỗng, phiên mỏng thiếu vài phút vẫn ra một nến.
 
     `t` của nến gộp là MỐC MỞ ô (bội số của độ dài khung), không phải `t` của nến M1 đầu
@@ -55,7 +56,7 @@ def gop(nen, tf, giu_nen_do_dang=False):
 
     ⚠ **Ô CUỐI CÙNG bị BỎ nếu dữ liệu chưa chạy hết ô đó.** Đã đo trên dữ liệu thật: tải
     M1 tới đúng `2025-12-02 00:00` thì ô M5 `00:00–00:04` chỉ có 1/5 phút, và nến gộp ra
-    lệch hẳn nến M5 của MT5 (close 4225.331 vs 4225.692). Giữ nó lại là bộ chạy đọc một
+    lệch hẳn nến M5 do sàn dựng (close 4225.331 vs 4225.692). Giữ nó lại là bộ chạy đọc một
     cây nến CHƯA ĐÓNG như thể đã đóng — đúng loại lỗi nhìn trước tương lai mà cả kiến
     trúc này dựng lên để tránh. Bỏ đúng ô cuối chứ không bỏ ô thiếu phút ở giữa: ô giữa
     thiếu vài phút vẫn là ô đã đóng thật (sàn cũng dựng vậy), chỉ ở ô cuối ta mới không
@@ -150,9 +151,9 @@ def _tb_truot(x, n):
 def true_range(h, l, c):
     """TR[i] = max(High[i], Close[i-1]) − min(Low[i], Close[i-1]).
 
-    TR[0] là **NaN**: nó cần Close của nến trước, mà nến trước không tồn tại. MT5 đặt 0
-    ở đây (`ATR.mq5:73`) rồi bắt đầu ATR từ chỉ số `period` để không bao giờ đọc tới nó
-    — ta trả NaN cho thẳng thắn, và `atr()` cũng bắt đầu từ đúng chỉ số ấy."""
+    TR[0] là **NaN**: nó cần Close của nến trước, mà nến trước không tồn tại. Bản gốc
+    của công thức đặt 0 ở đây rồi bắt đầu ATR từ chỉ số `period` để không bao giờ đọc tới
+    nó — ta trả NaN cho thẳng thắn, và `atr()` cũng bắt đầu từ đúng chỉ số ấy."""
     h, l, c = _f(h), _f(l), _f(c)
     ra = np.full(len(h), np.nan, dtype=F)
     if len(h) < 2:
@@ -163,23 +164,22 @@ def true_range(h, l, c):
 
 
 def atr(h, l, c, chu_ky):
-    """ATR đúng `iATR` của MT5 — **SMA của True Range**, KHÔNG phải Wilder.
+    """ATR — **SMA của True Range**, KHÔNG phải Wilder.
 
-    `MQL5\\Indicators\\Examples\\ATR.mq5`: giá trị đầu tiên nằm ở chỉ số `period` và
-    bằng trung bình cộng TR[1..period] (:83), các giá trị sau là cửa sổ trượt
-    `ATR[i] = ATR[i-1] + (TR[i] − TR[i-period]) / period` (:92) — chính là SMA tính tăng
-    dần. Wilder/SMMA cho số LỚN HƠN và mượt hơn ở cùng chu kỳ, nên chép nhầm là
-    `atr_bps` khác → nến nào là "nến nén" khác → cả chuỗi lệnh lệch, mà ngưỡng 7,0 bps
-    của D_02 lại được dò ra trên chính con số `iATR` trả về."""
+    Giá trị đầu tiên nằm ở chỉ số `period` và bằng trung bình cộng TR[1..period], các giá
+    trị sau là cửa sổ trượt `ATR[i] = ATR[i-1] + (TR[i] − TR[i-period]) / period` — chính
+    là SMA tính tăng dần. Wilder/SMMA cho số LỚN HƠN và mượt hơn ở cùng chu kỳ, nên chép
+    nhầm là `atr_bps` khác → nến nào là "nến nén" khác → cả chuỗi lệnh lệch, mà ngưỡng
+    7,0 bps của D_02 lại được dò ra trên đúng công thức SMA này."""
     tr = true_range(h, l, c)
     return _tb_truot(tr, int(chu_ky))
 
 
 def ma(x, chu_ky, kieu="SMA"):
-    """Trung bình trượt trên một chuỗi giá. Bốn kiểu của MT5.
+    """Trung bình trượt trên một chuỗi giá — bốn kiểu: SMA · EMA · SMMA · LWMA.
 
-    Mọi kiểu đều khởi động bằng SMA của `chu_ky` giá trị đầu, đúng như MT5 — không phải
-    bằng phần tử đầu tiên. Khác chỗ này là hai đường lệch nhau hàng chục nến."""
+    Mọi kiểu đều khởi động bằng SMA của `chu_ky` giá trị đầu — không phải bằng phần tử
+    đầu tiên. Khác chỗ này là hai đường lệch nhau hàng chục nến."""
     x = _f(x)
     n = int(chu_ky)
     kieu = (kieu or "SMA").upper()

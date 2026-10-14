@@ -39,8 +39,8 @@ export interface BangCat {
  * Mọi con số ở đây do Python đọc từ CỘT đã ghi lúc chạy, không phải hỏi lại sổ lệnh — sổ
  * đang ở trạng thái cuối backtest, hỏi lại thì con trỏ nào cũng ra một đáp án.
  */
-/** ⚠ BỌC `memo` ở cuối file — `k` chỉ đổi mỗi lần làm mới (một phút một lần ở Live),
- *  còn cửa sổ thì vẽ lại mỗi giây. */
+/** ⚠ BỌC `memo` ở cuối file — `k` chỉ đổi khi con trỏ sang khung mới, còn cửa sổ thì
+ *  vẽ lại theo từng nhịp phát. */
 function BangSoLieu({ k, digits }: { k: BangCat | null; digits: number }) {
   if (!k) return <div className="bang-trong">chưa chạy</div>
 

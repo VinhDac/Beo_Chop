@@ -24,7 +24,7 @@ và cỡ nhật ký của bản thật:
 Thứ tự trong một nhịp giữ y bộ chạy cũ: khớp → nuôi vùng → Manage → Entry.
 
 Lệnh ảo chỉ để Manage có việc mà chạy. Số lệnh ảo và tổng R in ra để soát cỡ tải có đúng
-không (bản cũ trên data MT5: 547 lệnh/năm) — KHÔNG dùng để so kết quả: data khác sàn,
+không (bản cũ trên dữ liệu của sàn khác: 547 lệnh/năm) — KHÔNG dùng để so kết quả: data khác sàn,
 khớp lệnh giản lược (không đường đi 4 điểm, không spread).
 
 MỘT BẢN GHI NHẬT KÝ = một dòng JSON
@@ -284,14 +284,15 @@ class DoNhipCloud(QCAlgorithm):
         self.set_start_date(NAM, 1, 1)
         self.set_end_date(NAM, 12, 31)
         self.set_cash(10000)
-        # fill_forward=False: phút nào sàn không có giá thì KHÔNG có nến — như MT5. Để mặc
-        # định thì LEAN tự chép nến cũ lấp lỗ, và lỗ hổng (thứ giết vùng nén) biến mất.
+        # fill_forward=False: phút nào sàn không có giá thì KHÔNG có nến — như dữ liệu sàn
+        # thật. Để mặc định thì LEAN tự chép nến cũ lấp lỗ, và lỗ hổng (thứ giết vùng nén)
+        # biến mất.
         self._xau = self.add_cfd(SYMBOL, Resolution.MINUTE, Market.OANDA,
                                  fill_forward=False).symbol
         self._nhip = NhipD02()
 
-        # ⚠ SIMPLE = SMA của True Range, đúng iATR của MT5. Mặc định của LEAN là Wilder —
-        #   để mặc định thì ngưỡng 7 bps (dò trên MT5) mất nghĩa (core.md §12.13).
+        # ⚠ SIMPLE = SMA của True Range, đúng công thức D_02. Mặc định của LEAN là Wilder —
+        #   để mặc định thì ngưỡng 7 bps (dò trên SMA) mất nghĩa (core.md §12.13).
         self._atr = AverageTrueRange(ATR_CHU_KY, MovingAverageType.SIMPLE)
         self._ma = SimpleMovingAverage(MA_CHU_KY)
 
@@ -307,7 +308,7 @@ class DoNhipCloud(QCAlgorithm):
 
     @staticmethod
     def _bid(q):
-        """Nến BID (MT5 vẽ nến bằng Bid). Thiếu Bid thì đành đọc giá giữa."""
+        """Nến BID (bộ luật nghĩ bằng Bid). Thiếu Bid thì đành đọc giá giữa."""
         return q.bid if q.bid is not None else q
 
     def _khi_m5(self, _, q):

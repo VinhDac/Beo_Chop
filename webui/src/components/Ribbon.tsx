@@ -135,7 +135,6 @@ export interface RibbonProps {
   symbol: string
   datSymbol: (v: string) => void
   chay: () => void
-  live: () => void
   /** ◆ Màn chơi — chạy cỗ máy trên QuantConnect (D-05 · D-06). */
   manChoi: () => void
   coChon: boolean
@@ -232,13 +231,8 @@ export default function Ribbon(p: RibbonProps) {
           <input className="o nho o-symbol" value={p.symbol} spellCheck={false}
                  title="Mã giao dịch" placeholder="XAUUSD"
                  onChange={e => p.datSymbol(e.target.value.toUpperCase())} />
-          {/* LIVE đứng TRÁI và màu đỏ. Đỏ không phải để đẹp: hai nút cạnh nhau, một
-              cái tiêu vài giây CPU, một cái tiêu tiền thật — chúng không được trông
-              giống nhau. Trái/phải cũng cố ý: tay quen bấm cái bên phải. */}
-          <button className="nut do" onClick={p.live}
-                  title="Mở cửa sổ Live — chạy trên kết nối thật (Ctrl+L)">● Live</button>
-          {/* Màn chơi đứng GIỮA: không tiêu tiền như Live, không chạy tại máy như Test —
-              gửi cỗ máy lên QuantConnect, chấm sao trên màn ẩn. */}
+          {/* Màn chơi đứng TRƯỚC Test: không chạy tại máy như Test — gửi cỗ máy lên
+              QuantConnect, chấm sao trên màn ẩn. */}
           <button className="nut mc-nut-ribbon" onClick={p.manChoi}
                   title="Mở Màn chơi — chạy cỗ máy trên QuantConnect, chấm sao (Ctrl+M)">◆ Màn chơi</button>
           <button className="nut chinh" onClick={p.chay}

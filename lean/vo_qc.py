@@ -43,7 +43,7 @@ def _giay(dt):
 
 
 def _bid(q):
-    """Nến BID — MT5 vẽ nến bằng Bid, cả bộ luật cũng nghĩ bằng Bid."""
+    """Nến BID — bộ luật nghĩ bằng Bid (Ask = Bid + spread)."""
     return q.bid if q.bid is not None else q
 
 
@@ -52,8 +52,8 @@ def _tao_chi_bao(k):
     ten, _, chu_ky, kieu = k
     n = int(chu_ky)
     if ten == "atr":
-        # ⚠ SIMPLE = SMA của True Range, đúng iATR của MT5. Mặc định của LEAN là Wilder —
-        #   để mặc định thì ngưỡng 7 bps dò trên MT5 mất nghĩa (core.md §12.13).
+        # ⚠ SIMPLE = SMA của True Range, đúng công thức D_02. Mặc định của LEAN là Wilder —
+        #   để mặc định thì ngưỡng 7 bps (dò trên SMA) mất nghĩa (core.md §12.13).
         return AverageTrueRange(n, MovingAverageType.SIMPLE)
     if ten == "ma":
         kieu = (kieu or "SMA").upper()
@@ -84,8 +84,9 @@ class CatStudioTrenQC(QCAlgorithm):
         self.set_start_date(datetime.strptime(ch["tu"], "%Y-%m-%d"))
         self.set_end_date(datetime.strptime(ch["den"], "%Y-%m-%d"))
         self.set_cash(float(ch["von"]))
-        # fill_forward=False: phút nào sàn không có giá thì KHÔNG có nến — như MT5. Để mặc
-        # định thì LEAN chép nến cũ lấp lỗ, và lỗ hổng (thứ giết vùng nén) biến mất.
+        # fill_forward=False: phút nào sàn không có giá thì KHÔNG có nến — như dữ liệu sàn
+        # thật. Để mặc định thì LEAN chép nến cũ lấp lỗ, và lỗ hổng (thứ giết vùng nén)
+        # biến mất.
         self._ma = self.add_cfd(ch["symbol"], Resolution.MINUTE, Market.OANDA,
                                 fill_forward=False).symbol
         self._spread = 0.0
@@ -117,9 +118,9 @@ class CatStudioTrenQC(QCAlgorithm):
             if k[0] == "atr":
                 cb.update(TradeBar(q.time, q.symbol, b.open, b.high, b.low, b.close, 0,
                                    q.period))
-                # MT5 bỏ TR của nến đầu (nó cần close của nến trước), nên ATR đầu tiên nằm
-                # ở nến thứ chu_kỳ+1. LEAN tính luôn TR nến đầu = high − low và sẵn sớm một
-                # nến. Chờ thêm đúng một nến thì cửa sổ trượt trùng khít MT5.
+                # Công thức D_02 bỏ TR của nến đầu (nó cần close của nến trước), nên ATR
+                # đầu tiên nằm ở nến thứ chu_kỳ+1. LEAN tính luôn TR nến đầu = high − low và
+                # sẵn sớm một nến. Chờ thêm đúng một nến thì cửa sổ trượt trùng khít.
                 san = cb.is_ready and cb.samples > k[2]
             else:
                 cb.update(q.end_time, b.close)

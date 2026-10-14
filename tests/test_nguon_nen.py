@@ -1,27 +1,29 @@
-"""Nguồn nến — luật cất giữ và luật "một dải liền".
+"""Kho nến trên máy — đọc đúng, báo thiếu đúng, không tin file cụt.
 
-Bài này CỐ Ý không cần MT5: nó kiểm phần lý lẽ, thứ sai thầm lặng và sai vĩnh viễn.
-Phần nói chuyện với terminal thì phải có MT5 mở mới thử được, và đã thử tay.
+App không tải nến nữa (DECISIONS.md D-09): kho chỉ còn đọc những bộ nến đã có sẵn trong
+`du_lieu/nen/` cho Strategy Tester. Ba thứ đáng sợ nhất, đều được canh ở đây:
 
-Ba thứ đáng sợ nhất, đều được canh ở đây:
-
-  1. **Dải bị THỦNG.** Xin một khoảng rời hẳn dải đang có mà chỉ tải phần mới thì giữa
-     hai mảnh còn một lỗ, và bộ chạy sẽ chạy xuyên qua nó mà không biết.
-  2. **Nến trùng / lộn xộn.** Ghép hai lần tải chồng lấn phải ra một dãy tăng dần,
-     không trùng — nếu không thì đếm "nến liên tiếp" sai ngay.
+  1. **Báo đủ khi đang thiếu.** Tester chạy trên một khoảng ngắn hơn khoảng đã đặt mà
+     không ai biết — người dùng tưởng mình thử từ 2015 trong khi thật ra từ 2016.
+  2. **Tin vào file cụt.** Meta nói 300 nến, file `.npy` chỉ còn một nửa → `doc()` trả
+     rỗng mà phép kiểm thiếu lại bảo "đủ rồi".
   3. **Lỗ hổng cuối tuần không được nhận ra.** Luật vùng nén dựa vào nó (core.md §12.6b).
 
 Chạy:  python tests\\test_nguon_nen.py
 """
 import io
+import json
 import os
+import shutil
 import sys
+import tempfile
 
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
+from cat_studio import luu_tru  # noqa: E402
 from cat_studio import nguon_nen as nn  # noqa: E402
 
 dung = sai = 0
@@ -57,72 +59,41 @@ kiem("chuỗi ngày, chuỗi ngày-giờ, epoch, None — đều hiểu",
 kiem("rác thì trả None chứ không ném lỗi qua cầu nối",
      nn.thoi_diem("hôm qua") is None and nn.thoi_diem("") is None)
 
-# ================= 2. MỘT DẢI LIỀN =================
-print("\n▸ Luật MỘT DẢI LIỀN")
+# ================= 2. còn thiếu khoảng nào =================
+print("\n▸ Kho có phủ hết khoảng xin không")
 GIO = 3600
 DA_CO = {"symbol": "T", "tu": 1000 * GIO, "den": 2000 * GIO, "so_nen": 5}
-that = nn.doc_meta
-nn.doc_meta = lambda s: DA_CO                       # thay tạm, khỏi đụng đĩa
-# Mục này soát riêng phần SỐ HỌC KHOẢNG, nên cũng phải thay luôn phép kiểm file: bản thật
-# đọc kích thước `.npy` trên đĩa để bắt file cụt (xem `nguon_nen.file_du`), mà ở đây làm
-# gì có file nào. Phép kiểm đó có bài riêng ở mục 5.
-that_file_du = nn.file_du
+that_meta, that_file_du = nn.doc_meta, nn.file_du
+# Mục này soát riêng phần SỐ HỌC KHOẢNG, nên thay luôn phép kiểm file: bản thật đọc kích
+# thước `.npy` trên đĩa để bắt file cụt (mục 5 có bài riêng), mà ở đây làm gì có file.
 nn.file_du = lambda s, m: True
 
-kiem("chưa có gì → tải trọn khoảng xin",
-     (lambda: (nn.__dict__.update(doc_meta=lambda s: None),
-               nn.khoang_thieu("T", 10 * GIO, 20 * GIO))[1])()
-     == [(10 * GIO, 20 * GIO)])
+nn.doc_meta = lambda s: None
+kiem("chưa có bộ nến nào → thiếu trọn khoảng xin",
+     nn.khoang_thieu("T", 10 * GIO, 20 * GIO) == [(10 * GIO, 20 * GIO)])
 nn.doc_meta = lambda s: DA_CO
-
-kiem("nằm gọn trong dải đã có → KHÔNG tải gì",
+kiem("nằm gọn trong dải đã có → không thiếu gì",
      nn.khoang_thieu("T", 1200 * GIO, 1800 * GIO) == [])
-kiem("thò ra bên phải → chỉ tải phần thò",
+kiem("thò ra bên phải → thiếu đúng phần thò",
      nn.khoang_thieu("T", 1500 * GIO, 2200 * GIO) == [(2000 * GIO, 2200 * GIO)])
-kiem("thò ra bên trái → chỉ tải phần thò",
+kiem("thò ra bên trái → thiếu đúng phần thò",
      nn.khoang_thieu("T", 800 * GIO, 1500 * GIO) == [(800 * GIO, 1000 * GIO)])
 kiem("bọc cả hai đầu → hai khoảng",
      nn.khoang_thieu("T", 800 * GIO, 2200 * GIO)
      == [(800 * GIO, 1000 * GIO), (2000 * GIO, 2200 * GIO)])
-
-# Đây là cái bẫy đã bắt được lúc chạy thật: khoảng RỜI HẲN mà chỉ tải phần mới thì dải
-# bị thủng, và bộ chạy sẽ chạy xuyên qua chỗ thủng mà không biết.
-kiem("khoảng RỜI bên phải → tải luôn phần Ở GIỮA cho liền dải",
-     nn.khoang_thieu("T", 3000 * GIO, 3500 * GIO) == [(2000 * GIO, 3500 * GIO)],
-     f"— {[(x // GIO, y // GIO) for x, y in nn.khoang_thieu('T', 3000 * GIO, 3500 * GIO)]}")
-kiem("khoảng RỜI bên trái → cũng vá liền",
-     nn.khoang_thieu("T", 100 * GIO, 500 * GIO) == [(100 * GIO, 1000 * GIO)])
-kiem("khoảng ngược đời (đến < từ) → không tải gì, không nổ",
+kiem("rời hẳn bên phải → thiếu trọn khoảng xin (không bịa ra phần ở giữa)",
+     nn.khoang_thieu("T", 3000 * GIO, 3500 * GIO) == [(3000 * GIO, 3500 * GIO)])
+kiem("rời hẳn bên trái → thiếu trọn khoảng xin",
+     nn.khoang_thieu("T", 100 * GIO, 500 * GIO) == [(100 * GIO, 500 * GIO)])
+kiem("khoảng ngược đời (đến < từ) → không nổ",
      nn.khoang_thieu("T", 2000 * GIO, 1000 * GIO) == [])
-nn.doc_meta = that
-nn.file_du = that_file_du
+nn.doc_meta, nn.file_du = that_meta, that_file_du
 
-print("\n▸ Ước tính trước khi tải")
-u = nn.uoc_tinh([(0, 30 * 86400)])
-kiem("30 ngày ≈ 30k nến ≈ 1,4 MB — đủ để người dùng biết mình sắp tải gì",
-     28_000 < u["so_nen"] < 33_000 and 1.0 < u["mb"] < 2.0, f"— {u}")
-kiem("một năm ≈ 18 MB, khớp con số đã ghi ở core.md §12.7",
-     15 < nn.uoc_tinh([(0, 365 * 86400)])["mb"] < 20,
-     f"— {nn.uoc_tinh([(0, 365 * 86400)])['mb']} MB")
-
-# ================= 3. ghép hai lần tải =================
-print("\n▸ Ghép hai lần tải")
-a1, a2 = nen(0, 100), nen(50 * 60, 100)             # chồng lấn 50 nến
-g = nn._gop(a1, a2)
-kiem("chồng lấn → bỏ trùng, không nhân đôi", len(g) == 150, f"— {len(g)}")
-kiem("thời gian TĂNG DẦN và không trùng",
-     bool(np.all(np.diff(g["t"]) > 0)))
-kiem("ghép với mảng rỗng vẫn ra đúng dải",
-     len(nn._gop(np.empty(0, dtype=nn.DTYPE), a1)) == 100
-     and len(nn._gop(a1, np.empty(0, dtype=nn.DTYPE))) == 100)
-kiem("tải lô sau TRƯỚC lô trước vẫn ra đúng thứ tự",
-     bool(np.all(nn._gop(a2, a1)["t"] == g["t"])))
-
-# ================= 4. lỗ hổng =================
+# ================= 3. lỗ hổng =================
 print("\n▸ Nhận ra lỗ hổng (cuối tuần)")
 lien = nen(0, 60)
 sau = nen(60 * 60 + 48 * 3600, 60)                  # cách 48 giờ = cuối tuần
-mau = nn._gop(lien, sau)
+mau = np.concatenate([lien, sau])
 _doc = nn.doc
 nn.doc = lambda s, tu=None, den=None: mau
 lh = nn.lo_hong("T")
@@ -132,61 +103,46 @@ nn.doc = lambda s, tu=None, den=None: lien
 kiem("chuỗi liền mạch → không báo lỗ nào", nn.lo_hong("T") == [])
 nn.doc = _doc
 
-# ================= 5. hình dạng dữ liệu =================
+# ================= 4. hình dạng dữ liệu =================
 print("\n▸ Hình dạng dữ liệu")
 kiem("một nến đúng 48 byte — một năm ≈ 18 MB", nn.DTYPE.itemsize == 48)
 kiem("KHÔNG lưu spread từng nến (mô hình đã chốt là một con số ở Cài đặt)",
      "spread" not in (nn.DTYPE.names or ()))
-kiem("chưa tải gì → trả mảng RỖNG đúng dtype, không phải None",
+kiem("chưa có gì → trả mảng RỖNG đúng dtype, không phải None",
      isinstance(nn.doc("__khong_ton_tai__"), np.ndarray)
      and nn.doc("__khong_ton_tai__").dtype == nn.DTYPE)
+kiem("kho KHÔNG còn đường tải nến nào (D-09: chỉ phục vụ QuantConnect)",
+     not any(hasattr(nn, x) for x in ("tai", "kiem_ket_noi", "uoc_tinh")))
 
-
-# ================= 6. ghi nguyên tử & file cụt =================
-#
-# Meta và mảng nến là HAI file. Trước đây `np.save` ghi thẳng lên file đích, nên ngắt
-# giữa chừng để lại `.npy` cụt + meta nguyên vẹn → `doc()` trả rỗng, `khoang_thieu()` chỉ
-# nhìn meta nên bảo "đủ rồi", và app KHÔNG BAO GIỜ tải lại. Tự khoá vào trạng thái chết.
-print("\n▸ Ghi nguyên tử và chốt chặn file cụt")
-import json as _json  # noqa: E402
-import shutil  # noqa: E402
-import tempfile  # noqa: E402
-
-from cat_studio import luu_tru  # noqa: E402
-
+# ================= 5. đọc từ đĩa, file cụt, liệt kê, xoá =================
+print("\n▸ Đọc bộ nến trên đĩa — và không tin file cụt")
 _tam = tempfile.mkdtemp(prefix="catstudio_test_")
 _that_goc = luu_tru.goc
 luu_tru.goc = lambda: _tam
 try:
     _n = 300
-    _a = np.zeros(_n, dtype=nn.DTYPE)
-    _a["t"] = np.arange(0, _n * 60, 60, dtype=np.int64)
+    _a = nen(0, _n)
     _mn, _mj = nn._duong("ZZ")
-    nn._ghi_nguyen_tu(_mn, lambda f: np.save(f, _a, allow_pickle=False))
-    nn._ghi_nguyen_tu(_mj, lambda f: f.write(_json.dumps(
-        {"symbol": "ZZ", "tu": 0, "den": (_n - 1) * 60, "so_nen": _n}).encode("utf-8")))
+    os.makedirs(os.path.dirname(_mn), exist_ok=True)
+    np.save(_mn, _a, allow_pickle=False)
+    with open(_mj, "w", encoding="utf-8") as f:
+        json.dump({"symbol": "ZZ", "tu": 0, "den": (_n - 1) * 60, "so_nen": _n}, f)
 
-    kiem("ghi rồi đọc lại được nguyên vẹn", len(nn.doc("ZZ")) == _n)
+    kiem("đọc lại được nguyên vẹn, cắt được theo khoảng",
+         len(nn.doc("ZZ")) == _n and len(nn.doc("ZZ", 0, 59 * 60)) == 60)
     kiem("dữ liệu đủ → khoang_thieu trả rỗng",
          nn.khoang_thieu("ZZ", 0, (_n - 1) * 60) == [])
+    ds = nn.liet_ke()
+    kiem("liệt kê: một bộ ZZ, đúng số nến", len(ds) == 1 and ds[0]["symbol"] == "ZZ"
+         and ds[0]["so_nen"] == _n, f"— {ds}")
+    tt = nn.tom_tat("ZZ")
+    kiem("tóm tắt: số nến + khoảng có thật", tt["so_nen"] == _n and tt["tu_chu"] != "—")
 
     with open(_mn, "r+b") as _f:                     # cắt cụt như một lần ghi dở
         _f.truncate(os.path.getsize(_mn) - 500)
-    kiem("file .npy CỤT → khoang_thieu đòi tải lại, không kẹt ở 'đã đủ'",
+    kiem("file .npy CỤT → coi như thiếu trọn khoảng, không kẹt ở 'đã đủ'",
          nn.khoang_thieu("ZZ", 0, (_n - 1) * 60) == [(0, (_n - 1) * 60)])
-
-    _truoc = os.path.getsize(_mn)
-
-    def _no(f):
-        f.write(b"x" * 64)
-        raise RuntimeError("giả lập mất điện")
-
-    try:
-        nn._ghi_nguyen_tu(_mn, _no)
-    except RuntimeError:
-        pass
-    kiem("ngắt giữa lúc ghi → bản CŨ còn nguyên, không cụt thêm",
-         os.path.getsize(_mn) == _truoc)
+    kiem("xoá → hết hẳn khỏi danh sách", nn.xoa("ZZ") and nn.liet_ke() == [])
 finally:
     luu_tru.goc = _that_goc
     shutil.rmtree(_tam, ignore_errors=True)

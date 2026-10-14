@@ -316,9 +316,9 @@ kiem("giá trị khác close M5 ở phần lớn nến — bằng chứng đang 
 
 # ============ ĐI TỪNG NHỊP phải ra ĐÚNG cái mà chạy trọn ra ============
 #
-# `chay()` giờ chỉ là vòng lặp quanh `PhienChay.mot_nhip`. Cửa sổ Live sẽ gọi thẳng
-# `mot_nhip` mỗi khi sàn đóng một nến — nghĩa là hai đường đó BẮT BUỘC phải cho ra cùng
-# một thứ, nếu không thì lời hứa "test như nào thì live như thế" là nói dối.
+# `chay()` giờ chỉ là vòng lặp quanh `PhienChay.mot_nhip`. Cầu nối QuantConnect gọi thẳng
+# `mot_nhip` mỗi khi QC đưa tới một nến — nghĩa là hai đường đó BẮT BUỘC phải cho ra cùng
+# một thứ, nếu không thì lời hứa "chạy tại máy như nào thì trên QC như thế" là nói dối.
 #
 # Bài này lái tay `PhienChay` và so với `chay()` bằng vân tay phủ MỌI trường của MỌI
 # lệnh và MỌI lượt — không phải vài con số tổng hợp, vì tổng hợp che được sai lệch.
@@ -362,8 +362,8 @@ kiem("thống kê khớp từng con số",
          for k in kq_tron.thong_ke),
      f"— {len(kq_tron.thong_ke)} chỉ số")
 
-# Và `mot_nhip` phải CHỊU ĐƯỢC việc bị gọi rời rạc — live gọi nó theo nhịp thật, có thể
-# trễ, có thể ngắt quãng. Chạy nửa chừng rồi mới chạy tiếp phải ra đúng như chạy liền.
+# Và `mot_nhip` phải CHỊU ĐƯỢC việc bị gọi rời rạc — cầu nối gọi nó theo từng nến dữ liệu
+# đưa tới. Chạy nửa chừng rồi mới chạy tiếp phải ra đúng như chạy liền.
 p2 = bc.PhienChay(d9, nen_dai, CD9)
 for jj in range(0, 1500):
     p2.mot_nhip(jj)

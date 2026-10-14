@@ -32,22 +32,6 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
   const [delay, setDelay] = useState(Number(t.delay_ms ?? 60))
 
   const [nguon, setNguon] = useState<BoNen[]>(boot.nguon ?? [])
-  const [ketNoi, setKetNoi] = useState<{
-    noi_duoc: boolean; chu: string; terminal: string; tai_khoan: string
-    co_symbol: boolean; goi_y: string[]
-  } | null>(null)
-  const [dangKiem, setDangKiem] = useState(false)
-
-  async function kiemKetNoi() {
-    setDangKiem(true); setKetNoi(null)
-    const r = await py.nguon_kiem_ket_noi(tSymbol)
-    setDangKiem(false)
-    // Cả lỗi cầu nối cũng phải hiện ra ở đây: im lặng là đúng thứ nút này sinh ra để chữa.
-    setKetNoi(r.ok && r.value ? r.value : {
-      noi_duoc: false, chu: r.error ?? 'không gọi được sang Python',
-      terminal: '', tai_khoan: '', co_symbol: false, goi_y: [],
-    })
-  }
 
   const bo = nguon.find(n => n.symbol === tSymbol)
 
@@ -74,15 +58,10 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
     onDong()
   }
 
-  /* KHÔNG còn nút "Tải thêm". Thiếu nến thì chính lần bấm ▶ tự tải đúng phần thiếu rồi
-     chạy tiếp (`api._tai_neu_thieu`) — bớt hẳn một bước, và không còn cảnh bấm ▶ rồi bị
-     đuổi ngược về đây.
-
-     Luật "không bao giờ tải lén" vẫn giữ, chỉ đổi cách: thay vì bắt bấm thêm một nút,
-     tải cứ tải nhưng NÓI RA trên thanh tiến trình kèm số MB.
-
-     Nút Xoá thì ở lại: tải là an toàn và đảo ngược được nên tự động, còn xoá thì không —
-     phải do tay người. */
+  /* App KHÔNG tải nến (DECISIONS.md D-09: app chỉ phục vụ QuantConnect, mà dữ liệu của
+     QC không được mang về máy). Bảng dưới chỉ cho xem và xoá những bộ nến đã có sẵn;
+     thiếu nến cho khoảng đã đặt thì ▶ Test báo rõ thiếu khoảng nào (`api._kiem_du_nen`).
+     Xoá không đảo ngược được — nên phải do tay người, có hỏi lại. */
   async function xoa(sym: string) {
     if (!confirm(`Xoá hẳn bộ nến ${sym}?`)) return
     const r = await py.nguon_xoa(sym)
@@ -120,17 +99,11 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
 
       {/* ---------------- STRATEGY TEST ---------------- */}
       <div className="cd-muc">Strategy Test</div>
-      {!boot.co_mt5 && (
-        <div className="chu-dan canh">
-          Máy chưa cài thư viện <code>MetaTrader5</code> — không tải được nến mới.
-          Backtest vẫn chạy được trên dữ liệu đã tải.
-        </div>
-      )}
 
       <div className="cd-nguon-bang">
-        <div className="cd-nguon-dau">Nguồn dữ liệu — nến M1</div>
+        <div className="cd-nguon-dau">Nến M1 có sẵn trên máy — app không tải thêm</div>
         {nguon.length === 0
-          ? <div className="cd-rong">chưa tải bộ nến nào</div>
+          ? <div className="cd-rong">chưa có bộ nến nào trên máy</div>
           : nguon.map(n => (
             <div key={n.symbol} className="cd-dong">
               <b>{n.symbol}</b>
@@ -149,34 +122,7 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
                onChange={e => setTu(e.target.value)} /></label>
         <label>Đến<input className="o nho" value={den} placeholder="2026-01-01"
                onChange={e => setDen(e.target.value)} /></label>
-        {/* Nút này trả lời câu "sao máy mới không tự tải được?" NGAY TẠI ĐÂY, chứ không
-            để người dùng bấm ▶ rồi gặp một lỗi nói về khoảng thời gian. */}
-        <button className="nut" onClick={kiemKetNoi} disabled={dangKiem}>
-          {dangKiem ? 'đang nối…' : 'Kiểm tra kết nối MT5'}
-        </button>
-        <span className="cd-tu-tai">thiếu nến thì ▶ Chạy tự tải</span>
       </div>
-
-      {ketNoi && (
-        <div className={'cd-ket-noi' + (ketNoi.noi_duoc && ketNoi.co_symbol ? ' duoc' : ' hong')}>
-          <div>{ketNoi.noi_duoc && ketNoi.co_symbol ? '✓' : '⚠'} {ketNoi.chu}</div>
-          {ketNoi.terminal && (
-            <div className="phu">{ketNoi.terminal}
-              {ketNoi.tai_khoan && <> · tài khoản {ketNoi.tai_khoan}</>}
-            </div>
-          )}
-          {/* Nhiều sàn thêm hậu tố (XAUUSDm, XAUUSD.r…). Liệt kê mã CÓ THẬT trên sàn
-              đang nối, bấm một cái là điền — hơn hẳn để người dùng đoán. */}
-          {ketNoi.goi_y.length > 0 && (
-            <div className="phu">
-              sàn này có:{' '}
-              {ketNoi.goi_y.map(s => (
-                <button key={s} className="cd-goi-y" onClick={() => setTSymbol(s)}>{s}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="hang cd-hang">
         <label title="Nến là giá Bid; Ask = Bid + spread">
@@ -199,13 +145,13 @@ export default function SettingsDialog({ boot, doiMauNgay, lamMoiBoot, onDong }:
 
       {/* Spread tính bằng POINT chỉ có nghĩa khi biết point size của symbol: XAUUSD 3
           chữ số thì 20 points = 0,02 USD — quá nhỏ. Hiện quy đổi ngay cạnh ô, kèm trung
-          vị đo được trên chính dữ liệu đã tải, để không phải đoán. */}
+          vị đo được trên chính bộ nến trên máy, để không phải đoán. */}
       {bo?.point != null && (
         <div className="chu-dan">
           {tSymbol}: 1 point = {bo.point} · spread {spread} points ={' '}
           <b>{(spread * bo.point).toFixed(3)} USD</b>
           {bo.spread_tb != null && (
-            <> · trung vị đo được trên dữ liệu đã tải: <b>{bo.spread_tb} points</b></>
+            <> · trung vị đo được trên bộ nến trên máy: <b>{bo.spread_tb} points</b></>
           )}
         </div>
       )}

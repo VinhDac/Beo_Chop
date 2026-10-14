@@ -293,10 +293,10 @@ kiem("Manage chậm hơn Entry → cảnh báo (quản lý là phản ứng, ph�
 # ================= 7c. công thức ATR & thứ tự nhánh =================
 print("\n▸ Bẫy im lặng")
 atr = next(c for c in kho.chi_bao.CHI_BAO if c["key"] == "atr")
-# `iATR` của MT5 là SMA của True Range, KHÔNG phải Wilder. Ngưỡng 7.0 bps của D_02 được
-# dò ra trên chính con số iATR trả về — chép nhầm sang Wilder là ATR khác, atr_bps khác,
+# ATR của D_02 là SMA của True Range, KHÔNG phải Wilder. Ngưỡng 7.0 bps được dò ra trên
+# chính công thức đó — chép nhầm sang Wilder là ATR khác, atr_bps khác,
 # nến nào là "nến nén" khác, rồi số nến nén / thời điểm xác nhận / 1R / TP lệch dây chuyền.
-kiem("ATR khai đúng iATR của MT5 — SMA của True Range, và nói rõ KHÔNG phải Wilder",
+kiem("ATR khai đúng công thức D_02 — SMA của True Range, và nói rõ KHÔNG phải Wilder",
      atr["cong_thuc"].startswith("SMA của True Range")
      and "KHÔNG phải Wilder" in atr["cong_thuc"],
      f'— {atr["cong_thuc"]!r}')
