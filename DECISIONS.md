@@ -81,3 +81,22 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
 - **Bài học cho slice 2:** nến M5 phải xếp hàng chờ, không được đè. Lần đo mất 243 lượt
   Entry (0,35%) ở chỗ nối phiên vì hai nến M5 đóng sát nhau.
 - **Trạng thái:** locked
+
+---
+
+## D-04 · Cat Studio chỉ ôm thứ phục vụ vòng chơi  (chốt 2026-10-14)
+
+- **Quyết định:** Cat Studio chỉ đưa vào app những thứ phục vụ vòng
+  **vẽ → ▶ → xem vì sao → sửa**. Những gì QuantConnect đã làm tốt trên web của họ thì dùng
+  thẳng trên web, không làm lại.
+- **Xếp mọi thứ của QC làm ba loại:**
+  - **Nằm sau nút ▶** (nối vào app): data, chỉ báo, khớp lệnh, backtest.
+  - **Dùng thẳng trên web QC** (không làm lại): notebook nghiên cứu, thư viện chiến lược
+    mẫu, tài liệu, diễn đàn.
+  - **Thành tính năng game sau này**, thêm từng cái một: tối ưu tham số (vd "dò ngưỡng":
+    bản đồ màu lời/lỗ theo tham số), live/paper trading, báo cáo.
+- **Phương án đã cân nhắc:** (a) chỉ ôm thứ phục vụ vòng chơi ← **chọn** /
+  (b) đưa thêm nhiều thứ của QC vào thẳng app
+- **Lý do:** app gọn; làm lại thứ QC đã làm tốt vừa tốn công vừa kém hơn họ (D-01: ta chỉ
+  build lớp game).
+- **Trạng thái:** locked
