@@ -9,7 +9,7 @@ import type {
   DoanPhat, MucLichSu, ThongKeChay, TrangThaiChay, XemLichSu,
   TinKetNoi, VanDeLive, KetQuaHieuChuan, DePhong,
   BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
-  TrangThaiQC, TuDoQC, BootGame, PhieuMan, LoiTruyen, LuotGame,
+  TrangThaiQC, TuDoQC,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -271,31 +271,3 @@ export const pyQC = {
   qc_mo_lai: (duong: string) => goi<KetQuaQC>('qc_mo_lai', duong),
   qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
 }
-
-/** GAME ngay trong cửa sổ vẽ (`Api.game_*`). Chạy / kết quả / khoá dùng chung đúng các
- *  hàm của cửa sổ kỹ thuật (`ApiQC`) — Python nối, không viết lại. */
-export const pyGame = {
-  boot: () => goi<BootGame>('game_boot'),
-  man: (manId: string, doc: ProcessDoc | null) => goi<PhieuMan>('game_man', manId, doc),
-  may: (ten: string) => goi<ProcessDoc>('game_may', ten),
-  truyen: (chuongId: string, phan: 'mo' | 'dong') =>
-    goi<{ loi: LoiTruyen[]; da_xem: boolean }>('game_truyen', chuongId, phan),
-  daXemTruyen: (chuongId: string, phan: 'mo' | 'dong') =>
-    goi<boolean>('game_da_xem_truyen', chuongId, phan),
-  /** Sơ đồ còn lỗi → `{ok:false, loi:[…]}` y ▶ Test. */
-  chay: (doc: ProcessDoc, loai: LoaiChay, manId: string | null, tuDo: TuDoQC | null) =>
-    goi<boolean>('game_chay', doc, loai, manId, tuDo),
-  trangThai: () => goi<TrangThaiQC>('game_trang_thai'),
-  ketQua: () => goi<KetQuaQC | null>('game_ket_qua'),
-  nhatKy: (tu: number, so: number, chiViec: boolean) =>
-    goi<LoNhatKyQC>('game_nhat_ky', tu, so, chiViec),
-  lenh: () => goi<LenhQC[]>('game_lenh'),
-  luot: (i: number) => goi<LuotGame>('game_luot', i),
-  lichSu: () => goi<MucLichSuQC[]>('game_lich_su'),
-  khoa: () => goi<KhoaQC>('game_khoa'),
-  luuKhoa: (userId: string, token: string) => goi<KhoaQC>('game_luu_khoa', userId, token),
-  kiemKhoa: () => goi<boolean>('game_kiem_khoa'),
-  xoaKhoa: () => goi<KhoaQC>('game_xoa_khoa'),
-  moWeb: (url: string) => goi<boolean>('game_mo_web', url),
-}
-

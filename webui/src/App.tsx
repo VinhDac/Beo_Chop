@@ -6,10 +6,10 @@ import {
   type Node, type Edge, type Connection, type NodeChange, type EdgeChange,
 } from '@xyflow/react'
 
-import { py, pyGame, cho_cau_noi } from './api'
+import { py, cho_cau_noi } from './api'
 import type {
-  Bootstrap, Card, KhoaQC, ProcEdge, Problem, ProcessDoc, SoDo, SoiKhoi, SoiLuot, Step,
-  StepKind, Tab, ThamSo,
+  Bootstrap, Card, ProcEdge, Problem, ProcessDoc, SoDo, SoiKhoi, SoiLuot, Step, StepKind,
+  Tab, ThamSo,
 } from './types'
 import Ribbon, { PillTab, type MucMenu } from './components/Ribbon'
 import StepNode from './components/StepNode'
@@ -21,10 +21,6 @@ import ThamSoDialog from './components/ThamSoDialog'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import { useKhungCuaSo } from './useKhungCuaSo'
-import HopKhoa from './qc/HopKhoa'
-import { useGame } from './game/useGame'
-import { GameHud, TheDangChay, ThanhXem, ToastLoi } from './game/Xuong'
-import ManHinhGame from './game/ManHinh'
 
 const nodeTypes = { buoc: StepNode }
 
@@ -343,44 +339,6 @@ function Ung() {
     return { name: ten, symbol, tham_so: thamSo,
              entry: g('entry'), manage: g('manage') }
   }, [tab, nodes, edges, ten, symbol, thamSo])
-
-  /* ------------------------------ ◆ GAME (D-09) ------------------------------
-   * Khuôn Opus Magnum: bản đồ → phiếu việc → XƯỞNG → chạy → kết quả → đấu màn ẩn.
-   * Xưởng CHÍNH LÀ trình vẽ này ("vẽ sơ đồ kiểu này vẫn rất hay, đừng bỏ") — hook chỉ
-   * giữ màn hình nào đang mở và gọi `pyGame.*`. Bốn cầu nối: lấy sơ đồ, nạp sơ đồ (có
-   * chụp hoàn tác — lắp máy gợi ý đè lên cỗ máy đang vẽ thì Ctrl+Z lấy lại được), tô một
-   * lượt lên sơ đồ, ghi nhật ký. */
-  const g = useGame({
-    laySoDo: layDoc,
-    napSoDo: (doc, loi) => { chup(); nap(doc, loi) },
-    soi: d => { if (d) soiRef.current?.(d); else setSoi(null) },
-    ghi,
-  })
-  /** Khoá QC đang mở hộp sửa (null = hộp đóng). Lấy mới mỗi lần mở — không tin bản cũ. */
-  const [khoaQC, setKhoaQC] = useState<KhoaQC | null>(null)
-  const moKhoaQC = useCallback(async () => {
-    const r = await pyGame.khoa()
-    if (r.ok && r.value) setKhoaQC(r.value)
-  }, [])
-
-  /* Đang ở xưởng: sơ đồ đổi thì hỏi lại phiếu — độ gọn và VÉ NỘP đi theo vân tay cỗ máy,
-     sửa một khối là cỗ máy khác, vé cũ không còn là của nó. Hoãn 600 ms: kéo khối bắn ra
-     hàng chục thay đổi mỗi giây. */
-  useEffect(() => {
-    if (!g.bat || g.manHinh !== 'xuong' || !g.manId) return
-    const id = g.manId
-    const h = setTimeout(() => { void g.napPhieu(id) }, 600)
-    return () => clearTimeout(h)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, thamSo, g.bat, g.manHinh, g.manId, g.napPhieu])
-
-  /* Esc thôi xem máy nghĩ — cùng phím với thôi soi. */
-  useEffect(() => {
-    if (!g.phat) return
-    const f = (e: KeyboardEvent) => { if (e.key === 'Escape') g.tatPhat() }
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [g.phat, g.tatPhat])
 
   /* --------------------------- soát liên tục -------------------------- */
   useEffect(() => {
@@ -1077,9 +1035,6 @@ function Ung() {
       // Hộp thoại đang mở thì phím tắt của canvas PHẢI im: nếu không, bấm Delete trong
       // hộp thoại vừa xoá hành động vừa xoá luôn cả khối phía sau.
       if (document.querySelector('.lop-phu')) return
-      // Màn hình game đang phủ (bản đồ, phiếu, kết quả…) thì sơ đồ phía sau không nhận
-      // phím: Delete trên màn hình kết quả mà xoá mất khối là lỗi rất khó hiểu.
-      if (document.querySelector('.g-man-hinh')) return
       const ctrl = ev.ctrlKey || ev.metaKey
       if (ctrl && ev.key.toLowerCase() === 'z' && !ev.shiftKey) { ev.preventDefault(); hoanTac() }
       else if (ctrl && (ev.key.toLowerCase() === 'y' || (ev.shiftKey && ev.key.toLowerCase() === 'z'))) { ev.preventDefault(); lamLai() }
@@ -1092,14 +1047,13 @@ function Ung() {
       // mất trắng sơ đồ đang vẽ dở. Chặn nó cũng là một cái lợi kèm theo.
       else if (ctrl && ev.key.toLowerCase() === 'r') { ev.preventDefault(); void chay() }
       else if (ctrl && ev.key.toLowerCase() === 'l') { ev.preventDefault(); void moLive() }
-      else if (ctrl && ev.key.toLowerCase() === 'm') { ev.preventDefault(); void g.moGame() }
+      else if (ctrl && ev.key.toLowerCase() === 'm') { ev.preventDefault(); void moQC() }
       else if (ev.key === 'Delete') { ev.preventDefault(); xoa() }
       else if (ev.key === 'F2') { ev.preventDefault(); doiTen() }
     }
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, chay, moLive,
-      g.moGame])
+  }, [hoanTac, lamLai, nhanBan, luu, xoa, doiTen, chepKhoi, danKhoi, doiGhim, chay, moLive, moQC])
 
   /* Kéo hộp: chụp ảnh MỘT lần lúc bắt đầu kéo, không phải mỗi frame — nếu không thì một
      cú kéo tạo ra 60 bước undo và Ctrl+Z thành vô dụng. */
@@ -1198,9 +1152,7 @@ function Ung() {
       { ten: 'Mở Strategy Tester', icon: 'chay', phim: 'Ctrl+R', onClick: chay },
       { ten: 'Mở Live…', icon: 'chay', phim: 'Ctrl+L',
         onClick: moLive },
-      { ten: 'Vào game — Chiến dịch', icon: 'chay', phim: 'Ctrl+M',
-        onClick: () => void g.moGame() },
-      { ten: 'Bảng QC kỹ thuật (cửa sổ riêng)…', onClick: moQC },
+      { ten: 'Mở Màn chơi (QuantConnect)', icon: 'chay', phim: 'Ctrl+M', onClick: moQC },
       { ngan: true },
       { ten: 'Lưu thành template…', icon: 'save', onClick: luu },
       { ten: 'Lưu ra file khác…', onClick: luuRaFile },
@@ -1244,7 +1196,7 @@ function Ung() {
     ] },
   ], [soDoMoi, moFile, moMau, luu, luuRaFile, moChienLuoc, hoanTac, lamLai, coLui, coToi,
       chepKhoi, danKhoi, nhanBan, doiGhim, xoa, dangChon, zoomIn, zoomOut, fitView,
-      panelGap, boot, setMoKho, setMoThamSo, chay, themKhoiTu, g.moGame, moQC])
+      panelGap, boot, setMoKho, setMoThamSo, chay, themKhoiTu])
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
@@ -1253,49 +1205,9 @@ function Ung() {
     manage: vanDe.some(v => v.tab === 'manage' && v.severity === 'error'),
   }
 
-  /* Cỗ máy đang vẽ có gì ngoài khối Bắt đầu không — phiếu việc mời "giữ cỗ máy đang vẽ"
-     chỉ khi có cái để giữ. */
-  const coSoDo = (['entry', 'manage'] as Tab[]).some(t =>
-    (t === tab ? nodes : kho.current[t].nodes)
-      .some(n => (n.data as { step: Step }).step.kind !== 'start'))
-
-  /** Tên khối theo id, tìm ở cả hai sơ đồ — cho bong bóng "máy nghĩ" nói bằng tên người
-   *  chơi đặt thay vì số hiệu. */
-  const tenKhoi = (id: string): string | null => {
-    for (const t of ['entry', 'manage'] as Tab[]) {
-      const n = (t === tab ? nodes : kho.current[t].nodes).find(k => k.id === id)
-      if (n) return (n.data as { card: Card }).card.title ?? null
-    }
-    return null
-  }
-
-  /** Hộp sửa khối trong game: chỉ bày giác quan MÀN NÀY đã mở (cộng những cái khối đang
-   *  dùng sẵn — lọc mất chúng thì ô hoá rỗng và người chơi mất luôn thông tin). Python vẫn
-   *  là người gác thật (`game.soat_giac_quan`); đây chỉ là đừng bày thứ chắc bị từ chối. */
-  const bootChoKhoi = (st: Step): Bootstrap | null => {
-    if (!boot || !g.bat || !g.man) return boot
-    const cho = new Set(g.man.giac_quan.map(x => x.key))
-    const dk = ((st as Record<string, any>).conditions ?? []) as Record<string, any>[]
-    for (const c of dk) for (const v of [c?.trai, c?.phai]) if (v?.ten) cho.add(String(v.ten))
-    return { ...boot, toan_hang: boot.toan_hang.filter(t => cho.has(t.key)) }
-  }
-
   return (
-    <div className={'khung' + (g.bat ? ' che-do-game' : '')}>
-      <TitleBar tieuDe={g.bat && g.man
-                          ? `◆ Màn ${g.man.id} · ${g.man.ten} — ${ten} — Cat Studio`
-                          : `${ten} — Cat Studio`}
-                menus={menuTieuDe} />
-      {g.bat ? (
-        <GameHud g={g} tab={tab}
-                 themMat={() => themKhoi('action', 'check_cond')}
-                 themTayVao={() => themKhoi('action', 'vao_lenh')}
-                 themTaySua={() => themKhoi('action', 'sua_lenh')}
-                 moThamSo={() => setMoThamSo(true)}
-                 hoanTac={hoanTac} lamLai={lamLai} coLui={coLui} coToi={coToi}
-                 vuaKhung={() => fitView({ padding: 0.2, duration: 300, maxZoom: 1 })}
-                 soLoi={soLoi} moKhoa={() => void moKhoaQC()} />
-      ) : (
+    <div className="khung">
+      <TitleBar tieuDe={`${ten} — Cat Studio`} menus={menuTieuDe} />
       <Ribbon
         tab={tab}
         themKiemTra={() => themKhoi('action', 'check_cond')}
@@ -1311,13 +1223,12 @@ function Ung() {
         symbol={symbol} datSymbol={setSymbol}
         chay={chay}
         live={moLive}
-        manChoi={() => void g.moGame()}
+        manChoi={moQC}
         coChon={dangChon.length > 0}
         chonDaGhim={dangChon.length > 0
           && dangChon.every(n => (n.data as { step: Step }).step.ghim)}
         coTheHoanTac={coLui} coTheLamLai={coToi}
       />
-      )}
 
       <div className={'vung-canvas' + (dangNoi ? ' dang-noi' : '')}>
         {/* Pill NỔI TRÊN canvas, không chiếm một dải riêng: nó là câu trả lời cho
@@ -1327,7 +1238,7 @@ function Ung() {
         {/* Dải SOI — nổi trên canvas, ngay cạnh pill tab. Bắt buộc phải có: sơ đồ đang
             mờ đi một cách bất thường thì phải nói ra vì sao, và phải có đường thoát
             nhìn thấy được chứ không chỉ phím Esc. */}
-        {soiHopLe && !g.phat && (
+        {soiHopLe && (
           <div className="soi-dai">
             <span className="soi-nhan">Soi lượt</span>
             <span className="soi-chu">{soiHopLe.chu}</span>
@@ -1379,17 +1290,13 @@ function Ung() {
                        onDong={() => setMenuPhai(null)} />
         )}
 
-        {g.bat && <TheDangChay g={g} />}
-        {g.bat && <ToastLoi g={g} moKhoa={() => void moKhoaQC()} />}
-        {g.bat && g.manHinh === 'xuong' && <ThanhXem g={g} tenKhoi={tenKhoi} />}
-
         {/* Gợi ý neo ở ĐÁY canvas, không phải giữa: giữa là chỗ khối Bắt đầu đứng, đặt
             chữ ở đó là chữ đè lên hộp. Chỉ hiện khi chưa nối dây nào. */}
         {edges.length === 0 && nodes.length <= 1 && sanSang && (
           <div className="trong-rong duoi">
             <div className="to">Bắt đầu từ khối ①</div>
             <div>
-              Bấm <b>{g.bat ? 'Mắt' : 'Kiểm tra ĐK'}</b> ở thanh trên để thêm một nhánh điều kiện, rồi kéo
+              Bấm <b>Kiểm tra ĐK</b> ở thanh trên để thêm một nhánh điều kiện, rồi kéo
               từ cổng bên cạnh hộp <b>Bắt đầu</b> để nối.
               <br />Nhiều cổng cùng nối từ một khối = <b>rẽ nhánh</b>, thử lần lượt từ
               trên xuống. Chuột phải vào khối → <b>Ghim số ⟲</b> để cho phép nối ngược
@@ -1528,14 +1435,6 @@ function Ung() {
                         onDong={() => setMoCaiDat(false)} />
       )}
 
-      <ManHinhGame g={g} moKhoa={() => void moKhoaQC()} coSoDo={coSoDo} tenMay={ten} />
-
-      {khoaQC && (
-        <HopKhoa khoa={khoaQC} dong={() => setKhoaQC(null)}
-                 doi={k => { setKhoaQC(k); void g.napBoot() }}
-                 cauNoi={{ luu: pyGame.luuKhoa, kiem: pyGame.kiemKhoa, xoa: pyGame.xoaKhoa }} />
-      )}
-
       {moPicker && (
         <TemplatePicker tieuDe={moPicker.tieuDe}
                         onChon={moPicker.xong} onDong={() => setMoPicker(null)}
@@ -1550,7 +1449,7 @@ function Ung() {
         // Một khối CHÍNH LÀ một hành động -> mở thẳng hộp thoại hành động, khỏi bắt
         // người dùng đi qua một lớp "danh sách 1 phần tử" vô nghĩa.
         return (
-          <ActionDialog action={st as Record<string, any>} boot={bootChoKhoi(st) ?? boot} tab={tab}
+          <ActionDialog action={st as Record<string, any>} boot={boot} tab={tab}
                         thamSo={thamSo} coZone={sauCongZone.has(st.id)}
                         onDong={() => setDangSua(null)}
                         onLuu={a => ghiBuoc({ ...a, kind: 'action', id: st.id,

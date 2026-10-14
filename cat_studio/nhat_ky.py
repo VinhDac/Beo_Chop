@@ -165,8 +165,6 @@ def dung_lo(kq, tu=0, so=200, chi_co_viec=True):
         r = kq.nhat_ky[k]
         ra.append({"i": k, "nen": r["nen"], "tab": r["tab"],
                    "lenh_id": r.get("lenh_id"), "co_viec": bool(r["viec"]),
-                   # Giờ nến (lượt chạy trên QC mang sẵn) — cho thanh thời gian phát lại.
-                   "t": r.get("t"),
                    "chu": dong_chu(r, nhan, khoi, ts, kq.nen5)})
     return {"tong": len(ds), "tu": tu, "dong": ra}
 

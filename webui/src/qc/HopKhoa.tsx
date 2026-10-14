@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Modal from '../components/Modal'
 import { pyQC } from '../api'
-import type { KhoaQC, Reply } from '../types'
+import type { KhoaQC } from '../types'
 
 /** HỘP KHOÁ QUANTCONNECT — đặt User ID + API token ngay trong app.  (D-06)
  *
@@ -11,26 +11,11 @@ import type { KhoaQC, Reply } from '../types'
  *   · biến môi trường QC_USER_ID / QC_API_TOKEN (nếu đặt) THẮNG file — hộp này nói rõ khi
  *     đang như vậy, vì sửa file lúc đó là sửa mà không có tác dụng.
  */
-/** Ba việc hộp này nhờ Python làm. Mặc định đi qua cửa sổ kỹ thuật (`pyQC`); cửa sổ vẽ
- *  (game) có API riêng nên truyền cầu nối của nó vào — cùng một hộp, hai cửa sổ. */
-export interface CauNoiKhoa {
-  luu: (userId: string, token: string) => Promise<Reply<KhoaQC>>
-  kiem: () => Promise<Reply<boolean>>
-  xoa: () => Promise<Reply<KhoaQC>>
-}
-
-const CAU_NOI_QC: CauNoiKhoa = {
-  luu: (u, t) => pyQC.qc_luu_khoa(u, t),
-  kiem: () => pyQC.qc_kiem_khoa(),
-  xoa: () => pyQC.qc_xoa_khoa(),
-}
-
-export default function HopKhoa({ khoa, dong, doi, cauNoi = CAU_NOI_QC }: {
+export default function HopKhoa({ khoa, dong, doi }: {
   khoa: KhoaQC
   dong: () => void
   /** Báo trạng thái khoá mới cho cửa sổ. */
   doi: (k: KhoaQC) => void
-  cauNoi?: CauNoiKhoa
 }) {
   const [uid, setUid] = useState(khoa.user_id ?? '')
   const [tok, setTok] = useState('')
@@ -40,7 +25,7 @@ export default function HopKhoa({ khoa, dong, doi, cauNoi = CAU_NOI_QC }: {
 
   const luu = async () => {
     setBan(true); setBao(null)
-    const r = await cauNoi.luu(uid, tok)
+    const r = await pyQC.qc_luu_khoa(uid, tok)
     setBan(false)
     if (!r.ok || !r.value) { setBao({ chu: r.error ?? 'không lưu được', tot: false }); return }
     setTok('')
@@ -50,14 +35,14 @@ export default function HopKhoa({ khoa, dong, doi, cauNoi = CAU_NOI_QC }: {
 
   const kiem = async () => {
     setBan(true); setBao(null)
-    const r = await cauNoi.kiem()
+    const r = await pyQC.qc_kiem_khoa()
     setBan(false)
     setBao(r.ok ? { chu: 'QuantConnect nhận khoá — sẵn sàng chạy.', tot: true }
                 : { chu: r.error ?? 'không kiểm được', tot: false })
   }
 
   const xoa = async () => {
-    const r = await cauNoi.xoa()
+    const r = await pyQC.qc_xoa_khoa()
     if (r.ok && r.value) { doi(r.value); setUid(''); setTok('') }
     setBao({ chu: 'Đã xoá file khoá trên máy này.', tot: true })
   }

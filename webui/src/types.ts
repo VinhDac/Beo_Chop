@@ -587,8 +587,6 @@ export interface ChamQC {
   so_dong: number
   /** Chạy trọn và có ít nhất một lệnh đóng. */
   sach: boolean
-  /** Sụt giảm tối đa, % (số dương — nhỏ hơn là tốt hơn). */
-  sut_giam?: number
 }
 
 export interface DoGon { so_khoi: number; so_tham_so: number; tong: number }
@@ -662,8 +660,6 @@ export interface BootQC {
 
 export interface DongNkQC {
   i: number; nen: number; tab: Tab; lenh_id: string | null; co_viec: boolean; chu: string
-  /** Giờ nến (giây UTC) — lượt chạy trên QC mang sẵn; cho thanh thời gian phát lại. */
-  t?: number | null
 }
 export interface LoNhatKyQC { tong: number; tu: number; dong: DongNkQC[] }
 
@@ -674,56 +670,3 @@ export interface LenhQC {
   trang_thai: string; ly_do_dong: string | null
   t_dat: number | null; t_khop: number | null; t_dong: number | null
 }
-
-/* ============================ GAME trong cửa sổ vẽ (D-09) ============================
- * Khuôn Opus Magnum: chương → màn → phiếu việc → xưởng (SƠ ĐỒ KHỐI) → chạy → xem máy
- * nghĩ → kết quả (histogram) → nộp (màn ẩn) → hoàn thành. Luật ở `cat_studio/game.py`. */
-
-export interface NhanVat { ten: string; vai: string }
-
-export interface GiacQuan { key: string; nhan: string; moi: boolean }
-
-/** Một màn như `game.danh_sach_man` trả (đầy đủ hơn `ManQC` của cửa sổ kỹ thuật). */
-export interface ManGame extends ManQC {
-  chuong: string
-  mo: boolean
-  giac_quan: GiacQuan[]
-  may_goi_y: string | null
-  /** Tên hiện của máy gợi ý («Theo MA») — để nút nói đúng nó lắp cái gì. */
-  may_goi_y_ten: string | null
-  loi_khach: string
-  goi_y: string
-}
-
-export interface ChuongGame {
-  id: string; so: number; ten: string; ban_do: string; symbol: string
-  mo: boolean; sap_ra_mat: boolean; mo_ta: string
-  khach: NhanVat | null
-  /** Mã nhân vật của khách (`ba_tu`) — để vẽ đúng chân dung. */
-  khach_id: string | null
-  man: ManGame[]
-  sao: number; sao_toi_da: number
-}
-
-export interface BootGame {
-  chuong: ChuongGame[]
-  nhan_vat: Record<string, NhanVat>
-  loai: Record<LoaiChay, string>
-  khoa: KhoaQC
-  man_tiep: string | null
-  trang_thai: TrangThaiQC
-}
-
-/** Một lượt ▶ đầy đủ trong lịch sử màn — chất liệu ba histogram. */
-export interface LanThu extends MucLichSuQC { sut_giam: number; do_gon: number }
-
-export interface PhieuMan extends ManGame {
-  lich_su: LanThu[]
-  do_gon: DoGon | null
-}
-
-export interface LoiTruyen { ai: string; ten: string; vai: string; loi: string }
-
-/** Một lượt để tô lên sơ đồ (`game_luot`). */
-export interface LuotGame extends SoiLuot { i: number; t: number | null }
-

@@ -186,9 +186,6 @@ class ViecQC:
             ch, man_id = soat_tu_do(tu_do), None
         else:
             m = game.man(man_id)
-            if not game.man_mo(man_id):
-                raise game.LoiGame(f"Màn {man_id} chưa mở — xong màn trước nó đã (có ★).")
-            game.soat_giac_quan(man_id, doc)
             tu, den = game.khoang(man_id, loai)
             ch = {"symbol": m["symbol"], "tu": tu, "den": den, "von": m["von"]}
             if loai == "nop" and game.ve_nop(man_id, game.van_tay(doc)) is None:
@@ -272,8 +269,7 @@ class ViecQC:
                       "symbol": ch["symbol"], "tu": None if an else ch["tu"],
                       "den": None if an else ch["den"],
                       "an": an, "sao": tom["sao"], "lai_pt": c["lai_pt"],
-                      "mua_giu_pt": c["mua_giu_pt"], "sut_giam": c["sut_giam"],
-                      "do_gon": gon["tong"], "so_lenh": k.thong_ke.get("so_lenh"),
+                      "mua_giu_pt": c["mua_giu_pt"], "so_lenh": k.thong_ke.get("so_lenh"),
                       "url": None if an else kq["url"], "duong": kq["duong_nhat_ky"]})
         return tom
 
