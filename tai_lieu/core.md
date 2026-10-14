@@ -6,6 +6,12 @@
 > File này là **nguồn sự thật về Ý ĐỊNH**. Code là nguồn sự thật về hành vi.
 > Sửa cơ chế → sửa file này cùng lúc, đừng để hai bên nói khác nhau.
 
+> ⚠ **2026-10-14 — ĐỔI HƯỚNG, xem `DECISIONS.md` D-01.** Động cơ chuyển hẳn sang
+> LEAN / QuantConnect; Cat Studio chỉ giữ lớp game (ngôn ngữ sơ đồ + lời giải thích).
+> Các mục về động cơ riêng và MT5 bên dưới (§12, `nguon_nen`, `khop_lenh`, `gui_lenh`,
+> `ket_noi`, `phien_live`) là **bản cũ đang được thay**, giữ nguyên cho tới khi phần LEAN
+> chạy được.
+
 Cập nhật: 2026-08-10 · Trạng thái: **P0–P4 + kho/lưu trữ/sổ lệnh xong** · test 332/332 · giao diện tester đã chạy thật
 Thiết kế **Strategy Tester chốt xong** → §12. Bộ chạy chưa viết một dòng nào.
 
