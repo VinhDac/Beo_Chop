@@ -140,7 +140,11 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
     doc = soat(doc)
     ch = dict(CAU_HINH_MAC_DINH, **(cau_hinh or {}))
     khoi = nen_goi(doc)
-    ma = hashlib.sha1(khoi.encode("ascii")).hexdigest()[:10]
+    # Mã gói phải đổi khi CHỖ CHIA đổi, không chỉ khi khối nén đổi: `main.py` dài ra một
+    # dòng là ranh giới dịch đi — `nguon_1.py` cũ ghép với `main.py` mới sẽ lọt qua phép
+    # so mã rồi mới vỡ lúc giải nén, với một câu lỗi chẳng ai đọc nổi. Giữ chỗ đúng 10 ký
+    # tự lúc đo, tính mã thật sau khi chia (hai hàm dựng file đọc `ma` lúc được gọi).
+    ma = "0" * 10
     van_tay = nhat_ky._van_tay(doc)
     luc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     ten = (doc.get("name") or "").replace("\n", " ")
@@ -178,7 +182,15 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
             "except ImportError as _e:",
             "    raise ImportError('Python trên QuantConnect thiếu module lzma — báo lại để "
             "đóng gói bằng zlib.') from _e",
-            *[f"from nguon_{k} import KHOI as _K{k}, MA as _M{k}" for k in range(1, so_phu + 1)],
+            *(["try:"]
+              + [f"    from nguon_{k} import KHOI as _K{k}, MA as _M{k}"
+                 for k in range(1, so_phu + 1)]
+              + ["except ImportError as _e:",
+                 "    raise ImportError('Project THIẾU file "
+                 + ", ".join(phu) + " — ở cây file bên trái (nơi có main.py) tạo file "
+                 "mới, đặt tên ĐÚNG như vậy (chữ thường, có đuôi .py, không nằm trong "
+                 "thư mục con), dán TOÀN BỘ nội dung file cùng tên đã gửi kèm, rồi "
+                 "chạy lại.') from _e"] if so_phu else []),
             "",
             f'_MA = "{ma}"',
             "for _k, _m in enumerate([" + ", ".join(f"_M{k}" for k in range(1, so_phu + 1))
@@ -250,6 +262,7 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
     else:
         raise RuntimeError("Gói quá to so với giới hạn file — nâng `gioi_han`.")
     n_main = min(n_main, len(khoi))
+    ma = hashlib.sha1(f"{khoi}|{n_main}|{so_phu}".encode("ascii")).hexdigest()[:10]
     phan = [khoi[:n_main]]
     con = khoi[n_main:]
     if so_phu:

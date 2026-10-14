@@ -195,6 +195,9 @@ for ten, nd in files.items():
     except SyntaxError as e:
         loi_cu_phap.append(f"{ten}: {e}")
 kiem("file nào cũng đúng cú pháp Python", not loi_cu_phap, str(loi_cu_phap))
+files_b = dg.dong_goi(DOC, gioi_han=dg.GIOI_HAN - 2000)    # cùng nguồn, CHIA khác chỗ
+kiem("chia khác chỗ → mã gói khác (không ghép nhầm được file của hai lần chia)",
+     files_b["main.py"].split('_MA = "')[1][:10] != files["main.py"].split('_MA = "')[1][:10])
 
 
 def _cay(code, doc_thanh_pass):
@@ -290,6 +293,14 @@ with tempfile.TemporaryDirectory() as td:
     kiem("dán lệch lần đóng gói → báo ngay, chỉ đúng file và cách sửa",
          r.returncode != 0 and "nguon_1.py không cùng lần đóng gói" in r.stderr
          and "dán lại CẢ BỘ" in r.stderr)
+
+    # Quên tạo file phụ — lỗi gặp THẬT lần chạy đầu trên QC: câu tiếng Anh "No module
+    # named 'nguon_1'" không nói phải làm gì.
+    os.remove(d1)
+    r = chay_sach(td)
+    kiem("thiếu file phụ → báo tiếng Việt: thiếu file nào, đặt tên ra sao, dán gì",
+         r.returncode != 0 and "Project THIẾU file nguon_1.py" in r.stderr
+         and "đặt tên ĐÚNG" in r.stderr)
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)
