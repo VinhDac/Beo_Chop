@@ -178,6 +178,8 @@ class DocNhatKy:
         if sk == "khop":
             return (f"{self._dau(r)}  khớp {r.get('lenh_id')} {float(r['sl']):+g} @ "
                     f"{_so(r.get('gia'), 6)}")
+        if sk == "tu_choi":
+            return f"{self._dau(r)}  sàn TỪ CHỐI {r.get('lenh_id')} — {r.get('ly_do')}"
         if sk == "dung_tai_khoan":
             return f"{self._dau(r)}  DỪNG CẢ TÀI KHOẢN — bán sạch, thôi giao dịch"
         return f"{self._dau(r)}  {sk}"

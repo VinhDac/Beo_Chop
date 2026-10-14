@@ -49,6 +49,24 @@ NGUON = [
     ("vo_qc", "lean/vo_qc.py"),
 ]
 GOI = ("cat_studio", "cat_studio.kho")
+
+#: Module nhúng cho CỖ MÁY 5 TRẠM (D-10): bộ máy thuần + lớp vỏ mới. `core` (và `kho`,
+#: `luu_tru` mà nó nạp) đi theo vì cỗ máy dùng lại bộ đồ thị của nó.
+NGUON_MAY = [
+    ("cat_studio", "cat_studio/__init__.py"),
+    ("cat_studio.luu_tru", "cat_studio/luu_tru.py"),
+    ("cat_studio.kho", "cat_studio/kho/__init__.py"),
+    ("cat_studio.kho.nen_tang", "cat_studio/kho/nen_tang.py"),
+    ("cat_studio.kho.chi_bao", "cat_studio/kho/chi_bao.py"),
+    ("cat_studio.kho.engine_d02", "cat_studio/kho/engine_d02.py"),
+    ("cat_studio.so_lenh", "cat_studio/so_lenh.py"),
+    ("cat_studio.core", "cat_studio/core.py"),
+    ("cat_studio.tram", "cat_studio/tram.py"),
+    ("cat_studio.may", "cat_studio/may.py"),
+    ("cat_studio.chuoi_nen", "cat_studio/chuoi_nen.py"),
+    ("cat_studio.bo_may", "cat_studio/bo_may.py"),
+    ("vo_may", "lean/vo_may.py"),
+]
 CAU_HINH_MAC_DINH = {"symbol": "XAUUSD", "tu": "2025-01-01", "den": "2025-12-31",
                      "von": 10000.0}
 #: Trần mỗi file, tính bằng BYTE UTF-8. Gói Free cho 32 KB — chừa lề cho chắc.
@@ -65,9 +83,9 @@ def _goc():
     return luu_tru.thu_muc_goi()
 
 
-def doc_nguon():
+def doc_nguon(ds=None):
     ra = {}
-    for ten, duong in NGUON:
+    for ten, duong in ds or NGUON:
         with open(os.path.join(_goc(), duong), encoding="utf-8") as f:
             ra[ten] = f.read()
     return ra
@@ -115,13 +133,13 @@ def gon(code):
     return tokenize.untokenize(ra)
 
 
-def nen_goi(doc):
+def nen_goi(doc, ds=None, khoa="so_do"):
     """`{nguon: các module đã gọn, so_do: sơ đồ}` → JSON → lzma → base85.
 
     Trả chuỗi ASCII không có `"`, `'`, `\\` — nhét thẳng vào chuỗi Python được. Sơ đồ đi
     CÙNG khối nén chứ không nằm trần trong `main.py`: nén còn ~1/4, đủ để cả gói vừa
     hai file dưới trần 32 KB của gói Free."""
-    goi = {"nguon": {ten: gon(code) for ten, code in doc_nguon().items()}, "so_do": doc}
+    goi = {"nguon": {ten: gon(code) for ten, code in doc_nguon(ds).items()}, khoa: doc}
     tho = json.dumps(goi, ensure_ascii=False).encode("utf-8")
     return base64.b85encode(lzma.compress(tho, preset=9 | lzma.PRESET_EXTREME)).decode("ascii")
 
@@ -153,15 +171,67 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
     from . import nhat_ky
     doc = soat(doc)
     ch = dict(CAU_HINH_MAC_DINH, **(cau_hinh or {}))
-    khoi = nen_goi(doc)
+    dong_ch = [
+        f'    "symbol": {json.dumps(ch["symbol"])},',
+        f'    "tu": {json.dumps(ch["tu"])},',
+        f'    "den": {json.dumps(ch["den"])},',
+        f'    "von": {float(ch["von"])!r},',
+        *([f'    "khoa": {json.dumps(ch["khoa"])},'] if ch.get("khoa") else []),
+    ]
+    duoi = [
+        "# ── THUẬT TOÁN · thân nằm ở lean/vo_qc.py (trong khối nén) ────────────────────",
+        "import vo_qc as _vo",
+        "",
+        "_vo.CAU_HINH = CAU_HINH_NHUNG",
+        "_vo.SO_DO = _GOI_NEN[\"so_do\"]",
+        "",
+        "",
+        "class CatStudioTrenQC(_vo.CatStudioTrenQC):",
+        '    """Lớp QuantConnect nhìn thấy. Toàn bộ thân ở lean/vo_qc.py — đây chỉ là tên."""',
+    ]
+    return _dong_goi(nen_goi(doc), doc.get("name"), nhat_ky._van_tay(doc), "sơ đồ", dong_ch,
+                     "# ── CẤU HÌNH · ▶ nhanh: thu khoảng ngày còn 1–3 tháng · ▶ đầy đủ: cả năm "
+                     "(D-03)", "Muốn đổi sơ đồ: đóng gói lại.", duoi, gioi_han)
+
+
+def dong_goi_may(may, cau_hinh, gioi_han=GIOI_HAN_RESEARCHER):
+    """Đóng gói CỖ MÁY 5 TRẠM (D-10). `cau_hinh = {ma: [...], loai, tu, den, von[, khoa]}`.
+
+    Cỗ máy còn lỗi thì từ chối NGAY tại máy, kèm câu báo lỗi đầu tiên — đừng để nó đi một
+    vòng lên cloud rồi mới nổ."""
+    from . import may as M
+    loi = [p for p in M.soat(may) if p["severity"] == "error"]
+    if loi:
+        raise ValueError(f"Cỗ máy còn {len(loi)} lỗi, chưa đóng gói được: {loi[0]['message']}")
+    may = M.chuan_hoa(may)
+    ch = dict(cau_hinh)
+    dong_ch = [f"    {json.dumps(k)}: {json.dumps(ch[k], ensure_ascii=False)},"
+               for k in ("ma", "loai", "tu", "den", "von", "khoa") if k in ch]
+    duoi = [
+        "# ── THUẬT TOÁN · thân nằm ở lean/vo_may.py (trong khối nén) ───────────────────",
+        "import vo_may as _vo",
+        "",
+        "_vo.CAU_HINH = CAU_HINH_NHUNG",
+        "_vo.MAY = _GOI_NEN[\"may\"]",
+        "",
+        "",
+        "class CatStudioMay(_vo.CatStudioMay):",
+        '    """Lớp QuantConnect nhìn thấy. Toàn bộ thân ở lean/vo_may.py — đây chỉ là tên."""',
+    ]
+    return _dong_goi(nen_goi(may, NGUON_MAY, "may"), may.get("name"), M.van_tay(may),
+                     "cỗ máy", dong_ch, "# ── CẤU HÌNH · mã của màn, khoảng ngày, vốn (D-10)",
+                     "Muốn đổi cỗ máy: đóng gói lại.", duoi, gioi_han)
+
+
+def _dong_goi(khoi, ten, van_tay, goi_la, dong_ch, dau_ch, doi_gi, duoi, gioi_han):
+    """Chia khối nén vào `main.py` + các `nguon_k.py` dưới trần mỗi file."""
     # Mã gói phải đổi khi CHỖ CHIA đổi, không chỉ khi khối nén đổi: `main.py` dài ra một
     # dòng là ranh giới dịch đi — `nguon_1.py` cũ ghép với `main.py` mới sẽ lọt qua phép
     # so mã rồi mới vỡ lúc giải nén, với một câu lỗi chẳng ai đọc nổi. Giữ chỗ đúng 10 ký
     # tự lúc đo, tính mã thật sau khi chia (hai hàm dựng file đọc `ma` lúc được gọi).
     ma = "0" * 10
-    van_tay = nhat_ky._van_tay(doc)
     luc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    ten = (doc.get("name") or "").replace("\n", " ")
+    ten = (ten or "").replace("\n", " ")
 
     def tao_main(phan_main, so_phu):
         phu = [f"nguon_{k}.py" for k in range(1, so_phu + 1)]
@@ -170,20 +240,16 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
             "from AlgorithmImports import *",
             "# endregion",
             "# " + "═" * 78,
-            f"#  CAT STUDIO TRÊN QUANTCONNECT · sơ đồ «{ten}» · vân tay {van_tay}",
+            f"#  CAT STUDIO TRÊN QUANTCONNECT · {goi_la} «{ten}» · vân tay {van_tay}",
             f"#  sinh lúc {luc} bởi Cat Studio (cat_studio/goi_qc.py) — FILE SINH TỰ ĐỘNG · mã gói {ma}",
             f"#  Project cần ĐỦ {so_phu + 1} file cùng lần đóng gói: main.py"
             + "".join(f", {p}" for p in phu) + ".",
-            "#  Chỉ sửa khối CẤU HÌNH ngay dưới. Muốn đổi sơ đồ: đóng gói lại.",
+            f"#  Chỉ sửa khối CẤU HÌNH ngay dưới. {doi_gi}",
             "# " + "═" * 78,
             "",
-            "# ── CẤU HÌNH · ▶ nhanh: thu khoảng ngày còn 1–3 tháng · ▶ đầy đủ: cả năm (D-03)",
+            dau_ch,
             "CAU_HINH_NHUNG = {",
-            f'    "symbol": {json.dumps(ch["symbol"])},',
-            f'    "tu": {json.dumps(ch["tu"])},',
-            f'    "den": {json.dumps(ch["den"])},',
-            f'    "von": {float(ch["von"])!r},',
-            *([f'    "khoa": {json.dumps(ch["khoa"])},'] if ch.get("khoa") else []),
+            *dong_ch,
             "}",
             "",
             "# ── BỘ LUẬT CAT STUDIO + CẦU NỐI — nguồn gọn, nén, nhúng. ĐỪNG SỬA. ──────────",
@@ -241,15 +307,7 @@ def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
             "",
             "_sys.meta_path.insert(0, _NapNhung())",
             "",
-            "# ── THUẬT TOÁN · thân nằm ở lean/vo_qc.py (trong khối nén) ────────────────────",
-            "import vo_qc as _vo",
-            "",
-            "_vo.CAU_HINH = CAU_HINH_NHUNG",
-            "_vo.SO_DO = _GOI_NEN[\"so_do\"]",
-            "",
-            "",
-            "class CatStudioTrenQC(_vo.CatStudioTrenQC):",
-            '    """Lớp QuantConnect nhìn thấy. Toàn bộ thân ở lean/vo_qc.py — đây chỉ là tên."""',
+            *duoi,
         ]
         return "\n".join(dong) + "\n"
 

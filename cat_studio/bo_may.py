@@ -95,19 +95,15 @@ def _so_nen_can(ten, o, so):
     return max(ck, 1)
 
 
-def can_khoi_dong(may):
-    """Cỗ máy cần bao nhiêu GIÂY dữ liệu giao dịch trước lúc bắt đầu để MỌI chỉ báo đã có số
-    ngay lượt đầu — chỉ báo dài nhất × khung của nó, cộng một nến dự phòng.
-
-    Là giờ GIAO DỊCH liên tục: thị trường nghỉ cuối tuần / ngoài giờ thì nơi gọi phải nhân
-    thêm (cầu nối QC biết lịch của từng loại thị trường, bộ máy thì không)."""
+def nen_khoi_dong(may):
+    """{khung: số nến ĐÃ ĐÓNG cần có} để MỌI chỉ báo của cỗ máy có số ngay lượt đầu."""
     m = M.chuan_hoa(may)
     ts = M.bang_tham_so(m)
 
     def so(v):
         return float(ts[v]) if isinstance(v, str) else float(v)
 
-    can = 0
+    can = {}
     for k in T.TRAM_KEYS:
         for st in m["tram"][k]["steps"]:
             ds = [c.get("trai") for c in st.get("conditions") or []]
@@ -122,8 +118,38 @@ def can_khoi_dong(may):
                 if not d or "khung" not in d["tham_so"]:
                     continue
                 n = _so_nen_can(o["ten"], o, so) + int(so(o.get("lui", 0))) + 1
-                can = max(can, n * KHUNG_GIAY[o["khung"]])
+                can[o["khung"]] = max(can.get(o["khung"], 0), n)
     return can
+
+
+def can_khoi_dong(may):
+    """Cỗ máy cần bao nhiêu GIÂY giao dịch LIÊN TỤC trước lúc bắt đầu — chỉ báo dài nhất ×
+    khung của nó, cộng một nến dự phòng. Thị trường có giờ nghỉ: dùng `giay_lich_khoi_dong`."""
+    return max([n * KHUNG_GIAY[k] for k, n in nen_khoi_dong(may).items()] or [0])
+
+
+#: Lịch giao dịch của từng loại thị trường: (số giờ giao dịch mỗi ngày giao dịch, số ngày
+#: giao dịch mỗi tuần). Đủ để quy "N nến H1" ra số ngày LỊCH cần lùi lại để khởi động.
+LICH_THI_TRUONG = {"forex": (24.0, 5), "cfd": (23.0, 5), "co_phieu": (6.5, 5),
+                   "crypto": (24.0, 7)}
+
+
+def giay_lich_khoi_dong(may, loai):
+    """Số GIÂY LỊCH cần lùi lại trước ngày bắt đầu (cho `set_warm_up` của QC), tính theo giờ
+    mở cửa của loại thị trường, cộng 50% dự phòng cho ngày lễ và phiên ngắn.
+
+    Cổ phiếu Mỹ chỉ có ~7 nến H1 mỗi ngày: SMA 50 nến H1 cần ~7 ngày giao dịch ≈ 10 ngày lịch
+    — tính theo giờ liên tục (≈ 2 ngày) là chỉ báo câm cả tuần đầu."""
+    gio, ngay_tuan = LICH_THI_TRUONG.get(loai, (24.0, 5))
+    can = 0.0
+    for k, n in nen_khoi_dong(may).items():
+        if k == "D1":
+            ngay_gd = n
+        else:
+            moi_ngay = max(1, math.ceil(gio * 3600 / KHUNG_GIAY[k]))
+            ngay_gd = math.ceil(n / moi_ngay)
+        can = max(can, ngay_gd * 7.0 / ngay_tuan * 1.5 * 86400)
+    return int(math.ceil(can))
 
 
 class _TinHieu:
@@ -813,6 +839,21 @@ class BoMay:
         y_dinh.append({"loai": "huy", "id": lid, "ma": l["ma"], "ly_do": ly_do})
         self.nhat_ky.append({"t": self.t, "tram": T.KHOP_LENH, "ma": l["ma"],
                              "su_kien": "huy_lenh", "lenh_id": lid, "ly_do": ly_do})
+
+    # ------------------------------------------------------------------ từ chối (từ sàn)
+    def nhan_tu_choi(self, lid, ly_do):
+        """Sàn KHÔNG nhận lệnh `lid` (số lượng làm tròn theo lô ra 0, thiếu sức mua, sai
+        giá…). Bỏ mã ra khỏi danh sách cần khớp: không thì ⑤ đặt lại đúng lệnh hỏng ấy MỖI
+        PHÚT. Mục tiêu đổi (③/④) thì mã tự vào lại danh sách."""
+        l = self.lenh.get(lid)
+        if l is None:
+            return
+        l["mo"] = False
+        l["ly_do_huy"] = "tu_choi"
+        l["t_xong"] = self.t
+        self.can_khop.discard(l["ma"])
+        self.nhat_ky.append({"t": self.t, "tram": T.KHOP_LENH, "ma": l["ma"],
+                             "su_kien": "tu_choi", "lenh_id": lid, "ly_do": str(ly_do)})
 
     # ------------------------------------------------------------------ khớp (từ sàn)
     def nhan_khop(self, lid, t, sl, gia, phi=0.0):

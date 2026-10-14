@@ -357,6 +357,24 @@ def bang_tham_so(doc):
     return {t["ten"]: t["gia_tri"] for t in (doc or {}).get("tham_so") or []}
 
 
+def van_tay(doc):
+    """Dấu vân tay LOGIC của cỗ máy (12 ký tự): không tính vị trí khối, tên khối hay tên cỗ
+    máy — kéo khối đi chỗ khác không đổi cỗ máy; đổi một ngưỡng, một dây nối, một ô Gom hay
+    giá trị một tham số thì đổi. Dùng làm khoá nhật ký và vé nộp."""
+    import hashlib
+    import json
+    m = chuan_hoa(doc)
+    loi = []
+    for k in T.TRAM_KEYS:
+        g = m["tram"][k]
+        loi.append([[{x: v for x, v in st.items() if x not in ("pos", "name")}
+                     for st in g["steps"]],
+                    sorted((e["from"], e["to"]) for e in g["edges"]), g.get("gom") or {}])
+    loi.append(sorted((t["ten"], t["gia_tri"]) for t in m["tham_so"]))
+    return hashlib.sha1(json.dumps(loi, sort_keys=True, ensure_ascii=False)
+                        .encode("utf-8")).hexdigest()[:12]
+
+
 # ---------------------------------------------------------------------------
 # Chữ — DO PYTHON SINH, giao diện không ghép một mẩu nào
 # ---------------------------------------------------------------------------

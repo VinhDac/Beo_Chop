@@ -18,6 +18,7 @@ BAI = [
     ("test_chuoi_nen.py", "Chuỗi nến + chỉ báo tính dần — gộp đúng biên, không nhìn trước, khớp bản tính tay"),
     ("test_bo_may.py", "Bộ máy 5 trạm — lịch, Gom, rủi ro, khớp lệnh, không nhìn trước, xác định"),
     ("test_mau_tram.py", "Mẫu dựng sẵn từng trạm — sạch, chạy được, đúng việc; chữ «vì sao» của nhật ký"),
+    ("test_vo_may.py", "Lớp vỏ QC của cỗ máy 5 trạm — bộ file đóng gói chạy trên LEAN giả, lệnh, khởi động"),
     ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
     ("test_so_do_mau.py", "Sơ đồ mẫu Compress phải mở ra SẠCH"),
     ("test_doi_chieu_d02.py", "ĐỐI CHIẾU từng luật của D_02 — có luật nào rơi không"),
