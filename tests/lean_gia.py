@@ -374,7 +374,10 @@ def chay(lop, du_lieu):
 #: lớp thuật toán qua LEAN giả, ghi kết quả ra `ra.json`.
 KICH_BAN = r"""
 import base64, json, sys
-sys.path[:] = [p for p in sys.path if not p.startswith(GOC)]
+# «Sạch» là không thấy mã trong repo — nhưng .venv NẰM TRONG repo, nên phải chừa
+# site-packages của nó lại, không thì con mất numpy.
+sys.path[:] = [p for p in sys.path
+               if not p.startswith(GOC) or p.startswith(sys.prefix)]
 import AlgorithmImports as L
 import main
 du = {k: [tuple(x) for x in v] for k, v in json.load(open("du_lieu.json")).items()}
@@ -410,6 +413,9 @@ def chay_bo_file(files, du_lieu, goc_repo, lop="CatStudioMay", timeout=300):
         with open(_os.path.join(td, "kich_ban.py"), "w", encoding="utf-8") as f:
             f.write(f"GOC = {goc_repo!r}\nLOP = {lop!r}\n" + KICH_BAN)
         env = {k: v for k, v in _os.environ.items() if k != "PYTHONPATH"}
+        # Con nói UTF-8 như trên QC. Windows tiếng Việt cho con cp1252, cha lại đọc
+        # utf-8 → vết lỗi tiếng Việt làm luồng đọc chết và `stderr` về None.
+        env["PYTHONUTF8"] = "1"
         r = _sp.run([_sys.executable, "kich_ban.py"], cwd=td, env=env, capture_output=True,
                     text=True, encoding="utf-8", timeout=timeout)
         if r.returncode:

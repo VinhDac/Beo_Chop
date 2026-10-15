@@ -6,3 +6,9 @@
 #   chết ngay lúc khởi động với
 #   "System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft'".
 pywebview
+
+# Bộ chạy CŨ (`cat_studio/bo_chay.py`, `tinh_toan.py`) tính chỉ báo cả mảng bằng numpy,
+# và `cat_studio/api.py` kéo theo chúng — nên app lẫn 9 bài kiểm đều cần. Thiếu dòng này
+# thì clone mới + `tools\setup.bat` cho một .venv chạy app không nổi. Phần 7 của D-10 dọn
+# bộ chạy cũ xong thì bỏ được.
+numpy

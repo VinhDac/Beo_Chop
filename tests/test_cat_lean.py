@@ -243,7 +243,9 @@ kiem("làm gọn GIỮ số dòng mọi câu lệnh — lỗi trên QC chỉ đ�
 
 KICH_BAN = r'''
 import json, sys
-sys.path[:] = [p for p in sys.path if not p.startswith(GOC)]
+# chừa site-packages của .venv (nằm trong repo) — xem lean_gia
+sys.path[:] = [p for p in sys.path
+               if not p.startswith(GOC) or p.startswith(sys.prefix)]
 import numpy as np
 import AlgorithmImports
 import main
@@ -266,6 +268,7 @@ print(json.dumps({
 
 def chay_sach(td):
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    env["PYTHONUTF8"] = "1"      # như lean_gia: con phải nói UTF-8
     return subprocess.run([sys.executable, "kich_ban.py"], cwd=td, capture_output=True,
                           text=True, encoding="utf-8", env=env, timeout=300)
 

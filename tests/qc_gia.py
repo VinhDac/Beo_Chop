@@ -30,7 +30,9 @@ from cat_studio import qc_api  # noqa: E402
 #: của project — nạp `main.py` y như QC nạp, chạy cầu nối trên nến giả, cất nhật ký.
 KICH_BAN = r'''
 import json, sys
-sys.path[:] = [p for p in sys.path if not p.startswith(GOC)]
+# chừa site-packages của .venv (nằm trong repo) — xem lean_gia
+sys.path[:] = [p for p in sys.path
+               if not p.startswith(GOC) or p.startswith(sys.prefix)]
 import numpy as np
 import main
 import gia_lap_qc as gl
@@ -311,6 +313,7 @@ class QCGia:
                 with open(os.path.join(td, "kich_ban.py"), "w", encoding="utf-8") as f:
                     f.write(f"GOC = {GOC!r}\nSPREAD = {self.spread!r}\n" + KICH_BAN)
                 env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+                env["PYTHONUTF8"] = "1"      # như lean_gia: con phải nói UTF-8
                 r = subprocess.run([sys.executable, "kich_ban.py"], cwd=td, env=env,
                                    capture_output=True, text=True, encoding="utf-8",
                                    timeout=300)
