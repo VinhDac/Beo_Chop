@@ -56,6 +56,13 @@ def dk(trai, phep, phai):
     return {"trai": trai, "phep": phep, "phai": phai}
 
 
+def _doi_nhanh(m):
+    """Hoán vị vị trí hai khối Hỏi đầu nhánh ở trạm ②: nhánh nào NẰM TRÊN được thử trước,
+    nên đây là đổi luật chứ không phải đổi cách bày."""
+    hoi = [s for s in m["tram"][T.TIN_HIEU]["steps"] if s.get("type") == T.HOI]
+    hoi[0]["pos"], hoi[1]["pos"] = hoi[1]["pos"], hoi[0]["pos"]
+
+
 # ---------------------------------------------------------------------------
 # Một cỗ máy ĐỦ năm trạm, dựng tay — mọi mục sau đều sửa từ bản này.
 # ---------------------------------------------------------------------------
@@ -373,6 +380,48 @@ kiem("mọi khối Làm đều dựng được chữ (không khối nào rơi v�
      all("?" not in " ".join(M.dong_khoi(M._chuan_lam(M.khoi_lam(k), v["tram"], "H1"),
                                          v["tram"], {}))
          for k, v in T.KHOI_LAM.items()))
+
+# ---------------------------------------------------------------------------
+print("\n▸ Vân tay LOGIC — vé nộp của trò chơi (D-10, phần 6)")
+# ---------------------------------------------------------------------------
+from cat_studio import mau_tram as MT  # noqa: E402
+
+a = MT.may_tu_mau("A")
+b = MT.may_tu_mau("B")          # dựng lại y hệt: cùng luật, id khối mới toàn bộ
+kiem("hai cỗ máy cùng LUẬT, id khác nhau → CÙNG vân tay",
+     M.van_tay(a) == M.van_tay(b), f"({M.van_tay(a)})")
+kiem("lắp lại chính mẫu đang dùng → vân tay không đổi",
+     M.van_tay(MT.ap_mau(copy.deepcopy(a), T.TIN_HIEU, "giao_cat_ema")) == M.van_tay(a))
+
+d = copy.deepcopy(a)
+d["name"] = "Tên khác hẳn"
+d["tram"][T.TIN_HIEU]["steps"][0]["pos"] = [999.0, 999.0]
+d["tram"][T.TIN_HIEU]["steps"][0]["name"] = "Khởi hành"
+kiem("đổi tên cỗ máy, tên khối, kéo khối đi chỗ khác → vân tay KHÔNG đổi",
+     M.van_tay(d) == M.van_tay(a))
+
+e = copy.deepcopy(a)
+e["tram"][T.TIN_HIEU]["steps"].append(M.khoi_lam("bao", huong="xuong"))
+kiem("thêm một khối KHÔNG nối vào đâu → không đổi (khối không chạy thì không phải luật)",
+     M.van_tay(e) == M.van_tay(a))
+
+for ten, sua in (
+    ("đổi giá trị một tham số",
+     lambda m: m["tham_so"][0].update(gia_tri=999)),
+    ("đổi một ô Gom",
+     lambda m: m["tram"][T.CHON_MA].update(gom={"top_n": 3, "xep": "cao"})),
+    ("bỏ một dây nối",
+     lambda m: m["tram"][T.TIN_HIEU].update(edges=m["tram"][T.TIN_HIEU]["edges"][:-1])),
+    ("đổi THỨ TỰ NHÁNH (nhánh trên thử trước — đó là luật)",
+     lambda m: _doi_nhanh(m)),
+):
+    m2 = copy.deepcopy(a)
+    sua(m2)
+    kiem(f"{ten} → vân tay ĐỔI", M.van_tay(m2) != M.van_tay(a))
+
+kiem("vân tay bất biến: chuẩn hoá lại, hay đi qua JSON, vẫn thế",
+     M.van_tay(M.chuan_hoa(a)) == M.van_tay(a)
+     and M.van_tay(json.loads(json.dumps(a))) == M.van_tay(a))
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

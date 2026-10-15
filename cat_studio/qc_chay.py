@@ -206,7 +206,7 @@ class ViecQC:
         if loai not in game.LOAI:
             raise game.LoiGame(f"Không có kiểu chạy «{loai}».")
         if M.la_may(doc):
-            return self._bat_dau_may(doc, loai, tu_do)
+            return self._bat_dau_may(doc, loai, man_id, tu_do)
         doc = core.normalize_process(doc)
         # Soát sơ đồ NGAY (vài chục ms): thiếu tham số, khung chưa chạy được trên QC… báo
         # liền cho giao diện, chứ không để luồng nền đi một vòng rồi mới nói.
@@ -229,20 +229,35 @@ class ViecQC:
                                        daemon=True)
         self._luong.start()
 
-    def _bat_dau_may(self, may, loai, tu_do):
-        """Cỗ máy 5 trạm (D-10). Màn chơi cho cỗ máy 5 trạm chưa có — chạy chế độ Sáng tạo."""
+    def _bat_dau_may(self, may, loai, man_id, tu_do):
+        """Cỗ máy 5 trạm (D-10): Sáng tạo chạy rổ tự chọn, Chiến dịch chạy rổ CỦA MÀN.
+
+        Soát NGAY tại máy những gì soát được — cỗ máy còn lỗi, màn của dạng tài liệu kia,
+        nộp mà chưa có vé — rồi mới đóng gói. Đi một vòng lên QC mới biết sai là mất vài
+        phút cho một câu đáng lẽ nói ngay được."""
         loi = [p for p in M.soat(may) if p["severity"] == "error"]
         if loi:
             raise game.LoiGame(f"Cỗ máy còn {len(loi)} lỗi, chưa chạy được: {loi[0]['message']}")
-        if loai != "tu_do":
-            raise game.LoiGame("Chiến dịch cho cỗ máy 5 trạm chưa mở — chạy chế độ Sáng tạo.")
-        ch = soat_tu_do_may(tu_do)
+        if loai == "tu_do":
+            ch, man_id = soat_tu_do_may(tu_do), None
+        else:
+            m = game.man(man_id)
+            if m.get("dang") != M.DANG:
+                raise game.LoiGame(f"Màn «{m['ten']}» là màn của sơ đồ cũ, không chạy được "
+                                   f"bằng cỗ máy 5 trạm.")
+            tu, den = game.khoang(man_id, loai)
+            ch = {"ma": game.ro_cua(m), "loai": m["loai"], "tu": tu, "den": den,
+                  "von": m["von"]}
+            if loai == "nop" and game.ve_nop(man_id, M.van_tay(may)) is None:
+                raise game.LoiGame(
+                    "Chạy ▶ đầy đủ cỗ máy này trước khi nộp: nộp là chấm cả màn đã thấy "
+                    "lẫn màn ẩn. Sửa cỗ máy sau lần ▶ đầy đủ cuối là thành cỗ máy khác.")
         may = M.chuan_hoa(may)
         with self._khoa:
-            self._tt = {"dang_chay": True, "loai": loai, "man": None, "chu": "Đóng gói cỗ máy",
-                        "ti_le": None, "ti_le_chung": 0.0, "bat_dau": time.time(),
-                        "xong": None, "loi": None}
-        self._luong = threading.Thread(target=self._chay, args=(may, loai, None, ch),
+            self._tt = {"dang_chay": True, "loai": loai, "man": man_id,
+                        "chu": "Đóng gói cỗ máy", "ti_le": None, "ti_le_chung": 0.0,
+                        "bat_dau": time.time(), "xong": None, "loi": None}
+        self._luong = threading.Thread(target=self._chay, args=(may, loai, man_id, ch),
                                        daemon=True)
         self._luong.start()
 
@@ -258,7 +273,7 @@ class ViecQC:
     def _chay(self, doc, loai, man_id, ch):
         xong, loi = None, None
         try:
-            xong = (self._chay_may(doc, loai, ch) if M.la_may(doc)
+            xong = (self._chay_may(doc, loai, man_id, ch) if M.la_may(doc)
                     else self._chay_that(doc, loai, man_id, ch))
         except (qc_api.LoiQC, game.LoiGame, bo_chay.LoiChay, bo_may.LoiMay) as e:
             loi = str(e)
@@ -320,28 +335,57 @@ class ViecQC:
                       "url": None if an else kq["url"], "duong": kq["duong_nhat_ky"]})
         return tom
 
-    def _chay_may(self, may, loai, ch):
-        """Một lượt cỗ máy 5 trạm trên QC: đóng gói → chạy → tải nhật ký → đọc kết quả."""
+    def _chay_may(self, may, loai, man_id, ch):
+        """Một lượt cỗ máy 5 trạm trên QC: đóng gói → chạy → tải nhật ký → đọc → CHẤM.
+
+        Chấm bằng chính `game.cham` của sơ đồ cũ — một định nghĩa "điểm" duy nhất cho cả
+        hai dạng. Lượt NỘP chạy trên màn ẩn: chỉ con số tổng về tới giao diện."""
         bat_dau = time.time()
         self._bao("Đóng gói cỗ máy")
         vt = M.van_tay(may)
         khoa = f"cat_studio/may-{vt}-{qc_api.ma_luot()}.jsonl.gz"
         files = goi_qc.dong_goi_may(may, {**ch, "khoa": khoa}, self._gioi_han)
+        an = loai == "nop"
+        # Tên backtest trên QC: lượt nộp KHÔNG ghi ngày — app giữ màn ẩn (D-06).
         ten_bt = (f"{game.LOAI[loai]} · {len(ch['ma'])} mã {LOAI_THI_TRUONG[ch['loai']]} · "
-                  f"{ch['tu']} → {ch['den']}")
+                  + ("màn ẩn" if an else f"{ch['tu']} → {ch['den']}"))
         kq = qc_api.chay(self._tao_qc(), may, files, ten_bt,
                          self._thu_muc or luu_tru.thu_muc_nhat_ky(), self._bao, khoa=khoa)
-        k = KetQuaMay(kq["duong_nhat_ky"])
-        k.them = {"loai": loai, "man": None, "an": False, "url": kq["url"],
-                  "giay_tong": round(time.time() - bat_dau, 1), "sao": None, "lan_nop": None}
-        self.ket_qua = k
+        k = KetQuaMay(kq["duong_nhat_ky"], lay_luot=not an)
+        c = game.cham(k.meta)
+        gon = game.do_gon(may)
+        tom = {**k.tom_tat(), "loai": loai, "man": man_id, "an": an, "cham": c,
+               "url": kq["url"], "giay_tong": round(time.time() - bat_dau, 1),
+               "sao": None, "lan_nop": None}
+        if an:
+            # Màn ẩn: chỉ con số tổng — không ngày, không link QC (mở ra là thấy hết),
+            # không đường vốn, không lượt. Xem từng nến của màn ẩn là học thuộc đề thi.
+            tom.update(tu=None, den=None, url=None, duong_von=[], so_luot=None,
+                       t_dau=None, t_cuoi=None, gia_dau={}, gia_cuoi={})
+            ve = game.ve_nop(man_id, vt)
+            tom["sao"] = game.sao(ve, c)
+            tom["thay"] = ve
+            tom["lan_nop"] = game.ghi_nop(man_id, {
+                "dang": M.DANG, "ten": may.get("name"), "van_tay": vt, "sao": tom["sao"],
+                "do_gon": gon,
+                "thay": {x: ve.get(x) for x in ("lai_pt", "mua_giu_pt", "thang_boss",
+                                                "so_dong", "sach")},
+                "an": c, "duong_an": kq["duong_nhat_ky"]})
+        else:
+            if loai == "day_du":
+                game.ghi_day_du(man_id, vt, may.get("name"), c, kq["duong_nhat_ky"])
+                tom["sao"] = game.sao(c)        # tối đa ⭐⭐ — ⭐⭐⭐ chỉ có khi nộp
+            k.them = {x: tom[x] for x in ("loai", "man", "an", "cham", "url", "giay_tong",
+                                          "sao", "lan_nop")}
+            self.ket_qua = k
         tk = k.thong_ke
-        game.ghi_lan({"dang": M.DANG, "loai": loai, "man": None, "ten": may.get("name"),
-                      "van_tay": vt, "symbol": ", ".join(ch["ma"]), "tu": ch["tu"],
-                      "den": ch["den"], "an": False, "sao": None, "lai_pt": tk.get("lai_pt"),
-                      "mua_giu_pt": tk.get("boss_pt"), "so_lenh": tk.get("so_lenh"),
-                      "url": kq["url"], "duong": kq["duong_nhat_ky"]})
-        return k.tom_tat()
+        game.ghi_lan({"dang": M.DANG, "loai": loai, "man": man_id, "ten": may.get("name"),
+                      "van_tay": vt, "symbol": ", ".join(ch["ma"]),
+                      "tu": None if an else ch["tu"], "den": None if an else ch["den"],
+                      "an": an, "sao": tom["sao"], "lai_pt": c["lai_pt"],
+                      "mua_giu_pt": c["mua_giu_pt"], "so_lenh": tk.get("so_lenh"),
+                      "url": None if an else kq["url"], "duong": kq["duong_nhat_ky"]})
+        return tom
 
     # ------------------------------------------------------------------ xem lại
     def mo_lai(self, duong):

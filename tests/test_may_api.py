@@ -360,15 +360,24 @@ kiem("cỗ máy còn lỗi → ◆ Màn chơi từ chối ngay, kèm danh sách 
      and r["loi"][0]["tram"] in T.TRAM_KEYS)
 kiem("… và CHƯA đặt cỗ máy nào cho cửa sổ Màn chơi", a._doc_qc is None)
 
-# Chiến dịch (màn, boss, nộp) chưa mở cho cỗ máy 5 trạm — nói thẳng, không chạy nửa vời.
+# Chiến dịch (D-10, phần 6): soát NGAY tại máy, chưa gửi gì lên QC.
 from cat_studio import qc_chay  # noqa: E402
-try:
-    qc_chay.ViecQC(tao_qc=lambda: None).bat_dau(may, "nhanh")
-    r = "không báo gì"
-except Exception as e:
-    r = str(e)
-kiem("Chiến dịch cho cỗ máy 5 trạm chưa mở → câu tiếng Việt chỉ sang Sáng tạo",
-     "chưa mở" in r and "Sáng tạo" in r)
+
+
+def bat_dau(loai, man_id):
+    try:
+        qc_chay.ViecQC(tao_qc=lambda: None).bat_dau(may, loai, man_id)
+        return "không báo gì"
+    except Exception as e:                       # noqa: BLE001
+        return str(e)
+
+
+kiem("màn của SƠ ĐỒ CŨ → từ chối, nói rõ hai dạng không dùng chung màn",
+     "sơ đồ cũ" in bat_dau("nhanh", "vang-2024"))
+kiem("nộp mà chưa ▶ đầy đủ đúng cỗ máy đó → báo ngay, chưa gửi gì lên QC",
+     "▶ đầy đủ" in bat_dau("nop", "ro-ngoai-hoi-2024"))
+kiem("màn không có → câu tiếng Việt gọi tên màn",
+     "khong-he-co" in bat_dau("nhanh", "khong-he-co"))
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

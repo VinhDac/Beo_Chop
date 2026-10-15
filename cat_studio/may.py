@@ -358,18 +358,37 @@ def bang_tham_so(doc):
 
 
 def van_tay(doc):
-    """Dấu vân tay LOGIC của cỗ máy (12 ký tự): không tính vị trí khối, tên khối hay tên cỗ
-    máy — kéo khối đi chỗ khác không đổi cỗ máy; đổi một ngưỡng, một dây nối, một ô Gom hay
-    giá trị một tham số thì đổi. Dùng làm khoá nhật ký và vé nộp."""
+    """Dấu vân tay LOGIC của cỗ máy (12 ký tự). Khoá nhật ký, và VÉ NỘP của trò chơi.
+
+    Không tính: vị trí khối, tên khối, tên cỗ máy — và **id của khối**. Ba thứ đầu là cách
+    bày ra; id là cách gọi tên. Hai cỗ máy dựng rời nhau mà cùng một luật PHẢI ra cùng vân
+    tay, nếu không thì "đúng cỗ máy đó" nói dối: lắp lại y hệt một mẫu dựng sẵn là id mới
+    toàn bộ, trong khi luật không đổi một chữ — mà vé nộp lại mất. (D-10, phần 6)
+
+    Dây nối vì thế cũng không ghi bằng id mà bằng NHÃN ĐÁNH SỐ (`1 · 1A · 1A.1`) — chính
+    thứ bộ máy duyệt theo. Nhãn có đổi khi người chơi đổi THỨ TỰ NHÁNH (nhánh xếp trên thử
+    trước), nhưng thứ tự nhánh là luật chứ không phải cách bày, nên đổi vân tay là đúng.
+    Khối không có đường tới thì không có nhãn: nó không bao giờ chạy.
+
+    Đổi một ngưỡng, một dây nối, một ô Gom hay giá trị một tham số → đổi vân tay."""
     import hashlib
     import json
     m = chuan_hoa(doc)
     loi = []
     for k in T.TRAM_KEYS:
         g = m["tram"][k]
-        loi.append([[{x: v for x, v in st.items() if x not in ("pos", "name")}
-                     for st in g["steps"]],
-                    sorted((e["from"], e["to"]) for e in g["edges"]), g.get("gom") or {}])
+        nhan = core.flow_order(g["steps"], g["edges"])["order"]
+        # Khối KHÔNG CÓ NHÃN là khối không đường nối nào dẫn tới: nó không bao giờ chạy,
+        # nên nó không phải là luật. Tính nó vào thì thả một khối lạc xuống canvas là mất
+        # vé nộp, trong khi cỗ máy chạy y như cũ. Soát lỗi vẫn kêu nó, đó mới đúng chỗ.
+        khoi = sorted(
+            [nhan[st["id"]],
+             json.dumps({x: v for x, v in st.items() if x not in ("pos", "name", "id")},
+                        sort_keys=True, ensure_ascii=False)]
+            for st in g["steps"] if nhan.get(st.get("id")))
+        canh = sorted([nhan[e["from"]], nhan[e["to"]]] for e in g["edges"]
+                      if nhan.get(e["from"]) and nhan.get(e["to"]))
+        loi.append([khoi, canh, g.get("gom") or {}])
     loi.append(sorted((t["ten"], t["gia_tri"]) for t in m["tham_so"]))
     return hashlib.sha1(json.dumps(loi, sort_keys=True, ensure_ascii=False)
                         .encode("utf-8")).hexdigest()[:12]

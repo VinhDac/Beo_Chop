@@ -12,6 +12,7 @@ Store → app tải về, xoá khỏi cloud, đọc ra kết quả, dựng chữ
 Chạy:  python tests\\test_qc_may.py
 """
 import io
+import json
 import os
 import sys
 import tempfile
@@ -55,8 +56,13 @@ XU = {"EURUSD": 6.0, "GBPUSD": -6.0, "USDJPY": 1.0, "AUDUSD": 3.0}
 
 
 def du_lieu_may(ch):
-    """"QC" có dữ liệu cho bất kỳ rổ nào: mỗi mã một xu hướng cố định, đủ dài cho khởi động."""
-    dl = SG.du_lieu({m: XU.get(m, 0.0) for m in ch["ma"]}, 13, seed=31, nhieu=0.0005)
+    """"QC" có dữ liệu cho bất kỳ rổ nào: mỗi mã một xu hướng cố định, đủ dài cho khởi động.
+
+    Seed theo KHOẢNG NGÀY: màn đã thấy và màn ẩn phải ra hai kết quả khác nhau, không thì
+    bài kiểm ⭐⭐⭐ chẳng chứng minh được gì (hai lượt y hệt thì thắng cái này là thắng cái
+    kia)."""
+    dl = SG.du_lieu({m: XU.get(m, 0.0) for m in ch["ma"]}, 13,
+                    seed=31 + sum(ord(c) for c in str(ch.get("tu"))), nhieu=0.0005)
     return {m: [list(n) + [0.0002 * n[4]] for n in ds] for m, ds in dl.items()}
 
 
@@ -71,6 +77,7 @@ def viec_moi():
 
 
 MAY = MT.may_tu_mau("Theo EMA 4 mã")
+MAN = "ro-ngoai-hoi-2024"       # màn Chiến dịch của cỗ máy 5 trạm
 TU_DO = {"ma": ["eurusd", "GBPUSD", "USDJPY", "AUDUSD", "EURUSD"], "loai": "forex",
          "tu": "2024-01-08", "den": "2024-01-12", "von": 10000}
 
@@ -81,8 +88,11 @@ e = bat(v.bat_dau, M.may_moi(), "tu_do", tu_do=TU_DO)
 kiem("cỗ máy trắng → câu «còn 4 lỗi» kèm lỗi đầu", isinstance(e, game.LoiGame)
      and "còn 4 lỗi" in str(e), f"— {e}")
 e = bat(v.bat_dau, MAY, "nhanh", "vang-2024")
-kiem("chiến dịch với cỗ máy 5 trạm → nói rõ chưa mở, chạy Sáng tạo",
-     isinstance(e, game.LoiGame) and "Sáng tạo" in str(e))
+kiem("màn của SƠ ĐỒ CŨ → từ chối, nói rõ vì sao (hai dạng không dùng chung màn)",
+     isinstance(e, game.LoiGame) and "sơ đồ cũ" in str(e), f"— {e}")
+e = bat(v.bat_dau, MAY, "nop", MAN)
+kiem("chưa ▶ đầy đủ mà nộp → báo NGAY, chưa gửi gì lên QC",
+     isinstance(e, game.LoiGame) and "▶ đầy đủ" in str(e), f"— {e}")
 for sai_, cau in (({"ma": []}, "chưa có mã"), ({"ma": ["EUR USD"]}, "không hợp lệ"),
                   ({"loai": "vang"}, "loại thị trường"), ({"ma": [f"M{i:03d}" for i in range(25)]},
                                                          "tối đa 20 mã"),
@@ -134,7 +144,7 @@ kiem("khoá Object Store riêng của lượt đã bị XOÁ sau khi tải về"
 ls = game.lich_su()
 kiem("lịch sử ghi lượt cỗ máy 5 trạm: rổ, ngày, lãi, link",
      ls and ls[0].get("dang") == "may5" and "EURUSD" in ls[0]["symbol"]
-     and ls[0]["lai_pt"] == tk.get("lai_pt") and ls[0]["url"] == x.get("url"))
+     and ls[0]["lai_pt"] == round(tk.get("lai_pt"), 2) and ls[0]["url"] == x.get("url"))
 
 print("\n▸ Mở lại lượt cũ từ lịch sử (không chạy lại)")
 v2 = viec_moi()
@@ -151,6 +161,66 @@ game.ghi_lan(x_hong)
 e = bat(v2.mo_lai, x_hong["duong"])
 kiem("file nhật ký đã mất → câu tiếng Việt", isinstance(e, game.LoiGame)
      and "không còn trên máy" in str(e), f"— {e}")
+
+# ================= 6. Chiến dịch: ▶ đầy đủ → vé → Nộp =================
+print("\n▸ Chiến dịch — ▶ đầy đủ ghi vé, Nộp chạy màn ẩn rồi chấm sao")
+m_may = next(m for m in game.danh_sach_man(dang=M.DANG) if m["id"] == MAN)
+kiem("màn của cỗ máy mang rổ mã và boss cả rổ",
+     m_may["ro"] == ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD"]
+     and m_may["boss"]["id"] == "mua_giu_deu", f"({m_may['ten']})")
+
+v = viec_moi()
+v.bat_dau(MAY, "day_du", MAN)
+v.cho(600)
+dd = (v.trang_thai().get("xong") or {})
+kiem("▶ đầy đủ chạy đúng RỔ CỦA MÀN và đúng khoảng ngày của màn",
+     dd.get("ma") == m_may["ro"] and dd.get("tu") == m_may["thay"][0]
+     and dd.get("den") == m_may["thay"][1] and dd.get("man") == MAN,
+     f"— {dd.get('ma')} {dd.get('tu')} → {dd.get('den')}")
+kiem("▶ đầy đủ chấm được: lãi, boss cả rổ, sạch hay không — tối đa ⭐⭐",
+     dd.get("cham") and dd["cham"]["mua_giu_pt"] is not None
+     and dd.get("sao") in (0, 1, 2),
+     f"— lãi {dd['cham']['lai_pt']:+.2f}% · boss {dd['cham']['mua_giu_pt']:+.2f}%"
+     f" · {dd.get('sao')}⭐")
+ve = game.ve_nop(MAN, M.van_tay(MAY))
+kiem("… và để lại VÉ NỘP cho đúng cỗ máy đó", ve and ve["lai_pt"] == dd["cham"]["lai_pt"])
+kiem("cỗ máy KHÁC thì không có vé (vé theo vân tay, không theo tên)",
+     game.ve_nop(MAN, M.van_tay(MT.may_tu_mau("Tên khác", chon={T.RUI_RO: "cat_lo"})))
+     is None)
+
+n_truoc = len(game.lich_su())
+v.bat_dau(MAY, "nop", MAN)
+v.cho(600)
+nop = (v.trang_thai().get("xong") or {})
+kiem("Nộp chạy xong, có sao và số lần nộp",
+     nop.get("an") is True and nop.get("sao") in (0, 1, 2, 3) and nop.get("lan_nop") == 1,
+     f"— {nop.get('sao')}⭐, lần nộp {nop.get('lan_nop')}")
+kiem("⭐⭐⭐ chỉ khi THẮNG BOSS cả ở màn đã thấy lẫn màn ẩn",
+     nop["sao"] == game.sao(dd["cham"], nop["cham"])
+     and (nop["sao"] == 3) == bool(dd["cham"]["thang_boss"] and nop["cham"]["thang_boss"]),
+     f"— thấy {dd['cham']['thang_boss']} · ẩn {nop['cham']['thang_boss']}")
+kiem("màn ẩn là ẨN: không ngày, không link QC, không đường vốn, không lượt",
+     nop.get("tu") is None and nop.get("den") is None and nop.get("url") is None
+     and nop.get("duong_von") == [] and nop.get("so_luot") is None
+     and "2025" not in json.dumps(nop))
+kiem("… nhưng vẫn trả phần chấm của màn đã thấy để so",
+     nop.get("thay") and nop["thay"]["lai_pt"] == dd["cham"]["lai_pt"])
+kiem("lượt nộp KHÔNG thay kết quả đang xem (vẫn là lượt ▶ đầy đủ)",
+     v.ket_qua is not None and v.ket_qua.them.get("loai") == "day_du")
+ls2 = game.lich_su()
+kiem("lịch sử ghi lượt nộp: có màn, có sao, KHÔNG ngày, KHÔNG link",
+     len(ls2) == n_truoc + 1 and ls2[0]["an"] is True and ls2[0]["man"] == MAN
+     and ls2[0]["sao"] == nop["sao"] and ls2[0]["tu"] is None and ls2[0]["url"] is None)
+e = bat(v.mo_lai, ls2[0]["duong"])
+kiem("không mở lại được lượt màn ẩn để xem từng nến",
+     isinstance(e, game.LoiGame) and "màn ẩn" in str(e), f"— {e}")
+td = game.tien_do_man(MAN)
+kiem("tiến độ màn: đếm lần nộp, giữ sao cao nhất",
+     td["so_lan_nop"] == 1 and td["sao"] == nop["sao"])
+
+# Vân tay là LOGIC: dựng lại y hệt cỗ máy đó thì vé vẫn dùng được.
+kiem("dựng lại cỗ máy y hệt (id khối mới toanh) → VẪN đúng vé nộp",
+     game.ve_nop(MAN, M.van_tay(MT.may_tu_mau("Dựng lại"))) is not None)
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 gia.dong()
