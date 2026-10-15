@@ -20,6 +20,9 @@ import sys
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
 THU_MUC_CHIEN_LUOC = "chien_luoc"
+#: Cỗ máy 5 trạm (D-10) ở THƯ MỤC RIÊNG, không trộn với chiến lược cũ: hai dạng tài
+#: liệu khác nhau, mở lẫn nhau là ra một mớ khối không soát nổi.
+THU_MUC_CO_MAY = "co_may"
 THU_MUC_NHAT_KY = "nhat_ky"
 
 CAI_DAT_MAC_DINH = {
@@ -72,6 +75,10 @@ def _thu_muc(ten):
 
 def thu_muc_chien_luoc():
     return _thu_muc(THU_MUC_CHIEN_LUOC)
+
+
+def thu_muc_co_may():
+    return _thu_muc(THU_MUC_CO_MAY)
 
 
 def thu_muc_nhat_ky():
@@ -181,6 +188,44 @@ def xoa_chien_luoc(ten):
 
 
 # ---------------------------------------------------------------------------
+# Cỗ máy 5 trạm  (D-10)
+# ---------------------------------------------------------------------------
+# Y hệt bốn hàm của chiến lược, chỉ khác thư mục: cùng `_ten_an_toan` (bẫy tên thiết bị
+# Windows không phân biệt dạng tài liệu) và cùng lối ghi nguyên tử.
+
+
+def duong_dan_co_may(ten):
+    return os.path.join(thu_muc_co_may(), _ten_an_toan(ten) + ".json")
+
+
+def liet_ke_co_may():
+    try:
+        return sorted(f[:-5] for f in os.listdir(thu_muc_co_may())
+                      if f.endswith(".json"))
+    except Exception:
+        return []
+
+
+def ghi_co_may(ten, doc):
+    p = duong_dan_co_may(ten)
+    ghi_json_nguyen_tu(p, doc)
+    return p
+
+
+def doc_co_may(ten):
+    with open(duong_dan_co_may(ten), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def xoa_co_may(ten):
+    p = duong_dan_co_may(ten)
+    if os.path.exists(p):
+        os.remove(p)
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Di cư từ bố cục cũ
 # ---------------------------------------------------------------------------
 
@@ -240,6 +285,9 @@ def tom_tat():
             {"ten": "Chiến lược", "duong_dan": thu_muc_chien_luoc(),
              "so_luong": len(liet_ke_chien_luoc()),
              "danh_sach": liet_ke_chien_luoc()},
+            {"ten": "Cỗ máy 5 trạm", "duong_dan": thu_muc_co_may(),
+             "so_luong": len(liet_ke_co_may()),
+             "danh_sach": liet_ke_co_may()},
             {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],

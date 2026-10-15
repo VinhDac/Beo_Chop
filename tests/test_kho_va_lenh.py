@@ -147,13 +147,17 @@ kiem("mọi thứ nằm dưới đúng MỘT thư mục gốc",
      os.path.basename(luu_tru.goc()) == "du_lieu")
 kiem("chiến lược có thư mục riêng, tên đúng nghĩa",
      os.path.basename(luu_tru.thu_muc_chien_luoc()) == "chien_luoc")
+kiem("cỗ máy 5 trạm có thư mục RIÊNG, không trộn với chiến lược cũ (D-10)",
+     os.path.basename(luu_tru.thu_muc_co_may()) == "co_may"
+     and luu_tru.thu_muc_co_may() != luu_tru.thu_muc_chien_luoc())
 kiem("tên file bị chặn thoát ra ngoài thư mục",
      os.path.dirname(luu_tru.duong_dan_chien_luoc("../../hack"))
      == luu_tru.thu_muc_chien_luoc(),
      f"— {luu_tru.duong_dan_chien_luoc('../../hack')}")
 tt = luu_tru.tom_tat()
-kiem("tóm tắt kho nói rõ đường dẫn thật: chiến lược + nhật ký chạy",
-     tt["goc"] and [m["ten"] for m in tt["muc"]] == ["Chiến lược", "Nhật ký chạy"]
+kiem("tóm tắt kho nói rõ đường dẫn thật: chiến lược + cỗ máy + nhật ký chạy",
+     tt["goc"] and [m["ten"] for m in tt["muc"]] == ["Chiến lược", "Cỗ máy 5 trạm",
+                                                     "Nhật ký chạy"]
      and all(m["duong_dan"] for m in tt["muc"]))
 kiem("kho KHÔNG còn mục nến trên máy (Strategy Tester đã bỏ — nến là của QC)",
      not hasattr(luu_tru, "thu_muc_nen") and "test" not in luu_tru.CAI_DAT_MAC_DINH)

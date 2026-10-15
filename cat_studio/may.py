@@ -820,3 +820,45 @@ def _soat_giua_cac_tram(may, ra):
                         f'"{st.get("name")}" chia {T.CACH_CHIA[cach]} nhưng trạm '
                         f"{T.nhan_tram(T.TIN_HIEU)} không khối «Báo tín hiệu» nào đặt "
                         f"{ten_o} — {hau_qua}.")
+
+
+def soat_khoi(st, tram_key, tham_so=None):
+    """Soát MỘT khối, như thể nó vừa được nối vào sau khối Bắt đầu của trạm.
+
+    Hộp thoại khối KHÔNG tự soát gì: nó gửi bản nháp thô sang đây và nhận lại khối đã
+    chuẩn hoá + chữ + vấn đề, nên luật hợp lệ chỉ nằm ở đúng một chỗ.
+
+    Soát bằng CHÍNH bộ soát của trạm (`_Soat`), nhưng chỉ phần NỘI DUNG của khối. Phần đồ
+    thị và phần nhìn nhiều trạm cùng lúc là chuyện của cỗ máy, không phải của cái khối
+    đang trong tay: một khối Hỏi vừa tạo thì đương nhiên chưa có gì phía sau, mà câu "khớp
+    điều kiện rồi thì không có gì phía sau" nổi lên trong hộp thoại chỉ làm người vẽ tưởng
+    mình gõ sai. Trả `(khối đã chuẩn hoá, [vấn đề của chính khối đó])`.
+    """
+    tram_key = tram_key if tram_key in T.TRAM_KEYS else T.TRAM_KEYS[0]
+    st = dict(st or {})
+    st.setdefault("id", core.new_step_id())
+    may = may_moi()
+    may["tham_so"] = list(tham_so or [])
+    g = may["tram"][tram_key]
+    if st.get("kind") == core.KIND_START:
+        g["steps"], g["edges"] = [st], []
+    else:
+        bd = g["steps"][0]
+        g["steps"] = [bd, st]
+        g["edges"] = [{"from": bd["id"], "to": st["id"], "port": "out"}]
+    m = chuan_hoa(may)
+    moi = next((s for s in m["tram"][tram_key]["steps"] if s.get("id") == st["id"]), None)
+    ra = []
+    s = _Soat(m, tram_key, ra)
+    if moi is None:
+        return None, ra
+    if moi.get("kind") == core.KIND_START:
+        s.bat_dau(moi)
+    elif moi.get("type") == T.HOI:
+        s.hoi(moi)
+    elif moi.get("type") in T.KHOI_LAM:
+        s.lam(moi)
+    else:
+        s.loi(moi, f"{s.ten(moi)}: khối «{moi.get('type')}» không có trong từ điển 5 trạm "
+                   f"— có thể là file của bản mới hơn.")
+    return moi, [p for p in ra if p.get("step") == st["id"]]

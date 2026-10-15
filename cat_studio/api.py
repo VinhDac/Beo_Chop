@@ -25,6 +25,9 @@ import traceback
 from . import core
 from . import kho
 from . import mau
+from . import mau_tram
+from . import may as M
+from . import tram as T
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -545,6 +548,189 @@ class Api(NenCuaSo):
         r = self._window.create_file_dialog(
             webview.FileDialog.SAVE, save_filename=f"{d['name']}.json",
             file_types=(self._LOC,))
+        if not r:
+            return {"ok": False}
+        p = r if isinstance(r, str) else r[0]
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=2)
+        return _ok({"path": p})
+
+    # ------------------------------------------------ cỗ máy 5 trạm (D-10)
+    #: Trình vẽ 5 trạm. Các cửa `may_*` KHÔNG dùng chung với các cửa sơ đồ cũ
+    #: (`validate`, `describe`, `save_process`…): hai dạng tài liệu khác hẳn nhau, và
+    #: nhập nhằng một cửa cho cả hai là đường ngắn nhất tới chỗ mở chiến lược cũ ra
+    #: thành một cỗ máy trắng mà không ai hay.
+    _LOC_MAY = "Cỗ máy Cat_Studio (*.json)"
+
+    @_bat_loi
+    def may_boot(self):
+        """Từ điển 5 trạm — lấy MỘT lần lúc mở trình vẽ.
+
+        Giao diện không viết cứng danh sách nào: thêm một khối Làm, một đại lượng hay một
+        mẫu ở `tram.py` / `mau_tram.py` là trình vẽ có ngay. Mẫu trả về CHỈ phần nhãn —
+        hàm dựng sơ đồ (`dung`) ở lại Python, việc lắp là của `may_ap_mau`."""
+        return _ok({
+            "dang": M.DANG,
+            "phien_ban": M.PHIEN_BAN,
+            "tram": T.TRAM,
+            "tram_keys": T.TRAM_KEYS,
+            "lich": T.LICH,
+            "khung": T.KHUNG,
+            "khung_phut": T.KHUNG_PHUT,
+            "hoi": T.HOI,
+            "nhan_hoi": T.NHAN_HOI,
+            "phep_so": T.PHEP_SO,
+            "don_vi": T.DON_VI,
+            "tham_so_th": T.THAM_SO_TH,
+            "toan_hang": T.TOAN_HANG,
+            # Đại lượng nào đọc được ở trạm nào — hộp thoại Hỏi chỉ bày ra đúng bộ của
+            # trạm đang mở, chứ không bày hết rồi báo lỗi sau.
+            "toan_hang_cua_tram": {k: [x["key"] for x in T.toan_hang_cua_tram(k)]
+                                   for k in T.TRAM_KEYS},
+            "khoi_lam": T.KHOI_LAM,
+            "khoi_lam_cua_tram": {k: T.khoi_lam_cua_tram(k) for k in T.TRAM_KEYS},
+            "can_co": {k: list(v) for k, v in T.CAN_CO.items()},
+            "gom": T.GOM,
+            "huong_tin_hieu": T.HUONG_TIN_HIEU,
+            "cach_chia": T.CACH_CHIA,
+            "cach_tuong_doi": list(T.CACH_TUONG_DOI),
+            "mau": {k: [{"key": m["key"], "ten": m["ten"], "qc": m["qc"],
+                         "mo_ta": m["mo_ta"]} for m in (mau_tram.MAU.get(k) or [])]
+                    for k in T.TRAM_KEYS},
+            "may_mau": dict(mau_tram.MAY_MAU),
+        })
+
+    @_bat_loi
+    def may_moi(self, ten=None):
+        """Cỗ máy trắng: năm trạm, mỗi trạm đúng một khối Bắt đầu."""
+        return _ok(M.kem_the(M.may_moi(str(ten).strip() if ten else "Cỗ máy mới")))
+
+    @_bat_loi
+    def may_mo_mau(self, chon=None, ma=None):
+        """Cỗ máy mẫu — đủ năm trạm, sạch lỗi, chạy được ngay."""
+        return _ok(M.kem_the(mau_tram.may_tu_mau(chon=chon, ma=ma)))
+
+    @_bat_loi
+    def may_kem_the(self, doc):
+        """Chuẩn hoá + đánh số + chữ trên khối.
+
+        Mọi thay đổi cấu trúc (thêm/xoá khối, nối dây, sửa Gom) gửi CẢ cỗ máy sang đây rồi
+        vẽ lại từ cái trả về: chữ trên khối do Python dựng, giao diện không ghép một mẩu
+        nào — y luật của sơ đồ cũ."""
+        return _ok(M.kem_the(doc))
+
+    @_bat_loi
+    def may_soat(self, doc):
+        """Nguồn của CHẤM ĐỎ trên dải 5 trạm và của bảng Vấn đề — một lời gọi, cả cỗ máy.
+
+        Soát cả năm trạm chứ không riêng trạm đang mở: giấu lỗi của trạm kia thì bấm ▶ mới
+        lòi ra, mà lúc đó không ai hiểu vì sao."""
+        ds = M.soat(doc)
+        d = M.chuan_hoa(doc)
+        tram = {}
+        for k in T.TRAM_KEYS:
+            g = d["tram"][k]
+            kq = core.flow_order(g["steps"], g["edges"])
+            cua = [p for p in ds if p.get("tram") == k]
+            tram[k] = {
+                "order": kq["order"],
+                "unreachable": kq["unreachable"],
+                "quay_lai": [list(c) for c in kq["quay_lai"]],
+                "vong_ho": [list(c) for c in kq["vong_ho"]],
+                "lech_nhanh": kq["lech_nhanh"],
+                "so_loi": sum(1 for p in cua if p["severity"] == "error"),
+                "so_canh_bao": sum(1 for p in cua if p["severity"] == "warning"),
+            }
+        return _ok(ds,
+                   so_loi=sum(1 for p in ds if p["severity"] == "error"),
+                   so_canh_bao=sum(1 for p in ds if p["severity"] == "warning"),
+                   tram=tram, van_tay=M.van_tay(d))
+
+    @_bat_loi
+    def may_khoi_moi(self, tram, kind="action", loai=None, tham_so=None):
+        """Khối mới cho trạm `tram`: Bắt đầu, Hỏi, hay một khối Làm của chính trạm đó.
+
+        Ô của khối Làm nhận MẶC ĐỊNH của từ điển (hạn 24 nến, chu kỳ 20…) chứ không phải
+        0 — người chơi có thứ hợp lý để sửa, không phải bịa từ số không. Khối Hỏi mới mang
+        sẵn một điều kiện «Giá đóng > SMA(20)»: hai vế cùng đơn vị giá và đọc được ở MỌI
+        trạm, nên khối vừa tạo đã sạch lỗi, không phải một khối đỏ chờ gõ."""
+        tram = tram if tram in T.TRAM_KEYS else T.TRAM_KEYS[0]
+        if kind == core.KIND_START:
+            st = M.khoi_bat_dau(tram)
+        elif loai in T.KHOI_LAM:
+            st = M.khoi_lam(loai)
+        else:
+            st = M.khoi_hoi([{"trai": {"ten": "gia_dong"}, "phep": ">",
+                              "phai": {"ten": "sma", "chu_ky": 20}}])
+        return self.may_luu_khoi(tram, st, tham_so)
+
+    @_bat_loi
+    def may_luu_khoi(self, tram, draft, tham_so=None):
+        """Chuẩn hoá + soát MỘT khối. Hộp thoại không tự soát gì — nó gửi bản nháp thô
+        sang đây, để luật hợp lệ chỉ nằm ở đúng một chỗ (y như `save_action` của sơ đồ cũ).
+        """
+        tram = tram if tram in T.TRAM_KEYS else T.TRAM_KEYS[0]
+        st, loi = M.soat_khoi(draft, tram, tham_so)
+        if st is None:
+            return _loi("Khối không đọc được.")
+        ts = M.bang_tham_so({"tham_so": tham_so or []})
+        return _ok({"step": st, "card": M.the_khoi(st, tram, ts)}, loi=loi)
+
+    @_bat_loi
+    def may_ap_mau(self, doc, tram, mau_key, ma=None):
+        """Lắp một mẫu dựng sẵn vào MỘT trạm. Tham số của mẫu được thêm vào bảng, tên nào
+        đã có thì GIỮ giá trị người chơi đã chỉnh — lắp mẫu không được lặng lẽ đặt lại núm
+        vặn đã vặn."""
+        goc = doc if M.la_may(doc) else M.may_moi()
+        return _ok(M.kem_the(mau_tram.ap_mau(goc, tram, mau_key, ma)))
+
+    # -- kho cỗ máy trên đĩa --
+    @_bat_loi
+    def may_ds(self):
+        return _ok(luu_tru.liet_ke_co_may())
+
+    @_bat_loi
+    def may_luu(self, doc):
+        d = M.chuan_hoa(doc)
+        p = luu_tru.ghi_co_may(d["name"], d)
+        return _ok({"path": p, "name": d["name"], "van_tay": M.van_tay(d)})
+
+    @_bat_loi
+    def may_mo(self, ten):
+        return self._mo_may(luu_tru.doc_co_may(ten), ten)
+
+    @_bat_loi
+    def may_xoa(self, ten):
+        return _ok(luu_tru.xoa_co_may(ten))
+
+    def _mo_may(self, d, nguon):
+        """Một chỗ duy nhất mở cỗ máy từ đĩa — KHÔNG bọc `_bat_loi` (không phải cửa JS).
+
+        Chặn tài liệu không phải cỗ máy NGAY: `may.chuan_hoa` của một chiến lược cũ trả về
+        một cỗ máy TRẮNG hợp lệ, nên mở lầm file thì không có lỗi nào, chỉ là năm trạm
+        trống trơn — rồi lưu lại là mất hẳn chiến lược đó."""
+        if not M.la_may(d):
+            return _loi(f"«{nguon}» không phải cỗ máy 5 trạm — mở ở Chiến lược chứ không "
+                        f"phải ở đây.")
+        return _ok(M.kem_the(d))
+
+    @_bat_loi
+    def may_mo_file(self):
+        import webview
+        r = self._window.create_file_dialog(
+            webview.FileDialog.OPEN, allow_multiple=False, file_types=(self._LOC_MAY,))
+        if not r:
+            return {"ok": False}          # người dùng bấm Huỷ — KHÔNG phải lỗi
+        with open(r[0], encoding="utf-8") as f:
+            return self._mo_may(json.load(f), os.path.basename(r[0]))
+
+    @_bat_loi
+    def may_luu_file(self, doc):
+        import webview
+        d = M.chuan_hoa(doc)
+        r = self._window.create_file_dialog(
+            webview.FileDialog.SAVE, save_filename=f"{d['name']}.json",
+            file_types=(self._LOC_MAY,))
         if not r:
             return {"ok": False}
         p = r if isinstance(r, str) else r[0]

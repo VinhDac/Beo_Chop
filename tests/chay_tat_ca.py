@@ -20,6 +20,7 @@ BAI = [
     ("test_mau_tram.py", "Mẫu dựng sẵn từng trạm — sạch, chạy được, đúng việc; chữ «vì sao» của nhật ký"),
     ("test_vo_may.py", "Lớp vỏ QC của cỗ máy 5 trạm — bộ file đóng gói chạy trên LEAN giả, lệnh, khởi động"),
     ("test_qc_may.py", "Cỗ máy 5 trạm chạy từ app qua API QC — đóng gói, chạy thật lớp vỏ, tải về, đọc kết quả"),
+    ("test_may_api.py", "Cửa API trình vẽ 5 trạm — từ điển theo trạm, soát từng khối, lắp mẫu, lưu/mở"),
     ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
     ("test_so_do_mau.py", "Sơ đồ mẫu Compress phải mở ra SẠCH"),
     ("test_doi_chieu_d02.py", "ĐỐI CHIẾU từng luật của D_02 — có luật nào rơi không"),
