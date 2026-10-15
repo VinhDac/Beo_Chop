@@ -31,6 +31,14 @@ import san_gia as SG  # noqa: E402
 dung = sai = 0
 
 
+def bat_loi(f, *a):
+    try:
+        f(*a)
+    except Exception as e:          # noqa: BLE001
+        return e
+    return None
+
+
 def kiem(ten, dk, chi_tiet=""):
     global dung, sai
     if dk:
@@ -75,6 +83,31 @@ kiem("mẫu nào cũng có tên, mô tả, và trỏ về mô hình QC tương �
      all(d["ten"] and d["mo_ta"] and d["qc"] for ds in MT.MAU.values() for d in ds))
 kiem("lắp mẫu KHÔNG sửa cỗ máy truyền vào (lắp 22 lần, bản gốc y nguyên)",
      json.dumps(mm, sort_keys=True) == goc)
+
+print("\n▸ Bốn cỗ máy dựng sẵn của chương 1 (D-10, phần 6)")
+ban_san, cam_san = [], []
+for d in MT.MAY_SAN:
+    ms = MT.may_san(d["key"])
+    vd = M.soat(ms)
+    if vd:
+        ban_san.append((d["key"], vd[0]["message"][:60]))
+    # Chạy thật trên sàn giả: cỗ máy mở ra "sạch lỗi" mà không ra nổi một lệnh thì nó
+    # chưa phải một cỗ máy, chỉ là một bức tranh.
+    ngay = -(-can_khoi_dong(ms) // SG.NGAY_S)
+    dl = SG.du_lieu({"A": 9.0, "B": -9.0, "C": 1.0}, ngay + 6, seed=17, nhieu=0.0006)
+    bm, _, _ = SG.chay(ms, dl, bat_dau_t=SG.NGAY + ngay * SG.NGAY_S)
+    if not bm.thong_ke()["so_lenh"]:
+        cam_san.append(d["key"])
+kiem("mọi cỗ máy dựng sẵn mở ra SẠCH — không lỗi, không cảnh báo", not ban_san,
+     f"— {ban_san}")
+kiem("… và cái nào cũng ra được lệnh trên dữ liệu giả", not cam_san, f"— câm: {cam_san}")
+kiem("bốn ý tưởng KHÁC NHAU: không hai cỗ máy nào trùng vân tay",
+     len({M.van_tay(MT.may_san(d["key"])) for d in MT.MAY_SAN}) == len(MT.MAY_SAN),
+     f"({len(MT.MAY_SAN)} cỗ máy)")
+kiem("mỗi cái có tên và một câu nói đúng việc nó làm",
+     all(d["ten"] and len(d["mo_ta"]) > 40 for d in MT.MAY_SAN))
+kiem("cỗ máy dựng sẵn không có → KeyError gọi tên khoá",
+     isinstance(bat_loi(MT.may_san, "khong-co"), KeyError))
 
 print("\n▸ Đổi mẫu không vặn lại núm")
 m = MT.ap_mau(M.may_moi(), T.TIN_HIEU, "giao_cat_ema")

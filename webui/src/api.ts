@@ -170,6 +170,9 @@ export const pyMay = {
   /** Cỗ máy mẫu đủ năm trạm, sạch lỗi, chạy được ngay. */
   may_mo_mau: (chon?: Partial<Record<TramKey, string>>, ma?: string[]) =>
     goi<MayDoc>('may_mo_mau', chon ?? null, ma ?? null),
+  /** Một cỗ máy DỰNG SẴN của chương 1 (`may_boot().may_san`). */
+  may_mo_san: (key: string, ma?: string[]) =>
+    goi<MayDoc>('may_mo_san', key, ma ?? null),
   /** Chuẩn hoá + đánh số + chữ trên khối. Gọi sau MỌI thay đổi cấu trúc. */
   may_kem_the: (doc: MayDoc) => goi<MayDoc>('may_kem_the', doc),
   /** Nguồn của chấm đỏ trên dải 5 trạm và của bảng Vấn đề. */

@@ -89,12 +89,17 @@ kiem("mẫu dựng sẵn: đủ 22, chỉ phần nhãn — hàm dựng Ở LẠI
      f"({ {k: len(v) for k, v in b['mau'].items()} })".replace("'", ""))
 kiem("có bộ mẫu của cỗ máy mẫu, đủ năm trạm",
      set(b["may_mau"]) == set(T.TRAM_KEYS))
+kiem("có danh mục cỗ máy DỰNG SẴN của chương 1, mỗi cái một câu mô tả",
+     len(b["may_san"]) >= 3
+     and all(set(x) == {"key", "ten", "mo_ta"} and x["mo_ta"] for x in b["may_san"]),
+     f"({[x['ten'] for x in b['may_san']]})")
 
 # ===========================================================================
 print("\n▸ 2. Cửa JS khai đúng tham số (bẫy `getfullargspec`)")
 # ===========================================================================
 CAN = {
     "may_boot": [], "may_moi": ["ten"], "may_mo_mau": ["chon", "ma"],
+    "may_mo_san": ["key", "ma"],
     "may_kem_the": ["doc"], "may_soat": ["doc"],
     "may_khoi_moi": ["tram", "kind", "loai", "tham_so"],
     "may_luu_khoi": ["tram", "draft", "tham_so"],
@@ -129,6 +134,15 @@ kiem("cỗ máy trắng: ①②③⑤ báo lỗi «chưa ra được kết quả
      f"({s0['so_loi']} lỗi)")
 kiem("mỗi vấn đề nói rõ trạm nào, khối nào",
      all(p["tram"] in T.TRAM_KEYS and "step" in p for p in s0["value"]))
+
+san = gt(a.may_mo_san(gt(a.may_boot())["may_san"][1]["key"]))
+s_san = a.may_soat(san)
+kiem("cỗ máy dựng sẵn mở qua cửa API: SẠCH, đủ năm trạm, có tên",
+     s_san["so_loi"] == 0 and s_san["so_canh_bao"] == 0 and san["name"]
+     and all(len(san["tram"][k]["cards"]) >= 1 for k in T.TRAM_KEYS), f"({san['name']})")
+r = a.may_mo_san("khong-he-co")
+kiem("cỗ máy dựng sẵn không có → ok:false, câu gọi tên khoá",
+     r["ok"] is False and "khong-he-co" in r["error"])
 
 mm = gt(a.may_mo_mau())
 smm = a.may_soat(mm)

@@ -439,13 +439,14 @@ function Trinh() {
     } else ghi(r.error ?? 'không tạo được cỗ máy mới', true)
   }, [nap, ghi, ghiLui])
 
-  const coMayMau = useCallback(async () => {
-    const r = await pyMay.may_mo_mau()
+  /** Mở một cỗ máy DỰNG SẴN của chương 1 (bốn ý tưởng khác hẳn nhau). */
+  const coMaySan = useCallback(async (key: string) => {
+    const r = await pyMay.may_mo_san(key)
     if (r.ok && r.value) {
       ghiLui(docRef.current)
       await nap(r.value, TRAM_DAU)
-      ghi('mở cỗ máy mẫu — đủ năm trạm, sạch lỗi')
-    } else ghi(r.error ?? 'không dựng được cỗ máy mẫu', true)
+      ghi(`mở cỗ máy dựng sẵn «${r.value.name}» — đủ năm trạm, sạch lỗi`)
+    } else ghi(r.error ?? 'không dựng được cỗ máy', true)
   }, [nap, ghi, ghiLui])
 
   const moTen = useCallback(async (t: string) => {
@@ -555,7 +556,10 @@ function Trinh() {
   const menuTieuDe: NhomMenu[] = useMemo(() => [
     { ten: 'Cỗ máy', muc: [
       { ten: 'Cỗ máy mới (năm trạm trắng)', icon: 'plus', onClick: () => void coMayMoi() },
-      { ten: 'Cỗ máy mẫu — Theo EMA', icon: 'start', onClick: () => void coMayMau() },
+      { ten: 'Mở cỗ máy dựng sẵn', icon: 'start',
+        con: (boot?.may_san ?? []).map(x => ({
+          ten: x.ten, viSao: x.mo_ta, onClick: () => void coMaySan(x.key),
+        })) },
       { ngan: true },
       { ten: 'Mở cỗ máy đã lưu…', icon: 'folder', onClick: () => setMoMo(true) },
       { ten: 'Mở từ file…', onClick: () => void moFile() },
@@ -600,7 +604,7 @@ function Trinh() {
       { ten: panelGap ? 'Mở bảng dưới' : 'Gập bảng dưới',
         onClick: () => setPanelGap(v => !v) },
     ] },
-  ], [coMayMoi, coMayMau, moFile, luu, luuRaFile, hoanTac, lamLai, xoaChon, dsTram,
+  ], [coMayMoi, coMaySan, moFile, luu, luuRaFile, hoanTac, lamLai, xoaChon, dsTram,
       setMoMau, moQC,
       doiTram, doc, boot, tram, vuaKhung, zoomIn, zoomOut, panelGap, lui.length,
       toi.length, dangChon.length])

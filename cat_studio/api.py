@@ -598,6 +598,9 @@ class Api(NenCuaSo):
                          "mo_ta": m["mo_ta"]} for m in (mau_tram.MAU.get(k) or [])]
                     for k in T.TRAM_KEYS},
             "may_mau": dict(mau_tram.MAY_MAU),
+            # Cỗ máy dựng sẵn của chương 1 — chỉ phần nhãn; dựng là việc của `may_mo_san`.
+            "may_san": [{"key": m["key"], "ten": m["ten"], "mo_ta": m["mo_ta"]}
+                        for m in mau_tram.MAY_SAN],
         })
 
     @_bat_loi
@@ -609,6 +612,12 @@ class Api(NenCuaSo):
     def may_mo_mau(self, chon=None, ma=None):
         """Cỗ máy mẫu — đủ năm trạm, sạch lỗi, chạy được ngay."""
         return _ok(M.kem_the(mau_tram.may_tu_mau(chon=chon, ma=ma)))
+
+    @_bat_loi
+    def may_mo_san(self, key, ma=None):
+        """Một cỗ máy dựng sẵn của chương 1 — bốn ý tưởng khác hẳn nhau, cái nào mở ra
+        cũng SẠCH và chạy được ngay."""
+        return _ok(M.kem_the(mau_tram.may_san(key, ma)))
 
     @_bat_loi
     def may_kem_the(self, doc):

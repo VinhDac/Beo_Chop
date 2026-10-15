@@ -316,3 +316,49 @@ def may_tu_mau(ten="Cỗ máy mẫu", chon=None, ma=None):
     for k, mau_key in dict(MAY_MAU, **(chon or {})).items():
         m = ap_mau(m, k, mau_key, ma)
     return m
+
+
+# ---------------------------------------------------------------------------
+# CỖ MÁY DỰNG SẴN của chương 1  (D-10, phần 6)
+# ---------------------------------------------------------------------------
+#: Bốn cỗ máy, bốn Ý TƯỞNG khác hẳn nhau — không phải bốn biến thể của một cái. Người chơi
+#: mới mở một cái ra là có thứ CHẠY ĐƯỢC để đọc và sửa; người chơi cũ lấy chúng làm điểm so.
+#:
+#: Mỗi cái chỉ là một bộ năm mẫu dựng sẵn, không có khối bí mật nào: mở ra thấy đúng những
+#: khối tự vẽ được. Tên và mô tả nói đúng việc nó làm, không hứa lãi.
+MAY_SAN = (
+    {"key": "theo_ema", "ten": "Theo EMA",
+     "mo_ta": "Bám xu hướng: EMA nhanh cắt lên EMA chậm thì LÊN, cắt xuống thì XUỐNG. "
+              "Chia đều vốn, trailing stop giữ lãi, khớp lệnh ngay.",
+     "chon": dict(MAY_MAU)},
+    {"key": "bat_day_rsi", "ten": "Bắt đáy RSI",
+     "mo_ta": "Ngược xu hướng: RSI dưới 30 thì LÊN, trên 70 thì XUỐNG. Cắt lỗ mỗi mã, "
+              "khớp ngay — hợp với thị trường đi ngang.",
+     "chon": {T.CHON_MA: "moi_ma", T.TIN_HIEU: "rsi", T.CHIA_VON: "chia_deu",
+              T.RUI_RO: "cat_lo", T.KHOP_LENH: "khop_ngay"}},
+    {"key": "manh_nhat", "ten": "Chọn mã mạnh nhất",
+     "mo_ta": "Mỗi đầu tháng giữ lại N mã tăng mạnh nhất, rồi theo động lượng của chúng. "
+              "Chia đều phần vốn cho những mã còn lại, và chia lát khi đặt lệnh — không "
+              "đổ cả lệnh vào một phút.",
+     # ③ cố ý KHÔNG dùng «theo độ tin cậy»: mẫu ② «Động lượng» không đặt độ tin cậy, nên
+     # ghép vào là cỗ máy mẫu mở ra đã có sẵn một cảnh báo — thứ tệ nhất để đưa cho người
+     # chơi mới, vì họ không biết đó là lỗi của mẫu hay của mình.
+     "chon": {T.CHON_MA: "manh_nhat", T.TIN_HIEU: "dong_luong",
+              T.CHIA_VON: "chia_deu", T.RUI_RO: "trailing",
+              T.KHOP_LENH: "chia_lat"}},
+    {"key": "than_trong", "ten": "Thận trọng",
+     "mo_ta": "Chỉ nhìn mã thanh khoản nhất, chỉ vào khi giá trên SMA 200, mã càng giật "
+              "càng ít vốn, và có cầu dao cho cả tài khoản.",
+     "chon": {T.CHON_MA: "thanh_khoan", T.TIN_HIEU: "gia_tren_ma",
+              T.CHIA_VON: "rui_ro_ngang", T.RUI_RO: "cau_dao",
+              T.KHOP_LENH: "khop_ngay"}},
+)
+MAY_SAN_THEO_KEY = {m["key"]: m for m in MAY_SAN}
+
+
+def may_san(key, ma=None):
+    """Một cỗ máy dựng sẵn của chương 1, dựng từ chính các mẫu của từng trạm."""
+    d = MAY_SAN_THEO_KEY.get(key)
+    if d is None:
+        raise KeyError(f"Không có cỗ máy dựng sẵn «{key}».")
+    return may_tu_mau(d["ten"], d["chon"], ma)

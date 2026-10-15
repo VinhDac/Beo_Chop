@@ -110,6 +110,8 @@ export interface BootMay {
   cach_tuong_doi: string[]
   mau: Record<TramKey, MauKhai[]>
   may_mau: Record<TramKey, string>
+  /** Cỗ máy dựng sẵn của chương 1 — mở ra là chạy được ngay. */
+  may_san: { key: string; ten: string; mo_ta: string }[]
 }
 
 /** Một khối — hộp đen với JS, y như `Step` của sơ đồ cũ. */
