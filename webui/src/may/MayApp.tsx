@@ -13,6 +13,7 @@ import DaiTram from './DaiTram'
 import GomDialog from './GomDialog'
 import KhoiDialog from './KhoiDialog'
 import KhoiNode from './KhoiNode'
+import MauPicker from './MauPicker'
 import ThamSoMayDialog from './ThamSoMayDialog'
 import MayPicker from './MayPicker'
 import MayRibbon from './MayRibbon'
@@ -74,6 +75,8 @@ function Trinh() {
   /** Bảng Gom của trạm và bảng tham số của cỗ máy — lát 5d. */
   const [moGom, setMoGom] = useState(false)
   const [moThamSo, setMoThamSo] = useState(false)
+  /** Hộp lắp mẫu dựng sẵn cho trạm đang mở — lát 5e. */
+  const [moMau, setMoMau] = useState(false)
   const [lui, setLui] = useState<string[]>([])
   const [toi, setToi] = useState<string[]>([])
 
@@ -234,6 +237,21 @@ function Trinh() {
     ghi(`thêm khối ${r.value.card.title} vào ${nhan(k)}`)
     setDangSua(st.id)
   }, [doi, ghi, nhan])
+
+  /** Lắp một mẫu dựng sẵn vào trạm đang mở. Việc ghép do Python làm (`may_ap_mau`):
+   *  nó thay sơ đồ của trạm, thêm tham số của mẫu và GIỮ giá trị tên nào đã có. */
+  const lapMau = useCallback(async (mauKey: string) => {
+    const m = docRef.current
+    if (!m) return
+    const k = tramRef.current
+    const goc = tuCanvas(m, k, nodes, edges)
+    ghiLui(goc)
+    const r = await pyMay.may_ap_mau(goc, k, mauKey)
+    if (!r.ok || !r.value) return ghi(r.error ?? 'không lắp được mẫu', true)
+    await nap(r.value, k)
+    const ten = (boot?.mau[k] ?? []).find(x => x.key === mauKey)?.ten ?? mauKey
+    ghi(`lắp mẫu «${ten}» vào ${nhan(k)}`)
+  }, [nodes, edges, tuCanvas, ghiLui, nap, ghi, nhan, boot])
 
   /** Ghi bảng Gom của trạm đang mở. */
   const ghiGom = useCallback(async (gom: Record<string, unknown>) => {
@@ -467,6 +485,8 @@ function Trinh() {
       { ngan: true },
       { ten: 'Tham số của cỗ máy…', icon: 'edit', tat: !doc, viSao: 'chưa có cỗ máy',
         onClick: () => setMoThamSo(true) },
+      { ten: 'Lắp mẫu vào trạm đang mở…', icon: 'paste', tat: !doc,
+        viSao: 'chưa có cỗ máy', onClick: () => setMoMau(true) },
       { ten: 'Gom của trạm đang mở…', tat: !(boot?.gom[tram]?.length),
         viSao: 'trạm này không có Gom (chỉ ① và ③ có)',
         onClick: () => setMoGom(true) },
@@ -498,6 +518,7 @@ function Trinh() {
         onClick: () => setPanelGap(v => !v) },
     ] },
   ], [coMayMoi, coMayMau, moFile, luu, luuRaFile, hoanTac, lamLai, xoaChon, dsTram,
+      setMoMau,
       doiTram, doc, boot, tram, vuaKhung, zoomIn, zoomOut, panelGap, lui.length,
       toi.length, dangChon.length])
 
@@ -514,6 +535,7 @@ function Trinh() {
         sua={() => dangChon[0] && setDangSua(dangChon[0].id)}
         chinhGom={() => setMoGom(true)}
         thamSo={() => setMoThamSo(true)}
+        lapMau={() => setMoMau(true)}
         coGom={!!(boot && (boot.gom[tram]?.length ?? 0) > 0)}
         xoa={() => void xoaChon()}
         doiGhim={() => void doiGhim()}
@@ -560,8 +582,9 @@ function Trinh() {
           <div className="trong-rong duoi">
             <div className="to">{tramMoTa ? `${tramMoTa.so} ${tramMoTa.ten}` : 'Trạm'} còn trắng</div>
             <div>
-              Bấm <b>Hỏi</b> ở thanh trên để thêm một nhánh điều kiện, rồi kéo từ cổng
-              bên cạnh hộp <b>Bắt đầu</b> để nối.
+              Bấm <b>Lắp mẫu</b> để lấy một mô hình có sẵn của QuantConnect, hoặc tự vẽ:
+              thêm <b>Hỏi</b> / <b>Làm…</b> ở thanh trên rồi kéo từ cổng bên cạnh hộp
+              <b>Bắt đầu</b> để nối.
               <br />Nhiều cổng cùng nối từ một khối = <b>rẽ nhánh</b>, thử lần lượt từ
               trên xuống.
             </div>
@@ -684,6 +707,11 @@ function Trinh() {
                       onDong={() => setDangSua(null)} />
         )
       })()}
+
+      {moMau && boot && (
+        <MauPicker tram={tram} boot={boot} onChon={k => void lapMau(k)}
+                   onDong={() => setMoMau(false)} />
+      )}
 
       {moGom && boot && doc && (
         <GomDialog doc={doc} tram={tram} boot={boot}

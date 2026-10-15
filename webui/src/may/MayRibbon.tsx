@@ -35,7 +35,8 @@ function Nut({ ten, icon, onClick, tat, title }: {
 
 export default function MayRibbon({
   tramMoTa, ten, datTen, themHoi, themLam, sua, xoa, doiGhim, chinhGom, thamSo,
-  hoanTac, lamLai, vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai, coGom, dang,
+  lapMau, hoanTac, lamLai, vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai,
+  coGom, dang,
 }: {
   /** Trạm đang mở — nhãn nhóm "Thêm khối" gọi đúng tên trạm. */
   tramMoTa?: TramMoTa
@@ -48,6 +49,7 @@ export default function MayRibbon({
   doiGhim: () => void
   chinhGom: () => void
   thamSo: () => void
+  lapMau: () => void
   hoanTac: () => void
   lamLai: () => void
   vuaKhung: () => void
@@ -100,6 +102,15 @@ export default function MayRibbon({
              title="Ghim số ⟲ — cho phép nối ngược về khối này mà số thứ tự vẫn giữ" />
         <Nut ten="Xoá" icon={<Icon name="trash" size={18} />} onClick={xoa} tat={!coChon}
              title="Xoá khối đang chọn (Delete)" />
+      </Nhom>
+
+      <Nhom ten="Mẫu dựng sẵn">
+        <Nut ten="Lắp mẫu" icon={<Icon name="paste" size={18} />} onClick={lapMau}
+             tat={!dang}
+             title={tramMoTa
+               ? `Lắp một mẫu của QuantConnect vào ${tramMoTa.so} ${tramMoTa.ten} — thay `
+                 + 'cả sơ đồ của trạm này, giữ núm đã vặn'
+               : 'Lắp một mẫu dựng sẵn vào trạm đang mở'} />
       </Nhom>
 
       <Nhom ten="Sửa">
