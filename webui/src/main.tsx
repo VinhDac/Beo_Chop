@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client'
 import '@xyflow/react/dist/style.css'
 import './theme.css'
 import './app.css'
-import App from './App'
+import MayApp from './may/MayApp'
 import ManChoi from './qc/ManChoi'
 
 /** Rẽ trang bằng `?qc=1` — KHÔNG thêm entry thứ hai cho Vite.
@@ -15,8 +15,11 @@ import ManChoi from './qc/ManChoi'
  * toàn cục, dùng chung được `TitleBar` / `Modal` / `Icon` mà không phải tách gì. */
 const laQC = new URLSearchParams(location.search).get('qc') === '1'
 
+/* Cửa sổ vẽ là TRÌNH VẼ CỖ MÁY 5 TRẠM (D-10, phần 5). Sơ đồ cũ Entry/Manage (`App.tsx`)
+   không còn lối vào nào: lối chạy duy nhất của app là cỗ máy 5 trạm trên QuantConnect,
+   và phần 7 xoá hẳn phần mã của nó. */
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {laQC ? <ManChoi /> : <App />}
+    {laQC ? <ManChoi /> : <MayApp />}
   </React.StrictMode>,
 )

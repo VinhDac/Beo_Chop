@@ -8,6 +8,9 @@ import type {
   BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
   TrangThaiQC, TuDoQC,
 } from './types'
+import type {
+  BootMay, KetQuaSoatMay, KhoiVaThe, MayDoc, TramKey,
+} from './may/mayTypes'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -145,4 +148,49 @@ export const pyQC = {
   qc_lich_su: () => goi<MucLichSuQC[]>('qc_lich_su'),
   qc_mo_lai: (duong: string) => goi<KetQuaQC>('qc_mo_lai', duong),
   qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
+}
+
+/** Bề mặt của TRÌNH VẼ 5 TRẠM (các cửa `may_*` của `api.Api`).  (D-10, phần 5)
+ *
+ * Tách hẳn khỏi `py` dù cùng một lớp Python: hai dạng tài liệu khác hẳn nhau, và gộp
+ * chúng vào một vỏ là đường ngắn nhất tới chỗ gọi `validate` (sơ đồ cũ) cho một cỗ máy
+ * rồi nhận về "không có vấn đề nào" trong khi cỗ máy đầy lỗi.
+ *
+ * Mọi hàm ở đây trả về thứ Python đã chuẩn hoá — kể cả chữ trên khối. Giao diện không
+ * tự ghép một mẩu nào.
+ */
+export const pyMay = {
+  /** Từ điển 5 trạm — gọi MỘT lần lúc mở trình vẽ. */
+  may_boot: () => goi<BootMay>('may_boot'),
+
+  // --- tài liệu ---
+  may_moi: (ten?: string) => goi<MayDoc>('may_moi', ten ?? null),
+  /** Cỗ máy mẫu đủ năm trạm, sạch lỗi, chạy được ngay. */
+  may_mo_mau: (chon?: Partial<Record<TramKey, string>>, ma?: string[]) =>
+    goi<MayDoc>('may_mo_mau', chon ?? null, ma ?? null),
+  /** Chuẩn hoá + đánh số + chữ trên khối. Gọi sau MỌI thay đổi cấu trúc. */
+  may_kem_the: (doc: MayDoc) => goi<MayDoc>('may_kem_the', doc),
+  /** Nguồn của chấm đỏ trên dải 5 trạm và của bảng Vấn đề. */
+  may_soat: (doc: MayDoc) => goi<never>('may_soat', doc) as Promise<KetQuaSoatMay>,
+
+  // --- khối ---
+  may_khoi_moi: (tram: TramKey, kind: 'start' | 'action', loai?: string | null,
+                 thamSo?: ThamSo[]) =>
+    goi<KhoiVaThe>('may_khoi_moi', tram, kind, loai ?? null, thamSo ?? []),
+  /** Chuẩn hoá + soát MỘT khối. Hộp thoại không tự soát gì. */
+  may_luu_khoi: (tram: TramKey, draft: Record<string, unknown>, thamSo?: ThamSo[]) =>
+    goi<KhoiVaThe>('may_luu_khoi', tram, draft, thamSo ?? []),
+
+  // --- mẫu dựng sẵn ---
+  may_ap_mau: (doc: MayDoc, tram: TramKey, mauKey: string, ma?: string[]) =>
+    goi<MayDoc>('may_ap_mau', doc, tram, mauKey, ma ?? null),
+
+  // --- kho cỗ máy trên đĩa ---
+  may_ds: () => goi<string[]>('may_ds'),
+  may_luu: (doc: MayDoc) =>
+    goi<{ path: string; name: string; van_tay: string }>('may_luu', doc),
+  may_mo: (ten: string) => goi<MayDoc>('may_mo', ten),
+  may_xoa: (ten: string) => goi<boolean>('may_xoa', ten),
+  may_mo_file: () => goi<MayDoc>('may_mo_file'),
+  may_luu_file: (doc: MayDoc) => goi<{ path: string }>('may_luu_file', doc),
 }

@@ -31,6 +31,7 @@ BAI = [
     ("test_zone.py", "Cổng ZONE định nghĩa zone · MỐC NEO của khối Vào lệnh"),
     ("test_dat_ten.py", "Số gõ tay hai chỗ → cảnh báo + nút đặt tên"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
+    ("test_trinh_ve.py", "Trình vẽ 5 trạm — canvas của một trạm: số thứ tự, vị trí, chấm đỏ từng trạm"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
     ("test_lean_do_nhip.py", "Đo nhịp LEAN — một lượt một dòng, không ngắt sớm, JSON sạch"),
     ("test_cat_lean.py", "Cầu nối QC — trùng khít bộ cũ, gói dán được, chạy được khi KHÔNG có repo"),
