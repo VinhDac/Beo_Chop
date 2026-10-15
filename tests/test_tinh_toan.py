@@ -1,7 +1,8 @@
-"""Chỉ báo — phải khớp MT5, không phải khớp sách giáo khoa.
+"""Chỉ báo — phải khớp công thức D_02 đã dò, không phải khớp sách giáo khoa.
 
-Con số của D_02 (ngưỡng 7,0 bps · MA 50 · ATR 14) được dò ra trên `iATR`/`iMA` của MT5.
-Cài "đúng theo sách" mà lệch MT5 thì mọi tham số đã tinh chỉnh đều mất nghĩa, và lệch
+Con số của D_02 (ngưỡng 7,0 bps · MA 50 · ATR 14) được dò ra trên ATR kiểu SMA-của-TR và
+MA mồi bằng SMA. Cài "đúng theo sách" mà lệch công thức đó thì mọi tham số đã tinh chỉnh
+đều mất nghĩa, và lệch
 kiểu đó KHÔNG báo lỗi — chỉ ra một đường vốn khác.
 
 Bốn thứ bài này canh:
@@ -24,7 +25,6 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import nguon_nen as nn  # noqa: E402
 from cat_studio import tinh_toan as tt  # noqa: E402
 
 dung = sai = 0
@@ -45,7 +45,7 @@ def gan(a, b, sai_so=1e-9):
 
 
 def nen(ts, o, h, l, c, vol=None):
-    a = np.empty(len(ts), dtype=nn.DTYPE)
+    a = np.empty(len(ts), dtype=tt.DTYPE)
     a["t"], a["o"], a["h"], a["l"], a["c"] = ts, o, h, l, c
     a["vol"] = 1 if vol is None else vol
     return a
@@ -70,7 +70,7 @@ kiem("TR ôm cả GAP: max(High, Close trước) − min(Low, Close trước)",
      f"— {[round(float(x), 3) for x in tr[1:]]}")
 
 # ================= 2. ATR =================
-print("\n▸ ATR — SMA của True Range, đúng iATR của MT5")
+print("\n▸ ATR — SMA của True Range, đúng công thức D_02")
 n = 60
 rng = np.random.default_rng(7)
 hh = 100 + np.cumsum(rng.normal(0, 0.5, n))
@@ -78,7 +78,7 @@ ll = hh - np.abs(rng.normal(0, 0.4, n)) - 0.1
 cc = (hh + ll) / 2
 a = tt.atr(hh, ll, cc, 14)
 
-kiem("14 giá trị đầu là NaN — giá trị THẬT đầu tiên nằm ở chỉ số 14 (ATR.mq5:83)",
+kiem("14 giá trị đầu là NaN — giá trị THẬT đầu tiên nằm ở chỉ số 14",
      bool(np.all(np.isnan(a[:14]))) and np.isfinite(a[14]))
 tr = tt.true_range(hh, ll, cc)
 kiem("ATR[14] = trung bình cộng TR[1..14]", gan(a[14], np.mean(tr[1:15]), 1e-12))
@@ -105,7 +105,7 @@ for k in ("SMA", "EMA", "SMMA", "LWMA"):
     m = tt.ma(x, 5, k)
     kiem(f"{k}: 4 giá trị đầu NaN, giá trị đầu tiên ở chỉ số 4",
          bool(np.all(np.isnan(m[:4]))) and np.isfinite(m[4]))
-# EMA/SMMA là đệ quy nên PHẢI có mồi; MT5 mồi bằng SMA chứ không bằng phần tử đầu.
+# EMA/SMMA là đệ quy nên PHẢI có mồi; mồi bằng SMA chứ không bằng phần tử đầu.
 # LWMA không đệ quy — giá trị đầu của nó vốn đã là trung bình CÓ TRỌNG SỐ (55/15).
 kiem("EMA và SMMA mồi bằng SMA(5) = 3.0, không phải bằng phần tử đầu",
      all(gan(tt.ma(x, 5, k)[4], 3.0) for k in ("SMA", "EMA", "SMMA")))
@@ -147,7 +147,7 @@ kiem("ô thiếu phút đầu vẫn mang MỐC CỦA Ô, không mang mốc nến
 kiem("cuối tuần KHÔNG đẻ ra nến rỗng — ô không có nến M1 nào thì không tồn tại",
      len(m5t) == 2)
 # Đã đo trên dữ liệu thật: tải M1 tới đúng 2025-12-02 00:00 thì ô M5 00:00–00:04 chỉ có
-# 1/5 phút, và nến gộp lệch hẳn nến M5 của MT5 (close 4225.331 vs 4225.692). Giữ nó lại
+# 1/5 phút, và nến gộp lệch hẳn nến M5 do sàn dựng (close 4225.331 vs 4225.692). Giữ nó lại
 # là bộ chạy đọc một cây nến CHƯA ĐÓNG như thể đã đóng.
 do_dang = nen(np.arange(0, 7 * 60, 60), *[np.zeros(7)] * 4)   # 7 phút = ô 2 mới có 2/5
 kiem("ô CUỐI dở dang thì BỎ — không đọc nến chưa đóng",
@@ -161,7 +161,7 @@ kiem("ô GIỮA thiếu vài phút vẫn giữ — nó đã đóng thật, sàn 
 kiem("chart muốn thấy cây nến đang chạy thì xin `giu_nen_do_dang=True`",
      len(tt.gop(do_dang, "M5", giu_nen_do_dang=True)) == 2)
 kiem("gộp lên M1 là phép đồng nhất", tt.gop(m1, "M1") is m1)
-kiem("mảng rỗng không nổ", len(tt.gop(np.empty(0, dtype=nn.DTYPE), "M15")) == 0)
+kiem("mảng rỗng không nổ", len(tt.gop(np.empty(0, dtype=tt.DTYPE), "M15")) == 0)
 
 # ================= 6. Không nhìn trước tương lai =================
 print("\n▸ Khung lớn KHÔNG được nhìn trước tương lai")

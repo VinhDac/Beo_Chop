@@ -714,8 +714,10 @@ select.o { cursor: pointer; }
   padding: 0 10px 4px 16px;
   border-left: 1px solid var(--border-soft);
   /* Chốt bề rộng cụm: để nội dung tự quyết thì ô tên và hàng dưới ra hai bề rộng
-     khác nhau -> mép phải lởm chởm. Chốt lại rồi cho cả hai kéo hết bề rộng đó. */
-  width: 232px;
+     khác nhau -> mép phải lởm chởm. Chốt lại rồi cho cả hai kéo hết bề rộng đó.
+     330 chứ không 232: hàng dưới có thêm nút ◆ Màn chơi — hẹp hơn là nó rớt dòng và
+     đẩy ▶ Test ra khỏi mép phải (đã thấy trên ảnh chụp). */
+  width: 330px;
 }
 /* Chờ dạt trái, Chạy dạt phải -> hai mép thẳng hàng với ô tên phía trên. */
 .hang-chay { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -1213,24 +1215,6 @@ select.o { cursor: pointer; }
 .bang-tham-so tr.khong-dung .o.mono { opacity: .55; }
 .bang-tham-so .o.loi { border-color: var(--err); }
 
-/* ---------------------------------------------------------------- Tester ---
-   Ba vùng — chart · bảng phải · nhật ký dưới — đều đọc CÙNG MỘT con trỏ. */
-.tester-trong {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 6px;
-  background: var(--canvas-bg);
-  text-align: center;
-}
-.tester-ten { font-size: 17px; font-weight: 600; color: var(--text); }
-.tester-phu { font-size: 12px; color: var(--muted); }
-.tester-ghi { font-size: 12px; color: var(--dim); margin-top: 10px; }
-.tester-mo  { font-size: 12px; color: var(--dim); }
-.tester-loi { font-size: 12px; color: var(--err); max-width: 520px; }
-
-
 /* ---- thanh công cụ ---- */
 .tb {
   display: flex; align-items: center; gap: 3px;
@@ -1248,219 +1232,15 @@ select.o { cursor: pointer; }
 .tb-nut.rong { width: 34px; font-size: 12px; color: var(--accent); }
 .tb-ngan { width: 1px; height: 18px; background: var(--border); margin: 0 5px; }
 .tb-day { flex: 1; }
-.tb-o { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
-.tb-o input { width: 46px; }
-.tb-gio { font: 11px var(--mono); color: var(--muted); margin-right: 6px; }
-/* Ô nhảy tới mốc. (`color-scheme: dark` từng phải khai riêng ở đây cho biểu tượng lịch
-   và bảng chọn ngày khỏi bị vẽ theo giao diện SÁNG — nay đã khai ở `:root` cho cả app.) */
-.tb-moc {
-  /* Rộng 182px chứ không phải 152: Chromium theo định dạng vùng của MÁY, mà en-US là
-     `MM/DD/YYYY hh:mm AM/PM` — hẹp hơn là "PM" bị chính cái biểu tượng lịch đè lên. */
-  font: 11px var(--mono); padding: 3px 6px; width: 182px;
-}
-.tb-moc::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; }
-.tb-moc::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
-/* Thay chỗ nút "Tải thêm" cũ — nói ra cho biết thiếu nến thì ai lo, khỏi tìm nút. */
-.cd-tu-tai { font-size: 11.5px; color: var(--dim); font-style: italic; }
-
-/* Kết quả "Kiểm tra kết nối MT5" — nằm ngay dưới hàng Symbol/Từ/Đến, đúng chỗ người ta
-   vừa bấm, không đẩy xuống cuối hộp thoại. */
-.cd-ket-noi {
-  margin: 6px 0 10px; padding: 7px 10px; font-size: 12px;
-  border-left: 2px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.cd-ket-noi.duoc { border-left-color: var(--ok); }
-.cd-ket-noi.hong { border-left-color: var(--warn); }
-.cd-ket-noi .phu { color: var(--dim); font-size: 11.5px; margin-top: 3px; }
-.cd-goi-y {
-  background: var(--chrome); border: 1px solid var(--border); color: var(--accent);
-  border-radius: var(--radius-sm); font: 11px var(--mono);
-  padding: 1px 6px; margin: 0 3px 3px 0; cursor: pointer;
-}
-.cd-goi-y:hover { border-color: var(--accent); }
-
-/* ---- cài đặt chạy ---- */
-.cd-test {
-  padding: 8px 10px; background: var(--surface);
-  border-bottom: 1px solid var(--border); flex: 0 0 auto;
-}
-.cd-hang { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
-.cd-hang label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
-.cd-hang input { width: 92px; }
-.cd-nguon { font-size: 11px; color: var(--muted); }
-.cd-dong { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-.cd-goi-y { color: var(--accent); }
 /* ⚠ Khai ĐÚNG MỘT lần. Trước đây có hai luật `.nut.nho` cách nhau 200 dòng với padding
    khác nhau (3px 7px ở mục "linh tinh" và 1px 8px ở đây) — cùng độ ưu tiên nên luật SAU
    luôn thắng, tức sửa luật trên là vô hiệu mà không có một dấu hiệu nào. Giữ lại đúng
    giá trị vẫn đang hiển thị. */
 .nut.nho { padding: 1px 8px; font-size: 11px; }
 
-/* ---- dải tóm tắt ---- */
-.tt-tom {
-  padding: 5px 10px; font-size: 12px; color: var(--muted);
-  background: var(--surface); border-bottom: 1px solid var(--border); flex: 0 0 auto;
-}
-.tt-tom b { color: var(--text); }
-.tt-loi {
-  padding: 6px 10px; font-size: 12px; color: var(--err);
-  background: var(--surface); border-bottom: 1px solid var(--border); flex: 0 0 auto;
-}
-.tt-moho { margin-left: 10px; color: var(--ok); }
-.tt-moho.xau { color: var(--warn); }
-.tt-so { margin-left: 10px; color: var(--accent); }
 .lai { color: var(--ok); } .lo { color: var(--err); }
 .mua { color: var(--ok); } .ban { color: var(--err); }
-
-/* ---- giữa: chart + bảng ---- */
-.tt-giua { flex: 1; display: flex; min-height: 0; }
-.chart-boc { flex: 1; position: relative; min-width: 0; background: var(--canvas-bg); }
-.chart-goi-y {
-  position: absolute; pointer-events: none; z-index: 5;
-  background: var(--raised); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 5px 8px;
-  font: 11px var(--font); color: var(--text); box-shadow: var(--shadow);
-  max-width: 340px;
-}
-
-/* ---- đường ray: lệnh này đi qua những khối nào ---- */
-.ray {
-  margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border-soft);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.ray-d { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-/* Chặng của THỊ TRƯỜNG: thụt vào, in nghiêng, không có tên tab — khác hẳn về hình
-   với chặng của sơ đồ, để không phải đọc mới biết ai là người quyết. */
-.ray-d.cho { padding-left: 46px; color: var(--muted); font-style: italic; }
-.ray-tab {
-  flex: none; width: 42px; color: var(--dim); font-size: 10px; text-transform: lowercase;
-}
-.ray-khoi { color: var(--text); font-family: var(--mono); }
-.ray-dem { color: var(--dim); }
-.ray-viec { color: var(--accent); }
-
-/* ---- lịch sử các lần chạy (nút cạnh logo) ---- */
-.ls { position: relative; }
-.ls-nut-mo {
-  background: none; border: 1px solid transparent; border-radius: var(--radius-sm);
-  color: var(--muted); font: 12px var(--font); cursor: pointer; padding: 3px 9px;
-}
-.ls-nut-mo:hover { background: var(--raised-hover); color: var(--text); }
-.ls-nut-mo.dang { background: var(--raised); color: var(--text); border-color: var(--border); }
-/* Đang xem một mục cũ → nút đổi màu, để cái dải cảnh báo dưới kia không phải là chỗ DUY
-   NHẤT nói ra chuyện đó. */
-.ls-nut-mo.khac { color: var(--accent); }
-
-.ls-bang {
-  position: absolute; top: 100%; left: 0; z-index: 60; margin-top: 3px;
-  width: 460px; max-height: 60vh; overflow-y: auto;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: 0 10px 28px rgba(0, 0, 0, .5);
-  padding: 4px 0;
-}
-.ls-rong { padding: 14px; color: var(--dim); font-size: 12px; font-style: italic; }
-.ls-muc {
-  display: flex; align-items: baseline; gap: 8px; padding: 7px 12px 4px;
-  font-size: 10.5px; font-weight: 600; color: var(--accent);
-  text-transform: uppercase; letter-spacing: .06em;
-}
-.ls-muc span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--dim); }
-
-.ls-hang { position: relative; padding: 6px 12px; cursor: pointer; }
-.ls-hang:hover { background: var(--raised-hover); }
-.ls-hang.dang { background: var(--raised); box-shadow: inset 2px 0 0 var(--accent); }
-.ls-dau { display: flex; align-items: baseline; gap: 8px; }
-.ls-ten { font-size: 12.5px; color: var(--text); }
-.ls-gio { font: 10.5px var(--mono); color: var(--dim); }
-.ls-dau, .ls-so, .ls-phu {
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ls-so { font: 11.5px var(--mono); color: var(--muted); margin-top: 2px; }
-.ls-so b { font-weight: 600; }
-.ls-phu { font: 10.5px var(--mono); color: var(--dim); margin-top: 1px; }
-/* Cụm nút chỉ hiện khi rê vào: ba nút trên mỗi dòng lúc nào cũng hiện thì danh sách
-   thành một bảng điều khiển, mà thứ cần đọc là con số. */
-.ls-nut {
-  position: absolute; top: 6px; right: 8px; display: none; gap: 2px;
-}
-.ls-hang:hover .ls-nut { display: flex; }
-.ls-nut button {
-  width: 24px; height: 22px; display: grid; place-items: center;
-  background: var(--chrome); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--muted); cursor: pointer; font-size: 11px;
-}
-.ls-nut button:hover { color: var(--accent); border-color: var(--accent); }
-.ls-sua { display: flex; gap: 5px; margin-top: 6px; }
-.ls-sua .o { flex: 1; font-size: 12px; padding: 3px 7px; }
-
-/* ---- bảng số liệu ----
-   Cỡ chữ 12px: 11px thì mỏi mắt, 13px thì chiếm chỗ mà chẳng rõ thêm. Đây là bảng người
-   dùng NHÌN SUỐT lúc phát để đánh giá chiến lược, không phải chú thích cuối trang. */
-.bang-so-lieu {
-  width: 360px; flex: 0 0 auto; overflow-y: auto;
-  background: var(--surface); border-left: 1px solid var(--border);
-  font-size: 12px;
-}
-.bang-trong { width: 360px; display: grid; place-items: center; color: var(--dim); font-size: 12px; }
-
-/* BA CỘT. Cột giữa (`phu`) chính là chỗ trước đây bỏ không: nhãn trái, số phải, giữa là
-   một khe rỗng dài. Đẩy `M15·50·SMA` vào đó thì vừa hết phí chỗ, vừa làm cột tên ngắn
-   lại nên tên thôi bị cắt cụt. */
-.bang-toan-hang { width: 100%; border-collapse: collapse; padding: 0; }
-.bang-toan-hang td {
-  padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.bang-toan-hang td.ten { color: var(--muted); max-width: 178px; padding-left: 11px; }
-.bang-toan-hang td.phu {
-  color: var(--dim); font-size: 10.5px; font-family: var(--mono);
-  padding: 0 6px; max-width: 84px;
-}
-/* `tabular-nums`: lúc phát, chữ số đổi liên tục — không có nó thì cả cột giật ngang
-   theo từng con số, mắt không quét dọc nổi. */
-.bang-toan-hang td.gt {
-  text-align: right; font-family: var(--mono); color: var(--text);
-  font-variant-numeric: tabular-nums; padding-right: 11px; width: 1%;
-}
-/* Đổi nhóm = một đường mảnh, KHÔNG một dòng chữ. Tên nhóm (`VÙNG NÉN`…) là khái niệm
-   riêng của từng chiến lược nên in ra là sớm muộn cũng sai; đường kẻ thì chiến lược nào
-   cũng đúng, mà lại không tốn dòng nào. */
-.bang-toan-hang tr.sang-nhom td { border-top: 1px solid var(--border-soft); }
-.bang-toan-hang tr:first-child td { padding-top: 9px; }
-
-.bang-lenh-khoi { border-top: 1px solid var(--border); padding: 8px 11px 10px; margin-top: 4px; }
-.bang-ten {
-  font-size: 10.5px; font-weight: 600; color: var(--accent); margin-bottom: 6px;
-  text-transform: uppercase; letter-spacing: .06em;
-}
-.bang-ten .dem { color: var(--dim); font-weight: 400; margin-left: 2px; }
-.bang-rong { font-size: 12px; color: var(--dim); font-style: italic; }
-
-/* MỖI LỆNH HAI DÒNG. Một dòng 5 cột thì ba mức giá bị cắt thành `2643.0…` — đọc ra một
-   con số vô nghĩa, mà đây đúng là thứ người dùng cần đọc. Dòng trên: tình trạng. Dòng
-   dưới: ba mức giá đủ số. */
-.the-lenh { padding: 4px 0; }
-.the-lenh + .the-lenh { border-top: 1px dashed var(--border-soft); }
-.the-lenh.cho { opacity: .74; }
-.the-lenh .d1 { display: flex; align-items: baseline; gap: 6px; }
-.the-lenh .ma { font-family: var(--mono); color: var(--text); }
-.the-lenh .tt { color: var(--dim); font-size: 11px; }
-.the-lenh .r {
-  margin-left: auto; font-family: var(--mono); font-variant-numeric: tabular-nums;
-}
-.the-lenh .d2 {
-  display: flex; gap: 10px; margin-top: 3px; padding-left: 15px;
-  font-family: var(--mono); font-size: 11.5px; color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.the-lenh .d2 i { color: var(--dim); font-style: normal; margin-right: 4px; }
-/* Nhãn "hoà vốn" là một CHẤM cạnh SL — nó nói về SL, không nói về cái id. Một chữ nữa
-   trên hàng là vỡ bố cục, mà thông tin thì rê chuột vẫn đọc được. */
-.the-lenh .cham {
-  display: inline-block; width: 5px; height: 5px; margin-left: 4px;
-  border-radius: 50%; background: var(--accent); vertical-align: middle;
-}
 
 /* ---- nhật ký ----
    Chiều cao do React đặt (kéo được bằng `.thanh-keo`, y như bảng dưới của cửa sổ chính)
@@ -1478,11 +1258,11 @@ select.o { cursor: pointer; }
 }
 .nk-loc input { accent-color: var(--accent); cursor: pointer; }
 .nk-cuon { flex: 1; overflow-y: auto; }
-/* 12px — bằng bảng số liệu. 11px thì đọc mỏi, mà đây là thứ người dùng đọc lâu nhất. */
+/* 12px. 11px thì đọc mỏi, mà đây là thứ người dùng đọc lâu nhất. */
 .nk-dong {
   display: flex; align-items: baseline; gap: 8px;
-  /* `default` chứ KHÔNG phải `pointer`: bấm trái ở đây không làm gì nữa (nhảy con trỏ
-     phải qua chuột phải), mà bàn tay chỉ mời gọi bấm là lại đúng cái nhầm cần tránh. */
+  /* `default` chứ KHÔNG phải `pointer`: bấm trái ở đây không làm gì (soi lên sơ đồ phải
+     qua chuột phải), mà bàn tay chỉ mời gọi bấm là lại đúng cái nhầm cần tránh. */
   padding: 0 10px; font: 12px/20px var(--mono); color: var(--dim); cursor: default;
 }
 .nk-dong .chu {
@@ -1497,69 +1277,26 @@ select.o { cursor: pointer; }
 }
 .nk-dong:hover { background: var(--raised-hover); }
 .nk-dong.co-viec { color: var(--text); }
-/* Dòng của NẾN ĐANG ĐỨNG — trắng sáng. Mốc là con trỏ chứ không phải "dòng vừa thêm":
-   tua ngược thì "dòng mới nhất" chỉ sai chỗ, còn mốc con trỏ thì lúc nào cũng đúng. */
-.nk-dong.bay-gio {
-  color: #fff; background: var(--raised);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-.nk-dong.bay-gio .lap { background: var(--raised-hover); color: var(--muted); }
+
 /* Dòng đang mở menu chuột phải. Cần thấy rõ mình sắp tác động lên dòng NÀO — cả bảng
-   là những dòng cao 20px giống hệt nhau, đọc nhầm một dòng là nhảy sai chỗ. */
+   là những dòng cao 20px giống hệt nhau, đọc nhầm một dòng là soi nhầm lượt. */
 .nk-dong.dang-menu {
   background: var(--raised-hover); color: var(--text);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-
-/* ---- Cài đặt → Strategy Test ---- */
-.cd-muc {
-  margin: 14px 0 6px; padding-top: 10px; font-size: 12px; font-weight: 600;
-  color: var(--accent); border-top: 1px solid var(--border);
-}
-.cd-nguon-bang {
-  background: var(--field); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 6px 8px; margin-bottom: 8px;
-}
-.cd-nguon-dau { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
 .cd-rong { font-size: 11px; color: var(--dim); font-style: italic; }
 .chu-dan.canh { color: var(--warn); }
-
-
-/* ---- thanh tiến trình lúc chạy backtest ----
-   Ba giây im lặng không phân biệt được với treo, nên phải THẤY nó chạy tới đâu. */
-.tt-nap {
-  padding: 8px 12px; background: var(--surface);
-  border-bottom: 1px solid var(--border); flex: 0 0 auto;
-}
-.tt-nap-chu { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-.tt-nap-thanh {
-  height: 4px; border-radius: 2px; background: var(--field); overflow: hidden;
-}
-.tt-nap-thanh > div {
-  height: 100%; background: var(--accent); transition: width .18s linear;
-}
 
 /* Dòng CÓ VIỆC — đặt/sửa/đóng lệnh. Nền cam nhạt vì đây là LOẠI dòng khác hẳn, không
    phải "dòng mới hơn"; nó phải nhận ra được kể cả khi cuộn nhanh. */
 .nk-dong.co-viec { background: rgba(255, 166, 87, .10); }
-.nk-dong.co-viec.bay-gio { background: rgba(255, 166, 87, .22); }
 
 /* ---- bảng dưới → tab Thống kê ----
    Xếp DỌC và cho cuộn: bảng dưới kéo cao được tới 600px, mà hai đồ thị thì cần chiều
    cao thật chứ không phải một dải mỏng. */
 .tk { flex: 1; overflow-y: auto; padding: 10px 12px 14px; }
-/* Đang xem một lần chạy CŨ — dải này bắt buộc, nếu không người dùng nhìn số cũ mà tưởng
-   số của lần đang mở. */
-.tk-bao-cu {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin-bottom: 9px; padding: 5px 10px; font-size: 12px; color: var(--muted);
-  background: rgba(255, 166, 87, .12);
-  border-left: 2px solid var(--accent); border-radius: var(--radius-sm);
-}
-.tk-bao-cu b { color: var(--accent); }
-.tk-bao-cu .nut-nho { margin-left: auto; }
-.tk-canh { color: var(--warn); }
+
 .tk-trong { flex: 1; display: grid; place-items: center; color: var(--dim); font-size: 12px; }
 .tk-khoang {
   font: 13px var(--mono); color: var(--text);
@@ -1681,159 +1418,21 @@ select.o { cursor: pointer; }
 }
 .soi-tat:hover { background: var(--raised-hover); color: var(--text); }
 
-/* ================= CỬA SỔ LIVE =================
-   Cố ý KHÔNG giống Strategy Tester về màu: hai cửa sổ trông giống nhau mà một cái tiêu
-   vài giây CPU còn một cái tiêu tiền thật là công thức để bấm nhầm. */
+/* ================= NÚT ĐỎ — việc không đảo ngược được =================
+   Xoá khoá QC và những việc tương tự: màu phải khác hẳn nút thường. */
 .nut.do {
   background: var(--err); border-color: var(--err); color: #fff; font-weight: 600;
 }
 .nut.do:hover:not(:disabled) { filter: brightness(1.12); }
 .nut.do:disabled { opacity: .45; }
 
-.lv-den { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.lv-den.song { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-.lv-den.chet { background: var(--err); box-shadow: 0 0 8px var(--err); }
-
-/* Badge DEMO/THẬT — dòng to nhất cửa sổ. Đọc từ `trade_mode` của tài khoản. */
-.lv-badge {
-  padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
-  letter-spacing: .3px;
-}
-.lv-badge.demo { background: rgba(78, 201, 106, .16); color: var(--ok); }
-.lv-badge.that { background: var(--err); color: #fff; }
-.lv-che-do { color: var(--muted); font-size: 12px; font-style: italic; }
-
-.lv-than { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.lv-bang { flex: 1; overflow-y: auto; padding: 8px 14px 14px; }
-.lv-dau {
-  margin: 12px 0 5px; padding-top: 9px; font-size: 12px; font-weight: 600;
-  color: var(--accent); border-top: 1px solid var(--border);
-}
-.lv-dau:first-child { margin-top: 2px; border-top: none; padding-top: 0; }
-.lv-hang {
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 3px 0; font-size: 12px; border-bottom: 1px solid var(--border-soft);
-}
-.lv-ten { flex: 0 0 190px; color: var(--muted); }
-.lv-ten.hong { color: var(--err); }
-.lv-gt { flex: 0 0 150px; font-family: var(--mono); color: var(--text); }
-.lv-gt.dat { color: var(--ok); }
-.lv-gt.hong { color: var(--err); font-weight: 600; }
-/* Ghi chú NÓI VÌ SAO con số đó đáng quan tâm. Một bảng số mà không nói vì sao thì
-   người đọc phải tự nhớ, và lúc 2 giờ sáng thì không ai nhớ. */
-.lv-phu { color: var(--dim); font-size: 11px; font-style: italic; }
-.lv-ket { padding: 4px 0; font-size: 12px; color: var(--text); }
-
-.lv-duoi {
-  flex: 0 0 190px; display: flex; flex-direction: column; min-height: 0;
-  border-top: 1px solid var(--border);
-}
-.lv-vd {
-  display: flex; align-items: baseline; gap: 9px;
-  padding: 4px 12px; font-size: 12px; border-bottom: 1px solid var(--border-soft);
-}
-.lv-vd-muc { flex: none; font-size: 10px; font-weight: 700; letter-spacing: .4px; }
-.lv-vd.error { color: var(--text); background: rgba(229, 83, 75, .10); }
-.lv-vd.error .lv-vd-muc { color: var(--err); }
-.lv-vd.warning .lv-vd-muc { color: var(--warn); }
-
-/* Vùng giữa cửa sổ Live — chỗ của chart + bảng chỉ số, giữ đúng khung tester. */
-.lv-chart {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 20px; text-align: center;
-}
-.lv-duoi { flex: 0 0 240px; display: flex; flex-direction: column; min-height: 0;
-            border-top: 1px solid var(--border); }
-
-/* Đèn kết nối + badge tài khoản nằm cạnh logo. Đây là TRẠNG THÁI của cửa sổ, không
-   phải công cụ — để lẫn trong thanh công cụ thì mắt phải phân loại lại mỗi lần liếc. */
-.lv-trang-thai { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-
-/* Khung hình SỐ 0 của phiên live — ghim đầu nhật ký, không trộn vào danh sách lượt. */
+/* Nhật ký có dòng GHIM ĐẦU (vd. cửa sổ Màn chơi: "lượt nào đang xem") — ghim ở trên,
+   không trộn vào danh sách lượt. */
 .nk-boc { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .nk-moc {
   flex: none; padding: 5px 10px; font-size: 12px; color: var(--text);
   background: var(--accent-soft); border-bottom: 1px solid var(--border);
 }
-
-/* Tiêu đề nhóm có nút đi kèm — nút nằm cạnh chính mấy con số nó sinh ra. */
-.lv-dau-nut { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-
-/* Tab Kết nối xếp NGANG. Bảng dưới rộng cả cửa sổ mà nội dung chỉ chiếm một cột trái —
-   phần còn lại bỏ không, còn người đọc thì phải cuộn. Chia cột bằng `column-count`
-   thay vì dựng lại JSX: nội dung vốn là một dòng chảy phẳng, cứ để nó tự rót. */
-.lv-bang { column-count: 3; column-gap: 26px; padding: 8px 14px 14px; }
-.lv-bang .lv-dau { break-after: avoid; margin-top: 10px; }
-.lv-bang .lv-dau:first-child { margin-top: 0; }
-.lv-bang .lv-hang { break-inside: avoid; }
-/* Cột hẹp hơn nên nhãn phải co lại, và ghi chú xuống dòng riêng thay vì tranh chỗ. */
-.lv-bang .lv-ten { flex: 0 0 128px; }
-.lv-bang .lv-gt { flex: 0 0 auto; }
-.lv-bang .lv-phu { display: block; flex: 1 0 100%; padding-left: 128px; }
-@media (max-width: 900px) { .lv-bang { column-count: 2; } }
-
-/* Tab Kết nối: mỗi NHÓM là một khối, lưới không bao giờ cắt đôi nó.
-   `column-count` trước đây rót theo dòng chảy nên tiêu đề nằm một cột còn mấy dòng của
-   nó rơi cột khác — chữ chồng lên nhau, đọc không ra. Sai công cụ. */
-.lv-bang { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-           gap: 4px 26px; align-content: start; column-count: initial; }
-.lv-nhom { break-inside: avoid; min-width: 0; }
-/* Bài kiểm dài nên chiếm cả bề ngang, xuống dưới ba khối kia. */
-.lv-nhom-rong { grid-column: 1 / -1; }
-/* Ghi chú xuống dòng RIÊNG trong hàng. Không có `flex-wrap` thì `flex:1 0 100%` không
-   xuống được, nó tràn sang cột bên và chữ chồng lên nhau. */
-.lv-bang .lv-hang { flex-wrap: wrap; }
-
-/* ⚠ BỎ chia cột. Đã thử `column-count` (cắt đôi nhóm) rồi `grid` (ghi chú tràn sang cột
-   bên, chữ chồng nhau) — cả hai đều đánh đổi tính đọc được lấy chỗ trống. Bảng dưới kéo
-   cao được, nên trải dọc là đủ và không bao giờ hỏng. Đơn giản thắng. */
-.lv-bang { display: block; column-count: initial; }
-.lv-bang .lv-ten { flex: 0 0 200px; }
-.lv-bang .lv-gt { flex: 0 0 160px; }
-.lv-bang .lv-phu { display: inline; flex: 0 1 auto; padding-left: 0; }
-.lv-bang .lv-hang { flex-wrap: nowrap; }
-.lv-nhom-rong { margin-top: 4px; }
-/* Đề nghị sau bài kiểm — nút Áp dụng nằm ngay cạnh con số, không phải đi tìm ở Cài đặt. */
-.lv-de-nghi {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin: 6px 0; padding: 6px 10px; font-size: 12px;
-  background: var(--accent-soft); border-radius: var(--radius-sm);
-}
-.lv-de-nghi.canh { background: rgba(217, 164, 65, .14); color: var(--text); }
-
-/* ── BỐN MỨC CHẤM ───────────────────────────────────────────────────────────────
-   Màu ở đây mang nghĩa, không trang trí: `dat` và `xac` cùng gam XANH vì cả hai đều
-   là ĐẠT — `xac` chỉ mạnh hơn (phòng vệ chặn trước, sàn không kịp từ chối). `do` màu
-   hổ phách: có chuyện xảy ra, đã xử lý xong, đọc thì tốt mà không phải làm gì. Chỉ
-   `hong` mới đỏ. Tô đỏ ba mức đầu là đúng cái sai bản trước mắc. */
-.lv-ten.dat   { color: var(--ok); }
-.lv-ten.xac   { color: var(--accent); }
-.lv-ten.do    { color: var(--warn, #d9a441); }
-.lv-ten.chinh { color: var(--accent); }
-
-.lv-chu-giai { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 4px;
-               font-size: 11px; color: var(--dim); }
-.lv-cg b { font-family: var(--mono); margin-right: 3px; }
-.lv-cg.dat b  { color: var(--ok); }
-.lv-cg.xac b  { color: var(--accent); }
-.lv-cg.do b   { color: var(--warn, #d9a441); }
-.lv-cg.hong b { color: var(--err); }
-
-/* Trạng thái KẾT THÚC — ba khả năng, và nó là câu trả lời của cả bài kiểm nên phải
-   to hơn mọi dòng bước bên dưới. */
-.lv-tt { margin: 6px 0; padding: 8px 10px; font-size: 12.5px; line-height: 1.5;
-         border-radius: var(--radius-sm); border-left: 3px solid transparent; }
-.lv-tt-xong        { background: rgba(63, 185, 80, .12);  border-left-color: var(--ok); }
-.lv-tt-nguoi       { background: rgba(248, 81, 73, .12);  border-left-color: var(--err); }
-.lv-tt-chua_hoi_tu { background: rgba(217, 164, 65, .14); border-left-color: #d9a441; }
-
-/* Lịch sử chỉnh giả thuyết — vì sao con số trong Đề phòng vừa đổi. */
-.lv-chinh { margin: 6px 0; padding: 6px 10px; background: var(--accent-soft);
-            border-radius: var(--radius-sm); }
-.lv-chinh-dau { font-size: 11.5px; color: var(--text); margin-bottom: 3px; }
-.lv-chinh-dau span { color: var(--dim); font-style: italic; }
-.lv-chinh-dong { font-family: var(--mono); font-size: 11px; color: var(--muted);
-                 padding: 1px 0; }
 
 /* CỔNG ZONE — ô tick trong hộp thoại Kiểm tra điều kiện.
    Nổi hẳn lên vì nó không phải một tuỳ chọn nhỏ: đánh dấu ô này là khối đó ĐỊNH NGHĨA
@@ -1848,38 +1447,108 @@ select.o { cursor: pointer; }
 .tick-zone .goi-y { flex: 1 0 100%; color: var(--dim); font-size: 11px;
                     font-style: italic; }
 
-/* Nhật ký MÁY — dòng chảy thô của cửa sổ Live (bước bài kiểm, mất/nối lại kết
-   nối, lô nến về). Chữ đều để mốc giờ thẳng cột. */
-.lv-may { font-family: var(--mono); font-size: 11.5px; color: var(--muted);
-          padding: 1px 0; white-space: pre-wrap; }
-
-/* Đèn TẠM DỪNG ĐO — không xanh (đang tốt) cũng không đỏ (đang hỏng): máy đã
-   NGỪNG NHÌN. Ba trạng thái khác nhau thì phải ba màu khác nhau. */
-.lv-den.nghi { background: #d9a441; box-shadow: 0 0 6px rgba(217,164,65,.7); }
-
-/* ── XUẤT XỨ CON SỐ ĐỀ PHÒNG ───────────────────────────────────────────────────
-   Ba nhãn nhỏ trả lời một câu: số này mang từ demo sang tài khoản thật được không.
-   `khop` màu hổ phách vì nó là dòng DUY NHẤT không được chép nguyên si. */
-.lv-loai {
-  display: inline-block; margin-left: 6px; padding: 0 5px;
-  font-size: 9.5px; line-height: 15px; letter-spacing: .02em;
-  border-radius: 3px; vertical-align: 1px; font-style: normal;
+/* ================= MÀN CHƠI — cỗ máy chạy trên QuantConnect (qc/ManChoi.tsx) =================
+   Không chart nến (kết quả QC không mang chuỗi giá về máy): thẻ màn bên trái, tiến độ /
+   kết quả bên phải, bảng dưới dùng vỏ chung `chung/BangDuoi`. Sao là ký hiệu đơn sắc ★ ☆. */
+.mc-khoa-nut {
+  font: 11.5px var(--font); padding: 2px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--raised); color: var(--muted);
+  cursor: pointer;
 }
-.lv-loai.san  { background: rgba(63, 185, 80, .16);  color: var(--ok); }
-.lv-loai.khop { background: rgba(217, 164, 65, .18); color: #d9a441; }
-.lv-loai.ta   { background: var(--accent-soft);      color: var(--accent); }
-.lv-chu-giai .lv-loai { margin-left: 0; margin-right: 4px; }
+.mc-khoa-nut.co { color: var(--ok); }
+.mc-khoa-nut.khong { color: var(--warn); border-color: var(--warn); }
 
-/* Dòng `khop` khi đang chạy TÀI KHOẢN THẬT trên số đo ở demo — đúng chỗ chép nguyên
-   si sẽ mất tiền, nên nó phải nhìn khác hẳn tám dòng còn lại. */
-.lv-ngo { background: rgba(217, 164, 65, .09); border-radius: var(--radius-sm); }
-.lv-ngo .lv-phu { color: #d9a441; font-style: normal; }
+.mc-tb { gap: 6px; }
+.mc-che-do { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.mc-che-do button {
+  font: 12px var(--font); padding: 4px 12px; border: 0; background: transparent;
+  color: var(--muted); cursor: pointer;
+}
+.mc-che-do button.bat { background: var(--raised); color: var(--accent); }
+.mc-che-do button:disabled { cursor: default; opacity: .6; }
+.mc-nop { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+/* Hai lớp để thắng `.tb-nut.rong` (rộng cố định 34px → chữ "QC ↗" rớt dòng). */
+.tb-nut.mc-web { width: auto; padding: 0 8px; white-space: nowrap; }
 
-/* Cây cầu demo → thật: chọn hồ sơ của sàn khác cho sàn đang chạy. */
-.lv-chep { flex-direction: column; align-items: stretch; gap: 6px; }
-.lv-chep-ds { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-than { flex: 1; display: flex; min-height: 0; background: var(--bg); }
+.mc-trai {
+  width: 330px; flex: 0 0 auto; overflow-y: auto; padding: 12px;
+  border-right: 1px solid var(--border); background: var(--surface);
+}
+.mc-phai { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
 
-/* Mốc "── lượt 2/4" giữa các lượt lặp. */
-.lv-moc-lap { margin: 10px 0 2px; font-size: 11px; color: var(--dim);
-              letter-spacing: .04em; border-top: 1px dashed var(--border);
-              padding-top: 6px; }
+.mc-the { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+.mc-the-dau { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mc-ten-man { font-size: 16px; font-weight: 600; color: var(--text); }
+.mc-dan { color: var(--muted); line-height: 1.45; }
+.mc-muc { margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+.mc-bang-nho { border-collapse: collapse; width: 100%; font-size: 12px; }
+.mc-bang-nho td, .mc-bang-nho th { padding: 3px 6px 3px 0; vertical-align: top; text-align: left; }
+.mc-bang-nho td:first-child { color: var(--dim); white-space: nowrap; width: 1%; }
+.mc-bang-nho th { color: var(--dim); font-weight: 500; }
+.mc-mo { color: var(--dim); }
+.mc-o { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); }
+
+.mc-sao { color: var(--dim); letter-spacing: 1px; white-space: nowrap; }
+.mc-sao b { color: var(--accent); font-weight: 400; }
+.mc-sao-to { font-size: 30px; line-height: 1; }
+.mc-bac { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.mc-nac { font-size: 12px; color: var(--dim); }
+.mc-nac.dat { color: var(--text); }
+.mc-nac-dau { display: inline-block; min-width: 34px; color: var(--dim); }
+.mc-nac.dat .mc-nac-dau { color: var(--accent); }
+
+.mc-bao {
+  font-size: 12.5px; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border); color: var(--text);
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.mc-bao .nut-nho { margin-left: auto; flex: 0 0 auto; }
+.mc-bao.canh { border-color: var(--warn); }
+.mc-bao.loi { border-color: var(--err); }
+.mc-bao.loi > b { color: var(--err); }
+.mc-bao.tot { border-color: var(--ok); }
+.mc-loi-chu { white-space: pre-wrap; user-select: text; }
+
+.mc-tien-do { display: flex; flex-direction: column; gap: 8px; max-width: 640px; }
+.mc-td-dau { font-size: 14px; }
+.mc-thanh { height: 8px; background: var(--raised); border-radius: 4px; overflow: hidden; }
+.mc-thanh > div { height: 100%; background: var(--accent); transition: width .3s; }
+.mc-td-chu { font-size: 12.5px; color: var(--muted); }
+.mc-td-giai { font-size: 11.5px; line-height: 1.45; }
+
+.mc-kq { display: flex; flex-direction: column; gap: 10px; }
+.mc-kq-dau { font-size: 14px; }
+.mc-doi { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mc-ben { display: flex; flex-direction: column; gap: 2px; }
+.mc-ben-ten { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.mc-so { font: 600 24px var(--mono); color: var(--text); }
+.mc-so.lai { color: var(--ok); } .mc-so.lo { color: var(--err); }
+.mc-vs { color: var(--dim); font-size: 13px; }
+.mc-ben-dinh { gap: 6px; }
+.mc-dinh { font-weight: 600; font-size: 13px; }
+.mc-dinh.thang { color: var(--ok); } .mc-dinh.thua { color: var(--warn); }
+.mc-chip { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-chip span {
+  font-size: 12px; padding: 3px 8px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft); color: var(--muted);
+}
+.mc-kq-cuoi { font-size: 12px; line-height: 1.45; }
+.mc-hai-man { max-width: 520px; }
+.mc-gioi-thieu { color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 620px; }
+.mc-gioi-thieu p { margin: 0 0 8px; }
+
+.mc-bang { border-collapse: collapse; width: 100%; font-size: 12px; }
+.mc-bang th {
+  position: sticky; top: 0; background: var(--surface); color: var(--dim); font-weight: 500;
+  text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border);
+}
+.mc-bang td { padding: 3px 8px; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+.mc-hang-nut { display: flex; gap: 4px; }
+.mc-them { align-self: center; margin: 6px 0; }
+.mc-diem { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+
+.mc-hop-khoa { display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; line-height: 1.45; }
+.mc-hop-khoa p { margin: 0; }
+.mc-canh-khoa { color: var(--warn); }
+.mc-trang-khoa { color: var(--muted); }

@@ -19,8 +19,7 @@ qua nó:
     C < O (nến giảm)  →  O → H → L → C
 
 Giá nhúng xuống trước rồi mới đẩy lên, hoặc ngược lại — suy từ chính chiều của nến.
-Trùng cách MT5 sinh tick ở chế độ "1 minute OHLC", nên số của ta so được với Strategy
-Tester của MT5.
+Đây là cách dựng giá trong nến quen thuộc của các bộ backtest chỉ có dữ liệu M1.
 
 Rồi mọi thứ còn lại thành MỘT luật: *"giá chạm mức X ở bước thứ k của đường đi"*. Lệnh
 chờ khớp, SL bị chạm, TP bị chạm — cùng một phép kiểm, chỉ khác mức giá. Không còn
@@ -70,8 +69,7 @@ def duong_di(o, h, l, c):
     """Bốn điểm giá (Bid) mà nến M1 này đi qua, THEO THỨ TỰ.
 
     Nến tăng thì giả định giá nhúng xuống đáy trước rồi mới đẩy lên đỉnh; nến giảm thì
-    ngược lại. Đây không phải phỏng đoán tuỳ tiện — nó suy từ chính chiều của nến, và
-    trùng cách MT5 sinh tick ở chế độ "1 minute OHLC"."""
+    ngược lại. Đây không phải phỏng đoán tuỳ tiện — nó suy từ chính chiều của nến."""
     o, h, l, c = float(o), float(h), float(l), float(c)
     return (o, l, h, c) if c >= o else (o, h, l, c)
 

@@ -23,7 +23,7 @@ Bài này canh đúng ba chỗ Auto_Clicker làm sai (core.md §3.3):
   Bẫy 2 — vòng lặp nuốt mất khối bắt đầu -> mọi huy hiệu biến thành "–"
   Bẫy 3 — thông báo lỗi đánh số theo index danh sách chứ không theo huy hiệu
 
-Không mở cửa sổ, không nối MT5 -> chạy được ở bất cứ đâu.
+Không mở cửa sổ, không nối mạng -> chạy được ở bất cứ đâu.
 """
 import io
 import os

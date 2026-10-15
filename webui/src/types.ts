@@ -200,10 +200,6 @@ export interface Bootstrap {
   sua_che_do: Record<string, string>
   sua_can_gia: string[]
 
-  /** Bộ nến đã tải — hộp thoại Cài đặt quản lý (tải thêm · xoá · số MB). */
-  nguon: BoNen[]
-  co_mt5: boolean
-
   /** Đơn vị của những ô CỐ ĐỊNH ngoài điều kiện: `chu_ky` → nến, `lot` → lot. */
   don_vi_o: Record<string, string>
   template_kinds: Record<string, string>
@@ -239,34 +235,10 @@ export interface KetQuaSoat extends Reply<Problem[]> {
   luong?: Record<Tab, LuongSoDo>
 }
 
-
-/* ======================= STRATEGY TESTER =======================
- * Mọi hình dạng dưới đây do `api.ApiTester` sinh. Giao diện KHÔNG tự tính con số nào —
+/* ======================= KẾT QUẢ MỘT LƯỢT CHẠY =======================
+ * Do Python dựng (`qc_chay.KetQuaQC` · `nhat_ky`). Giao diện KHÔNG tự tính con số nào —
  * kể cả một phép cộng. Chữ trong nhật ký cũng do Python dựng (core.md §12.8).
  */
-
-export interface BoNen {
-  symbol: string
-  tu: number | null; den: number | null
-  tu_chu: string; den_chu: string
-  so_nen: number
-  /** Dung lượng đang chiếm — thứ người dùng cần để quyết có xoá không. */
-  mb: number
-  digits?: number; point?: number; contract_size?: number
-  /** Spread TRUNG VỊ đo trên chính dữ liệu đã tải — gợi ý cho ô spread. */
-  spread_tb?: number | null
-  tai_luc?: string
-}
-
-export interface TesterBoot {
-  phien_ban: string
-  accent?: string
-  doc: ProcessDoc | null
-  cai_dat: Record<string, unknown>
-  timeframes: string[]
-  nguon: BoNen[]
-  co_mt5: boolean
-}
 
 export interface ThongKe {
   so_lenh: number; so_dong: number; so_huy: number
@@ -295,69 +267,13 @@ export interface ThongKeChay {
   duong_von: [number, number, number][]
   /** Khoảng THẬT SỰ có nến. */
   t_dau: number; t_cuoi: number
-  /** Khoảng ĐÃ YÊU CẦU trong Cài đặt — lệch với trên là chuyện thường. */
+  /** Khoảng ĐÃ YÊU CẦU cho lượt chạy — lệch với trên là chuyện thường. */
   yc_tu: string; yc_den: string
   symbol: string
   nhip: { entry: string; manage: string }
 }
 
-/** Một mục lịch sử, bản GỌN cho danh sách. `ten === null` = mục mềm (bị cuốn chiếu);
- *  có tên = đã lưu, không bao giờ bị cuốn. */
-export interface MucLichSu {
-  ma: string
-  t: number
-  ten: string | null
-  ten_chien_luoc: string
-  van_tay: string
-  cai_dat: { symbol?: string; tu?: string; den?: string } & Record<string, unknown>
-  nguon: { symbol: string; so_nen: number; t_dau: number; t_cuoi: number }
-  thong_ke: ThongKe
-}
-
-export interface XemLichSu {
-  tom_tat: ThongKeChay
-  nguon: { symbol: string; so_nen: number; t_dau: number; t_cuoi: number }
-  ten: string | null
-  t: number
-  /** Nến nguồn còn khớp lúc chạy không — không khớp thì KHÔNG mở lại phát lại được. */
-  chay_lai_duoc: boolean
-  vi_sao: string
-}
-
-export interface KetQuaChay {
-  so_nen_m1: number; so_nen_truc: number; tf: string
-  t_dau: number; t_cuoi: number
-  thong_ke: ThongKe
-  /** Một dòng trả lời "so với lần trước thì sao" — vòng lặp nâng cấp model. */
-  so_hai_lan: string
-  digits: number
-}
-
-/** Cửa sổ nến M1 kết thúc Ở CON TRỎ. Không có nến nào bên phải — nến chưa xảy ra thì
- *  chưa tồn tại, đó là cả điểm của replay. */
-export interface CuaSoNen {
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]
-  j0: number; j: number
-}
-
-export interface LenhVe {
-  id: string; huong: string; trang_thai: string
-  t_dat: number; t_khop: number | null; t_dong: number | null
-  gia_dat: number | null; gia_khop: number | null; gia_dong: number | null
-  sl: number | null; tp: number | null
-  ly_do_dong: string | null; lot: number; lai_R: number | null
-  /** Đường đi của SL theo thời gian `[[t, sl], …]`, dựng từ chính nhật ký. Nhờ nó chart
-   *  vẽ được cái BẬC THANG lúc `Dời SL về hoà vốn` chạy — bản trước chỉ có SL cuối cùng
-   *  nên khoảnh khắc đó tàng hình. */
-  /** Lệnh do BÀI KIỂM đặt, không phải chiến lược — chart vẽ mờ, không nhãn. */
-  la_kiem?: boolean
-  sl_lich_su?: [number, number][]
-  /** Y hệt `sl_lich_su` nhưng cho TP. Cần riêng vì chế độ `Dời Take Profit` làm TP nhảy
-   *  bậc giữa đời lệnh — vẽ bằng mức cuối là lộ tương lai. */
-  tp_lich_su?: [number, number][]
-}
-
-/** SOI MỘT LƯỢT trên sơ đồ — do `api.test_soi_luot` bắn sang cửa sổ vẽ.
+/** SOI MỘT LƯỢT trên sơ đồ — do `api.ApiQC.qc_soi_luot` bắn sang cửa sổ vẽ.
  *
  *  `cong` mang MỌI cổng lượt đó đã thử, kèm vết TỪNG điều kiện theo đúng thứ tự các
  *  dòng trong hộp — nhờ vậy tô được tới đúng dòng điều kiện hỏng, không chỉ tô cả hộp. */
@@ -380,192 +296,103 @@ export interface SoiKhoi {
   dieuKien: boolean[]
 }
 
-/** Một chặng trên ĐƯỜNG RAY của một lệnh — xem `api.test_duong_ray`.
- *  `tab = null` nghĩa là chặng này do THỊ TRƯỜNG, không phải sơ đồ (khớp, chạm SL/TP). */
-export interface ChangRay {
-  tab: string | null
-  moc?: string
-  khoi: string[]
-  dem: number
-  viec: string[]
-  /** Chặng bắt đầu / kết thúc lúc nào. Cần cả hai: hiện theo `t`, nhưng `t_het` còn ở
-   *  tương lai thì con số lặp chưa chốt — in ra như đã xong là lộ tương lai. */
-  t: number
-  t_het: number
+/* ======================= MÀN CHƠI — chạy trên QuantConnect ========================
+ * Hình dạng dữ liệu của `api.ApiQC` (cat_studio/api.py) · luật ở `cat_studio/game.py`.
+ * Không có nến: kết quả QC không mang chuỗi giá về máy — mỗi lượt tự mang giờ `t`. */
+
+export type LoaiChay = 'nhanh' | 'day_du' | 'nop' | 'tu_do'
+
+export interface BossQC { id: string; ten: string; mo_ta: string }
+
+/** Phần chấm của một lần chạy — `game.cham`. */
+export interface ChamQC {
+  lai_pt: number
+  /** `null` = khoảng ngày không có giá → không ai thắng ai. */
+  mua_giu_pt: number | null
+  thang_boss: boolean
+  so_dong: number
+  /** Chạy trọn và có ít nhất một lệnh đóng. */
+  sach: boolean
 }
 
-export interface DongBang { ten: string; gia_tri: number | string | boolean | null }
+export interface DoGon { so_khoi: number; so_tham_so: number; tong: number }
 
-export interface Khung {
-  j: number; i: number; t: number
-  bang: {
-    toan_hang: DongBang[]
-    engine: DongBang[]
-    tai_khoan: DongBang[]
-    /** Mỗi lệnh đang sống MỘT HÀNG — nhóm "Lệnh này" không có một giá trị duy nhất
-     *  tại nến i, vì Manage chạy một lượt cho mỗi lệnh. */
-    lenh: {
-      id: string; huong: string; da_khop: boolean
-      gia_vao: number | null; sl: number | null; tp: number | null
-      lai_R: number | null; sl_hoa_von: boolean; so_nen_song: number
-    }[]
-  }
-  lenh: LenhVe[]
+export interface LanNop {
+  t: string; ten: string; van_tay: string; sao: number; do_gon: DoGon
+  thay: ChamQC; an: ChamQC
 }
 
-export interface LoNhatKy {
-  tong: number; tu: number
-  dong: { i: number; nen: number; tab: string; lenh_id: string | null
-          co_viec: boolean; chu: string }[]
+export interface TienDoMan {
+  so_lan_nop: number; sao: number; tot_nhat: LanNop | null; lan_cuoi: LanNop | null
 }
 
+/** Lượt ▶ đầy đủ của ĐÚNG cỗ máy đang mở — có nó mới được Nộp. */
+export interface VeNop extends ChamQC { t: string; ten: string; duong: string }
 
-/** Tiến trình một lần chạy — backtest chạy trên luồng nền, giao diện hỏi 200 ms/lần.
- *  Ba giây im lặng không phân biệt được với treo. */
-export interface TrangThaiChay {
-  dang_chay: boolean
-  da: number; tong: number; chu: string
-  xong: KetQuaChay | null
+/** Một màn (KHÔNG có ngày của màn ẩn — app giữ, D-06). */
+export interface ManQC {
+  id: string; ten: string; ban_do: string; symbol: string; von: number
+  thay: [string, string]; nhanh: [string, string]; an_mo_ta: string
+  boss: BossQC; loi_dan: string; tien_do: TienDoMan; ve_nop: VeNop | null
+}
+
+/** Khoá đặt ở đâu. KHÔNG BAO GIỜ có token. */
+export interface KhoaQC {
+  co: boolean; nguon: 'bien_moi_truong' | 'file' | null; user_id: string | null
+  duong: string; loi?: string
+}
+
+export interface TuDoQC { symbol: string; tu: string; den: string; von: number }
+
+export interface KetQuaQC {
+  ten: string; van_tay: string; symbol: string; tu: string; den: string; tf: string
+  thong_ke: ThongKe
+  duong_von: [number, number, number][]
+  gia_dau: number | null; gia_cuoi: number | null; mua_giu_pt: number | null
+  dem: Record<string, number>; giay_chay: number | null; so_luot: number | null
+  duong_nhat_ky: string; do_gon: DoGon
+  t_dau: number | null; t_cuoi: number | null
+  nhip: { entry: string; manage: string }
+  // ---- chỉ có khi vừa chạy xong (mở lại từ lịch sử thì một phần) ----
+  loai?: LoaiChay; man?: string | null; an?: boolean; cham?: ChamQC; url?: string
+  giay_tong?: number; sao?: number | null; lan_nop?: number | null; thay?: VeNop | null
+}
+
+export interface TrangThaiQC {
+  dang_chay: boolean; loai?: LoaiChay; man?: string | null
+  /** Bước đang làm, nói bằng lời. */
+  chu?: string
+  /** Tiến độ TRONG bước (chỉ backtest đo được). */
+  ti_le?: number | null
+  /** Tiến độ cả lượt, 0…1. */
+  ti_le_chung?: number
+  giay?: number
+  xong: KetQuaQC | null
   loi: string | null
 }
 
-/** MỘT LÔ khung hình để PHÁT LẠI — cửa duy nhất dùng lúc phát.
- *
- * Mang đủ mọi thứ ba vùng cần cho ~300 nhịp, nên khi phát thì JS không hỏi Python một
- * câu nào. Gọi cầu nối 33 lần/giây thì phát sẽ giật, mà nhịp đều mới là thứ quan trọng
- * nhất khi xem nến hình thành. */
-export interface DoanPhat {
-  j0: number; n: number
-  t: number[]; o: number[]; h: number[]; l: number[]; c: number[]
-  /** ZONE lớn dần trong cửa sổ lô: `[t_zone_mở, t_nến, đáy, đỉnh]`.
-   *
-   *  ⚠ Lô phải mang zone vì lúc phát lại `nhip()` KHÔNG hỏi Python câu nào. Thiếu nó
-   *  thì zone chỉ nhúc nhích ở đường NHẢY — bấm ▶ zone đứng yên, bấm "tới sự kiện" mới
-   *  thấy nó nhảy một phát. Lệnh không bị vậy vì lô vốn mang cả sự kiện tương lai và
-   *  `Chart` tự cắt theo `tBayGio`; giờ zone theo đúng luật đó. */
-  zone?: [number, number, number, number][]
-  /** BẢNG SỐ LIỆU: nhóm do `kho/` khai, hàng do SƠ ĐỒ quyết (`core.toan_hang_dung`),
-   *  mỗi hàng một mảng giá trị theo TỪNG khung hình. Không nhóm nào viết cứng ở JS —
-   *  thêm engine mới là bảng có ngay. */
-  bang: {
-    /** KHÔNG in ra. Giao diện chỉ dùng nó để biết chỗ kẻ một đường mảnh — xem
-     *  `BangSoLieu`. */
-    nhom: string
-    dong: {
-      ten: string
-      /** Bổ nghĩa: `M15·50·SMA`. Rỗng với toán hạng không có khung/chu kỳ. */
-      phu: string
-      gia_tri: (number | string | boolean | null)[]
-    }[]
-  }[]
-  lenh_song: {
-    id: string; huong: string; da_khop: boolean
-    loai: string; gia_dat: number | null
-    gia_vao: number | null; sl: number | null; tp: number | null
-    lai_R: number | null; sl_hoa_von: boolean
-  }[][]
-  tai_khoan: { cho: number; mo: number; gia: number }[]
-  lenh: LenhVe[]
-  nhat_ky: { i: number; j: number; co_viec: boolean; lenh_id: string | null; chu: string }[]
+export interface MucLichSuQC {
+  t: string; loai: LoaiChay; man: string | null; ten: string; van_tay: string
+  /** Lượt nộp (`an`): KHÔNG có ngày, KHÔNG có link — app giữ màn ẩn (D-06). */
+  symbol: string; tu: string | null; den: string | null; an: boolean; sao: number | null
+  lai_pt: number; mua_giu_pt: number | null; so_lenh: number; url: string | null; duong: string
 }
 
-/* ======================= LIVE =======================
- * Cửa sổ Live trả lời một câu khác hẳn tester: có TIN được cái đang chạy không.
- */
-
-export interface TinKetNoi {
-  noi_duoc: boolean
-  nen_song: boolean
-  chu: string
-  tai_khoan: number | null
-  server: string
-  /** Tên sàn. Khoá tiếng Việt có dấu — do Python đặt, giữ nguyên để không lệch hợp đồng. */
-  'sàn': string
-  /** `null` = chưa đọc được. Đọc từ `trade_mode`, KHÔNG hỏi người dùng. */
-  la_that: boolean | null
-  cho_giao_dich: boolean
-  symbol_giao_dich_duoc: boolean
-  tuoi_tick: number | null
-  spread_diem: number | null
-  /** spread thật ÷ spread đã backtest. ≥ 2 là chiến lược đang chạy ở thế giới khác. */
-  spread_lech: number | null
-  lech_gio: number | null
-  /** Cây nến ĐANG hình thành — chỉ để CHART sống theo giây. Chiến lược không bao giờ
-   *  đọc nó: quyết định chỉ ở biên nến đã đóng. */
-  nen_dang: { t: number; o: number; h: number; l: number; c: number } | null
-  tre_ms: number
-  tre_p50: number | null
-  tre_p95: number | null
-  so_lan_rot: number
-  giay_rot: number
-  phien_giay: number
+export interface BootQC {
+  phien_ban: string; accent: string | null; doc: ProcessDoc | null
+  man: ManQC[]; loai: Record<LoaiChay, string>; khoa: KhoaQC; do_gon: DoGon
+  tu_do: TuDoQC; trang_thai: TrangThaiQC; co_ket_qua: boolean
 }
 
-export interface VanDeLive {
-  severity: 'error' | 'warning' | string
-  message: string
-  tab: string
+export interface DongNkQC {
+  i: number; nen: number; tab: Tab; lenh_id: string | null; co_viec: boolean; chu: string
 }
+export interface LoNhatKyQC { tong: number; tu: number; dong: DongNkQC[] }
 
-export interface DeNghi { spread_diem: number | null; vi_sao: string
-                          stops_level_that: number | null }
-
-/** BỐN MỨC, không phải đạt/hỏng — xem `ket_noi._cham`.
- *    `tron`  chạy trơn        `xac`   phòng vệ sửa TRƯỚC khi gửi (giả thuyết đúng sẵn)
- *    `do`    sàn từ chối, phòng vệ chữa được → VẪN ĐẠT
- *    `hong`  phòng vệ bó tay → phải chỉnh con số
- *    `nguoi` máy không chữa được → cần người ra tay
- *  Cộng hai mức KHÔNG phải bước chạm sàn, chỉ để đọc nhật ký:
- *    `moc`   mốc "── lượt 2/4"      `chinh` một dòng chỉnh giả thuyết
- */
-export type MucBuoc = 'tron' | 'xac' | 'do' | 'hong' | 'nguoi' | 'moc' | 'chinh'
-
-export interface BuocTest {
-  ten: string; dat: boolean; chu: string; ms: number | null
-  muc?: MucBuoc; ma?: number | null
-}
-
-/** Con số Đề phòng thuộc loại gì — quyết định nó có mang từ DEMO sang THẬT được không.
- *    `san`  luật của sàn        → demo và thật giống nhau, chép sang vô tư
- *    `khop` chất lượng khớp     → demo KHÔNG có thanh khoản thật, số đo là CHẶN DƯỚI
- *    `ta`   cách app tự xử      → không phụ thuộc tài khoản nào
- *  Xem `gui_lenh.LOAI`. */
-export type LoaiSo = 'san' | 'khop' | 'ta'
-
-export interface DongDePhong { ten: string; gia: string; chu: string; loai: LoaiSo }
-
-/** Hồ sơ đã đo cho CÙNG symbol nhưng dưới tên sàn khác — ứng viên để chép sang. */
-export interface HoSoKhac {
-  khoa: string; san: string; server: string
-  do_luc: string | null; so_vong: number | null; trang_thai: string | null
-}
-
-export interface DePhong {
-  da_hieu_chuan: boolean
-  trang_thai: string | null
-  /** Đang chạy trên tài khoản thật hay không — đổi cách đọc mấy dòng `khop`. */
-  la_that: boolean | null
-  /** Hồ sơ này chép từ sàn khác sang, không phải đo tại chỗ. */
-  chep_tu: string | null
-  do_o_server: string
-  ho_so_khac: HoSoKhac[]
-  dong: DongDePhong[]
-}
-
-/** Kết quả VÒNG LẶP hiệu chuẩn. `trang_thai` là câu trả lời, `buoc` chỉ là dấu vết. */
-export interface KetQuaHieuChuan {
-  trang_thai: 'xong' | 'nguoi' | 'chua_hoi_tu'
-  chay_duoc: boolean
-  chu: string
-  buoc: BuocTest[]
-  /** Lịch sử chỉnh giả thuyết — mỗi dòng "khoá: cũ → mới — vì sao". */
-  da_chinh: string[]
-  can_nguoi: string[]
-  /** Mã sàn trả về mà ta chưa có luật xử. Đây là chỗ cái chưa biết lộ mặt. */
-  ma_la: number[]
-  luat: Record<string, number | null>
-  lan: { luat: Record<string, number | null>; chu: string
-         dem: Record<string, number> }[]
-  de_nghi: DeNghi | null
-  stops_level_that: number | null
+export interface LenhQC {
+  id: string; huong: string; loai: string; lot: number
+  gia_dat: number; gia_khop: number | null; gia_dong: number | null
+  sl: number | null; tp: number | null; R: number
+  trang_thai: string; ly_do_dong: string | null
+  t_dat: number | null; t_khop: number | null; t_dong: number | null
 }

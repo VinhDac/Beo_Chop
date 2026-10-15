@@ -1,13 +1,12 @@
 """SỔ LỆNH — bảng `lệnh` và bảng `vùng nén`, mỗi thứ một id của CHÍNH TA.
 
-Vì sao id phải là của ta, không mượn ticket MT5:
+Vì sao id phải là của ta, không mượn mã lệnh của sàn:
 
-  · Backtest KHÔNG có ticket. Nếu định danh phụ thuộc MT5 thì nửa hệ thống không chạy
-    được khi chưa nối sàn.
+  · Backtest không có sàn nào cấp mã. Định danh phụ thuộc sàn thì nửa hệ thống không
+    chạy được.
   · D_02 không có id nối lệnh chờ với vị thế sinh ra từ nó, nên `CheckPendingActivation`
     phải ĐOÁN bằng `HasOpenPosition()` — "có vị thế nào bất kỳ không". Lệnh chờ bị huỷ
     từ ngoài trong lúc còn vị thế cũ là nó đọc nhầm thành "đã khớp". Có id thì hỏi thẳng.
-  · `ticket` vẫn giữ, nhưng chỉ là MỘT CỘT để bắc cầu sang live.
 
 Id đếm tăng, không phải uuid: `L-0001`, `V-0003`. Đọc log là biết ngay thứ tự, và
 CHẠY LẠI CÙNG DỮ LIỆU RA CÙNG ID — so hai lần backtest được. uuid thì mất cả hai.
@@ -101,7 +100,6 @@ class Lenh:
         self.gia_khop = gia_dat if loai == "market" else None
         self.gia_dong = None
         self.ly_do_dong = None
-        self.ticket = None              # CHỈ điền khi chạy live; backtest để trống
 
     # ---- câu hỏi các toán hạng "Lệnh này" hỏi ----
     @property
@@ -139,8 +137,7 @@ class Lenh:
                 "sl": self.sl, "tp": self.tp, "R": self.R,
                 "trang_thai": self.trang_thai, "ly_do_dong": self.ly_do_dong,
                 "nen_dat": self.nen_dat, "nen_khop": self.nen_khop,
-                "nen_dong": self.nen_dong, "gia_dong": self.gia_dong,
-                "ticket": self.ticket}
+                "nen_dong": self.nen_dong, "gia_dong": self.gia_dong}
 
 
 class SoLenh:

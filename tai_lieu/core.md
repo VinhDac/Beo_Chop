@@ -1,10 +1,18 @@
 # Cat_Studio — Sổ ghi cốt lõi
 
 > App vẽ pipeline + mô phỏng hành vi chiến lược giao dịch.
-> Fork từ **Auto_Clicker** (`C:\Users\Davin\Desktop\Auto_Clicker`), đổi miền từ *click game* sang *trading*, nối MT5 về sau.
+> Fork từ **Auto_Clicker** (`C:\Users\Davin\Desktop\Auto_Clicker`), đổi miền từ *click game* sang *trading*.
 >
 > File này là **nguồn sự thật về Ý ĐỊNH**. Code là nguồn sự thật về hành vi.
 > Sửa cơ chế → sửa file này cùng lúc, đừng để hai bên nói khác nhau.
+
+> ⚠ **2026-10-14 — ĐỔI HƯỚNG, xem `DECISIONS.md` D-01, D-09 và D-10.** Động cơ chuyển hẳn
+> sang LEAN / QuantConnect; Cat Studio chỉ giữ lớp game (ngôn ngữ sơ đồ + lời giải thích).
+> **App chỉ phục vụ QuantConnect (D-09): MT5 đã gỡ sạch** — không cửa sổ Live, không nối
+> sàn, không tải nến (§17). **Strategy Tester đã bỏ (D-10)** — không còn chạy tại máy; lối
+> chạy duy nhất là ◆ Màn chơi trên QuantConnect (§18). Mục §12 (thiết kế tester) và những
+> chỗ nói về `nguon_nen` là LỊCH SỬ; bộ chạy cũ (`bo_chay`, `khop_lenh`) còn sống tới khi
+> cỗ máy 5 trạm thay hai sơ đồ Entry/Manage (D-10, phần 7).
 
 Cập nhật: 2026-08-10 · Trạng thái: **P0–P4 + kho/lưu trữ/sổ lệnh xong** · test 332/332 · giao diện tester đã chạy thật
 Thiết kế **Strategy Tester chốt xong** → §12. Bộ chạy chưa viết một dòng nào.
@@ -14,7 +22,7 @@ Thiết kế **Strategy Tester chốt xong** → §12. Bộ chạy chưa viết 
 ## 0. Một câu
 
 > Vẽ sơ đồ khối cho một chiến lược giao dịch, mỗi khối mang **một số thứ tự do chính bộ máy tính ra**,
-> bấm ▶ Chạy thì mở **Strategy Tester** để xem chiến lược đó hành xử ra sao.
+> bấm **◆ Màn chơi** để chạy nó trên QuantConnect và xem nó hành xử ra sao, vì sao.
 
 ---
 
@@ -64,7 +72,6 @@ ngoài trong lúc còn vị thế cũ là nó **đọc nhầm thành đã khớp
 
 - `L-0001`, `V-0003` — **đếm tăng, không uuid**: đọc log biết ngay thứ tự, và chạy lại
   cùng dữ liệu ra cùng id nên so được hai lần backtest.
-- `ticket` của MT5 chỉ là **một cột phụ**, để trống khi backtest.
 - Lệnh mang `vung_id` → *"vùng này đã sinh lệnh"* (thay `COMP_CONSUMED`) chỉ là một
   **phép tra bảng**, không phải cờ ẩn. Và tính cả lệnh đã đóng: một cú nén, một lệnh.
 - `sl_o_hoa_von` suy ra từ **vị trí SL so với giá vào**, không phải cờ riêng — y như
@@ -934,7 +941,6 @@ và `Ctrl+Z` thành vô dụng.
 |---|---|
 | Python | 3.14.2 |
 | Node | v20.19.0 · npm 10.8.2 |
-| MetaTrader5 (pip) | 5.0.5735 ✔ đã có |
 | Cần thêm | `pywebview` — xem ghi chú ngay dưới bảng |
 | **Bỏ** so với Auto_Clicker | `pyautogui`, `keyboard`, `pyperclip`, `pillow`, toàn bộ `winrt-*` (OCR), `overlay_ui.py`, `overlays.py`, `update_mods.py`, `data/mods_*.txt` |
 | Máy | Windows 10 Pro 19045 — cần .NET ≥ 4.7.2 và WebView2 Runtime |
@@ -963,7 +969,7 @@ có thật nên không nuốt nhầm gói Python nào.
 | **P4b · Kho + lưu trữ** | `kho/` chia theo engine · `so_lenh.py` id của ta · `du_lieu/` · bảng tham số · hộp thoại **Kho** (menu File) | ✅ |
 | **P6 · Mẫu** | Sơ đồ mẫu Compress EA, khớp §7 | ✅ **Entry 7 khối · Manage 5 khối · KHÔNG một mũi tên ngược**, soát sạch |
 | **P5 · Tester** | Cửa sổ Strategy Tester — thiết kế đầy đủ ở **§12** | 🔨 **thiết kế chốt xong**, khung có 3 lỗi phải sửa (§12.12) |
-| **P7 · Bộ chạy** | `nguon_nen` → `tinh_toan` → `khop_lenh` → `bo_chay`. Nối MT5, kéo nến M1, backtest thật | ⬜ *(đang tới)* |
+| **P7 · Bộ chạy** | `nguon_nen` → `tinh_toan` → `khop_lenh` → `bo_chay`. Kho nến M1, backtest thật | ⬜ *(đang tới)* |
 
 ### Sơ đồ mẫu ra đúng thế này
 
@@ -1003,7 +1009,7 @@ Bốn chỗ dễ làm sai, ghi lại để khỏi trượt về:
 
 ---
 
-## 12. ⭐⭐ STRATEGY TESTER — thiết kế đã chốt
+## 12. ⭐⭐ STRATEGY TESTER — thiết kế đã chốt  ⛔ ĐÃ BỎ (D-10, §18) — giữ làm lịch sử
 
 > Chốt ngày 2026-08-10 sau một đợt đọc lại toàn bộ `core.py` / `api.py` / `kho/` và cả 6 file
 > MQL5 của D_02. Mười một quyết định dưới đây **quyết định kết quả backtest**, không phải chi
@@ -1040,8 +1046,8 @@ giá trị khi biên M15 khép — ba lần một giờ, không phải mỗi l�
 | C ≥ O (tăng) | O → **L** → **H** → C |
 | C < O (giảm) | O → **H** → **L** → C |
 
-Giá nhúng xuống trước rồi mới đẩy lên, hoặc ngược lại — suy từ chính chiều của nến. Trùng
-cách MT5 sinh tick ở chế độ "1 minute OHLC", nên số của ta so được với Strategy Tester của MT5.
+Giá nhúng xuống trước rồi mới đẩy lên, hoặc ngược lại — suy từ chính chiều của nến. Đây là
+cách dựng giá trong nến quen thuộc của các bộ backtest chỉ có dữ liệu M1.
 
 Rồi mọi thứ còn lại thành **một luật duy nhất**: *"giá chạm mức X ở bước thứ k của đường đi"*.
 Lệnh chờ khớp, SL bị chạm, TP bị chạm — cùng một phép kiểm, chỉ khác mức giá.
@@ -1434,35 +1440,28 @@ mọi thứ nó "nhớ" đều có nguy cơ cũ.
 trung vị đo được trên dữ liệu đã tải: 37 points`. Thiếu dòng này thì "20 points" là con số vô
 nghĩa — XAUUSD 3 chữ số thì đó chỉ là 0,02 USD, nhỏ hơn spread thật gần hai lần.
 
-**Nguồn nến** ✅ — `nguon_nen.py`, chỗ **duy nhất** biết MT5 tồn tại. Ràng buộc duy nhất:
-terminal phải đang mở và đã đăng nhập **lúc tải**; tải xong đóng MT5 vẫn backtest bình thường.
+**Kho nến** ✅ — `nguon_nen.py` chỉ còn **ĐỌC** những bộ nến M1 đã có trên máy
+(`du_lieu/nen/`). App không tải nến nữa (D-09, §17).
 
-- Tải **M1 theo symbol**, một symbol giữ đúng **một dải liền**. `từ`/`đến` điều khiển cả tải lẫn
-  chạy: chồng lấn thì chỉ tải phần thiếu rồi nối vào; rời hẳn thì tải luôn phần ở giữa cho liền,
-  nhưng **báo trước số MB** — không bao giờ tải lén.
-- Kèm một file `.json` cạnh cache giữ `digits` / `point` / `contract_size` lấy lúc tải → tính ra
-  tiền vẫn đúng dù MT5 đang tắt, và ô "20 points" quy đổi được ra USD.
-- Danh sách trong Settings: mỗi symbol một dòng — có dữ liệu từ ngày nào đến ngày nào, bao nhiêu
+- Một symbol giữ đúng **một dải liền**: một file `.npy` + một file meta `.json` cạnh nó, giữ
+  `digits` / `point` / `contract_size` / `spread_tb` → tính ra tiền đúng và ô "20 points" quy
+  đổi được ra USD.
+- Danh sách trong Cài đặt: mỗi symbol một dòng — có dữ liệu từ ngày nào đến ngày nào, bao nhiêu
   nến, **bao nhiêu MB**, nút xoá.
-- Bấm ▶ mà thiếu dữ liệu thì **không tự tải**, chỉ báo và mời bấm Tải.
+- Bấm ▶ mà thiếu **phần đầu** khoảng đã đặt thì dừng và nói rõ thiếu khoảng nào, máy đang có
+  khoảng nào (`api._kiem_du_nen`). Thiếu phần đuôi thì vẫn chạy — bảng Thống kê in khoảng THẬT
+  SỰ có nến cạnh khoảng đã đặt.
 
-**Đã đo thật** (XAUUSD, Exness, 2025-11): 29.917 nến một tháng = **1,37 MB** → một năm ≈
-**16,5 MB**, khớp ước tính. Tải một tháng mất **0,2 giây**, nên một năm chỉ vài giây — không cần
-thanh tiến độ cầu kỳ. Xin lại khoảng đã có: **0,00 s, không đụng tới MT5**.
+**Đã đo thật** (XAUUSD, 2025-11): 29.917 nến một tháng = **1,37 MB** → một năm ≈ **16,5 MB**.
 
 ⚠ **`spread_tb` là con số phải nhìn.** XAUUSD của Exness có `digits = 3`, nên `20 points` chỉ là
-**0,02 USD** — quá nhỏ. Trung vị đo được trên dữ liệu thật là **37 points**. Vì thế `tai()` tính
-trung vị (không phải trung bình — vài nến tin tức giãn gấp chục lần sẽ kéo lệch) và cất vào meta,
-để ô spread trong Cài đặt gợi ý đúng thay vì bắt người dùng đoán.
+**0,02 USD** — quá nhỏ. Trung vị đo được trên dữ liệu thật là **37 points**. Meta của mỗi bộ nến
+giữ con số TRUNG VỊ đó (`spread_tb` — trung vị, không phải trung bình: vài nến tin tức giãn gấp
+chục lần sẽ kéo lệch), để ô spread trong Cài đặt gợi ý đúng thay vì bắt người dùng đoán.
 
 **`lo_hong()` — thứ luật vùng nén cần.** Một tháng XAUUSD có **26 lỗ**, dài nhất **3.083 phút
 (~51 giờ)**, và bốn cái dài nhất đều là cuối tuần. Đây chính là bằng chứng cụ thể cho §12.6b:
 không cắt vùng nén ở lỗ hổng thì máy sẽ đếm "nến liên tiếp" xuyên qua 51 giờ chợ đóng cửa.
-
-**Một cái bẫy đã bắt được lúc chạy thật:** xin một khoảng **rời hẳn** dải đang có mà chỉ tải phần
-mới thì dải bị **thủng** ở giữa, và bộ chạy sẽ chạy xuyên qua chỗ thủng mà không biết. `khoang_thieu`
-vì thế luôn kéo khoảng trái tới tận đầu dải và khoảng phải từ tận cuối dải — thà tải thừa phần
-giữa, vì người dùng đã được báo số MB trước khi bấm.
 
 ### 12.12 ✅ BA LỖI CÓ SẴN của cửa sổ tester — ĐÃ SỬA
 
@@ -1510,7 +1509,7 @@ Cat_Studio là một bộ soạn thảo hoàn chỉnh và một bộ chạy **b�
 
 | Module | Trách nhiệm |
 |---|---|
-| ✅ `nguon_nen.py` | chỗ **duy nhất** biết MT5 tồn tại. Tải · cache · liệt kê · xoá · MB · `lo_hong()` |
+| ✅ `nguon_nen.py` | kho nến trên máy, CHỈ ĐỌC: đọc · liệt kê · xoá · MB · còn thiếu khoảng nào · `lo_hong()` |
 | ✅ `tinh_toan.py` | chỉ báo thuần: mảng nến → mảng `float64`. Warm-up trả **NaN**, không trả 0. Kèm `gop()` (M1 → M5/M15/H1) và `theo_truc()` (đưa cột khung lớn về trục quyết định) |
 | ✅ `khop_lenh.py` | mô hình sàn: đường đi 4 điểm, spread, gap. **Tách riêng** vì đây là thứ duy nhất đổi mà đổi cả đường vốn. Hàm THUẦN — không numpy, không sổ lệnh, không đồ thị |
 | ✅ `bo_chay.py` | biên dịch sơ đồ → chương trình phẳng, rồi vòng lặp nến |
@@ -1526,12 +1525,12 @@ khi viết giao diện.**
 
 Ngoài ra:
 
-- **Công thức ATR trong `kho/chi_bao.py` đang SAI** — ghi *"theo Wilder"*, nhưng `iATR` của MT5
-  (thứ D_02 thật sự gọi) là **SMA của True Range** (`Indicators/Examples/ATR.mq5:83,91`). Sai im
-  lặng và dây chuyền: ATR khác → `atr_bps` khác → nến nào là nến nén khác → số nến nén, thời
-  điểm xác nhận, đỉnh/đáy vùng, độ lớn 1R, TP lệch hết. **Cài theo MT5** và sửa luôn câu mô tả —
-  ngưỡng 7.0 bps được dò ra trên chính con số `iATR` trả về.
-  ✅ **Đã sửa mô tả**: `"SMA của True Range (đúng iATR của MT5 — KHÔNG phải Wilder)"`, kèm công
+- **Công thức ATR trong `kho/chi_bao.py` đang SAI** — ghi *"theo Wilder"*, nhưng ATR mà D_02
+  thật sự dùng là **SMA của True Range**. Sai im lặng và dây chuyền: ATR khác → `atr_bps` khác →
+  nến nào là nến nén khác → số nến nén, thời điểm xác nhận, đỉnh/đáy vùng, độ lớn 1R, TP lệch
+  hết. **Cài theo công thức D_02** và sửa luôn câu mô tả — ngưỡng 7.0 bps được dò ra trên chính
+  công thức đó.
+  ✅ **Đã sửa mô tả**: `"SMA của True Range (công thức D_02 dò ngưỡng — KHÔNG phải Wilder)"`, kèm công
   thức cửa sổ trượt `ATR[i] = ATR[i-1] + (TR[i] − TR[i-period]) / period` trong chú thích. Câu
   cảnh báo nằm ngay trong chuỗi hiển thị chứ không chỉ trong comment — hộp thoại Kho là chỗ
   người ta tra công thức, để cảnh báo ở comment thì không ai thấy. Bộ TÍNH thì vẫn chưa có.
@@ -1551,7 +1550,7 @@ Ngoài ra:
 
 `tests/test_doi_chieu_d02.py` in ra bảng này mỗi lần chạy. Cột quan trọng nhất là **có đổi số
 không** — thiếu nó thì chín dòng trông ngang nhau, trong khi chỉ bốn dòng đụng tới kết quả, và
-đúng bốn dòng đó mới cần lôi ra xem lại khi số không khớp MT5.
+đúng bốn dòng đó mới cần lôi ra xem lại khi số không khớp bản gốc.
 
 | # | Chỗ khác | Đổi gì |
 |---|---|---|
@@ -1564,18 +1563,18 @@ không** — thiếu nó thì chín dòng trông ngang nhau, trong khi chỉ b�
 Hai bài kiểm neo bảng này vào code thật để nó không trôi thành văn viết cho vui: **R4** đòi nhịp
 mẫu đúng M5/M1, **R5** đòi `rong_vung_atr` vẫn nằm trong cổng vào lệnh.
 
-### 12.13c Gộp khung — đã đối chiếu với MT5
+### 12.13c Gộp khung — đã đối chiếu với nến của sàn
 
 Gộp theo **BIÊN THỜI GIAN TUYỆT ĐỐI** (`t // 300`), KHÔNG phải đếm 5 nến một cụm. Dữ liệu M1
 thật đầy lỗ hổng, nên đếm cụm thì chỉ cần một nến thiếu là mọi nến M5 sau đó lệch pha khỏi biên
 thật của sàn — và không có gì báo cho biết.
 
-**Đã đối chiếu trên một tháng XAUUSD thật** với chính nến mà MT5 dựng: 5.994 nến M5 · 1.999 M15
+**Đã đối chiếu trên một tháng XAUUSD thật** với chính nến mà sàn dựng: 5.994 nến M5 · 1.999 M15
 · 501 H1, **lệch OHLC lớn nhất = 0**. Cùng số nến, cùng mốc thời gian, cùng giá.
 
 ⚠ **Ô CUỐI CÙNG bị BỎ nếu dữ liệu chưa chạy hết ô.** Đây là thứ phép đối chiếu trên lôi ra:
 dữ liệu M1 dừng đúng `2025-12-02 00:00` thì ô M5 `00:00–00:04` chỉ có 1/5 phút, và nến gộp ra
-lệch hẳn MT5 (close 4225.331 vs 4225.692). Giữ nó là bộ chạy đọc một cây nến **chưa đóng** như
+lệch hẳn nến của sàn (close 4225.331 vs 4225.692). Giữ nó là bộ chạy đọc một cây nến **chưa đóng** như
 thể đã đóng — đúng loại lỗi nhìn trước tương lai mà cả kiến trúc này dựng lên để tránh.
 
 Bỏ đúng ô CUỐI, không bỏ ô thiếu phút ở giữa: ô giữa thiếu vài phút vẫn là ô đã đóng thật (sàn
@@ -1654,7 +1653,7 @@ Hai chỗ sửa, cả hai nằm ở `bo_chay.ChuongTrinh`:
    sự nhận chu kỳ.
 
 Cùng lúc chốt luôn nghĩa của `shift`: **đếm ngược từ nến ĐÃ ĐÓNG**. Mọi cột ở đây vốn đã là "giá
-trị của nến đã đóng gần nhất", nên `nến[1]` (quy ước MT5) chính là **lệch 0**.
+trị của nến đã đóng gần nhất", nên `nến[1]` (quy ước của D_02) chính là **lệch 0**.
 
 Đo mức lệch: trung bình **1,34**, lớn nhất **56**, và **chiều xu hướng khác nhau trên 3,48 % số
 nến**. Thống kê cuối tình cờ không đổi mấy (548 lệnh, 99T/287B, −7,5R) — nhưng "tình cờ không đổi
@@ -1873,49 +1872,13 @@ Cái lợi kèm theo: cam đang mang hai nghĩa cùng lúc — "khối hành đ�
 
 Thân khối, viền, phông chữ, huy hiệu: **không đổi một pixel**.
 
-### 12.23 ✅ Bỏ nút "Tải thêm" — ▶ Chạy tự tải phần còn thiếu
+### 12.23 ⛔ ĐÃ BỎ (D-09) — ▶ Chạy tự tải phần nến còn thiếu
 
-Luật cũ ghi ở `nguon_uoc_tinh` là *"không bao giờ tải lén"*, và nó đẻ ra một nút. Luật vẫn đúng,
-chỉ là cách giữ nó sai: luật đúng phải là **"không bao giờ tải mà không NÓI"** — thanh tiến trình
-nói ra là đủ, không cần bắt bấm thêm một bước.
-
-Giờ `▶ Chạy` → `_tai_neu_thieu(symbol, tu, den)`:
-
-- `khoang_thieu` rỗng → **không đụng tới MT5 một lần nào**, chạy luôn.
-- Có thiếu → tải **đúng phần thiếu** (tải bổ sung, không tải lại từ đầu), chữ chạy vào chính thanh
-  loading đang có: `đang tải nến XAUUSD từ MT5 (≈4.1 MB)…` rồi `đang chạy 210.000/353.129 nến`.
-
-**Số MB thay cho hộp xác nhận.** Gõ nhầm `2015` thay vì `2025` thì thấy ngay `≈171.95 MB` mà đóng
-lại — không cần một hộp `confirm` nào, đúng thứ vừa bỏ đi.
-
-**Lỗi phải tự nói ra đang thiếu gì.** Trước đây lỗi MT5 rơi vào nút "Tải thêm" nên tự nó đã rõ;
-giờ nó rơi vào GIỮA một lần chạy. Đã kiểm bằng cách tắt `CO_MT5`:
-
-```
-Thiếu nến XAUUSD khoảng 2010-01-01 00:00 → 2016-08-09 00:00 và không tải được.
-Máy chưa cài thư viện MetaTrader5 (pip install MetaTrader5).
-```
-
-**⚠ Xin XA hơn thứ nguồn có thì phải DỪNG, không được chạy tiếp.** Tải xong mà đầu khoảng vẫn
-thiếu nghĩa là MT5 không có dữ liệu xa tới thế. Hai lý do phải ném lỗi:
-
-1. chạy tiếp trên khoảng ngắn hơn thì người dùng tưởng mình đang backtest từ 2015 trong khi thật
-   ra từ 2016;
-2. khoảng đó **không bao giờ lấp được**, nên mỗi lần bấm ▶ lại mở MT5 tải lại một lượt vô ích —
-   cái giá này chỉ xuất hiện *từ khi bỏ nút "Tải thêm"*, trước đó người dùng chỉ bấm Tải một lần
-   rồi thôi.
-
-Chỉ xét ĐẦU khoảng. Thiếu ở đuôi là chuyện thường (dữ liệu chỉ có tới hôm nay), chặn là vô lý.
-
-```
-MT5 không có nến XAUUSD sớm tới 2010-01-01 00:00.
-Nguồn chỉ có từ 2016-08-09 00:00 đến 2026-01-02 00:00.
-
-Sửa ô "Từ" ở Cài đặt → Strategy Test thành 2016-08-09 trở đi rồi chạy lại.
-```
-
-**Nút Xoá trong bảng nguồn thì Ở LẠI.** Tải là an toàn và đảo ngược được nên tự động; xoá thì
-không, phải do tay người bấm.
+Từng có: thiếu nến thì ▶ tự tải đúng phần thiếu rồi chạy tiếp. Đã bỏ cùng toàn bộ đường tải
+nến (§17) — app chỉ phục vụ QuantConnect, mà dữ liệu của QC không được mang về máy. Hai bài học
+của mục này vẫn giữ trong `api._kiem_du_nen`: khoảng rỗng phải chặn ngay (§13.4), và thiếu
+**phần đầu** khoảng thì DỪNG — chạy tiếp trên khoảng ngắn hơn là người dùng tưởng mình thử từ
+2015 trong khi thật ra từ 2016.
 
 ### 8.4 ⚠ LỖI: ba nút hộp thoại file đều chết vì một hằng số sai kiểu
 
@@ -2088,7 +2051,7 @@ core`, `kho/` dùng `from .. import so_lenh`). Ngoài gói — `app_web.py` và 
 thật mới lộ. Đây là loại lỗi mà "gom file cho gọn" hay kéo theo.
 
 `__init__.py` cố ý **không re-export gì**: `from cat_studio import core` phải nạp đúng một module,
-không kéo cả cây. Nạp `api` là kéo theo numpy và MetaTrader5, mà `tests/test_danh_so` chỉ cần
+không kéo cả cây. Nạp `api` là kéo theo numpy và cả lớp cửa sổ, mà `tests/test_danh_so` chỉ cần
 `core`.
 
 `.spec` chỉ đổi `hiddenimports` thành `cat_studio.kho.*`; `tools/*.bat` không phải sửa gì vì tất cả
@@ -2097,7 +2060,7 @@ không kéo cả cây. Nạp `api` là kéo theo numpy và MetaTrader5, mà `tes
 Kiểm: **9/9 bài qua**, đóng gói lại, giải nén sang thư mục khác chạy ra **547 lệnh · −10,50 R ·
 DD 0,91 % · vốn cuối 9955,04** — trùng từng con số với trước khi gom.
 
-### 13.4 ⚠ MÁY MỚI KHÔNG TỰ TẢI ĐƯỢC — chuỗi rỗng bị hiểu là "đã đủ"
+### 13.4 ⚠ CHUỖI RỖNG bị hiểu là "đã đủ" — máy mới bấm ▶ nhận câu lỗi sai bệnh
 
 Cài bản đóng gói lên máy mới, bấm ▶, nhận:
 
@@ -2120,19 +2083,12 @@ Một giá trị rỗng đi qua bốn tầng rồi biến thành một câu lỗ
 KHÔNG chạy, và lỗi đổ tội nhầm cho mã symbol"*, xếp mức `vua`. Nó nằm trong 25 phát hiện nhưng rơi
 khỏi danh sách 7 mục phải sửa, và tôi không rà lại. Tìm ra rồi vẫn để lọt thì công soát thành công cốc.
 
-**Ba chỗ sửa:**
+**Hai chỗ sửa** (chỗ thứ ba — một nút nối thử sàn trong Cài đặt — đã bỏ cùng MT5, §17):
 
 - **Mặc định khoảng = một năm gần nhất, tính theo HÔM NAY** (`_khoang_mac_dinh()`), không ghi cứng
   một mốc — ghi cứng thì sang năm người mới cài thấy một khoảng đã lỗi thời.
-- **Chặn khoảng rỗng ngay ở `_tai_neu_thieu`**, nói đúng bệnh: *"Chưa đặt khoảng thời gian để
-  chạy. Mở Cài đặt → Strategy Test và điền hai ô Từ / Đến."*
-- **Nút "Kiểm tra kết nối MT5" trong Cài đặt** (`nguon_nen.kiem_ket_noi`). Câu *"sao máy mới không
-  tải được?"* trước đây không có chỗ nào trả lời: người dùng chỉ gặp lỗi lúc bấm ▶, mà lúc đó đã
-  muộn. Giờ hỏi được TRƯỚC, và câu trả lời nói rõ: nối được chưa · terminal và tài khoản nào · sàn
-  có mã đó không — và nếu không có thì **liệt kê mã CÓ THẬT trên sàn đang nối**, bấm một cái là điền.
-  Thử tiền tố ngắn dần (6 → 4 → 3 ký tự) vì gõ nhầm một chữ ở giữa là lúc cần gợi ý nhất mà tìm
-  theo 6 ký tự lại hụt sạch. Hàm này **không bao giờ ném**: mọi hỏng hóc đều là một câu trả lời.
-
+- **Chặn khoảng rỗng ngay ở `_tai_neu_thieu`** (nay là `_kiem_du_nen`), nói đúng bệnh: *"Chưa
+  đặt khoảng thời gian để chạy. Mở Cài đặt → Strategy Test và điền hai ô Từ / Đến."*
 ### 13.1 ✅ ĐÓNG GÓI — đã build và chạy thật
 
 ```bat
@@ -2158,7 +2114,7 @@ kéo theo rác.
 Ra `dist/Cat_Studio/` — **66 MB · 211 file** — và `Cat_Studio-windows.zip` để đưa sang máy khác.
 
 **Chọn `onedir` chứ không `onefile`** — quyết định, không phải mặc định. `onefile` giải nén TOÀN BỘ
-gói (numpy + cây DLL .NET của pythonnet + MetaTrader5) vào thư mục tạm ở MỖI lần mở: vài giây chờ
+gói (numpy + cây DLL .NET của pythonnet) vào thư mục tạm ở MỖI lần mở: vài giây chờ
 trước khi thấy cửa sổ, lần nào cũng vậy, mà chẳng đổi lại được gì. `onedir` mở gần như tức thì.
 
 **Hai thư mục, không được trộn** — đây là chỗ dễ hỏng nhất và đã tách hẳn thành hai hàm có tên:
@@ -2325,7 +2281,7 @@ có 271 lỗ hổng nên `(t − t_đầu) / 60` ra một chỉ số lệch hẳ
 
 **Ba cái bẫy, cả ba đều đã cắn:**
 
-1. **Giờ UTC.** Nến MT5 là giờ sàn và cả app hiển thị nguyên như thế. Để `Date` tự định dạng là nó
+1. **Giờ UTC.** Nến trong kho là giờ sàn và cả app hiển thị nguyên như thế. Để `Date` tự định dạng là nó
    cộng lệch múi giờ máy — ô nhập lệch vài tiếng so với chính cái đồng hồ ngay cạnh nó. Dựng và
    đọc chuỗi bằng tay theo UTC.
 
@@ -2386,8 +2342,8 @@ Thiết kế Strategy Tester đã chốt hết ở §12. Còn lại là **việc
 - [x] ~~Lỗi soát khi hai đầu nhánh lệch dưới 8 px~~ — xong, `core.LECH_TOI_THIEU`
 - [x] ~~Cập nhật `test_doi_chieu_d02.py`~~ — giờ **9 chỗ cố ý khác**, mỗi chỗ gắn nhãn có
       ĐỔI SỐ hay không (`SỐ LỆNH` · `GIÁ & P&L` · `không`); 4 chỗ đổi số
-- [x] ~~`nguon_nen.py`~~ — xong, đã tải thật 30k nến XAUUSD; 22 bài kiểm không cần MT5
-- [x] ~~`tinh_toan.py`~~ — xong. **Gộp M1→M5/M15/H1 trùng khít MT5 tới từng chữ số** trên
+- [x] ~~`nguon_nen.py`~~ — xong, chạy thật trên 30k nến XAUUSD (nay chỉ đọc, §17)
+- [x] ~~`tinh_toan.py`~~ — xong. **Gộp M1→M5/M15/H1 trùng khít nến của sàn tới từng chữ số** trên
       một tháng dữ liệu thật (5.994 nến M5 · 1.999 M15 · 501 H1, lệch OHLC = 0)
 - [x] ~~`khop_lenh.py`~~ — xong, 30 bài kiểm từng ca tính tay được
 - [x] ~~`bo_chay.py`~~ — xong: biên dịch, vòng lặp M1, Manage/Entry theo nhịp, nhật ký
@@ -2401,3 +2357,455 @@ Chưa liên quan tới tester:
 - [ ] **Chồng lệnh** — D_02: nhiều VỊ THẾ (`Max_Positions`) nhưng đúng MỘT lệnh chờ. Giữa hai lần vào lệnh bắt buộc có một đợt ATR bung ra (`CONSUMED` chỉ thoát bằng `atr_bps ≥ N`).
 - [ ] Có cần `HOẶC` giữa các điều kiện không? *(đang thiết kế: **không** — dùng nhiều nhánh, vì "hoặc" giấu trong hộp thoại thì nhìn sơ đồ không thấy)*
 - [ ] Đóng gói `.exe` (PyInstaller) — chưa làm spec.
+
+---
+
+## 14. ⭐ CẦU NỐI QUANTCONNECT (slice 2a) — bộ luật y hệt, chỉ thay ống nước
+
+> Theo `DECISIONS.md` D-01…D-04. Động cơ cũ còn làm Strategy Tester chạy tại máy và làm
+> CHUẨN đối chiếu cho cầu nối; MT5 đã gỡ (D-09, §17).
+
+**Một câu:** sơ đồ chạy trên dữ liệu và chỉ báo của QuantConnect mà bộ luật KHÔNG đổi một
+dòng — `_chay_so_do`, `_xet_cong`, `_vao_lenh`, `_sua_lenh`, `_nuoi_zone` được GỌI LẠI
+nguyên văn từ `bo_chay`. Cầu nối chỉ thay chỗ dữ liệu đi vào.
+
+| | Bộ chạy cũ | Cầu nối (`lean/cat_lean.py`) |
+|---|---|---|
+| Nến | M1 trong kho trên máy, đọc cả năm | M1 từ QC, tới từng cây |
+| Chỉ báo | `tinh_toan` tính trước cả mảng | chỉ báo LEAN, lớp vỏ đẩy vào từng nến |
+| Spread | ô nhập cố định | Bid/Ask thật của từng nến (`CaiDatQC.spread_gia`) |
+| Khớp lệnh | đường đi 4 điểm | VẪN đường đi 4 điểm — đổi sang LEAN ở slice 2b |
+
+`ChuongTrinhQC` kế thừa `ChuongTrinh`, chỉ thay `_dung_truc` (trục lớn dần) và
+`_xin_cot` (ghi danh khoá thay vì tính cột). `doc_cot` của lớp cha chạy nguyên văn trên
+list — nên quy ước `shift` không thể lệch với bộ cũ.
+
+**Bằng chứng, không phải niềm tin:** `tests/test_cat_lean.py` cho bộ cũ và cầu nối chạy
+trên CÙNG nến, CÙNG giá trị chỉ báo → nhật ký, sổ lệnh, bảng tổng kết trùng khít tới từng
+byte, trên ba bộ dữ liệu giả đi đủ mọi nhánh của sơ đồ mẫu (bài tự kiểm độ phủ).
+
+### 14.1 Hai chỗ khác bộ cũ — CỐ Ý
+
+1. **Nến trục xếp hàng.** Dữ liệu nối lại sau lỗ hổng đúng phút CUỐI của một ô (ô trước
+   lại mất phút cuối) thì hai nến trục cùng đóng trong một nhịp M1. `la_nhip5` của bộ cũ
+   chỉ bật MỘT lần → cây trước không bao giờ được chạy Entry, cổng zone không được xét.
+   Trái với chính lời hứa "mỗi nến trục có ĐÚNG MỘT nhịp" ở `_dung_truc`. Cầu nối chạy
+   từng cây theo thứ tự. ⚠ **Bộ cũ còn mang lỗi này** — chưa sửa vì nó sắp được thay
+   (D-01); bài kiểm ghi lại đúng ca đó để không ai tưởng là trùng khít.
+2. **Spread sống** — mọi chỗ đọc spread vẫn đọc qua đúng một cửa, chỉ đổi nguồn.
+
+### 14.2 Gói dán lên QC
+
+Gói Free không có API (D-02) và giới hạn **mỗi file 32 KB** (Researcher 64 · Team 128) —
+riêng `core.py` đã 113 KB. `tools/dong_goi_lean.py` vì thế:
+
+- **làm gọn** từng module trên TỪNG TOKEN: bỏ comment, docstring → `pass`. Không đụng một
+  token code nào, và **giữ số dòng** mọi câu lệnh — lỗi báo trên QC ở `core.py` dòng N
+  là đúng dòng N trong repo;
+- nén lzma + base85, chia vào `main.py` + `nguon_*.py` dưới trần (hiện: 2 file);
+- **soát sơ đồ tại máy** trước khi đóng gói — lỗi biên dịch nổ ở đây kèm nhãn khối, không
+  nổ sau 15 giây dựng máy trên cloud;
+- gắn **mã gói** vào mọi file — dán lệch lần đóng gói là báo ngay, chỉ đúng file.
+
+Khung H4/D1 bị chặn: biên nến của chúng đặt theo giờ của sàn đã dựng nến, mà giờ đó và giờ
+dữ liệu QC không trùng — chạy là ra nến khác cây, lệch im lặng.
+
+### 14.3 Một giả định về LEAN — tự khai đúng sai mỗi lần chạy
+
+Giả định: consolidator phát nến khung TRƯỚC `on_data` của nến M1 khép nó. Nếu sai, mọi
+lượt Entry chạy trễ một nhịp. Dòng tổng kết vì thế in **"lượt Entry … (trễ N)"**: bình
+thường N cỡ vài chục (phút cuối ô bị thủng); N xấp xỉ số nến trục là giả định sai.
+
+## 15. ⭐ CHẠY TRÊN QC QUA API (slice 3) — một lệnh, không mở web QC
+
+> Theo `DECISIONS.md` D-06: gói Researcher, app tự gọi API, khoá là bí mật. Chưa có nút
+> trong app — slice này là công cụ dòng lệnh. Nút ▶ trên giao diện sẽ gọi ĐÚNG hàm
+> `qc_api.chay` này, không viết lại.
+
+`tools\chay_qc.bat [file sơ đồ] [--tu YYYY-MM-DD --den YYYY-MM-DD]` làm trọn một lượt ▶:
+
+| Bước | Làm gì |
+|---|---|
+| Đóng gói | y §14.2, trần 62 000 byte/file (Researcher 64 KB) → hiện vừa MỘT file `main.py` ~53 KB |
+| Project | tìm «Cat Studio/<tên sơ đồ>» trên QC, chưa có thì tạo (Python) — mọi cỗ máy chung một thư mục |
+| File | file đã có → ghi đè, chưa có → tạo, `nguon_*.py` thừa của lần đóng gói trước → XOÁ |
+| Biên dịch → backtest | hỏi trạng thái thưa dần 0,25 → 1 → 2 → 5 → 10 giây, y LEAN CLI |
+| Nhật ký | tải từ Object Store về `du_lieu/nhat_ky/<tên>-<vân tay>.jsonl` — `nhat_ky.doc_file` mở được |
+| In | hai dòng tổng kết y log của QC (`cat_lean.dong_ket_qua`, chung một hàm) + vốn + link QC + đường dẫn nhật ký |
+
+`cat_studio/qc_api.py` là chỗ DUY NHẤT trong app biết QuantConnect tồn tại; lõi không
+import nó. Chỉ dùng thư viện chuẩn. Từng điểm API (tên,
+GET hay POST, tham số, cách đọc lỗi, khi nào coi backtest là xong) đối chiếu với mã nguồn
+LEAN CLI — công cụ dòng lệnh chính thức của QC, mã nguồn mở — không đoán.
+
+### 15.1 Khoá
+
+- Đọc từ hai biến môi trường `QC_USER_ID` + `QC_API_TOKEN`; thiếu một trong hai thì đọc
+  `du_lieu/qc_khoa.json` (`{"user_id": "...", "token": "..."}`). `du_lieu/` nằm trong
+  `.gitignore` — bài kiểm canh đúng dòng đó.
+- Khoá có **toàn quyền tài khoản, kể cả giao dịch thật**. App chỉ dùng nó để chạy backtest, và không
+  bao giờ: in ra, đưa vào câu lỗi hay `repr`, gửi đi dạng thô (chỉ gửi băm
+  `sha256(token:giờ)`, y LEAN CLI), gửi kèm link tải (link Object Store là link ký sẵn).
+- Dấu giờ trong băm luôn là giờ THẬT — đồng hồ giả chỉ dùng để đo hạn chờ trong bài kiểm.
+  (Lỗi bắt được lúc viết bài kiểm: một đồng hồ dùng cho cả hai việc thì giả hạn chờ là hỏng
+  luôn xác thực.)
+
+### 15.2 Một khoá Object Store cho cả hai đầu
+
+Cầu nối trên cloud GHI nhật ký vào khoá `nhat_ky.khoa_qc(doc)`; app ĐỌC về từ chính hàm
+đó — hai bên không thể lệch tên. Khoá chỉ có ASCII: nó đi qua URL và thành tên file trong
+zip QC gửi về. Lớp vỏ ghi bản chữ `<khoá>.b64` khi `save_bytes` hỏng → app thử cả hai.
+File vừa ghi lúc backtest kết thúc có khi vài giây sau mới hiện → hỏi lại sau 2, 4, 8 giây
+rồi mới chịu thua.
+
+### 15.3 Hỏng thì nói bằng lời
+
+Mọi lỗi là `LoiQC` (khoá: `LoiKhoa`) — một câu tiếng Việt nói phải làm gì. Công cụ in câu
+đó, mã thoát 1, không traceback: ngày gõ sai và thiếu khoá (báo NGAY, chưa đóng gói hay gửi
+gì) · khoá sai (QC trả
+"Hash doesn't match", hoặc 500 hai lần liền — LEAN CLI cũng coi vậy) · User ID sai · mất
+mạng · 5xx khác (thử lại đúng một lần) · biên dịch hỏng (kèm 12 dòng log cuối) · backtest
+lỗi (kèm vết lỗi + link) · thiếu nhật ký (kèm lời QC + link log) · chờ quá hạn. Lỗi xảy ra
+TRÊN cloud — vd. câu "Project THIẾU file nguon_1.py" của gói — về tới người dùng nguyên văn.
+
+### 15.4 Bằng chứng — và chỗ chưa có bằng chứng
+
+`tests/test_qc_api.py` dựng một **máy chủ QC GIẢ** trên 127.0.0.1, nói đúng giao thức LEAN
+CLI nói, và **CHẠY THẬT bộ file được đẩy lên** trong một Python sạch như QC chạy → nhật ký
+tải về trùng khít từng lượt, từng lệnh với chạy cầu nối ngay tại máy. Canh cả lượt sau
+(dùng lại project, dọn file thừa khi nâng từ Free 2 file lên Researcher 1 file) và mọi đường
+hỏng ở §15.3. Đột biến từng chỗ trong `qc_api` / `chay_qc` (bỏ thử lại, bỏ chờ thống kê,
+lộ khoá, bỏ dọn file…) → bài kiểm bắt được.
+
+⚠ **Chưa chạy trên QC thật** — môi trường phát triển không ra được quantconnect.com. Ba
+điều chỉ QC thật trả lời được: (1) khoá thuật toán ghi có hiện ra Y NGUYÊN ở Object Store
+cấp tổ chức không, và `object/get` với khoá chưa có trả về gì (máy giả: báo lỗi → app hỏi
+lại; QC trả zip rỗng thì app cũng hỏi lại, cùng kết cục); (2) Object Store của gói
+Researcher có nhận một nhật ký cỡ chục MB không (D-03 còn treo); (3) một lượt thật mất bao
+lâu — tiêu chí của slice là ~1 phút. Hỏng ở (1) hay (2) thì công cụ in khoá + link log của
+backtest, dòng «Object Store» trên log nói lý do.
+
+## 16. ⭐ MÀN CHƠI TRONG APP (slice 4) — vòng chơi D-05 chạy trên QuantConnect
+
+> Theo `DECISIONS.md` D-05 · D-06 · D-07 · **D-08 (đề xuất — luật chấm cụ thể)**.
+
+**Một câu:** nút **◆ Màn chơi** (ribbon, Ctrl+M, File → Mở Màn chơi) mở cửa sổ thứ tư —
+Chiến dịch (màn, boss, ▶ nhanh / ▶ đầy đủ / Nộp, sao) và Sáng tạo (mọi symbol, mọi khoảng
+ngày). Mọi lượt chạy trên QuantConnect qua API (§15), không mở web QC.
+
+| Lớp | File | Việc |
+|---|---|---|
+| Luật chơi | `cat_studio/game.py` | màn · boss · `cham` · `sao` · `do_gon` · sổ `du_lieu/game.json` |
+| Việc nền | `cat_studio/qc_chay.py` | `ViecQC`: soát → đóng gói → `qc_api.chay` → chấm → ghi sổ; `KetQuaQC` dựng lại từ nhật ký |
+| Đóng gói | `cat_studio/goi_qc.py` | chuyển từ `tools/dong_goi_lean.py` (giờ là vỏ dòng lệnh) để app gọi được; `.spec` mang nguồn theo |
+| Vỏ API | `api.ApiQC` + `Api.mo_qc` | 15 hàm `qc_*` cho JS — mỏng, không luật nào |
+| Giao diện | `webui/src/qc/ManChoi.tsx`, `HopKhoa.tsx` | thẻ màn · tiến độ · kết quả · tab Vì sao / Thống kê / Lệnh / Điểm / Lịch sử · hộp khoá |
+
+### 16.1 Màn ẩn là ẩn (D-06)
+
+`game.man_cong_khai` không mang ngày màn ẩn. Lượt **Nộp** trả về chỉ con số tổng — không
+ngày, không link QC, không đường vốn, không lượt, không lệnh; lịch sử ghi nó không ngày;
+tên backtest trên QC ghi "màn ẩn" chứ không ghi ngày; không mở lại được để xem từng nến.
+Nộp đòi một lượt ▶ đầy đủ của ĐÚNG cỗ máy đó (cùng vân tay `nhat_ky._van_tay`).
+
+### 16.2 Không nến — nhật ký tự mang giờ
+
+Mang chuỗi giá của QC về máy là trái điều khoản dữ liệu của QC, nên cửa sổ này KHÔNG có
+chart nến. Bù lại, cầu nối ghi thêm (chỉ lúc ghi, bản ghi trong bộ nhớ vẫn trùng khít bộ
+cũ): `t` trên mỗi lượt, `t_dat/t_khop/t_dong` trên mỗi lệnh, và meta có `duong_von`,
+`gia_dau/gia_cuoi/mua_giu_pt` (đủ chấm boss — hai con số, không phải chuỗi giá), `tu/den`.
+Thuật toán đặt múi giờ **UTC** (`vo_qc.initialize`) — giờ in ra là giờ thật. `nhat_ky.dong_chu`
+đọc `t` trên bản ghi khi có, nên tab Vì sao và "Xem trên sơ đồ" dùng lại nguyên văn bộ dựng
+chữ của tester; tab Thống kê dùng lại `ThongKe` (thêm prop `du`).
+
+### 16.3 Mỗi lượt một khoá Object Store
+
+App đặt khoá RIÊNG cho từng lượt (`nhat_ky.khoa_qc(doc, ma_luot)`), nhúng vào
+`CAU_HINH["khoa"]`; cầu nối ghi đúng khoá đó (`cat_lean.khoa_luu`); app tải về xong thì
+XOÁ khỏi Object Store. Lượt nào lưu hỏng thì app không thể nhặt nhầm nhật ký của lượt trước,
+và Object Store không đầy dần. Đường dán tay (không có `khoa`) vẫn dùng khoá theo sơ đồ.
+
+### 16.4 Bằng chứng
+
+- `tests/test_game_qc.py` — luật chấm, màn ẩn là ẩn, luật nộp, việc nền (một lượt một lúc,
+  tiến độ, lỗi thành lời), xem lại, Sáng tạo, và **vỏ `ApiQC`** — trên máy chủ QC giả
+  (`tests/qc_gia.py`, dùng chung với `test_qc_api.py`) chạy THẬT bộ file đẩy lên.
+- `webui/kiem/man_choi.mjs` — cửa sổ Màn chơi trong Chromium với bề mặt Python giả, bấm
+  trọn vòng chơi (cần Playwright; không có thì tự bỏ qua).
+- Lúc làm còn chạy một phép kiểm ĐẦU–CUỐI ngoài repo: Chromium gọi thẳng `api.Api`/`ApiQC`
+  THẬT qua một cầu HTTP, Python gọi máy chủ QC giả — cửa sổ vẽ → ◆ Màn chơi → khoá →
+  ▶ nhanh → Vì sao → soi → ▶ đầy đủ → Nộp → Lịch sử: 19/19, không lỗi console. Nó bắt được
+  hai lỗi thật: cụm nút ribbon rớt dòng đẩy ▶ Test ra ngoài, và kết quả xem lại thiếu thông
+  tin lượt.
+- `cat_studio/khung_rong.py`: ngoài Windows, `api.py` nạp bản khung rỗng thay
+  `khung_cua_so` (vốn gọi `ctypes.windll` lúc nạp) — năm bài kiểm từng chỉ chạy được trên
+  Windows giờ chạy được trên Linux/CI. `webui/kiem/o_so.mjs` đổi sang `fileURLToPath` —
+  bài ô số cũng chạy được trên Linux.
+
+⚠ **Chưa chạy trên QC thật** — như §15.4. Thêm một điều chỉ QC thật trả lời: `set_time_zone(UTC)`
+có đổi gì ngoài giờ in ra không (biên nến M5–H1 thì không, vì lệch nguyên giờ).
+
+## 17. ⛔ BỎ MT5 — app chỉ phục vụ QuantConnect
+
+> Theo `DECISIONS.md` **D-09 (chốt)**. Chủ dự án: *"xóa sạch dấu vết của MT5 ra khỏi app,
+> vì bây giờ trò chơi chỉ phục vụ cho QuantConnect"*.
+
+**Đã gỡ:**
+
+| Thứ | Ở đâu (trước) |
+|---|---|
+| Cửa sổ **Live** — chạy sơ đồ trên tài khoản MT5, đo sức khoẻ kết nối, hiệu chuẩn, đề phòng | `api.ApiLive` · `api.mo_live` · `phien_live.py` · `ket_noi.py` · `gui_lenh.py` · `webui/src/live/` · nút ● Live · Ctrl+L · File → Mở Live |
+| **Tải nến** từ terminal MT5 (tự tải khi bấm ▶, ước tính MB, ghép lô, ghi nguyên tử) | `nguon_nen.tai` & cùng họ · `api._tai_neu_thieu` |
+| Nút **Kiểm tra kết nối MT5** trong Cài đặt | `nguon_nen.kiem_ket_noi` · `api.nguon_kiem_ket_noi` |
+| Thư viện `MetaTrader5` | `requirements.txt` · `Cat_Studio.spec` · hướng dẫn trong gói phát hành |
+| Cột `ticket` (mã lệnh của sàn) trong sổ lệnh | `so_lenh.Lenh` |
+| Tham số chỉ cửa sổ Live dùng (xin đuôi nến, lấy đoạn cuối, trần nến riêng) | `ApiTester.test_nen_tf` · `test_doan` · `Chart.tranNen` |
+| Bài kiểm tầng gửi lệnh trên sàn giả | `tests/test_gui_lenh.py` |
+
+**Còn lại:** Strategy Tester chạy tại máy trên những bộ nến **đã có** trong `du_lieu/nen/`
+(kho chỉ đọc: liệt kê · xoá · còn thiếu khoảng nào). Thiếu phần ĐẦU khoảng đã đặt thì ▶ dừng và
+nói rõ thiếu khoảng nào, máy đang có khoảng nào; máy chưa có bộ nến nào thì tester không chạy được.
+Bộ chạy cũ (`bo_chay`) vẫn là chuẩn đối chiếu của cầu nối QuantConnect (`test_cat_lean`).
+
+Chú thích từng nhắc "khớp MT5" nay nói đúng điều nó canh: **công thức D_02 đã dò** (ATR = SMA của
+True Range; MA mồi bằng SMA; `nến[1]` = nến vừa đóng; nến dựng bằng giá Bid).
+
+**Còn trên máy người dùng** (ngoài repo, app không đọc nữa): `du_lieu/ho_so_ket_noi.json` — hồ sơ
+kết nối của cửa sổ Live cũ. Xoá tay được, không ảnh hưởng gì.
+
+## 18. ⛔ BỎ STRATEGY TESTER — lối chạy duy nhất là ◆ Màn chơi
+
+> Theo `DECISIONS.md` **D-10 (chốt)**, phần 1 trong 7 phần xây cỗ máy 5 trạm. Chủ dự án:
+> *"đồng ý cả 3, xoá luôn tester, xây 5 trạm đi"*.
+
+**Vì sao:** tester chạy tại máy trên nến tại máy, mà nến của QuantConnect không được mang về
+(D-08) — giữ nó là giữ một thế giới thứ hai với bộ khớp lệnh riêng, lệch luật với nơi cỗ máy
+thật sự chạy. Khớp lệnh từ nay là việc của QC (D-10).
+
+**Đã gỡ:**
+
+| Thứ | Ở đâu (trước) |
+|---|---|
+| Cửa sổ **Strategy Tester** — chart nến phát lại, bảng số liệu, đường ray lệnh, nút nhảy sự kiện, lịch sử các lần chạy, "so với lần trước" | `api.ApiTester` · `api.mo_tester` · `webui/src/tester/` (`Tester`, `Chart`, `BangSoLieu`, `LichSu`, `NutChart`) · `main.tsx ?tester=1` |
+| Nút **▶ Test**, mục **File → Mở Strategy Tester**, việc của **Ctrl+R** | `Ribbon` · `App` — Ctrl+R vẫn bị CHẶN (mặc định Chromium là nạp lại trang, mất sơ đồ đang vẽ) |
+| **Cài đặt → Strategy Test** (symbol, khoảng ngày, spread, vốn, phí, đòn bẩy, delay) và bảng **nến trên máy** | `SettingsDialog` · `api.save_test_settings` · `api.nguon_xoa` · `luu_tru.CAI_DAT_MAC_DINH["test"]` |
+| **Kho nến trên máy** và **lịch sử chạy** | `cat_studio/nguon_nen.py` · `cat_studio/lich_su.py` · `luu_tru.thu_muc_nen` · mục "Nến đã tải" trong hộp Kho |
+| Hàm nhật ký chỉ tester dùng | `nhat_ky.dung_lo_theo_nen` (phát lại) · `nhat_ky.so_hai_lan` |
+| Thư viện vẽ chart nến | `lightweight-charts` (package.json) |
+| Bài kiểm của những thứ trên | `tests/test_nguon_nen.py` · các mục nhảy sự kiện / đường ray / phát lại trong `test_nhat_ky`, hộp zone trên chart trong `test_zone` |
+
+**Chuyển chứ không bỏ** (Màn chơi đang dùng):
+
+- Ba bảng dưới — vỏ bảng `BangDuoi`, nhật ký «Vì sao» `Journey`, `ThongKe` → `webui/src/chung/`.
+  `Journey` bỏ phần theo con trỏ phát lại; `ThongKe` chỉ nhận dữ liệu đưa sẵn.
+- Gói **soi một lượt lên sơ đồ** → `nhat_ky.ban_soi` (một chỗ dựng, `KetQuaQC.soi` gọi; bài kiểm
+  hợp đồng "một vết cho mỗi điều kiện" nằm ở `test_nhat_ky` mục 6).
+- Kiểu **một cây nến** → `tinh_toan.DTYPE` (bộ chạy cũ và bài kiểm của nó cần tới phần 7).
+- Chế độ **Sáng tạo** của Màn chơi lấy mã mặc định từ Cài đặt → **Mã mặc định**, vốn 10.000.
+
+Cài đặt cũ trong `du_lieu/cai_dat.json` tự rơi khoá `test` ở lần mở app sau (`doc_cai_dat` chỉ
+giữ khoá còn trong bảng mặc định). Lỗi ngày 29/2 của khoảng ngày mặc định biến mất theo.
+
+**Còn trên máy người dùng** (ngoài repo, app không đọc nữa): `du_lieu/nen/` (bộ nến M1 cũ) và
+`du_lieu/lich_su/` nếu có. Xoá tay được, không ảnh hưởng gì.
+
+## 19. ⭐ CỖ MÁY 5 TRẠM — lõi (D-10, phần 2)
+
+> Từ điển: `cat_studio/tram.py` (chỉ KHAI). Định dạng, chuẩn hoá, soát lỗi, đánh số, chữ trên
+> khối: `cat_studio/may.py`. Bài kiểm: `tests/test_may.py`. Chưa có trên giao diện — trình vẽ là
+> phần 5, bộ máy chạy là phần 3.
+
+**Một cỗ máy = năm sơ đồ khối**, đúng năm phần trong khung thuật toán của QuantConnect. Luật gốc:
+*một sơ đồ = một phạm vi chạy* — mỗi trạm chạy lại từ khối Bắt đầu cho TỪNG đối tượng trong phạm
+vi của nó, theo lịch của nó.
+
+| Trạm | QC | Hỏi câu gì | Chạy cho ai | Lịch | Ra cái gì |
+|---|---|---|---|---|---|
+| ① Chọn mã | Universe Selection | Mã nào đáng để mắt tới? | mỗi mã của màn (hoặc danh sách riêng) | một lần lúc đầu · mỗi ngày · đầu tuần · đầu tháng | rổ mã — Gom giữ N mã điểm cao nhất |
+| ② Tín hiệu | Alpha | Lên, xuống, hay đứng ngoài? | mỗi mã trong rổ | mỗi nến (khung) | tín hiệu có thời hạn, độ tin cậy, trọng số |
+| ③ Chia vốn | Portfolio Construction | Mỗi mã bao nhiêu phần vốn? | mỗi mã có tín hiệu hoặc đang giữ | khi tín hiệu đổi · mỗi ngày · đầu tuần · đầu tháng | tỷ trọng mục tiêu — Gom chia ngân sách |
+| ④ Rủi ro | Risk Management | Có gì phải cắt ngay? | mỗi mã đang giữ | mỗi nến (khung) | mục tiêu đã chỉnh |
+| ⑤ Khớp lệnh | Execution | Lệnh gì, lúc nào? | mỗi mã còn lệch mục tiêu | mỗi nến (khung, mặc định M1) | lệnh gửi sang QC |
+
+**Ngữ pháp chung — y hệt sơ đồ cũ, dùng lại nguyên bộ đồ thị của `core`:** khối Bắt đầu (mang
+lịch, khung, và ở ① phạm vi) · khối **Hỏi** (`type = check_cond`, nên `core.is_branch_gate` nhận
+ra nó là cổng) · khối **Làm**. Hỏi nối tiếp = VÀ; nhiều nhánh = HOẶC, thử từ trên xuống theo vị
+trí trên canvas; luật lùi; đánh số `1 · 1A · 1A.1` riêng cho từng trạm. Câu báo lỗi đồ thị gọi
+cổng là «Hỏi» (`core.validate_flow_graph(…, nhan_cong=…)`).
+
+**Khối Làm — chỗ DUY NHẤT các trạm khác nhau:**
+
+| Trạm | Khối Làm |
+|---|---|
+| ① | Cho vào rổ (điểm = một đại lượng, tuỳ chọn) · Loại khỏi rổ |
+| ② | Báo tín hiệu: LÊN / XUỐNG / ĐỨNG NGOÀI · hạn N nến · tin cậy 0–1 · trọng số 0–1 |
+| ③ | Đặt tỷ trọng: cố định X% / chia đều / theo tin cậy / theo trọng số / rủi ro ngang nhau · Về 0 · Giữ nguyên |
+| ④ | Đưa về 0 · Giảm về X% · Cấm vào lại N nến (khối PHỤ) · Dừng cả tài khoản |
+| ⑤ | Lệnh thị trường (X% phần lệch — dưới 100% là chia nhỏ) · Lệnh giới hạn / Lệnh chờ stop (cách giá X%, hạn N nến) · Chờ |
+
+Mỗi khối Làm có **vai**: `quyet_dinh` (chốt kết quả cho đối tượng đang xét) hoặc `phu` (đi kèm
+một quyết định). Hai quyết định trên CÙNG một đường là lỗi — cái sau lặng lẽ đè cái trước; báo ở
+khối sau, gợi ý tách thành hai nhánh.
+
+**Đại lượng khối Hỏi đọc được** (`tram.TOAN_HANG`, 42 cái): giá (mở/cao/thấp/đóng, khối lượng,
+giá trị giao dịch) · chỉ báo (SMA, EMA, WMA, RMA, ATR, ATR %, RSI, MACD, Bollinger, Đổi giá %,
+Donchian, ADX, Stochastic, độ lệch chuẩn, KL trung bình, giá trị GD trung bình) · thời gian & tài khoản — đọc được ở mọi
+trạm; **tín hiệu** chỉ ở ③; **vị thế** (tỷ trọng, lãi/lỗ, rơi từ đỉnh, số nến đã giữ) ở ③④⑤ theo
+từng cái; **khớp lệnh** (lệch mục tiêu, spread, lệnh đang chờ) chỉ ở ⑤. Mỗi đại lượng có ĐƠN VỊ
+(giá · % · số · nến · tiền); so hai đại lượng khác đơn vị là lỗi. Vế phải là một con số, một
+tham số, hoặc một đại lượng nhân hệ số (`Giá đóng(D1) > SMA(D1, 200) × 1.02`). `lui = 0` là nến
+VỪA ĐÓNG — bộ máy chạy lúc đóng nến, nên không có nến đang chạy nào để nhìn trộm tương lai.
+
+**Gom** — bước cuối của trạm, chạy một lần cho cả trạm: ① giữ tối đa N mã, điểm cao hay thấp
+nhất · ③ giữ tiền mặt X%, trần mỗi mã Y%, chỉ mua (không bán khống). Tỷ trọng cố định lấy trước;
+các cách tương đối (chia đều, theo tin cậy, rủi ro ngang nhau) chia nhau phần ngân sách còn lại.
+
+**Soát lỗi** (`may.soat` → `[{severity, tram, step, index, message}]`):
+
+- đồ thị: toàn bộ luật của `core.validate_flow_graph`; trạm thiếu khối Bắt đầu là LỖI (không biết
+  chạy lúc nào, cho ai);
+- khối Làm đặt sai trạm · đại lượng không đọc được ở trạm này (câu báo nói trạm nào đọc được) ·
+  hai vế khác đơn vị · MACD nhanh ≥ chậm · hệ số nhân bằng 0;
+- ô số: con số hoặc tên tham số có thật; tên tham số thì soát GIÁ TRỊ của tham số (nguyên? trong
+  khoảng?) — chính con số ấy mới là thứ bộ máy dùng;
+- ①②③⑤ phải có khối ra kết quả được nối tới từ Bắt đầu, không thì cỗ máy không bao giờ giao dịch;
+  ④ được để trống (không quản rủi ro là một lựa chọn — QC cũng mặc định vậy);
+- Gom sai khoảng; ① giữ N mã mà «Cho vào rổ» không có điểm → cảnh báo;
+- giữa hai trạm: ③ chia theo tin cậy / trọng số mà ② không khối Báo nào đặt thứ đó → cảnh báo.
+
+**Chuẩn hoá BẤT BIẾN** (hai lần bằng một lần, qua JSON không đổi, không sửa dict truyền vào).
+Ô bỏ trống của đại lượng nhận mặc định — khung = khung khối Bắt đầu của trạm — và thẻ khối HIỆN
+con số đó, nên không có gì bị giấu. Khối LẠ được GIỮ để soát lỗi gọi tên nó (vứt đi là cắt đôi
+chuỗi nối dây trong im lặng — đúng lỗi bản Entry/Manage từng dính). Cỗ máy của bản mới hơn thì
+từ chối mở.
+
+**Chữ trên khối** do Python dựng (`may.dong_khoi`, `may.kem_the`): `Mỗi nến H1 · cho mỗi mã trong
+rổ`, `EMA(H1, 20) > EMA(H1, 50)`, `RSI(H1, 14) > nguong_rsi = 70`, `LÊN · hạn 24 nến`,
+`khớp ngay toàn bộ phần lệch`. Thẻ mang nhãn đánh số, màu theo vai (`start` · `hoi` · `lam`).
+
+## 20. ⭐ BỘ MÁY CHẠY CỖ MÁY 5 TRẠM (D-10, phần 3)
+
+> `chuoi_nen.py` (nến + chỉ báo tính dần) · `bo_may.py` (bộ máy) · `mau_tram.py` (mẫu dựng sẵn)
+> · `nhat_ky_may.py` (chữ "vì sao"). Bài kiểm: `test_chuoi_nen`, `test_bo_may`, `test_mau_tram`,
+> sàn giả `tests/san_gia.py`. Thuần Python, không numpy, không QuantConnect — cùng một file chạy
+> trên máy lẫn trong `main.py` gửi lên QC (phần 4).
+
+**Chia việc với QC (D-10 ý 2):** bộ máy chỉ quyết MỤC TIÊU (% vốn từng mã, có dấu) và Ý ĐỊNH
+lệnh (loại, bao nhiêu % vốn, giá chờ, hạn). Số lượng, lô tối thiểu, ký quỹ, phí, trượt giá, khớp:
+việc của QC. Tài khoản đi VÀO bộ máy mỗi bước (`{von, tien_mat, giu: {mã: {pt, gia_von, sl}},
+lenh_cho: {id: {ma, pt}}}`) — nguồn sự thật duy nhất về tiền là QC.
+
+**Một bước (một phút), thứ tự y khung QC:** nạp nến M1 → đóng nến khung lớn tới giờ → tài
+khoản → (còn khởi động thì dừng) → lệnh hết hạn → tín hiệu hết hạn → ① → ② → ③ → ④ → mục tiêu
+đổi thì huỷ lệnh chờ cũ → ⑤.
+
+**Nến và chỉ báo** (`chuoi_nen`): gộp M1 lên khung lớn theo BIÊN GIỜ UTC TUYỆT ĐỐI (nến H1 là
+[10:00, 11:00) dù thiếu phút; giờ trống hẳn thì không bịa nến). Nến chỉ ĐÓNG khi giờ đã qua hẳn
+nó; dữ liệu thủng thì nó đóng ở phút đầu tiên có dữ liệu sau đó. Chỉ báo cập nhật lúc đóng nến,
+NaN khi chưa đủ dữ liệu (EMA/RMA mồi bằng SMA như QC; RSI, ATR, ADX kiểu Wilder; Bollinger và
+độ lệch chuẩn dùng độ lệch TỔNG THỂ; Donchian là N nến TRƯỚC nến đang xét). Hai câu hỏi cùng
+chỉ báo cùng ô dùng chung một bản.
+
+**Lịch:** ① chạy lúc bắt đầu, rồi đầu mỗi kỳ (ngày / tuần / tháng) — kỳ đầu tiên chạy ngay, không
+đợi tới đầu tháng sau. ② chạy cho mỗi mã trong rổ đúng lúc nến khung của nó vừa đóng. ③ "khi tín
+hiệu đổi" chỉ chạy khi hướng / tin cậy / trọng số đổi, hoặc tín hiệu tắt — phát lại y hệt để gia
+hạn KHÔNG tính là đổi (không thì ③ cân lại mỗi nến). ④ chạy cho mỗi mã đang giữ lúc nến khung
+của nó đóng. ⑤ chạy cho mã có mục tiêu CHƯA KHỚP XONG, lúc nến khung của nó đóng.
+
+**Đi sơ đồ:** đúng luật lùi của bộ chạy cũ — cổng trượt thì lùi về ngã rẽ gần nhất, trừ khi lượt
+đã qua một khối Làm. Mỗi cổng ghi vết TỪNG điều kiện (không ngắt ở cái sai đầu).
+
+**① Gom:** mã đi tới «Cho vào rổ» vào rổ; giữ N mã thì xếp theo điểm (không điểm xếp cuối). Mã
+rời rổ thì tín hiệu tắt theo — đang giữ thì ③ đưa về 0.
+
+**③ Gom:** mã được xét = có tín hiệu ∪ đang giữ ∪ đang có mục tiêu. Không quyết gì → giữ mục
+tiêu cũ. Dấu theo hướng tín hiệu (chỉ mua thì XUỐNG → 0). Cố định X% và theo trọng số lấy
+TRƯỚC; chia đều / theo tin cậy / rủi ro ngang (tỉ lệ nghịch ATR %) chia nhau PHẦN CÒN LẠI của
+ngân sách (100 − giữ tiền mặt). Rồi chặn trần mỗi mã; tổng vượt ngân sách thì thu nhỏ đều.
+Mục tiêu mới THAY HẲN mục tiêu cũ.
+
+**④:** «Đưa về 0» → mục tiêu 0; «Giảm về X%» → |mục tiêu| ≤ X; «Cấm vào lại N nến» → suốt quãng
+đó mục tiêu của mã luôn là 0 dù ③ muốn gì; «Dừng cả tài khoản» → mọi mục tiêu 0, ①②③④ thôi
+chạy, ⑤ chỉ còn bán ra.
+
+**⑤ và vòng đời lệnh:** lệch = mục tiêu − đang giữ − đang chờ khớp. Dưới 0,1% vốn coi là đã tới
+(như `MinimumOrderMarginPortfolioPercentage` của QC) và mã RỜI danh sách cần khớp — ⚠ lỗi thật
+đã gặp khi kiểm: thiếu luật này thì tới mục tiêu rồi, giá trôi 0,1% là ⑤ đặt lệnh lắt nhắt ngược
+chiều liên tục (208 lệnh thay vì 46 cho cùng một kết quả). Mã vào lại danh sách khi ③/④ phát mục
+tiêu, hoặc lệnh của nó bị huỷ. Lệnh giới hạn / chờ stop: mua dưới / trên giá X%, bán ngược lại;
+hết hạn (N nến khung ⑤) thì huỷ; mục tiêu đổi thì mọi lệnh chờ của mã đó bị huỷ để ⑤ tính lại.
+Chia nhỏ X%: mỗi lượt khớp X% phần CÒN lệch.
+
+**Khởi động:** `can_khoi_dong(cỗ máy)` = chỉ báo dài nhất × khung của nó + một nến (giây giao
+dịch liên tục). ⚠ Lỗi thật đã gặp: đặt cứng 3 ngày thì mẫu «Giá trên MA» (SMA 200 nến H1 ≈ 8
+ngày) câm suốt lượt. Trước mốc khởi động: chỉ nạp nến, không trạm nào chạy, không lệnh nào.
+
+**Nhật ký:** mỗi lượt chạy sơ đồ một bản ghi `{t, tram, ma, duong, ket, cong[{khoi, khop, ve}],
+viec}`; Gom một bản ghi `{t, tram, gom}`; sự kiện (bắt đầu, tắt tín hiệu, huỷ lệnh, khớp, dừng tài
+khoản) một bản ghi `{t, tram, ma, su_kien, …}`. Không chữ nào lúc chạy; `DocNhatKy.chu(r)` dựng
+chữ khi xem: `01-04 00:00  ② B  [1]  hết lượt tại [1A] · EMA(H1, 20) = 78.77 không > EMA(H1, 50) =
+84.02`.
+
+**Bảo đảm, có bài kiểm canh:** cắt dữ liệu ở T thì nhật ký và ý định mọi bước ≤ T y hệt bản chạy
+trọn (không nhìn trước); chạy lại cùng dữ liệu ra y hệt (duyệt mã theo thứ tự cố định); mọi lệnh
+đều có "cò" ngay trước nó.
+
+**Mẫu dựng sẵn** (`mau_tram.MAU`, 22 mẫu): mỗi mẫu là một sơ đồ thường, dựng từ đúng khối người
+chơi có; núm vặn thành tham số có tên (lắp lại mẫu không đặt lại núm đã vặn).
+① Mọi mã · N mã thanh khoản nhất · N mã mạnh nhất. ② Giao cắt EMA · RSI · MACD · Động lượng · Giá
+trên MA · Phá kênh Donchian. ③ Chia đều · Theo tin cậy · Theo trọng số · Rủi ro ngang nhau. ④ Không
+quản · Cắt lỗ · Chốt lời · Trailing · Cầu dao. ⑤ Khớp ngay · Chia lát · Theo độ lệch chuẩn · Theo
+spread. Cỗ máy mẫu (`may_tu_mau`): mọi mã + giao cắt EMA + chia đều + trailing + khớp ngay.
+
+## 21. ⭐ CẦU NỐI QUANTCONNECT CHO CỖ MÁY 5 TRẠM (D-10, phần 4)
+
+> `lean/vo_may.py` (lớp vỏ QC) · `goi_qc.dong_goi_may` (đóng gói) · `ket_qua_may.py` (đọc kết
+> quả) · `qc_chay.ViecQC` (chạy từ app). Bài kiểm: `test_vo_may` — LEAN giả `tests/lean_gia.py`
+> chạy CHÍNH bộ file đóng gói trong một Python sạch; `test_qc_may` — app → máy chủ QC giả
+> `tests/qc_gia.py` (đúng giao thức API) → chạy → tải về → đọc.
+
+**Lớp vỏ không chứa luật.** Luật ở `bo_may` — đúng file chạy trong bài kiểm. Lớp vỏ chỉ làm năm
+việc: đăng ký mã theo loại thị trường (ngoại hối / CFD qua OANDA, tài khoản ký quỹ · cổ phiếu Mỹ
+· crypto Coinbase, tài khoản tiền mặt), độ phân giải phút, KHÔNG lấp nến; khởi động đủ cho chỉ
+báo dài nhất theo LỊCH của thị trường (`giay_lich_khoi_dong`: giờ mở cửa mỗi ngày, số ngày mỗi
+tuần, dư 50% cho lễ — cổ phiếu Mỹ ~7 nến H1 một ngày nên SMA 50 nến H1 cần ~10 ngày lịch, không
+phải 2); mỗi phút gom nến mọi mã (QuoteBar → giá GIỮA, spread = ask − bid), dựng tài khoản từ
+`portfolio`, gọi `BoMay.buoc`, đổi ý định thành lệnh QC; báo khớp / từ chối ngược về bộ máy;
+hết dữ liệu thì ghi nhật ký nén vào Object Store.
+
+**«% vốn» → số lượng là việc của lớp vỏ:** giá × hệ số hợp đồng × tỉ giá ra giá trị một đơn
+vị; làm tròn VỀ PHÍA 0 theo lô của mã (không bao giờ mua lố); dưới cỡ lệnh tối thiểu → 0. Ra 0
+thì không đặt, báo bộ máy «từ chối» (đếm vào `bo_qua`) — và bộ máy KHÔNG đặt lại mỗi phút. Giá
+chờ làm tròn theo bước giá của mã. Còn khởi động thì không đặt lệnh nào.
+
+**Id lệnh đi bằng nhãn:** id của bộ máy (`L-0001`…) gắn vào lệnh QC làm NHÃN (tag). Lệnh thị
+trường khớp ngay trong lúc `market_order` còn chạy — trước khi lớp vỏ kịp cất vé — nên lúc khớp,
+id được tra qua nhãn của lệnh, không qua bảng vé.
+
+**Đóng gói** (`dong_goi_may`): một `main.py` mang cỗ máy (đã chuẩn hoá), bộ máy, lớp vỏ và
+`CAU_HINH` (rổ, loại thị trường, ngày, vốn, khoá Object Store). Cỗ máy còn lỗi thì không đóng
+gói. Đường đóng gói cũ (sơ đồ Entry/Manage) giữ nguyên từng byte.
+
+**Chạy từ app** (`ViecQC`, chế độ Sáng tạo): soát NGAY tại máy, chưa gửi gì lên QC — cỗ máy còn
+lỗi · rổ trống, mã sai dạng, quá 20 mã · loại thị trường lạ · ngày ngược — đều báo bằng câu tiếng
+Việt. Chiến dịch (màn, boss của màn, nộp) cho cỗ máy 5 trạm chưa mở → nói thẳng thế (phần 6).
+Mỗi lượt một khoá Object Store riêng `cat_studio/may-<vân tay>-<mã lượt>.jsonl.gz`, xoá khỏi
+cloud ngay sau khi tải về. Lịch sử ghi lượt (rổ, ngày, lãi, boss = mua-giữ chia đều cả rổ từ lúc
+hết khởi động, link QC); mở lại từ lịch sử là đọc file trên máy, không chạy lại, không gọi QC.
+
+**Đọc kết quả** (`KetQuaMay`): cùng bề mặt với kết quả cũ (tóm tắt · lô «vì sao» · lệnh · soi
+một lượt lên sơ đồ) để cửa sổ Màn chơi gọi cả hai mà không rẽ nhánh. Soi trả: trạm, đường đi,
+cổng đã thử kèm vết từng điều kiện, nhãn khối theo đánh số của CHÍNH trạm đó. Dòng đặt lệnh mang
+id lệnh để tra sang bảng Lệnh.
+
+**Lô «vì sao» chỉ dòng có việc:** ② phát lại tín hiệu y hệt để gia hạn KHÔNG phải việc — bản ghi
+mang `doi = False`, chữ thêm «(giữ nguyên, gia hạn)». ⚠ Gặp khi kiểm: không lọc thì một lượt 5
+ngày × 4 mã ra 556 dòng «có việc», gần hết là gia hạn; lọc còn 79 dòng.
+
+**Một giả định về QC, chờ bằng chứng thật:** tên API đã đối chiếu `quantconnect-stubs` (bản
+18179); LEAN giả bắt chước những gì đã biết (QuoteBar giá giữa + spread · lệnh thị trường khớp
+ĐỒNG BỘ ở giá ask/bid trước khi trả vé · lệnh chờ khớp ở nến sau · cấm đặt lệnh lúc khởi động).
+Chạy trên tài khoản QC thật là bài nghiệm thu còn lại — trên máy người chủ, bằng khoá của họ.
+
+**Bằng chứng:** `test_vo_may` 25/25 (ngoại hối · cổ phiếu, đường bị từ chối vì lô · crypto, lô
+lẻ); `test_qc_may` 23/23 (soát trước khi gửi, chạy trọn, đọc lại, dọn cloud, lịch sử, mở lại).

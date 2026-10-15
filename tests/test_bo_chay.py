@@ -27,7 +27,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 
 from cat_studio import bo_chay as bc  # noqa: E402
 from cat_studio import core  # noqa: E402
-from cat_studio import nguon_nen as nn  # noqa: E402
+from cat_studio import tinh_toan as tt  # noqa: E402
 
 dung = sai = 0
 
@@ -46,7 +46,7 @@ def kiem(ten, dk, chi_tiet=""):
 def nen_m1(gia, t0=0):
     """Mỗi phần tử một nến M1 phẳng (o=h=l=c). Giá tính tay được, không nhiễu."""
     g = np.asarray(gia, dtype=float)
-    a = np.empty(len(g), dtype=nn.DTYPE)
+    a = np.empty(len(g), dtype=tt.DTYPE)
     a["t"] = np.arange(t0, t0 + len(g) * 60, 60, dtype=np.int64)[:len(g)]
     for k in ("o", "h", "l", "c"):
         a[k] = g
@@ -276,7 +276,6 @@ kiem("`lenh_tai(i)` lọc theo nến, không cần ảnh chụp nào",
 # cùng sai vẫn "khớp". Ở đây tự gộp M15 từ mảng M1 thô rồi tra tay nến M15 ĐÃ ĐÓNG gần
 # nhất — một sự thật độc lập, không mượn gì của bộ chạy.
 print("\n▸ Toán hạng giá đọc đúng khung của chính nó")
-from cat_studio import tinh_toan as tt  # noqa: E402
 
 # Giá TĂNG ĐỀU: mỗi nến M1 một giá khác nhau, nên close M5 và close M15 không bao giờ
 # tình cờ bằng nhau — đọc nhầm khung là lộ ra ngay.
@@ -316,9 +315,9 @@ kiem("giá trị khác close M5 ở phần lớn nến — bằng chứng đang 
 
 # ============ ĐI TỪNG NHỊP phải ra ĐÚNG cái mà chạy trọn ra ============
 #
-# `chay()` giờ chỉ là vòng lặp quanh `PhienChay.mot_nhip`. Cửa sổ Live sẽ gọi thẳng
-# `mot_nhip` mỗi khi sàn đóng một nến — nghĩa là hai đường đó BẮT BUỘC phải cho ra cùng
-# một thứ, nếu không thì lời hứa "test như nào thì live như thế" là nói dối.
+# `chay()` giờ chỉ là vòng lặp quanh `PhienChay.mot_nhip`. Cầu nối QuantConnect gọi thẳng
+# `mot_nhip` mỗi khi QC đưa tới một nến — nghĩa là hai đường đó BẮT BUỘC phải cho ra cùng
+# một thứ, nếu không thì lời hứa "chạy tại máy như nào thì trên QC như thế" là nói dối.
 #
 # Bài này lái tay `PhienChay` và so với `chay()` bằng vân tay phủ MỌI trường của MỌI
 # lệnh và MỌI lượt — không phải vài con số tổng hợp, vì tổng hợp che được sai lệch.
@@ -362,8 +361,8 @@ kiem("thống kê khớp từng con số",
          for k in kq_tron.thong_ke),
      f"— {len(kq_tron.thong_ke)} chỉ số")
 
-# Và `mot_nhip` phải CHỊU ĐƯỢC việc bị gọi rời rạc — live gọi nó theo nhịp thật, có thể
-# trễ, có thể ngắt quãng. Chạy nửa chừng rồi mới chạy tiếp phải ra đúng như chạy liền.
+# Và `mot_nhip` phải CHỊU ĐƯỢC việc bị gọi rời rạc — cầu nối gọi nó theo từng nến dữ liệu
+# đưa tới. Chạy nửa chừng rồi mới chạy tiếp phải ra đúng như chạy liền.
 p2 = bc.PhienChay(d9, nen_dai, CD9)
 for jj in range(0, 1500):
     p2.mot_nhip(jj)

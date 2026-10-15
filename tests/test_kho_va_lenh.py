@@ -4,7 +4,7 @@ Bốn thứ này ăn khớp với nhau, nên canh chung một bài:
 
   kho/       phân loại theo NGUỒN — nền tảng · chỉ báo chuẩn · engine. Trùng khoá là
              lỗi im lặng tệ nhất nên phải chặn ngay lúc import.
-  so_lenh.py id của CHÍNH TA, không mượn ticket MT5. Nhờ nó "vùng này đã sinh lệnh"
+  so_lenh.py id của CHÍNH TA, không mượn mã lệnh của sàn. Nhờ nó "vùng này đã sinh lệnh"
              là một phép tra bảng chứ không phải cờ ẩn — và cái bug đoán mò
              `HasOpenPosition()` của D_02 không thể tái diễn.
   luu_tru.py mọi đường dẫn ở đúng MỘT chỗ, có di cư từ bố cục cũ.
@@ -104,7 +104,6 @@ l1 = so.mo_lenh(v1.id, "s_mua", so_lenh.MUA, "stop", 0.01,
                 sl=v1.dinh - R, tp=v1.dinh + 2 * R, R=R, nen=20)
 kiem("lệnh mang id riêng và NHỚ vùng đẻ ra nó",
      l1.id == "L-0001" and l1.zone_id == "V-0001")
-kiem("backtest không có ticket MT5", l1.ticket is None)
 kiem("lệnh chờ chưa khớp", l1.trang_thai == so_lenh.CHO and not l1.da_khop)
 kiem("→ \"vùng này đã sinh lệnh\" giờ ĐÚNG — thay cho COMP_CONSUMED",
      so.zone_da_sinh_lenh() is True)
@@ -153,7 +152,11 @@ kiem("tên file bị chặn thoát ra ngoài thư mục",
      == luu_tru.thu_muc_chien_luoc(),
      f"— {luu_tru.duong_dan_chien_luoc('../../hack')}")
 tt = luu_tru.tom_tat()
-kiem("tóm tắt kho nói rõ đường dẫn thật", tt["goc"] and len(tt["muc"]) == 3)
+kiem("tóm tắt kho nói rõ đường dẫn thật: chiến lược + nhật ký chạy",
+     tt["goc"] and [m["ten"] for m in tt["muc"]] == ["Chiến lược", "Nhật ký chạy"]
+     and all(m["duong_dan"] for m in tt["muc"]))
+kiem("kho KHÔNG còn mục nến trên máy (Strategy Tester đã bỏ — nến là của QC)",
+     not hasattr(luu_tru, "thu_muc_nen") and "test" not in luu_tru.CAI_DAT_MAC_DINH)
 
 # ================= 4. BẢNG THAM SỐ =================
 print("\n▸ Bảng tham số")

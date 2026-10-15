@@ -16,7 +16,7 @@ export interface MucPhai {
   /** Lý do bị mờ — hiện thành tooltip. Mờ mà không nói vì sao là bực nhất. */
   viSao?: string
   onClick?: () => void
-  /** Phím tắt, hiện mờ bên phải (`Ctrl+R`). Chỉ là NHÃN — phím thật vẫn do chỗ nghe
+  /** Phím tắt, hiện mờ bên phải (`Ctrl+M`). Chỉ là NHÃN — phím thật vẫn do chỗ nghe
    *  bàn phím lo; menu không tự gắn phím nào. */
   phim?: string
   con?: MucPhai[]

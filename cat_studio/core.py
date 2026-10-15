@@ -1046,8 +1046,12 @@ def _loi(ds, sev, sid, msg):
     ds.append({"severity": sev, "step": sid, "index": None, "message": msg})
 
 
-def validate_flow_graph(steps, edges):
-    """Soát riêng phần ĐỒ THỊ — lỗi ở mức nối dây, không phải ở mức một hành động."""
+def validate_flow_graph(steps, edges, nhan_cong=None):
+    """Soát riêng phần ĐỒ THỊ — lỗi ở mức nối dây, không phải ở mức một hành động.
+
+    `nhan_cong` = tên khối CỔNG trong câu báo lỗi. Cỗ máy 5 trạm gọi cổng là «Hỏi» (D-10);
+    hai sơ đồ Entry/Manage cũ gọi là «Kiểm tra điều kiện». Luật nối dây y hệt nhau."""
+    nhan_cong = nhan_cong or f'HĐ lẻ "{ACTION_LABELS[CHECK_COND]}"'
     ra = []
     ds = [s for s in (steps or []) if isinstance(s, dict) and s.get("id")]
     if not ds:
@@ -1157,9 +1161,8 @@ def validate_flow_graph(steps, edges):
             _loi(ra, "error", sid,
                  f"{ten(sid)} rẽ {len(nhanh)} nhánh nhưng có {len(khong_cong)} nhánh "
                  f"không có cổng kiểm tra ({ds_ten}) — chạy tới đây không biết chọn "
-                 f'nhánh nào. Mỗi nhánh phải bắt đầu bằng khối HĐ lẻ '
-                 f'"{ACTION_LABELS[CHECK_COND]}", nhiều nhất một nhánh được để trống '
-                 f"làm nhánh mặc định.")
+                 f'nhánh nào. Mỗi nhánh phải bắt đầu bằng khối {nhan_cong}, nhiều '
+                 f"nhất một nhánh được để trống làm nhánh mặc định.")
         elif khong_cong and khong_cong[0] != thang[-1]:
             _loi(ra, "error", sid,
                  f"{ten(khong_cong[0])} là nhánh mặc định (không có cổng kiểm tra) "

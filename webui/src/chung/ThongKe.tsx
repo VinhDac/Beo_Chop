@@ -1,44 +1,20 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { pyTester } from '../api'
-import type { ThongKeChay, XemLichSu } from '../types'
+import { useId, useMemo, useRef, useState } from 'react'
+import type { ThongKeChay } from '../types'
 
 /** TAB THỐNG KÊ — tổng kết cả lượt chạy. CỐ ĐỊNH, không tua theo con trỏ.
  *
- * Mọi con số và cả hai đường cong ra từ MỘT vòng lặp trong `bo_chay._thong_ke`, nên điểm
- * cuối đường vốn bằng đúng `von_cuoi` và đáy đường sụt giảm bằng đúng `drawdown_pt` —
- * không có hai nguồn để lệch nhau.
+ * Mọi con số và cả hai đường cong ra từ MỘT nguồn (thống kê của lượt chạy), nên điểm cuối
+ * đường vốn bằng đúng `von_cuoi` và đáy đường sụt giảm bằng đúng `drawdown_pt` — không có
+ * hai nguồn để lệch nhau.
  *
- * Đường vốn là VỐN ĐÃ CHỐT, mỗi nến trục có lệnh đóng một điểm (386 lệnh → 384 điểm cho
- * một năm). Cố ý KHÔNG vẽ lãi nổi: lãi nổi đổi theo từng nến M1 → 353.000 điểm, giật
- * liên tục, và `drawdown_pt` vốn đã cố tình loại nó ra vì đúng lý do đó (core.md §12.13e).
+ * Đường vốn là VỐN ĐÃ CHỐT, mỗi lệnh đóng một điểm. Cố ý KHÔNG vẽ lãi nổi: lãi nổi đổi
+ * theo từng nến → hàng trăm nghìn điểm, giật liên tục, và `drawdown_pt` vốn đã cố tình
+ * loại nó ra vì đúng lý do đó (core.md §12.13e).
  *
  * KHÔNG có `số vùng nén` dù `thong_ke` đang mang sẵn: đó là khái niệm riêng của một
- * chiến lược, đúng cái bẫy đã gỡ ở bảng số liệu bên phải (core.md §12.9c).
+ * chiến lược, đúng cái bẫy đã gỡ ở bảng số liệu (core.md §12.9c).
  */
-export default function ThongKe({ nguon, thoiXem }: {
-  /** Có thì vẽ mục LỊCH SỬ này; `null` thì hỏi lần chạy hiện tại. Cùng một hình dạng dữ
-   *  liệu (`_tom_tat_chay` bên Python dựng cả hai), nên không có nhánh vẽ thứ hai. */
-  nguon: XemLichSu | null
-  thoiXem: () => void
-}) {
-  const [hienTai, setHienTai] = useState<ThongKeChay | null>(null)
-  const [loi, setLoi] = useState('')
-
-  useEffect(() => {
-    if (nguon) return                 // đang xem lịch sử, không cần hỏi lần chạy hiện tại
-    let song = true
-    void pyTester.test_thong_ke().then(r => {
-      if (!song) return
-      if (r.ok && r.value) setHienTai(r.value)
-      else setLoi(r.error || 'không đọc được thống kê')
-    })
-    return () => { song = false }
-  }, [nguon])
-
-  const d = nguon ? nguon.tom_tat : hienTai
-  if (loi) return <div className="tk-trong">{loi}</div>
-  if (!d) return <div className="tk-trong">đang tính…</div>
-
+export default function ThongKe({ d }: { d: ThongKeChay }) {
   const t = d.tk
   const tien = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2,
                                                          maximumFractionDigits: 2 })
@@ -47,18 +23,6 @@ export default function ThongKe({ nguon, thoiXem }: {
 
   return (
     <div className="tk">
-      {/* Dải này bắt buộc: không có nó thì người dùng đang nhìn số của một lần chạy CŨ mà
-          tưởng là lần đang mở — kiểu nhầm tốn cả buổi. */}
-      {nguon && (
-        <div className="tk-bao-cu">
-          Đang xem lần chạy cũ
-          <b>{nguon.ten || gio(nguon.t)}</b>
-          {nguon.chay_lai_duoc
-            ? <span className="tk-phu">bấm ▶ trong Lịch sử để mở lại xem phát lại</span>
-            : <span className="tk-canh">⚠ {nguon.vi_sao} — không mở lại phát lại được</span>}
-          <button className="nut-nho" onClick={thoiXem}>Về lần chạy hiện tại</button>
-        </div>
-      )}
       <div className="tk-khoang">
         <b>{gio(d.t_dau)}</b> → <b>{gio(d.t_cuoi)}</b>
         <span className="tk-phu">
@@ -141,8 +105,7 @@ type Diem = { t: number; v: number }
  * ⚠ Bản trước dùng lightweight-charts cho hai đồ thị này. Bỏ, vì ba lý do và không lý do
  * nào là "cho vui": nó **đóng khung một mảng nền đen** riêng giữa bảng vốn màu xám, nó
  * **dán logo TradingView** vào góc, và nó kéo cả một bộ máy biểu đồ nến chỉ để vẽ một
- * đường gấp khúc 384 điểm. Chart PHÁT LẠI thì vẫn giữ nó — chỗ đó cần trục thời gian,
- * thu phóng, kéo ngang, marker; chỗ này thì không.
+ * đường gấp khúc vài trăm điểm.
  *
  * Mẹo giữ cho không phải đo bề ngang bằng JS: SVG dùng `preserveAspectRatio="none"` với
  * hệ toạ độ cố định 1000×100, cho nó tự kéo giãn đầy khung. Nét không bị méo theo nhờ

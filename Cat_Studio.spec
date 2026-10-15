@@ -5,7 +5,7 @@
 
 CHỌN onedir CHỨ KHÔNG onefile — quyết định, không phải mặc định:
 
-  · onefile giải nén TOÀN BỘ gói (numpy + cây DLL .NET của pythonnet + MetaTrader5) vào
+  · onefile giải nén TOÀN BỘ gói (numpy + cây DLL .NET của pythonnet) vào
     một thư mục tạm ở MỖI LẦN MỞ. Với payload cỡ này là vài giây chờ trước khi thấy cửa
     sổ, lần nào cũng vậy — ấn tượng đầu tiên tệ mà chẳng đổi lại được gì.
   · onedir mở gần như tức thì, và nhìn vào thư mục là thấy ngay có gì trong đó.
@@ -24,7 +24,14 @@ a = Analysis(
     pathex=[],
     binaries=[],
     # Giao diện đã build. Không có nó thì app mở ra một cửa sổ trắng.
-    datas=[("webui/dist", "webui/dist")],
+    # Và NGUỒN .py của bộ luật + cầu nối: nút ▶ trên QuantConnect đóng gói chúng thành
+    # `main.py` gửi lên QC (`cat_studio/goi_qc.py` đọc chúng như chữ, qua `thu_muc_goi`).
+    # Bản đóng gói chỉ giữ bytecode, nên không khai ở đây là ▶ QC hỏng "không thấy file".
+    datas=[("webui/dist", "webui/dist"),
+           ("cat_studio/*.py", "cat_studio"),
+           ("cat_studio/kho/*.py", "cat_studio/kho"),
+           ("lean/cat_lean.py", "lean"),
+           ("lean/vo_qc.py", "lean")],
     # `cat_studio/kho/` import TĨNH ba module con (`from . import chi_bao, …`) nên
     # PyInstaller lần theo được — khai ở đây chỉ để chắc, và để ai thêm module mới vào
     # `kho/` thì thấy ngay chỗ cần khai nếu lỡ import động.

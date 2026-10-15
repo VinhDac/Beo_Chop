@@ -1,4 +1,4 @@
-"""NHẬT KÝ — phần quan trọng nhất của Strategy Tester.
+"""NHẬT KÝ — câu trả lời "vì sao" của mỗi lượt chạy (bảng "Vì sao" của Màn chơi).
 
 Người dùng nói thẳng: *"đây là phần quan trọng nhất, vì người dùng debug, nâng cấp
 model là ở hết đây."* Nên nó phải chịu được 135.000 dòng mà vẫn đọc được và vẫn nhẹ.
@@ -126,7 +126,12 @@ def dong_chu(r, nhan, khoi, ts, nen5):
 
     Dạng:  `11-05 19:00  ENTRY  [1]→[2]→[3]→[3A]→[3A.1]  đặt Mua L-0007 @3986.33 …`
     """
-    t = _gio(nen5["t"][r["nen"]]) if 0 <= r["nen"] < len(nen5) else "—"
+    if r.get("t") is not None:
+        # Lượt chạy trên QuantConnect tự mang giờ: app không có nến của QC để tra chỉ số
+        # `nen` (`nen5` khi đó là None).
+        t = _gio(r["t"])
+    else:
+        t = _gio(nen5["t"][r["nen"]]) if 0 <= r["nen"] < len(nen5) else "—"
     tab = "ENTRY " if r["tab"] == core.TAB_ENTRY else "MANAGE"
     duong = "→".join(f"[{nhan.get(k, '?')}]" for k in r["duong"])
     lenh = f" {r['lenh_id']}" if r.get("lenh_id") else ""
@@ -137,8 +142,8 @@ def dong_chu(r, nhan, khoi, ts, nen5):
         # ⚠ KHÔNG viết `r.get("cong") and …`: trong Python `[] and x` trả về `[]`,
         # không phải `False`. Lượt nào KHÔNG có cổng nào (sơ đồ chỉ có khối Bắt đầu —
         # đúng thứ `File → Mới` tạo ra) thì `cuoi` thành một LIST, rồi `nhan.get(list)`
-        # ném TypeError và vỡ cả `test_doan`. Đo được: chiến lược trắng + `chu_ky_atr`
-        # đi qua soát tĩnh 0 lỗi, backtest chạy ngon, bấm ▶ là tester nổ.
+        # ném TypeError và vỡ cả lô nhật ký. Đo được: chiến lược trắng + `chu_ky_atr`
+        # đi qua soát tĩnh 0 lỗi, backtest chạy ngon, mở nhật ký là nổ.
         cong_ds = r.get("cong") or []
         cuoi = cong_ds[-1]["khoi"] if cong_ds else None
         vs = _vi_sao(r.get("cong"), ts, khoi)
@@ -164,25 +169,19 @@ def dung_lo(kq, tu=0, so=200, chi_co_viec=True):
     return {"tong": len(ds), "tu": tu, "dong": ra}
 
 
-def dung_lo_theo_nen(kq, j0, t_den):
-    """Những lượt xảy ra TRONG một lô khung hình, kèm chỉ số M1 để phát đúng lúc.
+def ban_soi(doc, r, nen5=None):
+    """SOI một lượt TRÊN SƠ ĐỒ — gói bắn sang cửa sổ vẽ để nó tô đường lượt `r` đã đi.
 
-    Khác `dung_lo` (cuộn theo trang): hàm này phục vụ PHÁT LẠI — nhật ký phải hiện ra
-    đúng cái nhịp mà nó xảy ra, chứ không phải đổ ra một cục. Nhờ vậy người xem thấy
-    dòng "đặt Buy Stop" nảy lên đúng lúc lệnh chờ hiện trên chart."""
-    doc = kq.doc
-    nhan, khoi = nhan_khoi(doc), _khoi_theo_id(doc)
-    ts = core.bang_tham_so(doc)
-    ra = []
-    for i, r in enumerate(kq.nhat_ky):
-        if r["j"] < j0:
-            continue
-        if kq.nen1["t"][r["j"]] > t_den:
-            break
-        ra.append({"i": i, "j": r["j"], "co_viec": bool(r["viec"]),
-                   "lenh_id": r.get("lenh_id"),
-                   "chu": dong_chu(r, nhan, khoi, ts, kq.nen5)})
-    return ra
+    Gửi nguyên `duong` và `cong` chứ không tự tóm tắt: `cong` ghi MỌI cổng đã thử kèm vết
+    TỪNG điều kiện (`bo_chay._xet_cong` cố ý tính đủ, không ngắt ở cái sai đầu tiên), nên
+    giao diện tô được tới đúng dòng điều kiện hỏng. Tóm tắt ở đây là vứt đi đúng phần đắt
+    nhất. `nen5` chỉ cần khi lượt không tự mang giờ (lượt của QC thì có)."""
+    nhan = nhan_khoi(doc)
+    return {"tab": r["tab"], "duong": list(r["duong"]), "cong": r["cong"],
+            "ket": r["ket"], "lenh_id": r.get("lenh_id"),
+            "nhan": {k: nhan.get(k, "?") for k in
+                     set(r["duong"]) | {c["khoi"] for c in r["cong"]}},
+            "chu": dong_chu(r, nhan, _khoi_theo_id(doc), core.bang_tham_so(doc), nen5)}
 
 
 def loc(nhat_ky, chi_co_viec=True):
@@ -211,12 +210,28 @@ def _van_tay(doc):
     return hashlib.sha1(loi.encode("utf-8")).hexdigest()[:12]
 
 
+def khoa_qc(doc, luot=None):
+    """Khoá Object Store trên QuantConnect cho nhật ký của sơ đồ `doc` (đã chuẩn hoá).
+
+    Cầu nối trên cloud GHI vào khoá này, app (`qc_api`) ĐỌC về từ khoá này — MỘT hàm cho
+    cả hai đầu, để hai bên không thể lệch tên. Chỉ ký tự ASCII: khoá đi qua URL và nằm
+    trong file zip QC trả về, dấu tiếng Việt ở đó là chuốc lấy lỗi mã hoá tên file.
+
+    `luot` = mã RIÊNG của một lượt chạy (app đặt): khoá khác nhau mỗi lượt, nên lượt này
+    lưu hỏng thì app không thể nhặt nhầm nhật ký của lượt trước."""
+    ten = "".join(ch if ch.isascii() and ch.isalnum() else "_"
+                  for ch in doc.get("name") or "so_do")
+    duoi = "".join(ch for ch in str(luot) if ch.isascii() and (ch.isalnum() or ch == "-")) \
+        if luot else ""
+    return f"cat_studio/{ten}-{_van_tay(doc)}{'-' + duoi if duoi else ''}.jsonl.gz"
+
+
 def ghi(kq, cd, ten=None):
     """Ghi một lần chạy ra `du_lieu/nhat_ky/<tên>.jsonl`. Trả đường dẫn.
 
-    Dòng ĐẦU là meta — kèm nguyên bản `doc` đã chạy, để mở lại lần chạy cũ và SO hai
-    lần chạy. `so_lenh.py` hứa "chạy lại cùng dữ liệu ra cùng id"; file này là chỗ kiểm
-    chứng lời hứa đó."""
+    Dòng ĐẦU là meta — kèm nguyên bản `doc` đã chạy. Đây là định dạng CHUẨN mà cầu nối QC
+    (`lean/cat_lean.py`) ghi theo và `doc_file` đọc về; `so_lenh.py` hứa "chạy lại cùng
+    dữ liệu ra cùng id", file này là chỗ kiểm chứng lời hứa đó."""
     ten = ten or f"{kq.doc.get('name', 'chien_luoc')} {_van_tay(kq.doc)}"
     p = os.path.join(luu_tru.thu_muc_nhat_ky(),
                      luu_tru._ten_an_toan(ten) + ".jsonl")
@@ -259,25 +274,3 @@ def doc_file(duong_dan):
             else:
                 luot.append(d)
     return meta, lenh, luot
-
-
-def so_hai_lan(cu, moi):
-    """So hai lần chạy — thứ vòng lặp "nâng cấp model" thật sự cần.
-
-    Trả một dòng chữ trả lời đúng câu hỏi mỗi lần bấm ▶: *"so với lần trước thì sao?"*"""
-    if not cu:
-        return ""
-    a, b = cu.get("thong_ke") or {}, moi.get("thong_ke") or moi
-    phan = []
-    for k, nhan, lam_tron in (("so_lenh", "lệnh", 0), ("tong_R", "R", 1),
-                              ("ty_le_thang", "% thắng", 1),
-                              ("drawdown_pt", "% DD", 2)):
-        if k not in a or k not in b:
-            continue
-        d = b[k] - a[k]
-        if abs(d) < 10 ** -lam_tron / 2:
-            continue
-        phan.append(f"{d:+.{lam_tron}f} {nhan}")
-    if cu.get("van_tay") != moi.get("van_tay"):
-        phan.append("sơ đồ ĐÃ ĐỔI")
-    return "so với lần trước: " + (" · ".join(phan) if phan else "y hệt")

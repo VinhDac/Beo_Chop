@@ -5,7 +5,7 @@
 
 <p align="center">
   Vẽ sơ đồ khối cho một chiến lược giao dịch, mỗi khối mang <b>một số thứ tự do chính
-  bộ máy tính ra</b>, bấm ▶ Chạy để mở <b>Strategy Tester</b>.
+  bộ máy tính ra</b>, bấm <b>◆ Màn chơi</b> để chạy nó trên QuantConnect.
 </p>
 
 ---
@@ -118,7 +118,17 @@ tools\setup.bat          # dựng .venv + npm install + build giao diện
 tools\tao_shortcut.bat   # tạo shortcut "Cat Studio" ra Desktop (icon con mèo)
 tools\chay.bat           # mở app từ dòng lệnh
 tools\chay_test.bat      # chạy test
+tools\chay_qc.bat        # chạy sơ đồ trên QuantConnect, không mở web QC (core.md §15)
 ```
+
+Trong app: nút **◆ Màn chơi** (Ctrl+M) mở cửa sổ chơi trên QuantConnect — Chiến dịch (màn,
+boss, ▶ nhanh / ▶ đầy đủ / Nộp, sao) và Sáng tạo (core.md §16). Khoá đặt ngay trong cửa sổ
+đó (bấm huy hiệu "QC · …" trên thanh tiêu đề).
+
+`chay_qc` cần gói QuantConnect **Researcher** trở lên (gói Free không có API) và khoá API
+đặt **ngoài repo**: hai biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file
+`du_lieu\qc_khoa.json` dạng `{"user_id": "...", "token": "..."}`. Khoá có toàn quyền tài
+khoản — đừng đưa vào git, đừng dán vào chat.
 
 Shortcut chạy bằng `pythonw.exe` nên **không kèm cửa sổ console đen**. Đổi lại nó
 không có stderr để nhìn, nên `app_web.py` báo mọi lỗi khởi động (thiếu .NET, thiếu
@@ -140,14 +150,24 @@ cat_studio/        toàn bộ lõi app
   so_lenh.py         bảng lệnh + vùng nén, id của CHÍNH TA
   luu_tru.py         MỘT chỗ duy nhất biết file nằm ở đâu
   api.py             bề mặt DUY NHẤT giao diện gọi tới  (JS → api.py → core.py)
+  mau.py             sơ đồ mẫu Compress (D_02) — dùng được cả khi không có giao diện
+  qc_api.py          chỗ DUY NHẤT biết QuantConnect: đẩy sơ đồ lên, chạy, tải nhật ký về
+  goi_qc.py          đóng gói bộ luật + cầu nối + sơ đồ thành main.py gửi lên QC
+  game.py            luật chơi: màn, boss, sao, độ gọn, sổ nộp (du_lieu/game.json)
+  qc_chay.py         một lượt chạy QC trong luồng nền + kết quả dựng lại từ nhật ký
   khung_cua_so.py    vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo/giãn/phóng to)
+lean/              cầu nối QuantConnect: lõi thuần + lớp vỏ QC (core.md §14)
 tai_lieu/          sổ ghi cốt lõi
   core.md            VÌ SAO mọi thứ như vậy. Đọc file này trước.
   D02_Compress_ban_giao.md   bàn giao chiến lược gốc
 webui/             giao diện: React + TypeScript + React Flow
-tests/             bộ test — không mở cửa sổ, không cần MT5
+                     src/qc/: cửa sổ Màn chơi · src/chung/: bảng dưới dùng chung
+                     kiem/: bài kiểm chạy bằng node
+tests/             bộ test — không mở cửa sổ, không nối mạng thật
 du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
 tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI
+                     dong_goi_lean: gói sơ đồ thành vài file dán lên QuantConnect
+                     chay_qc: một lệnh — gửi sơ đồ lên QC, chạy, in tổng kết
 dist/              sản phẩm đóng gói + bản .zip phát hành (không nằm trong repo)
 ```
 

@@ -236,7 +236,7 @@ kiem("R5", "bề rộng vùng VẪN được kiểm ở cổng vào lệnh (khá
 # ============================ CỐ Ý KHÁC ============================
 # Cột cuối là thứ QUAN TRỌNG NHẤT của bảng này: khác bản gốc thì có làm ĐỔI SỐ không.
 # Không có nó thì bảy dòng "cố ý khác" trông ngang nhau, trong khi thực tế chỉ vài dòng
-# đụng tới kết quả — mà đúng mấy dòng đó mới cần cân nhắc lại khi số không khớp MT5.
+# đụng tới kết quả — mà đúng mấy dòng đó mới cần cân nhắc lại khi số không khớp bản gốc.
 DOI_SO = "SỐ LỆNH"        # ra ít/nhiều lệnh hơn bản gốc
 DOI_TIEN = "GIÁ & P&L"    # cùng số lệnh, khác giá vào/ra
 KHONG = "không"           # tương đương từng ca

@@ -3,8 +3,7 @@
     <cạnh app>/du_lieu/
         cai_dat.json          cài đặt app
         chien_luoc/*.json     chiến lược đã lưu
-        nen/                  cache nến tải về (Strategy Tester dùng sau)
-        nhat_ky/              nhật ký lệnh của từng lần chạy (sau)
+        nhat_ky/              nhật ký "vì sao" của từng lượt chạy trên QuantConnect
 
 Trước đây đường dẫn rải rác trong `core.py` (`app_dir`, `_thu_muc_tpl`, …) và dùng
 từ vựng cũ của Auto_Clicker ("templates", 3 loại). Giờ chỉ còn một loại — chiến lược —
@@ -17,46 +16,16 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
 
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
 THU_MUC_CHIEN_LUOC = "chien_luoc"
-THU_MUC_NEN = "nen"
 THU_MUC_NHAT_KY = "nhat_ky"
-
-def _khoang_mac_dinh():
-    """Một năm gần nhất, tính theo NGÀY HÔM NAY. Trả `("2025-08-11", "2026-08-11")`.
-
-    Tính lúc chạy chứ không ghi cứng: ghi cứng "2025-01-01 → 2026-01-01" thì sang năm
-    người dùng mới cài app sẽ thấy một khoảng mặc định đã lỗi thời, tải về một năm cũ và
-    không hiểu vì sao."""
-    hom_nay = datetime.now(timezone.utc).date()
-    return (hom_nay.replace(year=hom_nay.year - 1).isoformat(), hom_nay.isoformat())
-
-
-_KHOANG_MAC_DINH = _khoang_mac_dinh()
 
 CAI_DAT_MAC_DINH = {
     "symbol": "XAUUSD",
     "accent": "#ffa657",
     "ui": {"panel_cao": 176, "panel_gap": False},
-    # Điều kiện chạy Strategy Test. Ở ĐÂY chứ không ở cửa sổ tester: bấm ▶ là phải CHẠY
-    # NGAY, không phải mở ra một bảng nữa rồi mới bấm tiếp. Cài đặt là thứ đặt một lần
-    # rồi quên; nó thuộc về app, không thuộc về một lần chạy.
-    "test": {
-        # ⚠ KHÔNG để rỗng. Chuỗi rỗng làm `thoi_diem` trả None, `khoang_thieu` trả `[]`
-        # — mà `[]` nghĩa là "ĐÃ ĐỦ, khỏi tải" — nên máy mới bấm ▶ là KHÔNG tải gì hết
-        # rồi báo "Không có nến nào cho XAUUSD", đổ tội cho mã symbol trong khi lỗi thật
-        # là chưa ai đặt khoảng. Mặc định TÍNH THEO HÔM NAY (một năm gần nhất), không ghi
-        # cứng một mốc — ghi cứng thì sang năm là mặc định thành vô nghĩa.
-        "symbol": "XAUUSD", "tu": _KHOANG_MAC_DINH[0], "den": _KHOANG_MAC_DINH[1],
-        "spread_diem": 20.0,      # nến là giá Bid; Ask = Bid + spread
-        "deposit": 10000.0,
-        "commission": 0.0,        # USD mỗi lot, ROUND-TURN
-        "don_bay": 100,
-        "delay_ms": 60,           # nhịp PHÁT LẠI, không phải tốc độ mô phỏng
-    },
 }
 
 
@@ -105,10 +74,6 @@ def thu_muc_chien_luoc():
     return _thu_muc(THU_MUC_CHIEN_LUOC)
 
 
-def thu_muc_nen():
-    return _thu_muc(THU_MUC_NEN)
-
-
 def thu_muc_nhat_ky():
     return _thu_muc(THU_MUC_NHAT_KY)
 
@@ -138,8 +103,8 @@ def ghi_cai_dat(s):
     """Lưu cài đặt. NÉM LỖI nếu không ghi được — không nuốt.
 
     Trước đây bọc `try/except: pass` rồi vẫn `return s`, nên đĩa đầy hoặc mất quyền ghi
-    thì nơi gọi tưởng đã lưu xong. Lần mở app sau, cài đặt Strategy Test lặng lẽ về mặc
-    định và không ai hiểu vì sao. `api` đã có `@_bat_loi` để đưa câu lỗi lên giao diện —
+    thì nơi gọi tưởng đã lưu xong. Lần mở app sau, cài đặt lặng lẽ về mặc định và không ai
+    hiểu vì sao. `api` đã có `@_bat_loi` để đưa câu lỗi lên giao diện —
     cứ để nó làm việc của nó."""
     ghi_json_nguyen_tu(os.path.join(goc(), FILE_CAI_DAT), s)
     return s
@@ -275,8 +240,6 @@ def tom_tat():
             {"ten": "Chiến lược", "duong_dan": thu_muc_chien_luoc(),
              "so_luong": len(liet_ke_chien_luoc()),
              "danh_sach": liet_ke_chien_luoc()},
-            {"ten": "Nến đã tải", "duong_dan": thu_muc_nen(),
-             "so_luong": dem(thu_muc_nen()), "danh_sach": []},
             {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],
