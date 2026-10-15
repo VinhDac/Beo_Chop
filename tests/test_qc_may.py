@@ -68,7 +68,7 @@ def du_lieu_may(ch):
 
 TD = tempfile.mkdtemp()
 luu_tru.goc = lambda: TD                  # sổ game + nhật ký vào thư mục tạm
-gia = qc_gia.QCGia(None, 0.0, du_lieu_may=du_lieu_may)
+gia = qc_gia.QCGia(du_lieu_may=du_lieu_may)
 qc = qc_gia.qc_cho(gia)
 
 

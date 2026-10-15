@@ -30,36 +30,15 @@ import sys
 import tokenize
 from datetime import datetime, timezone
 
-#: Module nhúng: (tên khi import, đường dẫn trong repo). Đúng những gì `bo_chay` và cầu
-#: nối cần — KHÔNG có `api`: nó kéo theo cửa sổ Win32, thứ cloud không có.
-NGUON = [
-    ("cat_studio", "cat_studio/__init__.py"),
-    ("cat_studio.luu_tru", "cat_studio/luu_tru.py"),
-    ("cat_studio.so_lenh", "cat_studio/so_lenh.py"),
-    ("cat_studio.khop_lenh", "cat_studio/khop_lenh.py"),
-    ("cat_studio.kho", "cat_studio/kho/__init__.py"),
-    ("cat_studio.kho.nen_tang", "cat_studio/kho/nen_tang.py"),
-    ("cat_studio.kho.chi_bao", "cat_studio/kho/chi_bao.py"),
-    ("cat_studio.kho.engine_d02", "cat_studio/kho/engine_d02.py"),
-    ("cat_studio.core", "cat_studio/core.py"),
-    ("cat_studio.tinh_toan", "cat_studio/tinh_toan.py"),
-    ("cat_studio.bo_chay", "cat_studio/bo_chay.py"),
-    ("cat_studio.nhat_ky", "cat_studio/nhat_ky.py"),
-    ("cat_lean", "lean/cat_lean.py"),
-    ("vo_qc", "lean/vo_qc.py"),
-]
-GOI = ("cat_studio", "cat_studio.kho")
+#: Module nhúng cho CỖ MÁY 5 TRẠM: bộ máy thuần + lớp vỏ. `core` (và `luu_tru` mà nó
+#: nạp) đi theo vì cỗ máy dùng lại bộ đồ thị của nó.
+#: Tên nào trong gói nhúng là một GÓI (có `__init__`) chứ không phải module lẻ — bộ nạp
+#: trong `main.py` phải biết để `import cat_studio.may` hoạt động trên QC.
+GOI = ("cat_studio",)
 
-#: Module nhúng cho CỖ MÁY 5 TRẠM (D-10): bộ máy thuần + lớp vỏ mới. `core` (và `kho`,
-#: `luu_tru` mà nó nạp) đi theo vì cỗ máy dùng lại bộ đồ thị của nó.
 NGUON_MAY = [
     ("cat_studio", "cat_studio/__init__.py"),
     ("cat_studio.luu_tru", "cat_studio/luu_tru.py"),
-    ("cat_studio.kho", "cat_studio/kho/__init__.py"),
-    ("cat_studio.kho.nen_tang", "cat_studio/kho/nen_tang.py"),
-    ("cat_studio.kho.chi_bao", "cat_studio/kho/chi_bao.py"),
-    ("cat_studio.kho.engine_d02", "cat_studio/kho/engine_d02.py"),
-    ("cat_studio.so_lenh", "cat_studio/so_lenh.py"),
     ("cat_studio.core", "cat_studio/core.py"),
     ("cat_studio.tram", "cat_studio/tram.py"),
     ("cat_studio.may", "cat_studio/may.py"),
@@ -67,8 +46,6 @@ NGUON_MAY = [
     ("cat_studio.bo_may", "cat_studio/bo_may.py"),
     ("vo_may", "lean/vo_may.py"),
 ]
-CAU_HINH_MAC_DINH = {"symbol": "XAUUSD", "tu": "2025-01-01", "den": "2025-12-31",
-                     "von": 10000.0}
 #: Trần mỗi file, tính bằng BYTE UTF-8. Gói Free cho 32 KB — chừa lề cho chắc.
 GIOI_HAN = 30_000
 #: Trần của gói Researcher (64 KB) — đường API (app, `tools/chay_qc.py`) dùng trần này.
@@ -89,23 +66,6 @@ def doc_nguon(ds=None):
         with open(os.path.join(_goc(), duong), encoding="utf-8") as f:
             ra[ten] = f.read()
     return ra
-
-
-def nap_cat_lean():
-    """Module `cat_lean` — nằm ở `lean/`, NGOÀI gói `cat_studio`. Đã nạp thì dùng lại;
-    chưa thì nạp từ file nguồn (đường này chạy được cả trong bản đóng gói)."""
-    if "cat_lean" in sys.modules:
-        return sys.modules["cat_lean"]
-    spec = importlib.util.spec_from_file_location(
-        "cat_lean", os.path.join(_goc(), "lean", "cat_lean.py"))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["cat_lean"] = mod
-    try:
-        spec.loader.exec_module(mod)
-    except BaseException:
-        del sys.modules["cat_lean"]
-        raise
-    return mod
 
 
 def gon(code):
@@ -144,20 +104,6 @@ def nen_goi(doc, ds=None, khoa="so_do"):
     return base64.b85encode(lzma.compress(tho, preset=9 | lzma.PRESET_EXTREME)).decode("ascii")
 
 
-def so_do(duong=None):
-    """Sơ đồ cần đóng gói: một file chiến lược đã lưu, hoặc sơ đồ mẫu D_02."""
-    if duong:
-        with open(duong, encoding="utf-8") as f:
-            return json.load(f)
-    from . import mau
-    return mau.so_do_mau()
-
-
-def soat(doc):
-    """Biên dịch thử ngay tại máy. Trả `doc` đã chuẩn hoá; lỗi thì ném `LoiChay`."""
-    return nap_cat_lean().PhienQC(doc).doc
-
-
 def _dong_khoi(chu):
     return [f'    "{chu[i:i + _RONG_DONG]}",' for i in range(0, len(chu), _RONG_DONG)]
 
@@ -166,32 +112,12 @@ def _byte(dong):
     return len(("\n".join(dong) + "\n").encode("utf-8"))
 
 
-def dong_goi(doc, cau_hinh=None, gioi_han=GIOI_HAN):
-    """Trả `{tên file: nội dung}` — `main.py` trước, rồi `nguon_1.py`, `nguon_2.py`…"""
-    from . import nhat_ky
-    doc = soat(doc)
-    ch = dict(CAU_HINH_MAC_DINH, **(cau_hinh or {}))
-    dong_ch = [
-        f'    "symbol": {json.dumps(ch["symbol"])},',
-        f'    "tu": {json.dumps(ch["tu"])},',
-        f'    "den": {json.dumps(ch["den"])},',
-        f'    "von": {float(ch["von"])!r},',
-        *([f'    "khoa": {json.dumps(ch["khoa"])},'] if ch.get("khoa") else []),
-    ]
-    duoi = [
-        "# ── THUẬT TOÁN · thân nằm ở lean/vo_qc.py (trong khối nén) ────────────────────",
-        "import vo_qc as _vo",
-        "",
-        "_vo.CAU_HINH = CAU_HINH_NHUNG",
-        "_vo.SO_DO = _GOI_NEN[\"so_do\"]",
-        "",
-        "",
-        "class CatStudioTrenQC(_vo.CatStudioTrenQC):",
-        '    """Lớp QuantConnect nhìn thấy. Toàn bộ thân ở lean/vo_qc.py — đây chỉ là tên."""',
-    ]
-    return _dong_goi(nen_goi(doc), doc.get("name"), nhat_ky._van_tay(doc), "sơ đồ", dong_ch,
-                     "# ── CẤU HÌNH · ▶ nhanh: thu khoảng ngày còn 1–3 tháng · ▶ đầy đủ: cả năm "
-                     "(D-03)", "Muốn đổi sơ đồ: đóng gói lại.", duoi, gioi_han)
+def khoa_mac_dinh(may):
+    """Khoá Object Store mặc định của một cỗ máy. MỘT công thức duy nhất, dùng cả lúc
+    đóng gói lẫn lúc tải về: hai công thức là hai cái tên, và lượt chạy sẽ ghi một nơi
+    còn app đi tìm một nơi khác."""
+    from . import may as M
+    return f"cat_studio/may-{M.van_tay(may)}.jsonl.gz"
 
 
 def dong_goi_may(may, cau_hinh, gioi_han=GIOI_HAN_RESEARCHER):
@@ -205,6 +131,9 @@ def dong_goi_may(may, cau_hinh, gioi_han=GIOI_HAN_RESEARCHER):
         raise ValueError(f"Cỗ máy còn {len(loi)} lỗi, chưa đóng gói được: {loi[0]['message']}")
     may = M.chuan_hoa(may)
     ch = dict(cau_hinh)
+    # Thiếu khoá thì lớp vỏ trên QC không biết ghi nhật ký vào đâu và chết giữa lượt —
+    # điền sẵn khoá mặc định thay vì để nó nổ ở nơi xa nhất.
+    ch.setdefault("khoa", khoa_mac_dinh(may))
     dong_ch = [f"    {json.dumps(k)}: {json.dumps(ch[k], ensure_ascii=False)},"
                for k in ("ma", "loai", "tu", "den", "von", "khoa") if k in ch]
     duoi = [

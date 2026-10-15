@@ -1,5 +1,9 @@
 """Đánh số phân cấp, ghim số, và ba trường hợp "gặp lại khối đã có nhãn".
 
+Bộ đánh số này là của `core` và dùng chung cho CẢ NĂM TRẠM của cỗ máy (D-10): mỗi trạm
+đánh số riêng từ khối Bắt đầu của nó. Khối trong bài là khối thật của cỗ máy — Hỏi làm
+cổng, Làm làm mắt xích.
+
 ĐÁNH SỐ: SỐ = đi được bao xa, CHỮ = đi nhánh nào.
 
     1
@@ -35,6 +39,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from cat_studio import core  # noqa: E402
+from cat_studio import may as M  # noqa: E402
+from cat_studio import tram as T  # noqa: E402
 
 dung = sai = 0
 
@@ -51,22 +57,16 @@ def kiem(ten, dk, chi_tiet=""):
 
 # ---------------- tiện ích dựng sơ đồ ----------------
 def cong(nguong, x, y, ten=None):
-    """Khối HĐ lẻ "Kiểm tra điều kiện" — đây chính là cái cổng của một nhánh."""
-    s = core.make_action_step({
-        "type": core.CHECK_COND,
-        "name": ten or f"ĐK {nguong}",
-        "conditions": [{"trai": {"ten": "atr", "tf": "M5", "period": 14}, "don_vi": "bps",
-                        "phep": "<", "phai": {"value": nguong}}],
-    })
+    """Khối HỎI — chính là cổng của một nhánh (`core.is_branch_gate` nhận ra nó)."""
+    s = M.khoi_hoi([{"trai": {"ten": "rsi"}, "phep": "<", "phai": {"value": nguong}}],
+                   name=ten or f"Hỏi {nguong}")
     s["pos"] = [x, y]
     return s
 
 
 def viec(ten, x, y):
-    """Một khối KHÔNG phải cổng — dùng làm mắt xích thường trên chuỗi."""
-    s = core.make_action_step({
-        "type": core.SUA_LENH, "che_do": "hoa_von", "muc_tieu": "vi_the",
-        "khoang": {"tinh": "R", "value": 1}, "name": ten})
+    """Một khối LÀM — mắt xích thường trên chuỗi, không phải cổng."""
+    s = M.khoi_lam("bao", name=ten)
     s["pos"] = [x, y]
     return s
 
@@ -85,12 +85,6 @@ def nhan_cua(b, cap):
 def loi(steps, edges, sev=None):
     ds = core.validate_flow_graph(steps, edges)
     return [p for p in ds if sev is None or p["severity"] == sev]
-
-
-def loi_hd_tab(a, tab):
-    ra = []
-    core.validate_actions([a], lambda m, i=None: ra.append(m), tab)
-    return ra
 
 
 # ================= 1. Đánh số phân cấp =================
@@ -145,7 +139,7 @@ b2["B"]["pos"] = [300, 400]
 
 # ================= 3. Khối Bắt đầu =================
 print("\n▸ Khối Bắt đầu")
-bd = core.make_start_step()
+bd = M.khoi_bat_dau(T.TIN_HIEU)
 bd["pos"] = [0, 200]
 b3 = {"BD": bd, "A": cong(7, 300, 0), "B": cong(8, 300, 400),
       "A1": viec("a", 600, 0), "B1": viec("b", 600, 400)}
@@ -160,7 +154,7 @@ kq6 = core.flow_order(list(b4.values()), noi_day(b4, [("1", "2"), ("2", "3"), ("
 kiem("KHÔNG có khối Bắt đầu + vòng khép kín → mất hết nhãn (đúng bệnh của bản cũ)",
      kq6["entry"] is None and not kq6["order"])
 
-b5 = {"BD": core.make_start_step(), "1": viec("1", 300, 0),
+b5 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0),
       "2": viec("2", 600, 0), "3": viec("3", 900, 0)}
 b5["BD"]["pos"] = [0, 0]
 b5["1"]["ghim"] = True
@@ -169,7 +163,7 @@ kiem("CÓ khối Bắt đầu → vòng khép kín vẫn giữ đủ nhãn",
      n7 == {"BD": "1", "1": "2", "2": "3", "3": "4"}, f"— {n7}")
 
 # khối Bắt đầu không được nhận đường vào
-b6 = {"BD": core.make_start_step(), "1": viec("1", 300, 0)}
+b6 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0)}
 b6["BD"]["pos"] = [0, 0]
 ds = loi(list(b6.values()), noi_day(b6, [("BD", "1"), ("1", "BD")]), "error")
 kiem("nối ngược vào khối Bắt đầu → báo LỖI",
@@ -178,7 +172,7 @@ kiem("nối ngược vào khối Bắt đầu → báo LỖI",
 
 # ================= 4. GHIM SỐ =================
 print("\n▸ Ghim số ⟲")
-b7 = {"BD": core.make_start_step(), "1": viec("một", 300, 0),
+b7 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("một", 300, 0),
       "2": viec("hai", 600, 0), "3": viec("ba", 900, 0)}
 b7["BD"]["pos"] = [0, 0]
 CAP7 = [("BD", "1"), ("1", "2"), ("2", "3"), ("3", "1")]
@@ -207,7 +201,7 @@ kiem("ghim rồi → KHÔNG còn cảnh báo vòng lặp nào",
      f"— {[p['message'][:60] for p in w2]}")
 
 # quay lại từ trong một nhánh
-b8 = {"BD": core.make_start_step(), "M": viec("mua", 300, 200),
+b8 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "M": viec("mua", 300, 200),
       "A": cong(7, 600, 0), "B": cong(8, 600, 400), "A1": viec("a", 900, 0)}
 b8["BD"]["pos"] = [0, 200]
 b8["M"]["ghim"] = True
@@ -240,7 +234,7 @@ kiem("không cảnh báo nào GẮN VỚI KHỐI gọi đây là vòng lặp",
 
 # ================= 6. Bẫy 3 — thông báo dùng nhãn =================
 print("\n▸ Bẫy 3: thông báo lỗi dùng NHÃN, không dùng index")
-b10 = {"BD": core.make_start_step(), "1": viec("1", 300, 0),
+b10 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0),
        "A": cong(7, 600, 0), "B": viec("mặc định", 600, 200),
        "C": viec("thừa", 600, 400)}
 b10["BD"]["pos"] = [0, 200]
@@ -275,223 +269,5 @@ kiem("đường nối trỏ về CHÍNH NÓ → lỗi",
          for p in loi(list(b13.values()), noi_day(b13, [("1", "1")]), "error")))
 
 # ================= 8. Chuẩn hoá giữ cờ ghim =================
-print("\n▸ Chuẩn hoá & nhân bản")
-st = viec("x", 10, 20)
-st["ghim"] = True
-kiem("normalize_step giữ cờ ghim", core.normalize_step(st).get("ghim") is True)
-kiem("normalize_step giữ pos", core.normalize_step(st).get("pos") == [10.0, 20.0])
-moi, tra = core.clone_steps([st])
-kiem("nhân bản KHÔNG chép cờ ghim (hai điểm quay lại là gần như chắc chắn sai ý)",
-     "ghim" not in moi[0] and moi[0]["id"] != st["id"])
-kiem("nhân bản trả bảng tra cũ→mới", tra.get(st["id"]) == moi[0]["id"])
-
-d = core.new_process()
-kiem("chiến lược mới có HAI sơ đồ, mỗi cái một khối Bắt đầu",
-     set(core.TABS) <= set(d)
-     and all(len(d[t]["steps"]) == 1 and core.is_start_step(d[t]["steps"][0])
-             for t in core.TABS))
-
-# ================= 8b. Chỉ còn HAI loại khối =================
-print("\n▸ Bộ từ vựng khối")
-kiem("chỉ còn 2 loại khối: Bắt đầu + Khối",
-     set(core.KIND_LABELS) == {core.KIND_START, core.KIND_ACTION},
-     f"— {sorted(core.KIND_LABELS)}")
-kiem("lõi không còn biết Vòng theo dõi / Nhóm",
-     not any(hasattr(core, t) for t in
-             ("KIND_LOOP", "KIND_GROUP", "make_loop_step", "make_group_step",
-              "has_actions", "is_loop_step", "is_group_step")))
-kiem("khối kiểu cũ trong file cũ bị bỏ qua, không làm hỏng cả sơ đồ",
-     core.normalize_step({"kind": "loop", "id": "sxxx", "actions": []}) is None)
-kiem("template chỉ còn loại 'chiến lược', không lưu cụm khối rời",
-     list(core.TEMPLATE_KINDS) == ["strategy"], f"— {list(core.TEMPLATE_KINDS)}")
-kiem("đúng BA hành động, không còn Đặt cờ",
-     core.ACTION_TYPES == [core.CHECK_COND, core.VAO_LENH, core.SUA_LENH],
-     f"— {core.ACTION_TYPES}")
-
-# ================= 8d. Entry chỉ TẠO, Manage chỉ SỬA =================
-print("\n▸ Ranh giới Entry / Manage")
-kiem("Vào lệnh chỉ ở Entry", core.ACTION_TABS[core.VAO_LENH] == (core.TAB_ENTRY,))
-kiem("Sửa lệnh chỉ ở Manage", core.ACTION_TABS[core.SUA_LENH] == (core.TAB_MANAGE,))
-kiem("Kiểm tra ĐK dùng ở cả hai",
-     set(core.ACTION_TABS[core.CHECK_COND]) == set(core.TABS))
-kiem("đặt lệnh trong Manage → báo lỗi",
-     any("chỉ thuộc về" in m for m in loi_hd_tab(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "market", "lot": 0.01,
-          "sl": {"tinh": "atr_zone", "value": 1.5}}, core.TAB_MANAGE)))
-kiem("sửa lệnh trong Entry → báo lỗi",
-     any("chỉ thuộc về" in m for m in loi_hd_tab(
-         {"type": core.SUA_LENH, "che_do": "hoa_von"}, core.TAB_ENTRY)))
-
-_dk_lenh = {"type": core.CHECK_COND,
-            "conditions": [{"trai": {"ten": "lenh_da_khop"}, "phep": "la_dung"}]}
-kiem('hỏi "lệnh này" trong Entry → báo lỗi',
-     any("Lệnh này" in m for m in loi_hd_tab(_dk_lenh, core.TAB_ENTRY)),
-     f"— {loi_hd_tab(_dk_lenh, core.TAB_ENTRY)}")
-kiem('hỏi "lệnh này" trong Manage → hợp lệ',
-     not loi_hd_tab(_dk_lenh, core.TAB_MANAGE),
-     f"— {loi_hd_tab(_dk_lenh, core.TAB_MANAGE)}")
-
-# ================= 8c. Hai chữ ATR là hai thứ khác nhau =================
-print("\n▸ Hợp đồng chuẩn hoá")
-kiem("có RIÊNG cách tính theo ATR trung bình của vùng nén",
-     "atr_zone" in core.DON_VI and "atr" in core.DON_VI)
-kiem("hai cách tính ATR mô tả khác nhau, không lẫn được",
-     core.DON_VI["atr"] != core.DON_VI["atr_zone"],
-     f"— \"{core.DON_VI['atr']}\" vs \"{core.DON_VI['atr_zone']}\"")
-kiem("không có cách tính nào theo pip / điểm / tiền",
-     not any(t in " ".join(core.DON_VI.values()).lower()
-             for t in ("pip", "point", "điểm", "đô")))
-
-# ================= 8e. Phép so là KÝ HIỆU =================
-print("\n▸ Phép so")
-kiem("dùng ký hiệu, không dùng chữ",
-     [core.PHEP_SO[k] for k in ("<", "<=", ">", ">=", "==", "!=")]
-     == ["<", "≤", ">", "≥", "=", "≠"],
-     f"— {[core.PHEP_SO[k] for k in ('<', '<=', '>', '>=', '==', '!=')]}")
-kiem("không còn chữ 'lớn hơn' / 'nhỏ hơn' / 'bằng' nào",
-     not any(t in " ".join(core.PHEP_SO.values()).lower()
-             for t in ("lớn hơn", "nhỏ hơn", "bằng")))
-
-# ================= 9. Mô tả hành động =================
-print("\n▸ Mô tả hành động")
-_cau = core.action_display({"type": core.CHECK_COND, "conditions": [
-    # ĐƠN VỊ nằm TRONG lượng — cùng hình dạng `{value, tinh}` mà SL/TP dùng.
-    {"trai": {"ten": "atr", "tf": "M5", "period": 14},
-     "phep": "<", "phai": {"value": 7, "tinh": "bps"}}]})
-kiem("Kiểm tra điều kiện đọc được thành câu, dùng ký hiệu",
-     # ĐƠN VỊ đi liền con số bên phải — "7 bps của giá" đọc như một đại lượng.
-     _cau == "ATR(M5, 14) < 7 bps của giá", f"— {_cau}")
-kiem("toán hạng đúng/sai không ghép phép so",
-     core.action_display({"type": core.CHECK_COND,
-                          "conditions": [{"trai": {"ten": "lenh_da_khop"}, "phep": "la_dung"}]})
-     == "Lệnh này đã khớp là ĐÚNG")
-kiem("Sửa lệnh · hoà vốn KHÔNG còn tham số — mốc kích hoạt đã dời lên cổng",
-     core.action_display({"type": core.SUA_LENH, "che_do": "hoa_von"})
-     == "Dời SL về hoà vốn"
-     and "khoang" not in core.normalize_action(
-         {"type": core.SUA_LENH, "che_do": "hoa_von",
-          "khoang": {"tinh": "R", "value": 1}}))
-_vao = core.action_display({"type": core.VAO_LENH, "huong": "mua", "loai": "stop",
-                            "lot": 0.01, "dem": {"tinh": "atr", "value": 0.1},
-                            "sl": {"tinh": "atr_zone", "value": 1.5},
-                            "tp": {"tinh": "R", "value": 2}})
-kiem("Vào lệnh nói rõ đệm neo NGOÀI MÉP VÙNG", "ngoài mép vùng" in _vao, f"— {_vao}")
-kiem("Vào lệnh phân biệt ATR hiện tại (đệm) với ATR vùng (rủi ro)",
-     "đệm 0.1 × ATR" in _vao and "SL 1.5 × ATR zone" in _vao,
-     f"— {_vao}")
-
-# ================= 10. Soát hành động =================
-print("\n▸ Soát hành động")
-
-
-def loi_hd(a):
-    ra = []
-    core.validate_actions([a], lambda m, i=None: ra.append(m))
-    return ra
-
-
-kiem("Vào lệnh thiếu SL → báo lỗi",
-     any("Stop Loss" in m for m in loi_hd(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "market", "lot": 0.01})))
-# ĐỆM là TUỲ CHỌN từ khi mốc neo hiện ra: neo mép zone mà đệm 0 là lệnh nằm ĐÚNG mép,
-# hợp lệ. Chỉ neo vào GIÁ HIỆN TẠI mà không đệm mới sai — lệnh chờ đó khớp ngay.
-kiem("lệnh chờ neo mép zone, KHÔNG đệm → hợp lệ",
-     not any("đệm" in m for m in loi_hd(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "stop", "lot": 0.01,
-          "entry": {"moc": "zone_HH"},
-          "sl": {"tinh": "atr_zone", "value": 1.5}})))
-kiem("lệnh chờ neo GIÁ HIỆN TẠI mà thiếu đệm → báo lỗi",
-     any("đệm" in m for m in loi_hd(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "stop", "lot": 0.01,
-          "entry": {"moc": "gia_hien_tai"},
-          "sl": {"tinh": "atr_zone", "value": 1.5}})))
-kiem("Vào lệnh thiếu MỐC NEO → báo lỗi",
-     any("MỐC NEO" in m for m in loi_hd(
-         {"type": core.VAO_LENH, "huong": "mua", "loai": "stop", "lot": 0.01,
-          "dem": {"tinh": "atr", "value": 0.1},
-          "sl": {"tinh": "atr_zone", "value": 1.5}})))
-# `dong_mot_phan` và `trailing` ĐÃ BỎ — chưa từng chạy qua một bài kiểm nào, và
-# `dong_mot_phan` còn ném thẳng "chưa được cài trong sổ lệnh" khi chạy tới. Sơ đồ cũ
-# mang chúng thì `normalize_action` chuyển sang chế độ gần nhất.
-kiem("chế độ cũ tự chuyển: đóng một phần → Kết thúc lệnh",
-     core.normalize_action(
-         {"type": core.SUA_LENH, "che_do": "dong_mot_phan"})["che_do"] == "ket_thuc")
-kiem("chế độ cũ tự chuyển: đóng hẳn và huỷ chờ đều → Kết thúc lệnh",
-     core.normalize_action({"type": core.SUA_LENH, "che_do": "dong_han"})["che_do"]
-     == core.normalize_action({"type": core.SUA_LENH, "che_do": "huy_cho"})["che_do"]
-     == "ket_thuc")
-kiem("Kiểm tra điều kiện rỗng → báo (nó sẽ luôn khớp)",
-     any("luôn khớp" in m for m in loi_hd(
-         {"type": core.CHECK_COND, "conditions": []})))
-# `shift` ĐÃ BỎ khỏi toán hạng giá — nó là ô số thứ ba trên hàng điều kiện, cùng hình
-# dạng với ô "chu kỳ" của ATR nhưng khác nghĩa hẳn. Bài kiểm cũ canh "nến[0] hợp lệ, nến
-# âm thì không"; giờ canh chuyện mạnh hơn: chuẩn hoá phải VỨT nó đi, không để nằm lại
-# trong file như một con số vô chủ.
-_dk_shift = core.normalize_action({"type": core.CHECK_COND, "conditions": [
-    {"trai": {"ten": "close", "tf": "M5", "shift": 3}, "phep": ">",
-     "phai": {"value": 1}}]})
-kiem("`shift` bị vứt khỏi toán hạng giá, `tf` thì giữ",
-     "shift" not in _dk_shift["conditions"][0]["trai"]
-     and _dk_shift["conditions"][0]["trai"]["tf"] == "M5",
-     f"— {_dk_shift['conditions'][0]['trai']}")
-# Cùng luật, chiều ngược lại: trường của toán hạng KHÁC cũng không được bám lại.
-_dk_rac = core.normalize_action({"type": core.CHECK_COND, "conditions": [
-    {"trai": {"ten": "close", "tf": "M5", "period": 14, "method": "SMA"},
-     "phep": ">", "phai": {"value": 1}}]})
-kiem("đổi toán hạng thì `period`/`method` của cái cũ rơi đi",
-     set(_dk_rac["conditions"][0]["trai"]) == {"ten", "tf"},
-     f"— {_dk_rac['conditions'][0]['trai']}")
-
-# ============ CƠ CHẾ SO SÁNH — một cờ cho CẢ KHỐI ============
-#
-# Trước đây mỗi DÒNG có một chip `số`/`đ.lượng`, nên hai dòng trong cùng một khối mang
-# hai hình dạng: cột lệch, và mắt phải đọc lại hình dạng ở từng dòng. Cái chip ấy chỉ
-# tồn tại vì một hàng phải gánh hai hình dạng — nâng lựa chọn lên mức KHỐI thì nó thừa.
-#
-# Là CƠ CHẾ chứ không phải LOẠI KHỐI: hai kiểu dùng chung bộ soát, chung phép chuẩn hoá,
-# chung hàm dựng chữ trên thẻ — chỉ khác đúng cái vế phải.
-print("\n▸ Cơ chế so sánh — một cờ cho cả khối")
-
-
-def _dk(trai, phai, phep="<", co=None):
-    a = {"type": core.CHECK_COND, "conditions": [
-        {"trai": trai, "phep": phep, "phai": phai}]}
-    if co is not None:
-        a["so_dai_luong"] = co
-    return core.normalize_action(a)
-
-
-_atr = {"ten": "atr", "tf": "M5", "period": 14}
-_ma = {"ten": "ma", "tf": "M5", "period": 50, "method": "SMA"}
-
-# File CŨ không có cờ — suy từ chính các điều kiện, không đoán.
-kiem("file cũ có vế phải là ĐẠI LƯỢNG → cờ tự bật",
-     _dk({"ten": "close", "tf": "M5"}, _ma, ">")["so_dai_luong"] is True)
-kiem("file cũ có vế phải là SỐ → không gắn cờ",
-     "so_dai_luong" not in _dk(_atr, {"value": 7, "tinh": "bps"}))
-
-# Cờ QUYẾT ĐỊNH hình dạng, không phải từng dòng tự khai.
-_bat = _dk(_atr, {"value": 7, "tinh": "bps"}, co=True)
-kiem("bật cờ: vế phải là SỐ cũng bị viết lại thành đại lượng",
-     _bat["conditions"][0]["phai"] == {"ten": ""},
-     f"— {_bat['conditions'][0]['phai']}")
-_tat = _dk({"ten": "close", "tf": "M5"}, _ma, ">", co=False)
-kiem("tắt cờ: vế phải là ĐẠI LƯỢNG cũng bị viết lại thành số",
-     _tat["conditions"][0]["phai"] == {"value": 0.0}
-     and "so_dai_luong" not in _tat,
-     f"— {_tat['conditions'][0]['phai']}")
-kiem("bật cờ: ĐƠN VỊ biến mất — hai vế cùng mẫu số thì nó triệt tiêu",
-     "tinh" not in _bat["conditions"][0]["phai"])
-kiem("bật cờ: phép đúng/sai rơi về `<`",
-     _dk(_atr, _ma, "la_dung", co=True)["conditions"][0]["phep"] == "<")
-
-# Toán hạng đúng/sai + cờ bật: NÓI RA, không sửa lén. Đổi hộ toán hạng là vứt mất thứ
-# người dùng đã chọn, mà họ không hề biết.
-_ds = _dk({"ten": "zone_da_sinh_lenh"}, _ma, "<", co=True)
-kiem("bật cờ mà toán hạng ĐÚNG/SAI → báo lỗi, KHÔNG tự đổi toán hạng",
-     any("ĐÚNG/SAI" in m and "không so được" in m for m in loi_hd(_ds))
-     and _ds["conditions"][0]["trai"]["ten"] == "zone_da_sinh_lenh",
-     f"— {[m[:50] for m in loi_hd(_ds)]}")
-
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

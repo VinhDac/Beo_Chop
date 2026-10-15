@@ -358,16 +358,13 @@ def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None, khoa=None)
     `tien_do(viec, ti_le)`: báo tiến độ — `ti_le` là None khi không đo được.
     `khoa`: khoá Object Store RIÊNG của lượt này — phải trùng `CAU_HINH["khoa"]` đã nhúng
     trong `files`. Có khoá riêng thì tải xong app XOÁ nó đi, Object Store không đầy dần."""
-    from . import core
     from . import may as M
-    from . import nhat_ky as nk
 
     def bao(viec, ti_le=None):
         if tien_do:
             tien_do(viec, ti_le)
 
-    la_may = M.la_may(doc)
-    doc = M.chuan_hoa(doc) if la_may else core.normalize_process(doc)
+    doc = M.chuan_hoa(doc)
     ten = ten_project(doc)
     bao(f"Tìm project «{ten}»")
     project = qc.tim_project(ten) or qc.tao_project(ten)
@@ -396,7 +393,9 @@ def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None, khoa=None)
 
     bao("Tải nhật ký về")
     rieng = bool(khoa)
-    khoa = khoa or (f"cat_studio/may-{M.van_tay(doc)}.jsonl.gz" if la_may else nk.khoa_qc(doc))
+    if not khoa:
+        from . import goi_qc
+        khoa = goi_qc.khoa_mac_dinh(doc)
     du_lieu, loi = qc.tai_nhat_ky(org, khoa)
     if du_lieu is None:
         raise LoiQC("Backtest chạy XONG nhưng không lấy được nhật ký từ Object Store "
@@ -410,7 +409,8 @@ def chay(qc, doc, files, ten_backtest, thu_muc_nhat_ky, tien_do=None, khoa=None)
     duong = os.path.join(thu_muc_nhat_ky, khoa.split("/")[-1][:-len(".gz")])
     with open(duong, "wb") as f:
         f.write(chu)
-    meta, _, _ = nk.doc_file(duong)
+    from . import ket_qua_may
+    meta, _, _ = ket_qua_may.doc_file(duong, lay_luot=False)
     if rieng:                                   # đã nằm trên máy — dọn khỏi cloud
         for k in (khoa, khoa + ".b64"):
             qc.xoa_object(org, k)

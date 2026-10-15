@@ -7,8 +7,6 @@
 #   "System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft'".
 pywebview
 
-# Bộ chạy CŨ (`cat_studio/bo_chay.py`, `tinh_toan.py`) tính chỉ báo cả mảng bằng numpy,
-# và `cat_studio/api.py` kéo theo chúng — nên app lẫn 9 bài kiểm đều cần. Thiếu dòng này
-# thì clone mới + `tools\setup.bat` cho một .venv chạy app không nổi. Phần 7 của D-10 dọn
-# bộ chạy cũ xong thì bỏ được.
-numpy
+# KHÔNG còn numpy: bộ chạy cũ (`bo_chay`, `tinh_toan`) đã bị xoá ở phần 7 của D-10, và
+# bộ máy 5 trạm cố ý thuần Python — cùng một file chạy được cả trên máy lẫn trên
+# QuantConnect, nơi ta không chọn được thư viện.

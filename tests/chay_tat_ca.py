@@ -21,22 +21,10 @@ BAI = [
     ("test_vo_may.py", "Lớp vỏ QC của cỗ máy 5 trạm — bộ file đóng gói chạy trên LEAN giả, lệnh, khởi động"),
     ("test_qc_may.py", "Cỗ máy 5 trạm chạy từ app qua API QC — đóng gói, chạy thật lớp vỏ, tải về, đọc kết quả"),
     ("test_may_api.py", "Cửa API trình vẽ 5 trạm — từ điển theo trạm, soát từng khối, lắp mẫu, lưu/mở"),
-    ("test_kho_va_lenh.py", "Kho backend · sổ lệnh (id của ta) · lưu trữ · tham số"),
-    ("test_so_do_mau.py", "Sơ đồ mẫu Compress phải mở ra SẠCH"),
-    ("test_doi_chieu_d02.py", "ĐỐI CHIẾU từng luật của D_02 — có luật nào rơi không"),
-    ("test_tinh_toan.py", "Chỉ báo — đúng công thức D_02, NaN chứ không 0, gộp khung không nhìn trước"),
-    ("test_khop_lenh.py", "Khớp lệnh — đường đi 4 điểm, spread quy về Bid, gap"),
-    ("test_bo_chay.py", "Bộ chạy — thứ tự trong nhịp, luật lùi, tính xác định"),
-    ("test_nhat_ky.py", "Nhật ký — bản ghi rỗng chữ, nhãn dựng lại, ghi/đọc ngược, soi lượt"),
-    ("test_zone.py", "Cổng ZONE định nghĩa zone · MỐC NEO của khối Vào lệnh"),
-    ("test_dat_ten.py", "Số gõ tay hai chỗ → cảnh báo + nút đặt tên"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_trinh_ve.py", "Trình vẽ 5 trạm — canvas của một trạm: số thứ tự, vị trí, chấm đỏ từng trạm"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
-    ("test_lean_do_nhip.py", "Đo nhịp LEAN — một lượt một dòng, không ngắt sớm, JSON sạch"),
-    ("test_cat_lean.py", "Cầu nối QC — trùng khít bộ cũ, gói dán được, chạy được khi KHÔNG có repo"),
     ("test_qc_api.py", "Nối QC qua API — máy chủ QC giả chạy thật bộ file, khoá không bao giờ lộ"),
-    ("test_game_qc.py", "Màn chơi — luật sao/boss/nộp, màn ẩn là ẩn, việc nền, vỏ API cửa sổ"),
 ]
 
 hong = []

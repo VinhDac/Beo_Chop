@@ -143,7 +143,7 @@ kiem("cỗ máy mới: năm trạm, mỗi trạm ĐÚNG một khối Bắt đầ
      and "gom" in mm["tram"][T.CHON_MA] and "gom" in mm["tram"][T.CHIA_VON]
      and "gom" not in mm["tram"][T.TIN_HIEU])
 kiem("nhận ra cỗ máy 5 trạm, KHÔNG nhận nhầm sơ đồ Entry/Manage cũ",
-     M.la_may(mm) and not M.la_may(core.new_process()))
+     M.la_may(mm) and not M.la_may({"name": "sơ đồ cũ", "entry": {"steps": []}}))
 d0 = may_du()
 c1 = M.chuan_hoa(d0)
 c2 = M.chuan_hoa(c1)
@@ -330,7 +330,7 @@ m["tram"][T.TIN_HIEU]["steps"].append({"kind": "action", "id": "lala", "type": "
 kiem("khối lạ → lỗi gọi tên loại khối", any("khoi_tuong_lai" in p["message"]
                                            for p in loi(M.soat(m), T.TIN_HIEU)))
 kiem("sơ đồ Entry/Manage cũ đưa nhầm vào → một lỗi, không nổ",
-     len(M.soat(dict(core.new_process(), dang="cu"))) == 1)
+     len(M.soat({"name": "x", "dang": "cu", "entry": {"steps": []}})) == 1)
 
 # ================= 5. đánh số + chữ =================
 print("\n▸ Đánh số và chữ trên khối")

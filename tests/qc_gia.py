@@ -26,26 +26,6 @@ GOC = os.path.dirname(TESTS)
 
 from cat_studio import qc_api  # noqa: E402
 
-#: Kịch bản "QC chạy thuật toán": Python sạch — repo bị gỡ khỏi sys.path, chỉ còn bộ file
-#: của project — nạp `main.py` y như QC nạp, chạy cầu nối trên nến giả, cất nhật ký.
-KICH_BAN = r'''
-import json, sys
-# chừa site-packages của .venv (nằm trong repo) — xem lean_gia
-sys.path[:] = [p for p in sys.path
-               if not p.startswith(GOC) or p.startswith(sys.prefix)]
-import numpy as np
-import main
-import gia_lap_qc as gl
-cl = sys.modules["cat_lean"]
-vo = sys.modules["vo_qc"]
-nen1 = np.array([tuple(r) for r in json.load(open("nen.json"))], dtype=gl.DTYPE)
-p = gl.chay_qc(cl, sys.modules["cat_studio.core"], sys.modules["cat_studio.tinh_toan"],
-               vo.SO_DO, nen1, SPREAD, them=cl.meta_cau_hinh(vo.CAU_HINH))
-with open("ra.gz", "wb") as f:
-    f.write(p.nhat_ky_gz())
-print(cl.khoa_luu(vo.CAU_HINH, p))
-'''
-
 #: Mở URL KHÔNG qua proxy — máy chủ giả nằm ở 127.0.0.1, proxy của máy (nếu có) không
 #: được chen vào giữa.
 _MO = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -62,15 +42,11 @@ class QCGia:
     GHI = {"projects/create", "files/create", "files/update", "files/delete",
            "compile/create", "backtests/create", "object/get", "object/delete"}
 
-    def __init__(self, nen1, spread, chon_nen=None, du_lieu_may=None):
-        """`nen1`: nến M1 giả mà "QC" chạy thuật toán trên đó. `chon_nen(cau_hinh)` (tuỳ
-        chọn): chọn nến theo khối CẤU HÌNH trong `main.py` — để màn đã thấy và màn ẩn
-        cho ra hai kết quả khác nhau như thật.
-
-        `du_lieu_may(cau_hinh)` (cỗ máy 5 trạm, D-10): `{mã: [(t, o, h, l, c, v, spread)…]}`
-        cho rổ mã trong CẤU HÌNH — bộ file khi đó chạy CHÍNH lớp vỏ `vo_may` trên LEAN giả
-        (`tests/lean_gia.py`), không phải một bản mô phỏng của nó."""
-        self.nen1, self.spread, self.chon_nen = nen1, spread, chon_nen
+    def __init__(self, du_lieu_may=None):
+        """`du_lieu_may(cau_hinh)`: `{mã: [(t, o, h, l, c, v, spread)…]}` cho rổ mã trong
+        khối CẤU HÌNH của `main.py`. Bộ file đẩy lên chạy CHÍNH lớp vỏ `vo_may` trên LEAN
+        giả (`tests/lean_gia.py`), không phải một bản mô phỏng của nó — và seed theo khoảng
+        ngày thì màn đã thấy với màn ẩn ra hai kết quả khác nhau như thật."""
         self.du_lieu_may = du_lieu_may
         self.projects, self.files, self.compiles, self.backtests = [], {}, {}, {}
         self.object_store, self.tai_ve, self.jobs = {}, {}, {}
@@ -294,35 +270,7 @@ class QCGia:
         """Chạy bộ file của project như QC chạy. Trả `(khoá, gz)` hoặc `(None, stderr)`."""
         py = sorted((k, v) for k, v in anh.items() if k.endswith(".py"))
         ma = hashlib.sha1(json.dumps(py).encode("utf-8")).hexdigest()
-        if "import vo_may as _vo" in anh.get("main.py", ""):
-            return self._chay_may(dict(py), ma)
-        nen1 = self.nen1
-        if self.chon_nen is not None:
-            ch = dict(re.findall(r'^    "(\w+)": "?([^",]*)"?,$', anh.get("main.py", ""), re.M))
-            nen1 = self.chon_nen(ch)
-        if ma not in self._cache:
-            with tempfile.TemporaryDirectory() as td:
-                for ten, nd in py:
-                    with open(os.path.join(td, ten), "w", encoding="utf-8") as f:
-                        f.write(nd)
-                shutil.copy(os.path.join(TESTS, "gia_lap_qc.py"), td)
-                with open(os.path.join(td, "AlgorithmImports.py"), "w", encoding="utf-8") as f:
-                    f.write("class QCAlgorithm:\n    pass\n")
-                with open(os.path.join(td, "nen.json"), "w", encoding="utf-8") as f:
-                    json.dump(nen1.tolist(), f)
-                with open(os.path.join(td, "kich_ban.py"), "w", encoding="utf-8") as f:
-                    f.write(f"GOC = {GOC!r}\nSPREAD = {self.spread!r}\n" + KICH_BAN)
-                env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-                env["PYTHONUTF8"] = "1"      # như lean_gia: con phải nói UTF-8
-                r = subprocess.run([sys.executable, "kich_ban.py"], cwd=td, env=env,
-                                   capture_output=True, text=True, encoding="utf-8",
-                                   timeout=300)
-                if r.returncode:
-                    self._cache[ma] = (None, r.stderr[-3000:])
-                else:
-                    with open(os.path.join(td, "ra.gz"), "rb") as f:
-                        self._cache[ma] = (r.stdout.strip().splitlines()[-1], f.read())
-        return self._cache[ma]
+        return self._chay_may(dict(py), ma)
 
 
 def cau_hinh_main(main_py):
