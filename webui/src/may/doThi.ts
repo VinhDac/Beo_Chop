@@ -7,7 +7,10 @@
  *  nên nó phải kiểm được bằng máy.
  */
 import type { ProcEdge } from '../types'
-import type { KhoiMay, LuongTram, TheKhoi, TramDoc, TramKey, TramMoTa, VanDeMay } from './mayTypes'
+import type {
+  BootMay, KhoiLamKhai, KhoiMay, LuongTram, OKhai, TheKhoi, ToanHangKhai, TramDoc,
+  TramKey, TramMoTa, VanDeMay,
+} from './mayTypes'
 
 /** Node của React Flow, khai lại bằng hình dạng tối thiểu ta thật sự dùng. */
 export interface NodeMay {
@@ -129,4 +132,38 @@ export function vanDeCuaTram(vanDe: VanDeMay[], tram: TramKey): VanDeMay[] {
  *  Python, để hai bên không bao giờ gọi một trạm bằng hai cái tên. */
 export function nhanTram(t: TramMoTa | undefined, key?: TramKey): string {
   return t ? `${t.so} ${t.ten}` : String(key ?? '')
+}
+
+/* ------------------------------ hộp thoại khối --------------------------------- */
+
+/** Ô `khi`: ô chỉ có nghĩa khi một ô KHÁC của cùng khối mang đúng giá trị đó — ô «%»
+ *  chỉ có nghĩa khi cách chia là «cố định X%». Bày ra cả những ô vô nghĩa là mời người
+ *  chơi vặn một núm không nối với cái gì (Python cũng vứt nó đi lúc chuẩn hoá, nên con
+ *  số vừa gõ biến mất mà không ai nói vì sao). */
+export function oCoNghia(f: OKhai, khoi: Record<string, unknown>): boolean {
+  return Object.entries(f.khi ?? {}).every(([k, v]) => khoi[k] === v)
+}
+
+/** Đại lượng trạm này ĐỌC ĐƯỢC, giữ nguyên thứ tự của từ điển. «Tín hiệu» chỉ ở ③,
+ *  «khớp lệnh» chỉ ở ⑤ — hộp thoại Hỏi chỉ bày ra đúng bộ của trạm đang mở. */
+export function daiLuongCuaTram(boot: BootMay, tram: TramKey): ToanHangKhai[] {
+  const duoc = new Set(boot.toan_hang_cua_tram[tram] ?? [])
+  return boot.toan_hang.filter(t => duoc.has(t.key))
+}
+
+/** Nhóm của các đại lượng, theo thứ tự gặp — để xếp `<optgroup>`. */
+export function nhomDaiLuong(ds: ToanHangKhai[]): string[] {
+  const ra: string[] = []
+  for (const t of ds) if (!ra.includes(t.nhom)) ra.push(t.nhom)
+  return ra
+}
+
+/** Khối Làm của MỘT trạm, kèm khai báo và cờ "trạm cần ít nhất một cái". */
+export function khoiLamCuaTram(boot: BootMay, tram: TramKey): {
+  key: string; d: KhoiLamKhai; canCo: boolean
+}[] {
+  const canCo = new Set(boot.can_co[tram] ?? [])
+  return (boot.khoi_lam_cua_tram[tram] ?? [])
+    .filter(k => boot.khoi_lam[k])
+    .map(k => ({ key: k, d: boot.khoi_lam[k], canCo: canCo.has(k) }))
 }

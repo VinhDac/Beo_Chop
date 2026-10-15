@@ -30,8 +30,10 @@ try {
 }
 const duong = existsSync(join(ra, 'may', 'doThi.js'))
   ? join(ra, 'may', 'doThi.js') : join(ra, 'doThi.js')
-const { tramSangRf, rfSangTram, viTriMoi, demTheoTram, vanDeCuaTram, nhanTram } =
-  await import(pathToFileURL(duong).href)
+const {
+  tramSangRf, rfSangTram, viTriMoi, demTheoTram, vanDeCuaTram, nhanTram,
+  oCoNghia, daiLuongCuaTram, nhomDaiLuong, khoiLamCuaTram,
+} = await import(pathToFileURL(duong).href)
 
 let dung = 0, sai = 0
 const kiem = (ten, dk, chi = '') => {
@@ -158,6 +160,58 @@ kiem('lọc theo trạm: lỗi lên trước cảnh báo',
 kiem('nhãn trạm gọi y như Python: ký hiệu + tên',
      nhanTram({ key: 'tin_hieu', so: '②', ten: 'Tín hiệu' }) === '② Tín hiệu'
      && nhanTram(undefined, 'chia_von') === 'chia_von')
+
+console.log('\n▸ Hộp thoại khối: chỉ bày thứ dùng được Ở TRẠM NÀY')
+/* Từ điển rút gọn, đúng hình dạng `may_boot` trả về. */
+const boot = {
+  toan_hang: [
+    { key: 'gia_dong', nhan: 'Giá đóng', nhom: 'Giá', tram: null },
+    { key: 'ema', nhan: 'EMA', nhom: 'Chỉ báo', tram: null },
+    { key: 'rsi', nhan: 'RSI', nhom: 'Chỉ báo', tram: null },
+    { key: 'tin_cay', nhan: 'Độ tin cậy', nhom: 'Tín hiệu', tram: ['chia_von'] },
+    { key: 'lech_muc_tieu_pt', nhan: 'Lệch mục tiêu %', nhom: 'Khớp lệnh',
+      tram: ['khop_lenh'] },
+  ],
+  toan_hang_cua_tram: {
+    tin_hieu: ['gia_dong', 'ema', 'rsi'],
+    chia_von: ['gia_dong', 'ema', 'rsi', 'tin_cay'],
+    khop_lenh: ['gia_dong', 'ema', 'rsi', 'lech_muc_tieu_pt'],
+  },
+  khoi_lam: {
+    bao: { tram: 'tin_hieu', nhan: 'Báo tín hiệu', vai: 'quyet_dinh', mo_ta: '', truong: [] },
+    dua_ve_0: { tram: 'rui_ro', nhan: 'Đưa về 0', vai: 'quyet_dinh', mo_ta: '', truong: [] },
+    cam_vao_lai: { tram: 'rui_ro', nhan: 'Cấm vào lại', vai: 'phu', mo_ta: '', truong: [] },
+  },
+  khoi_lam_cua_tram: { tin_hieu: ['bao'], rui_ro: ['dua_ve_0', 'cam_vao_lai'] },
+  can_co: { tin_hieu: ['bao'] },
+}
+kiem('trạm ② không thấy đại lượng «tín hiệu» (của ③) hay «khớp lệnh» (của ⑤)',
+     daiLuongCuaTram(boot, 'tin_hieu').map(t => t.key).join(',') === 'gia_dong,ema,rsi')
+kiem('trạm ③ thấy thêm «Độ tin cậy», trạm ⑤ thấy thêm «Lệch mục tiêu %»',
+     daiLuongCuaTram(boot, 'chia_von').some(t => t.key === 'tin_cay')
+     && daiLuongCuaTram(boot, 'khop_lenh').some(t => t.key === 'lech_muc_tieu_pt')
+     && !daiLuongCuaTram(boot, 'khop_lenh').some(t => t.key === 'tin_cay'))
+kiem('nhóm giữ đúng thứ tự từ điển, không lặp',
+     nhomDaiLuong(daiLuongCuaTram(boot, 'chia_von')).join(' · ')
+     === 'Giá · Chỉ báo · Tín hiệu')
+kiem('mỗi trạm chỉ thấy khối Làm CỦA NÓ',
+     khoiLamCuaTram(boot, 'tin_hieu').map(x => x.key).join(',') === 'bao'
+     && khoiLamCuaTram(boot, 'rui_ro').map(x => x.key).join(',') === 'dua_ve_0,cam_vao_lai')
+kiem('khối trạm BẮT BUỘC phải có được đánh dấu, khối phụ cũng vậy',
+     khoiLamCuaTram(boot, 'tin_hieu')[0].canCo === true
+     && khoiLamCuaTram(boot, 'rui_ro')[0].canCo === false
+     && khoiLamCuaTram(boot, 'rui_ro')[1].d.vai === 'phu')
+
+/* Ô `khi`: ô «%» chỉ có nghĩa khi cách chia là «cố định X%». */
+const oPt = { key: 'pt', loai: 'so', nhan: '%', khi: { cach: 'co_dinh' } }
+const oKhung = { key: 'khung', loai: 'chon', nhan: 'khung', khi: { cach: 'rui_ro_ngang' } }
+const oCach = { key: 'cach', loai: 'chon', nhan: 'cách' }
+kiem('ô phụ thuộc chỉ hiện khi ô kia mang đúng giá trị',
+     oCoNghia(oPt, { cach: 'co_dinh' }) && !oCoNghia(oPt, { cach: 'chia_deu' })
+     && !oCoNghia(oKhung, { cach: 'co_dinh' })
+     && oCoNghia(oKhung, { cach: 'rui_ro_ngang' }))
+kiem('ô không khai `khi` thì luôn có nghĩa',
+     oCoNghia(oCach, {}) && oCoNghia(oCach, { cach: 'x' }))
 
 console.log(`\n${'─'.repeat(56)}\n  ${dung} đúng · ${sai} sai\n${'─'.repeat(56)}`)
 process.exit(sai ? 1 : 0)

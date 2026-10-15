@@ -34,14 +34,16 @@ function Nut({ ten, icon, onClick, tat, title }: {
 }
 
 export default function MayRibbon({
-  tramMoTa, ten, datTen, themHoi, xoa, doiGhim, hoanTac, lamLai, vuaKhung,
-  coChon, chonDaGhim, coTheHoanTac, coTheLamLai, dang,
+  tramMoTa, ten, datTen, themHoi, themLam, sua, xoa, doiGhim, hoanTac, lamLai,
+  vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai, dang,
 }: {
   /** Trạm đang mở — nhãn nhóm "Thêm khối" gọi đúng tên trạm. */
   tramMoTa?: TramMoTa
   ten: string
   datTen: (t: string) => void
   themHoi: () => void
+  themLam: () => void
+  sua: () => void
   xoa: () => void
   doiGhim: () => void
   hoanTac: () => void
@@ -68,9 +70,16 @@ export default function MayRibbon({
         <Nut ten="Hỏi" icon={<Icon name="branch" size={18} />} onClick={themHoi}
              tat={!dang}
              title="Khối Hỏi — qua thì đi tiếp, trượt thì thử nhánh kế bên dưới" />
+        <Nut ten="Làm…" icon={<Icon name="action" size={18} />} onClick={themLam}
+             tat={!dang}
+             title={tramMoTa
+               ? `Khối Làm của trạm ${tramMoTa.so} ${tramMoTa.ten} — ${tramMoTa.ra}`
+               : 'Khối Làm của trạm đang mở'} />
       </Nhom>
 
       <Nhom ten="Khối đang chọn">
+        <Nut ten="Sửa" icon={<Icon name="edit" size={18} />} onClick={sua} tat={!coChon}
+             title="Sửa khối đang chọn (hoặc nhấp đúp lên khối)" />
         <Nut ten={chonDaGhim ? 'Bỏ ghim' : 'Ghim số'}
              icon={<Icon name={chonDaGhim ? 'bo-ghim' : 'ghim'} size={18} />}
              onClick={doiGhim} tat={!coChon}

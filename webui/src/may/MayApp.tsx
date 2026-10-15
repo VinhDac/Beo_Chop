@@ -7,7 +7,9 @@ import {
 import { cho_cau_noi, py, pyMay } from '../api'
 import KhoDialog from '../components/KhoDialog'
 import TitleBar, { type NhomMenu } from '../components/TitleBar'
+import ChonKhoiLam from './ChonKhoiLam'
 import DaiTram from './DaiTram'
+import KhoiDialog from './KhoiDialog'
 import KhoiNode from './KhoiNode'
 import MayPicker from './MayPicker'
 import MayRibbon from './MayRibbon'
@@ -63,6 +65,9 @@ function Trinh() {
   const [nhatKy, setNhatKy] = useState<{ gio: string; msg: string; loi?: boolean }[]>([])
   const [moMo, setMoMo] = useState(false)
   const [moKho, setMoKho] = useState(false)
+  /** Khối đang sửa (id) và hộp chọn khối Làm — lát 5c. */
+  const [dangSua, setDangSua] = useState<string | null>(null)
+  const [moChonLam, setMoChonLam] = useState(false)
   const [lui, setLui] = useState<string[]>([])
   const [toi, setToi] = useState<string[]>([])
 
@@ -206,19 +211,38 @@ function Trinh() {
     veRoiVua(m2, k, luong)
   }, [nodes, edges, luong, tuCanvas, veRoiVua])
 
-  const themHoi = useCallback(async () => {
+  /** Thêm một khối vào trạm đang mở. `loai` rỗng = khối Hỏi; còn lại là khối Làm của
+   *  chính trạm đó. Khối MỚI mở hộp thoại ngay: người chơi vừa chọn "Báo tín hiệu" thì
+   *  thứ họ muốn tiếp theo là đặt hướng và hạn, không phải đi tìm nút Sửa. */
+  const themKhoi = useCallback(async (loai: string | null) => {
     const m = docRef.current
     if (!m) return
     const k = tramRef.current
-    const r = await pyMay.may_khoi_moi(k, 'action', null, m.tham_so)
+    const r = await pyMay.may_khoi_moi(k, 'action', loai, m.tham_so)
     if (!r.ok || !r.value) return ghi(r.error ?? 'không tạo được khối', true)
     const st: KhoiMay = { ...r.value.step, pos: viTriMoi(m.tram[k].steps) }
     await doi((d, kk) => ({
       ...d,
       tram: { ...d.tram, [kk]: { ...d.tram[kk], steps: [...d.tram[kk].steps, st] } },
     }))
-    ghi(`thêm khối Hỏi vào ${nhan(k)}`)
+    ghi(`thêm khối ${r.value.card.title} vào ${nhan(k)}`)
+    setDangSua(st.id)
   }, [doi, ghi, nhan])
+
+  /** Ghi một khối đã sửa trở lại trạm của nó. */
+  const ghiKhoi = useCallback(async (st: KhoiMay) => {
+    await doi((d, k) => ({
+      ...d,
+      tram: {
+        ...d.tram,
+        [k]: {
+          ...d.tram[k],
+          steps: d.tram[k].steps.map(s => (s.id === st.id
+            ? { ...st, pos: s.pos, ghim: s.ghim } : s)),
+        },
+      },
+    }))
+  }, [doi])
 
   const xoaChon = useCallback(async () => {
     const bo = new Set(nodes.filter(n => n.selected).map(n => n.id))
@@ -459,7 +483,9 @@ function Trinh() {
       <MayRibbon
         tramMoTa={tramMoTa}
         ten={ten} datTen={setTen}
-        themHoi={() => void themHoi()}
+        themHoi={() => void themKhoi(null)}
+        themLam={() => setMoChonLam(true)}
+        sua={() => dangChon[0] && setDangSua(dangChon[0].id)}
         xoa={() => void xoaChon()}
         doiGhim={() => void doiGhim()}
         hoanTac={hoanTac} lamLai={lamLai}
@@ -486,6 +512,7 @@ function Trinh() {
           onConnectStart={() => setDangNoi(true)}
           onConnectEnd={() => setDangNoi(false)}
           onNodeDragStop={ketThucKeo}
+          onNodeDoubleClick={(_, n) => setDangSua(n.id)}
           onEdgeDoubleClick={huyNoi}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
@@ -607,6 +634,22 @@ function Trinh() {
                    onDuyetFile={() => void moFile()} />
       )}
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
+
+      {moChonLam && boot && (
+        <ChonKhoiLam tram={tram} boot={boot} onDong={() => setMoChonLam(false)}
+                     onChon={loai => void themKhoi(loai)} />
+      )}
+
+      {dangSua && boot && doc && (() => {
+        const st = doc.tram[tram].steps.find(s => s.id === dangSua)
+        /* Khối Bắt đầu có hộp thoại riêng (lịch, khung, phạm vi) — lát 5d. */
+        if (!st || st.kind === 'start') return null
+        return (
+          <KhoiDialog khoi={st} tram={tram} boot={boot} thamSo={doc.tham_so}
+                      onLuu={s => void ghiKhoi(s)}
+                      onDong={() => setDangSua(null)} />
+        )
+      })()}
     </div>
   )
 }

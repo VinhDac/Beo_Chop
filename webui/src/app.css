@@ -1647,3 +1647,28 @@ select.o { cursor: pointer; }
    `.day-quay-lai` màu ⟲ như sơ đồ cũ. */
 .day-vong-ho .react-flow__edge-path { stroke: var(--err); stroke-dasharray: 5 3; }
 .day-quay-lai .react-flow__edge-path { stroke: var(--ghim); stroke-dasharray: 5 3; }
+
+/* Dòng điều kiện của cỗ máy 5 trạm: so với dòng của sơ đồ cũ, nó có thêm ô CHỌN KIỂU
+   vế phải (số hay đại lượng) và không có cột đơn vị — đơn vị là của chính đại lượng,
+   do `tram.py` khai. Lưới riêng, không mượn lưới cũ: mượn thì vế phải rơi vào cột đơn
+   vị rộng 118px và chip tham số bị cắt mất một nửa. */
+.dong-dk.may {
+  grid-template-columns: 26px minmax(0, 1fr) 70px 84px minmax(0, 1fr) 22px;
+}
+/* Nhãn "và": CHỮ chứ không phải huy hiệu tròn — nó nói quan hệ giữa hai dòng, không
+   phải số thứ tự của dòng. */
+.dong-dk.may .so-dk {
+  width: 26px; height: auto;
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px;
+}
+/* Đại lượng kéo theo tham số của nó (khung · chu kỳ · lùi) nên phải xuống dòng được;
+   không thì chip tham số cuối bị cắt. */
+.dong-dk.may .cum-toan-hang { flex-wrap: wrap; }
+
+/* Xem trước trong hộp thoại khối: NHIỀU dòng (mỗi ô một dòng, y trên hộp), nên không
+   dùng kiểu một-dòng-cắt-đuôi của hộp thoại cũ. */
+.xem-truoc .tieu-de-phu { margin-bottom: 3px; }
+.xem-truoc .dong { white-space: pre-wrap; }
+.xem-truoc .dong.mo { color: var(--dim); }
