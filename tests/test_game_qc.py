@@ -115,15 +115,67 @@ kiem("sao: thắng màn ẩn mà THUA màn đã thấy vẫn chỉ ⭐ — mỗi
 g = game.do_gon(DOC)
 kiem("độ gọn = số khối (trừ khối Bắt đầu) + số tham số", g == {"so_khoi": 11, "so_tham_so": 11,
                                                              "tong": 22}, f"({g})")
-m0 = game.danh_sach_man()[0]
+m0 = next(m for m in game.danh_sach_man(dang="so_do") if m["id"] == "vang-2024")
 kiem("thông tin màn cho giao diện KHÔNG mang ngày màn ẩn (D-06: app giữ màn ẩn)",
      "an" not in m0 and "2025" not in json.dumps(m0) and m0["an_mo_ta"]
      and m0["boss"]["ten"] == "Mua rồi giữ", f"({m0['ten']})")
+kiem("… mọi màn đều giấu ngày màn ẩn, không riêng màn này",
+     all("an" not in m and "2025" not in json.dumps(m) for m in game.danh_sach_man()),
+     f"({len(game.danh_sach_man())} màn)")
 kiem("khoảng ngày: ▶ nhanh nằm trong màn đã thấy; màn ẩn nằm SAU màn đã thấy",
      all(m["thay"][0] <= m["nhanh"][0] <= m["nhanh"][1] <= m["thay"][1] < m["an"][0]
          for m in game.MAN))
 kiem("màn không có / kiểu chạy lạ → LoiGame", isinstance(bat(game.man, "xx"), game.LoiGame)
      and isinstance(bat(game.khoang, "vang-2024", "tu_do"), game.LoiGame))
+
+# ================= 2b. màn theo RỔ mã (cỗ máy 5 trạm, D-10 phần 6) =================
+print("\n▸ Màn theo RỔ mã — chế độ Chiến dịch của cỗ máy 5 trạm")
+from cat_studio import may as MAY  # noqa: E402
+from cat_studio import qc_chay as QCC  # noqa: E402
+
+ds_may = game.danh_sach_man(dang=MAY.DANG)
+ds_cu = game.danh_sach_man(dang="so_do")
+kiem("màn chia theo DẠNG tài liệu: cỗ máy 5 trạm và sơ đồ cũ không dùng chung màn",
+     ds_may and ds_cu and not ({m["id"] for m in ds_may} & {m["id"] for m in ds_cu})
+     and len(ds_may) + len(ds_cu) == len(game.MAN),
+     f"({len(ds_may)} màn cỗ máy · {len(ds_cu)} màn sơ đồ cũ)")
+kiem("mỗi màn cỗ máy có một RỔ mã thật, loại thị trường lớp vỏ đăng ký được",
+     all(len(m["ro"]) >= 2 and m["loai"] in QCC.LOAI_THI_TRUONG
+         and len(m["ro"]) <= QCC.TRAN_SO_MA for m in ds_may),
+     f"({[(m['loai'], len(m['ro'])) for m in ds_may]})")
+kiem("boss của màn rổ là «Mua rồi giữ cả rổ» — chia đều vốn, không chọn mã",
+     all(m["boss"]["id"] == "mua_giu_deu" and "hia đều vốn" in m["boss"]["mo_ta"]
+         for m in ds_may))
+kiem("màn sơ đồ cũ vẫn boss một symbol — hai thước đo không lẫn vào nhau",
+     all(m["boss"]["id"] == "mua_giu" and m["symbol"] for m in ds_cu))
+kiem("rổ của màn sơ đồ cũ = chính symbol đó, để mọi chỗ chỉ phải biết MỘT khái niệm",
+     all(m["ro"] == [m["symbol"]] for m in ds_cu))
+kiem("mã trong rổ viết HOA, không trùng nhau",
+     all(x == x.upper() and len(set(m["ro"])) == len(m["ro"]) for m in ds_may
+         for x in m["ro"]))
+
+# Chấm một lượt CỖ MÁY: lấy đúng con số bộ máy đã tính, không phải con số của sơ đồ cũ.
+mm = {"dang": MAY.DANG,
+      "thong_ke": {"lai_pt": 9.0, "boss_pt": 4.0, "so_lenh_khop": 3, "so_dong": 0},
+      "mua_giu_pt": 99.0}
+c_may = game.cham(mm)
+kiem("chấm cỗ máy: boss là boss_pt của bộ máy, «sạch» đếm lệnh ĐÃ KHỚP",
+     c_may == {"lai_pt": 9.0, "mua_giu_pt": 4.0, "thang_boss": True, "so_dong": 3,
+               "sach": True}, f"({c_may})")
+kiem("chấm cỗ máy: không khớp lệnh nào → KHÔNG sạch, dù lãi dương",
+     game.cham({"dang": MAY.DANG,
+                "thong_ke": {"lai_pt": 3.0, "boss_pt": 1.0, "so_lenh_khop": 0}})["sach"]
+     is False)
+kiem("chấm cỗ máy: rổ không có giá boss → không ai thắng ai",
+     game.cham({"dang": MAY.DANG,
+                "thong_ke": {"lai_pt": 3.0, "boss_pt": None, "so_lenh_khop": 2}})["thang_boss"]
+     is False)
+kiem("thua boss thì thua, dù lãi dương",
+     game.cham({"dang": MAY.DANG,
+                "thong_ke": {"lai_pt": 3.0, "boss_pt": 7.5, "so_lenh_khop": 2}})["thang_boss"]
+     is False)
+kiem("luật sao dùng chung cho cả hai dạng — một định nghĩa «điểm» duy nhất",
+     game.sao(c_may) == 2 and game.sao(c_may, c_may) == 3)
 
 # ================= 3. luật nộp — trước khi chạy gì =================
 print("\n▸ Luật nộp")

@@ -884,8 +884,11 @@ class ApiQC(NenCuaSo):
         return self._cha._viec_qc
 
     def _ds_man(self):
+        """Màn CỦA ĐÚNG DẠNG tài liệu đang mở. Chưa có tài liệu thì bày màn của cỗ máy 5
+        trạm — đó là thứ duy nhất app còn vẽ được (D-10, phần 5)."""
         doc = self._cha._doc_qc
-        return game.danh_sach_man(game.van_tay(doc) if doc else None)
+        dang = "so_do" if (doc and not M.la_may(doc)) else M.DANG
+        return game.danh_sach_man(game.van_tay(doc) if doc else None, dang)
 
     @_bat_loi
     def ping(self):
