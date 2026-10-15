@@ -2809,3 +2809,72 @@ Chạy trên tài khoản QC thật là bài nghiệm thu còn lại — trên m
 
 **Bằng chứng:** `test_vo_may` 25/25 (ngoại hối · cổ phiếu, đường bị từ chối vì lô · crypto, lô
 lẻ); `test_qc_may` 23/23 (soát trước khi gửi, chạy trọn, đọc lại, dọn cloud, lịch sử, mở lại).
+
+## 22. ⭐ TRÌNH VẼ CỖ MÁY 5 TRẠM (D-10, phần 5)
+
+> Giao diện: `webui/src/may/` (`MayApp` · `DaiTram` · `KhoiNode` · `KhoiDialog` ·
+> `BatDauDialog` · `GomDialog` · `ThamSoMayDialog` · `MauPicker` · `ChonKhoiLam` ·
+> `MayPicker` · `MayRibbon` · `OSo` · `doThi.ts` · `mayTypes.ts`). Python: 14 cửa `may_*`
+> trong `api.py`, `may.soat_khoi`, kho cỗ máy trong `luu_tru`. Bài kiểm:
+> `tests/test_may_api.py` (58), `webui/kiem/trinh_ve.mjs` qua `tests/test_trinh_ve.py`
+> (28). Xem thử giao diện bằng trình duyệt: `tools/xem_thu.py`.
+
+**Cửa sổ vẽ của app GIỜ LÀ trình vẽ 5 trạm.** Sơ đồ cũ Entry/Manage không còn lối vào nào
+(`main.tsx` dựng `MayApp`); phần 7 xoá hẳn phần mã của nó.
+
+**Ba luật, y luật sơ đồ cũ nhưng nhân cho năm:**
+
+1. **Tài liệu là của Python.** Mọi thay đổi cấu trúc gửi CẢ cỗ máy sang `may_kem_the` +
+   `may_soat`, rồi canvas vẽ lại từ cái nhận về. JS không ghép một mẩu chữ nào trên khối,
+   không tự tính số thứ tự, không tự soát một luật nào.
+2. **Một canvas = MỘT trạm** (luật gốc: một sơ đồ = một phạm vi chạy). Dải ①→⑤ ở trên để
+   đổi trạm. Dải là một DẢI RIÊNG chứ không nổi trên canvas như pill cũ: năm trạm là cấu
+   trúc của cỗ máy chứ không phải một lựa chọn thỉnh thoảng, và nổi lên thì nó che đúng
+   khối Bắt đầu — khối nằm ở góc trái trên của MỌI trạm.
+3. **Soát cả cỗ máy sau mỗi thay đổi.** Chấm đỏ trên từng trạm + bảng Vấn đề có nhãn trạm,
+   bấm được để nhảy tới khối. Giấu lỗi của trạm kia thì bấm ▶ mới lòi ra.
+
+**Hộp thoại khối** (`KhoiDialog`): mỗi lần vặn một núm, bản nháp thô bay sang
+`may_luu_khoi` và nhận về khối đã chuẩn hoá + CHỮ sẽ hiện trên hộp + vấn đề của chính khối
+đó. `may.soat_khoi` soát bằng chính bộ soát của trạm nhưng bỏ phần đồ thị: khối vừa tạo
+đương nhiên chưa có gì phía sau, mà câu đó nổi lên trong hộp thoại chỉ làm người vẽ tưởng
+mình gõ sai. Chỉ bày thứ dùng được Ở TRẠM NÀY — khối Làm của trạm đó, đại lượng trạm đó
+đọc được (② không thấy «tín hiệu», ⑤ mới có «lệch mục tiêu»). Ô số nhận cả tên tham số.
+
+**Khối Bắt đầu** có hộp thoại riêng (lịch — mỗi trạm chỉ mời lịch có nghĩa với nó · khung ·
+ở ① là phạm vi: mọi mã của màn hay một danh sách riêng). **Gom** là bảng riêng, và nó hiện
+MỌI vấn đề của trạm chứ không riêng vấn đề mang nhãn Gom: câu quan trọng nhất ở đây
+(«Cho vào rổ» không có điểm mà Gom giữ N mã điểm cao nhất) gắn vào KHỐI.
+
+**Lắp mẫu** (`MauPicker`): 22 mẫu theo trạm, nói thẳng hai điều bất ngờ nếu không nói —
+lắp mẫu THAY CẢ sơ đồ của trạm, và núm vặn của mẫu thành tham số có tên, tên nào đã có thì
+giữ giá trị đã chỉnh. Việc ghép vẫn do `mau_tram.ap_mau` làm.
+
+**Nối sang Màn chơi:** ◆ Màn chơi (Ctrl+M) gửi cỗ máy đang trên canvas; `mo_qc` nhận cả hai
+dạng tài liệu và soát mỗi dạng bằng bộ luật của CHÍNH nó. Chế độ Sáng tạo của cỗ máy nhận
+một RỔ mã + loại thị trường (cỗ máy tự chọn mã ở trạm ①, đưa nó một mã là bỏ phí cả trạm
+đó); Chiến dịch khoá lại kèm lý do (phần 6). SOI một lượt bắn ngược về trình vẽ: nhảy đúng
+trạm, tô đường đã đi, tô cổng trượt tới tận dòng điều kiện hỏng; khối của lượt mà không còn
+trên sơ đồ thì nói «cỗ máy đã đổi từ lúc chạy».
+
+**Kho cỗ máy ở thư mục RIÊNG** `du_lieu/co_may/`, và mở lầm một chiến lược cũ bị CHẶN:
+`may.chuan_hoa` của sơ đồ cũ trả về một cỗ máy TRẮNG hợp lệ, nên không chặn thì lưu lại là
+mất hẳn chiến lược đó.
+
+### 22.1 Xem thử giao diện bằng trình duyệt — `tools/xem_thu.py`
+
+Cửa sổ pywebview không chụp được ảnh, không đọc được console, không có cách nào cho máy bấm
+thử. `tools/xem_thu.py` phục vụ `webui/dist` kèm một vỏ `window.pywebview` giả gọi
+`api.py` THẬT qua `fetch` — cùng bundle, cùng luật, chỉ khác đường vận chuyển. Phục vụ cả
+`ApiQC` nên `?qc=1` xem được cửa sổ Màn chơi. KHÔNG phải lối chạy của app (lối đó vẫn là
+`tools\chay.bat`), và `mo_qc` ở đó chỉ nạp cỗ máy chứ không mở nổi cửa sổ nào.
+
+**Bằng chứng:** `test_may_api` 58/58 (từ điển đủ và JSON hoá nổi · 14 cửa khai đúng tham
+số thật — bẫy `getfullargspec` của pywebview · lưu rồi mở lại cùng vân tay · 11 lời gọi rác
+không cửa nào ném · lịch lạ rơi về mặc định của trạm · cảnh báo Gom gắn vào khối · qc_boot
+dạng may5). `test_trinh_ve` 28/28 (số thứ tự lấy từ thẻ của CHÍNH trạm, vị trí khối không
+mất khi đổi trạm, chấm đỏ đếm riêng từng trạm, lọc đại lượng/khối Làm theo trạm, luật ô
+`khi`). Toàn bộ 24/24.
+
+**Chỗ CHƯA có bằng chứng:** một lượt chạy THẬT trên tài khoản QuantConnect bằng khoá thật —
+vẫn là bài nghiệm thu còn lại, trên máy người chủ (xem §21).
