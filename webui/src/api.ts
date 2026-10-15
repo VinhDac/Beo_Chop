@@ -6,7 +6,7 @@
 import type {
   Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab, ThamSo,
   BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
-  TrangThaiQC, TuDoQC,
+  TrangThaiQC, TuDoMayQC, TuDoQC,
 } from './types'
 import type {
   BootMay, KetQuaSoatMay, KhoiVaThe, MayDoc, TramKey,
@@ -61,9 +61,9 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
 
 export const py = {
   bootstrap: () => goi<Bootstrap>('bootstrap'),
-  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Sơ đồ còn lỗi thì từ chối
-   *  kèm `loi` (danh sách lỗi y bảng Vấn đề). */
-  mo_qc: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
+  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Nhận CẢ cỗ máy 5 trạm lẫn
+   *  sơ đồ cũ; còn lỗi thì từ chối kèm `loi` (danh sách lỗi y bảng Vấn đề). */
+  mo_qc: (doc: ProcessDoc | MayDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
   set_title: (ten: string) => goi<null>('set_title', ten),
 
   // --- tài liệu ---
@@ -136,7 +136,9 @@ export const pyQC = {
   qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
   qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
   /** Chạy NỀN, trả ngay — rồi hỏi `qc_trang_thai` tới khi `dang_chay` tắt. */
-  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoQC | null) =>
+  /** `tuDo` là một symbol (sơ đồ cũ) hay một RỔ mã (cỗ máy 5 trạm) — Python soát và
+   *  nhận ra dạng nào, giao diện chỉ gửi đúng cái nó đang bày ra. */
+  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoQC | TuDoMayQC | null) =>
     goi<boolean>('qc_chay', loai, man, tuDo),
   qc_trang_thai: () => goi<TrangThaiQC>('qc_trang_thai'),
   qc_ket_qua: () => goi<KetQuaQC | null>('qc_ket_qua'),

@@ -35,8 +35,8 @@ function Nut({ ten, icon, onClick, tat, title }: {
 
 export default function MayRibbon({
   tramMoTa, ten, datTen, themHoi, themLam, sua, xoa, doiGhim, chinhGom, thamSo,
-  lapMau, hoanTac, lamLai, vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai,
-  coGom, dang,
+  lapMau, manChoi, hoanTac, lamLai, vuaKhung, coChon, chonDaGhim, coTheHoanTac,
+  coTheLamLai, coGom, dang,
 }: {
   /** Trạm đang mở — nhãn nhóm "Thêm khối" gọi đúng tên trạm. */
   tramMoTa?: TramMoTa
@@ -50,6 +50,7 @@ export default function MayRibbon({
   chinhGom: () => void
   thamSo: () => void
   lapMau: () => void
+  manChoi: () => void
   hoanTac: () => void
   lamLai: () => void
   vuaKhung: () => void
@@ -119,6 +120,12 @@ export default function MayRibbon({
         <Nut ten="Làm lại" icon={<Icon name="redo" size={18} />} onClick={lamLai}
              tat={!coTheLamLai} title="Làm lại (Ctrl+Y)" />
         <Nut ten="Vừa khung" icon={<Icon name="fit" size={18} />} onClick={vuaKhung} />
+      </Nhom>
+
+      <Nhom ten="Chạy">
+        <Nut ten="◆ Màn chơi" icon={<Icon name="chay" size={18} />} onClick={manChoi}
+             tat={!dang}
+             title="Chạy cỗ máy trên QuantConnect (Ctrl+M) — cửa sổ Màn chơi" />
       </Nhom>
     </div>
   )

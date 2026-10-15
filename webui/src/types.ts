@@ -344,8 +344,17 @@ export interface KhoaQC {
 
 export interface TuDoQC { symbol: string; tu: string; den: string; von: number }
 
+/** Chế độ Sáng tạo của CỖ MÁY 5 TRẠM: một RỔ mã, không phải một symbol — cỗ máy chọn mã
+ *  ở trạm ①, nên đầu vào của nó là cả rổ. `loai` quyết lớp vỏ đăng ký mã kiểu gì trên
+ *  QuantConnect (ngoại hối/CFD qua OANDA, cổ phiếu Mỹ, crypto Coinbase).  (D-10) */
+export interface TuDoMayQC {
+  ma: string[]; loai: string; tu: string; den: string; von: number
+}
+
 export interface KetQuaQC {
   ten: string; van_tay: string; symbol: string; tu: string; den: string; tf: string
+  /** CỖ MÁY 5 TRẠM: cả rổ mã của lượt chạy, và loại thị trường. `symbol` rỗng ở đây. */
+  dang?: string; ma?: string[]; loai_thi_truong?: string
   thong_ke: ThongKe
   duong_von: [number, number, number][]
   gia_dau: number | null; gia_cuoi: number | null; mua_giu_pt: number | null
@@ -382,6 +391,13 @@ export interface BootQC {
   phien_ban: string; accent: string | null; doc: ProcessDoc | null
   man: ManQC[]; loai: Record<LoaiChay, string>; khoa: KhoaQC; do_gon: DoGon
   tu_do: TuDoQC; trang_thai: TrangThaiQC; co_ket_qua: boolean
+  /** `"may5"` = đang chạy cỗ máy 5 trạm, `"so_do"` = sơ đồ Entry/Manage cũ. Do Python
+   *  nói, không đoán từ hình dạng `doc`. */
+  dang: string
+  tu_do_may: TuDoMayQC
+  /** Loại thị trường chọn được, và trần số mã một rổ — `qc_chay` khai. */
+  loai_thi_truong: Record<string, string>
+  tran_so_ma: number
 }
 
 export interface DongNkQC {

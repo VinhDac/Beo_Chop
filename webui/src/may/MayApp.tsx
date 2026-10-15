@@ -20,7 +20,9 @@ import MayRibbon from './MayRibbon'
 import {
   demTheoTram, rfSangTram, tramSangRf, viTriMoi, type EdgeMay, type NodeMay,
 } from './doThi'
-import type { BootMay, KhoiMay, LuongTram, MayDoc, TramKey, VanDeMay } from './mayTypes'
+import type {
+  BootMay, KhoiMay, LuongTram, MayDoc, SoiKhoiMay, SoiMay, TramKey, VanDeMay,
+} from './mayTypes'
 
 /** TRÌNH VẼ CỖ MÁY 5 TRẠM — cửa sổ vẽ của app.  (D-10, phần 5)
  *
@@ -77,6 +79,8 @@ function Trinh() {
   const [moThamSo, setMoThamSo] = useState(false)
   /** Hộp lắp mẫu dựng sẵn cho trạm đang mở — lát 5e. */
   const [moMau, setMoMau] = useState(false)
+  /** Lượt đang SOI trên sơ đồ — do cửa sổ Màn chơi bắn sang (lát 5f). */
+  const [soi, setSoi] = useState<SoiMay | null>(null)
   const [lui, setLui] = useState<string[]>([])
   const [toi, setToi] = useState<string[]>([])
 
@@ -204,7 +208,31 @@ function Trinh() {
     if (tabDuoi === 'nhat-ky') cuoiLog.current?.scrollIntoView({ block: 'end' })
   }, [nhatKy, tabDuoi])
 
+  /* SOI một lượt: cửa sổ Màn chơi bắn sang, ta nhảy tới ĐÚNG TRẠM của lượt đó rồi tô.
+     Gắn một lần, đọc trạm qua `tramRef` — gắn lại mỗi lần đổi trạm là thừa, mà quên phụ
+     thuộc thì nó tô nhầm trạm. */
+  useEffect(() => {
+    window.__su_kien = (ten_sk, d) => {
+      if (ten_sk !== 'soi_luot') return
+      const s = d as SoiMay
+      setSoi(s)
+      if (s.tram && s.tram !== tramRef.current) doiTramRef.current?.(s.tram)
+    }
+    return () => { window.__su_kien = undefined }
+  }, [])
+
+  /* Esc để thôi soi — sơ đồ đang mờ đi một cách bất thường thì phải có đường thoát. */
+  useEffect(() => {
+    if (!soi) return
+    const f = (e: KeyboardEvent) => { if (e.key === 'Escape') setSoi(null) }
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [soi])
+
   /* ------------------------------------------------------------------ việc */
+
+  /** `doiTram` mới nhất, cho listener gắn một lần (sự kiện soi) gọi tới. */
+  const doiTramRef = useRef<((k: TramKey) => void) | null>(null)
 
   const doiTram = useCallback((k: TramKey) => {
     const m = docRef.current
@@ -219,6 +247,7 @@ function Trinh() {
     setTram(k)
     veRoiVua(m2, k, luong)
   }, [nodes, edges, luong, tuCanvas, veRoiVua])
+  doiTramRef.current = doiTram
 
   /** Thêm một khối vào trạm đang mở. `loai` rỗng = khối Hỏi; còn lại là khối Làm của
    *  chính trạm đó. Khối MỚI mở hộp thoại ngay: người chơi vừa chọn "Báo tín hiệu" thì
@@ -237,6 +266,25 @@ function Trinh() {
     ghi(`thêm khối ${r.value.card.title} vào ${nhan(k)}`)
     setDangSua(st.id)
   }, [doi, ghi, nhan])
+
+  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect.
+   *
+   *  Gửi cỗ máy ĐANG trên canvas (kể cả vị trí vừa kéo), không phải bản lưu lần trước.
+   *  Python chặn trước nếu còn lỗi: mở cửa sổ ra để nó báo lại đúng mấy lỗi mà bảng Vấn
+   *  đề đã hiện sẵn là bắt người chơi đi hai vòng cho một thông tin. */
+  const moQC = useCallback(async () => {
+    const m = docRef.current
+    if (!m) return
+    const d = tuCanvas({ ...m, name: ten }, tramRef.current, nodes, edges)
+    const r = await py.mo_qc(d)
+    if (!r.ok) {
+      const ds = (r as { loi?: VanDeMay[] }).loi ?? []
+      ghi(r.error ?? 'không mở được Màn chơi', true)
+      for (const v of ds.slice(0, 3)) ghi(`· ${nhan(v.tram)}: ${v.message}`, true)
+      return
+    }
+    ghi('mở ◆ Màn chơi — chạy cỗ máy trên QuantConnect')
+  }, [nodes, edges, ten, tuCanvas, ghi, nhan])
 
   /** Lắp một mẫu dựng sẵn vào trạm đang mở. Việc ghép do Python làm (`may_ap_mau`):
    *  nó thay sơ đồ của trạm, thêm tham số của mẫu và GIỮ giá trị tên nào đã có. */
@@ -455,11 +503,12 @@ function Trinh() {
                         || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
         e.preventDefault(); lamLai()
       } else if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); void luu() }
+      else if (ctrl && e.key.toLowerCase() === 'm') { e.preventDefault(); void moQC() }
       else if (e.key === 'Delete' || e.key === 'Backspace') { void xoaChon() }
     }
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
-  }, [hoanTac, lamLai, luu, xoaChon])
+  }, [hoanTac, lamLai, luu, xoaChon, moQC])
 
   /* ------------------------------------------------------------------ dẫn xuất */
 
@@ -468,6 +517,37 @@ function Trinh() {
   const dem = useMemo(
     () => demTheoTram(vanDe, boot?.tram_keys ?? []),
     [vanDe, boot])
+
+  /** Lượt soi CHỈ có nghĩa ở trạm của nó — đổi sang trạm khác thì thôi tô, quay lại là
+   *  sáng lại. Kẹp ở NƠI TIÊU THỤ, không rải `setSoi(null)` vào từng hàm đổi trạm. */
+  const soiHopLe = soi && soi.tram === tram ? soi : null
+
+  const nodesCoSoi = useMemo(() => {
+    const s = soiHopLe
+    const tren = s ? new Set(s.duong) : null
+    const cong = new Map((s?.cong ?? []).map(c => [c.khoi, c]))
+    return nodes.map(n => {
+      const card = (n.data as { card: { lines: unknown[] } }).card
+      const c = cong.get(n.id)
+      /* ⚠ Chỉ tô TỪNG DÒNG khi số dòng còn khớp. Sửa khối sau khi chạy (thêm/bớt một
+         điều kiện) là dòng thứ k không còn là điều kiện thứ k — lúc đó tô cả khối thôi.
+         Thà nói ít hơn nói sai. */
+      const veKhop = c && c.ve.length === card.lines.length
+      const soiKhoi: SoiKhoiMay | undefined = s && (tren!.has(n.id) || c)
+        ? { daChay: tren!.has(n.id), truot: !!c && !c.khop,
+            dieuKien: veKhop ? c!.ve.map(v => v.dat) : [] }
+        : undefined
+      return { ...n, data: { ...(n.data as object), soiKhoi, moSoi: !!s && !soiKhoi } }
+    })
+  }, [nodes, soiHopLe])
+
+  /** Khối nào của lượt không còn trên sơ đồ — tức cỗ máy đã sửa sau khi chạy. Tô nửa vời
+   *  mà không nói gì thì người đọc tin vào một đường không có thật. */
+  const soiLech = useMemo(() => {
+    if (!soiHopLe) return false
+    const co = new Set(nodes.map(n => n.id))
+    return [...soiHopLe.duong, ...soiHopLe.cong.map(c => c.khoi)].some(k => !co.has(k))
+  }, [soiHopLe, nodes])
   const soLoi = vanDe.filter(v => v.severity === 'error').length
   const soCanhBao = vanDe.length - soLoi
   const dangChon = nodes.filter(n => n.selected)
@@ -490,6 +570,9 @@ function Trinh() {
       { ten: 'Gom của trạm đang mở…', tat: !(boot?.gom[tram]?.length),
         viSao: 'trạm này không có Gom (chỉ ① và ③ có)',
         onClick: () => setMoGom(true) },
+      { ngan: true },
+      { ten: 'Mở Màn chơi (QuantConnect)', icon: 'chay', phim: 'Ctrl+M', tat: !doc,
+        viSao: 'chưa có cỗ máy', onClick: () => void moQC() },
       { ngan: true },
       { ten: 'Kho — app đang có những gì…', icon: 'folder', onClick: () => setMoKho(true) },
       { ten: 'Thoát', onClick: () => py.cua_so_dong() },
@@ -518,7 +601,7 @@ function Trinh() {
         onClick: () => setPanelGap(v => !v) },
     ] },
   ], [coMayMoi, coMayMau, moFile, luu, luuRaFile, hoanTac, lamLai, xoaChon, dsTram,
-      setMoMau,
+      setMoMau, moQC,
       doiTram, doc, boot, tram, vuaKhung, zoomIn, zoomOut, panelGap, lui.length,
       toi.length, dangChon.length])
 
@@ -536,6 +619,7 @@ function Trinh() {
         chinhGom={() => setMoGom(true)}
         thamSo={() => setMoThamSo(true)}
         lapMau={() => setMoMau(true)}
+        manChoi={() => void moQC()}
         coGom={!!(boot && (boot.gom[tram]?.length ?? 0) > 0)}
         xoa={() => void xoaChon()}
         doiGhim={() => void doiGhim()}
@@ -556,7 +640,7 @@ function Trinh() {
 
       <div className={'vung-canvas' + (dangNoi ? ' dang-noi' : '')}>
         <ReactFlow
-          nodes={nodes} edges={edges}
+          nodes={nodesCoSoi} edges={edges}
           onNodesChange={onNodesChange as (c: NodeChange[]) => void}
           onEdgesChange={onEdgesChange as (c: EdgeChange[]) => void}
           onConnect={noi}
@@ -578,7 +662,22 @@ function Trinh() {
                       color="var(--canvas-dot)" />
         </ReactFlow>
 
-        {sanSang && nodes.length <= 1 && (
+        {soiHopLe && (
+          <div className="soi-dai">
+            <span className="soi-nhan">Soi lượt</span>
+            {soiHopLe.ma && <span className="soi-nhan">{soiHopLe.ma}</span>}
+            <span className="soi-chu">{soiHopLe.chu}</span>
+            {soiLech && (
+              <span className="soi-canh" title="Có khối trong lượt này không còn trên sơ đồ">
+                cỗ máy đã đổi từ lúc chạy
+              </span>
+            )}
+            <button className="soi-tat" title="Thôi soi (Esc)"
+                    onClick={() => setSoi(null)}>✕</button>
+          </div>
+        )}
+
+        {sanSang && nodes.length <= 1 && !soiHopLe && (
           <div className="trong-rong duoi">
             <div className="to">{tramMoTa ? `${tramMoTa.so} ${tramMoTa.ten}` : 'Trạm'} còn trắng</div>
             <div>

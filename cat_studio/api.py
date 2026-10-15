@@ -747,12 +747,20 @@ class Api(NenCuaSo):
         đề đã hiện sẵn là bắt người chơi đi hai vòng cho một thông tin.
 
         CỬA SỔ CÒN SỐNG THÌ GIỮ, chỉ nạp sơ đồ mới và kéo lên trước: vòng chơi thật là
-        *sửa → chạy → so*, huỷ rồi tạo lại mỗi lần là mất lượt đang xem, mất bộ lọc nhật ký."""
-        probs = core.validate_process(doc)
+        *sửa → chạy → so*, huỷ rồi tạo lại mỗi lần là mất lượt đang xem, mất bộ lọc nhật ký.
+
+        Nhận CẢ cỗ máy 5 trạm (D-10) lẫn sơ đồ cũ — mỗi dạng soát bằng bộ luật của chính
+        nó. Soát bằng bộ kia thì cỗ máy 5 trạm luôn "sạch" (sơ đồ cũ của nó rỗng), và
+        người chơi bấm ▶ mới biết là chưa chạy được."""
+        la_may = M.la_may(doc)
+        probs = M.soat(doc) if la_may else core.validate_process(doc)
         loi = [p for p in probs if p["severity"] == "error"]
         if loi:
-            return {"ok": False, "error": "Sơ đồ còn lỗi, chưa chạy được.", "loi": loi}
-        d = core.normalize_process(doc)
+            return {"ok": False,
+                    "error": ("Cỗ máy còn lỗi, chưa chạy được." if la_may
+                              else "Sơ đồ còn lỗi, chưa chạy được."),
+                    "loi": loi}
+        d = M.chuan_hoa(doc) if la_may else core.normalize_process(doc)
         self._doc_qc = d
         if self._qc is not None:
             self._qc.set_title(f"{d['name']} — Màn chơi")
@@ -887,16 +895,26 @@ class ApiQC(NenCuaSo):
     def qc_boot(self):
         """Mọi thứ cửa sổ Màn chơi cần lúc mở."""
         cd = self._cha._cai_dat or {}
+        doc = self._cha._doc_qc
         return _ok({
             "phien_ban": core.PHIEN_BAN,
             "accent": cd.get("accent"),
-            "doc": self._cha._doc_qc,
+            "doc": doc,
+            # Dạng tài liệu đang chạy: cửa sổ Màn chơi bày ô RỔ mã cho cỗ máy 5 trạm và ô
+            # một symbol cho sơ đồ cũ. Hỏi Python chứ không đoán từ hình dạng `doc` bên JS.
+            "dang": M.DANG if M.la_may(doc) else "so_do",
             "man": self._ds_man(),
             "loai": game.LOAI,
             "khoa": qc_api.trang_thai_khoa(),
-            "do_gon": game.do_gon(self._cha._doc_qc or {}),
+            "do_gon": game.do_gon(doc or {}),
             "tu_do": {"symbol": cd.get("symbol") or "XAUUSD", "tu": "2025-10-01",
                       "den": "2025-12-31", "von": 10_000.0},
+            # Chế độ Sáng tạo của cỗ máy 5 trạm: một RỔ mã, kèm loại thị trường (lớp vỏ
+            # đăng ký mã theo loại — ngoại hối/CFD qua OANDA, cổ phiếu Mỹ, crypto).
+            "tu_do_may": {"ma": [cd.get("symbol") or "XAUUSD"], "loai": "cfd",
+                          "tu": "2025-10-01", "den": "2025-12-31", "von": 10_000.0},
+            "loai_thi_truong": qc_chay.LOAI_THI_TRUONG,
+            "tran_so_ma": qc_chay.TRAN_SO_MA,
             "trang_thai": self._viec().trang_thai(),
             "co_ket_qua": self._viec().ket_qua is not None,
         })

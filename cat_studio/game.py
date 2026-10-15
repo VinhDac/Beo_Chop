@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 
 from . import core
 from . import luu_tru
+from . import may as M
 from . import nhat_ky as nk
 
 FILE_SO = "game.json"
@@ -110,9 +111,17 @@ def khoang(man_id, loai):
 # Chấm
 # ---------------------------------------------------------------------------
 def do_gon(doc):
-    """Số khối (không tính khối Bắt đầu) + số tham số. Ít hơn là gọn hơn."""
-    so_khoi = sum(1 for tab in core.TABS for st in (doc.get(tab) or {}).get("steps") or []
-                  if not core.is_start_step(st))
+    """Số khối (không tính khối Bắt đầu) + số tham số. Ít hơn là gọn hơn.
+
+    Cỗ máy 5 trạm đếm trên cả NĂM trạm. Không rẽ nhánh ở đây thì một cỗ máy 20 khối
+    hiện ra "0 khối" — độ gọn là thứ người chơi so với nhau, nói sai là hỏng cả bảng."""
+    if M.la_may(doc):
+        so_khoi = sum(1 for g in (doc.get("tram") or {}).values()
+                      for st in (g or {}).get("steps") or []
+                      if not core.is_start_step(st))
+    else:
+        so_khoi = sum(1 for tab in core.TABS for st in (doc.get(tab) or {}).get("steps") or []
+                      if not core.is_start_step(st))
     so_tham_so = len(doc.get("tham_so") or [])
     return {"so_khoi": so_khoi, "so_tham_so": so_tham_so, "tong": so_khoi + so_tham_so}
 
@@ -235,5 +244,8 @@ def lich_su(n=GIU_LICH_SU):
 
 
 def van_tay(doc):
-    """Vân tay cỗ máy — cùng hàm với nhật ký, để "đúng cỗ máy đó" là một định nghĩa."""
-    return nk._van_tay(core.normalize_process(doc))
+    """Vân tay cỗ máy — cùng hàm với nhật ký, để "đúng cỗ máy đó" là một định nghĩa.
+
+    Cỗ máy 5 trạm có vân tay riêng (`may.van_tay`): đưa nó qua `normalize_process` thì ra
+    vân tay của một sơ đồ Entry/Manage TRỐNG — mọi cỗ máy 5 trạm sẽ trùng vân tay nhau."""
+    return M.van_tay(doc) if M.la_may(doc) else nk._van_tay(core.normalize_process(doc))

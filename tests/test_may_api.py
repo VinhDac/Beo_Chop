@@ -324,5 +324,51 @@ kiem("ô Gom ngoài khoảng → LỖI, nói rõ ô nào và khoảng nào",
      any(p["severity"] == "error" and "giữ tối đa" in p["message"]
          for p in s["value"]))
 
+# ===========================================================================
+print("\n▸ 9. Nối sang Màn chơi (lát 5f)")
+# ===========================================================================
+from cat_studio import game  # noqa: E402
+
+may = gt(a.may_mo_mau())
+so_khoi = sum(1 for g in may["tram"].values()
+              for s in g["steps"] if s["kind"] != "start")
+kiem("độ gọn đếm trên CẢ NĂM trạm, không phải sơ đồ cũ (vốn rỗng)",
+     game.do_gon(may) == {"so_khoi": so_khoi, "so_tham_so": len(may["tham_so"]),
+                          "tong": so_khoi + len(may["tham_so"])},
+     f"({so_khoi} khối · {len(may['tham_so'])} tham số)")
+kiem("vân tay của màn chơi = vân tay CỦA CỖ MÁY, không phải của một sơ đồ trống",
+     game.van_tay(may) == M.van_tay(may)
+     and game.van_tay(may) != game.van_tay({"name": "sơ đồ cũ"}),
+     f"({game.van_tay(may)})")
+
+cha = api.Api()
+cha._doc_qc = may
+aq = api.ApiQC(cha)
+b = gt(aq.qc_boot())
+kiem("qc_boot nói rõ ĐANG CHẠY CỖ MÁY 5 TRẠM", b["dang"] == M.DANG)
+kiem("… kèm đầu vào Sáng tạo dạng RỔ MÃ, loại thị trường và trần số mã",
+     isinstance(b["tu_do_may"]["ma"], list) and b["tu_do_may"]["ma"]
+     and b["tu_do_may"]["loai"] in b["loai_thi_truong"] and b["tran_so_ma"] >= 1,
+     f"({b['tu_do_may']['ma']} · {b['loai_thi_truong'][b['tu_do_may']['loai']]})")
+kiem("… và độ gọn của chính cỗ máy ấy", b["do_gon"]["tong"] == game.do_gon(may)["tong"])
+kiem("gửi qua cầu nối được", isinstance(json.dumps(b), str))
+
+# ◆ Màn chơi chặn TRƯỚC khi mở cửa sổ nếu cỗ máy còn lỗi.
+r = a.mo_qc(gt(a.may_moi()))
+kiem("cỗ máy còn lỗi → ◆ Màn chơi từ chối ngay, kèm danh sách lỗi",
+     r["ok"] is False and "Cỗ máy còn lỗi" in r["error"] and len(r["loi"]) >= 1
+     and r["loi"][0]["tram"] in T.TRAM_KEYS)
+kiem("… và CHƯA đặt cỗ máy nào cho cửa sổ Màn chơi", a._doc_qc is None)
+
+# Chiến dịch (màn, boss, nộp) chưa mở cho cỗ máy 5 trạm — nói thẳng, không chạy nửa vời.
+from cat_studio import qc_chay  # noqa: E402
+try:
+    qc_chay.ViecQC(tao_qc=lambda: None).bat_dau(may, "nhanh")
+    r = "không báo gì"
+except Exception as e:
+    r = str(e)
+kiem("Chiến dịch cho cỗ máy 5 trạm chưa mở → câu tiếng Việt chỉ sang Sáng tạo",
+     "chưa mở" in r and "Sáng tạo" in r)
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

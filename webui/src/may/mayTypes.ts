@@ -193,3 +193,25 @@ export interface KhoiVaThe {
   step: KhoiMay
   card: TheKhoi
 }
+
+/** SOI MỘT LƯỢT lên sơ đồ — `ket_qua_may.KetQuaMay.soi`. Cửa sổ Màn chơi bắn sang cửa sổ
+ *  vẽ, và nó tô đúng TRẠM, đúng khối, tới tận dòng điều kiện hỏng.  (D-10, lát 5f) */
+export interface SoiMay {
+  tram: TramKey
+  /** Mã đang được xét ở lượt đó — một trạm chạy lại cho từng mã. */
+  ma?: string | null
+  duong: string[]
+  cong: { khoi: string; khop: boolean; ve: { trai: number | null; phai: number | null
+                                             dat: boolean }[] }[]
+  ket?: string | null
+  nhan: Record<string, string>
+  chu: string
+}
+
+/** Thứ bơm vào từng khối lúc vẽ. */
+export interface SoiKhoiMay {
+  daChay: boolean
+  truot: boolean
+  /** `dat` của từng điều kiện, cùng thứ tự với `card.lines`. Rỗng = không tô dòng nào. */
+  dieuKien: boolean[]
+}

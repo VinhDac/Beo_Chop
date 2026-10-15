@@ -8,7 +8,7 @@ import ThongKe from '../chung/ThongKe'
 import HopKhoa from './HopKhoa'
 import type {
   BootQC, DongNkQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, ManQC, MucLichSuQC,
-  ProcessDoc, ThongKeChay, TrangThaiQC, TuDoQC,
+  ProcessDoc, ThongKeChay, TrangThaiQC, TuDoMayQC, TuDoQC,
 } from '../types'
 
 /** CỬA SỔ MÀN CHƠI — cỗ máy chạy trên QuantConnect.  (DECISIONS.md D-03 · D-05 · D-06 · D-07)
@@ -80,6 +80,10 @@ export default function ManChoi() {
   const [cheDo, setCheDo] = useState<'chien_dich' | 'sang_tao'>('chien_dich')
   const [tuDo, setTuDo] = useState<TuDoQC>({ symbol: 'XAUUSD', tu: '2025-10-01',
                                              den: '2025-12-31', von: 10000 })
+  /** Chế độ Sáng tạo của CỖ MÁY 5 TRẠM: cả một rổ mã (D-10, phần 5). */
+  const [tuDoMay, setTuDoMay] = useState<TuDoMayQC>({ ma: ['XAUUSD'], loai: 'cfd',
+                                                      tu: '2025-10-01', den: '2025-12-31',
+                                                      von: 10000 })
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
   const [moKhoa, setMoKhoa] = useState(false)
   const [tt, setTt] = useState<TrangThaiQC | null>(null)
@@ -99,6 +103,8 @@ export default function ManChoi() {
 
   const man = dsMan.find(m => m.id === manId) ?? dsMan[0] ?? null
   const dangChay = !!tt?.dang_chay
+  /** Đang chạy CỖ MÁY 5 TRẠM — Python nói, không đoán từ hình dạng `doc`. */
+  const laMay = boot?.dang === 'may5'
 
   /* ------------------------------ nạp ------------------------------ */
   const napBoot = useCallback(async () => {
@@ -111,6 +117,10 @@ export default function ManChoi() {
     setManId(id => id || b.man[0]?.id || '')
     setKhoa(b.khoa)
     setTuDo(b.tu_do)
+    if (b.tu_do_may) setTuDoMay(b.tu_do_may)
+    /* Chiến dịch cho cỗ máy 5 trạm chưa mở (phần 6) — mở thẳng Sáng tạo thay vì để
+       người chơi bấm ▶ rồi mới nghe Python từ chối. */
+    if (b.dang === 'may5') setCheDo('sang_tao')
     setTt(b.trang_thai)
     return b
   }, [])
@@ -185,8 +195,9 @@ export default function ManChoi() {
 
   const chay = useCallback(async (loai: LoaiChay) => {
     setLoi('')
+    const laMay = boot?.dang === 'may5'
     const r = await pyQC.qc_chay(loai, loai === 'tu_do' ? null : (man?.id ?? null),
-                                 loai === 'tu_do' ? tuDo : null)
+                                 loai === 'tu_do' ? (laMay ? tuDoMay : tuDo) : null)
     if (!r.ok) {
       setLoi(r.error ?? 'không chạy được')
       if ((r.error ?? '').includes('khoá')) setMoKhoa(true)
@@ -194,7 +205,7 @@ export default function ManChoi() {
     }
     setTt({ dang_chay: true, loai, chu: 'Đóng gói cỗ máy', ti_le_chung: 0, xong: null,
             loi: null })
-  }, [man, tuDo])
+  }, [man, tuDo, tuDoMay, boot])
 
   const moLai = useCallback(async (duong: string) => {
     setLoi('')
@@ -217,9 +228,12 @@ export default function ManChoi() {
     () => nk.map(d => ({ i: d.i, co_viec: d.co_viec, lenh_id: d.lenh_id, chu: d.chu })),
     [nk])
 
+  /** Một lượt chạy nói về MỘT symbol (sơ đồ cũ) hay CẢ RỔ (cỗ máy 5 trạm). */
+  const roChu = (k: KetQuaQC) => k.symbol || (k.ma ?? []).join(', ')
+
   const thongKe: ThongKeChay | null = useMemo(() => kq && ({
     tk: kq.thong_ke, duong_von: kq.duong_von, t_dau: kq.t_dau ?? 0, t_cuoi: kq.t_cuoi ?? 0,
-    yc_tu: kq.tu, yc_den: kq.den, symbol: kq.symbol, nhip: kq.nhip,
+    yc_tu: kq.tu, yc_den: kq.den, symbol: roChu(kq), nhip: kq.nhip,
   }), [kq])
 
   const menuTieuDe: NhomMenu[] = [
@@ -253,7 +267,11 @@ export default function ManChoi() {
       {/* ---- thanh công cụ: chế độ, nút chạy ---- */}
       <div className="tb mc-tb">
         <div className="mc-che-do" role="tablist">
-          <button className={cheDo === 'chien_dich' ? 'bat' : ''} disabled={dangChay}
+          <button className={cheDo === 'chien_dich' ? 'bat' : ''}
+                  disabled={dangChay || laMay}
+                  title={laMay
+                    ? 'Chiến dịch cho cỗ máy 5 trạm chưa mở — chạy chế độ Sáng tạo'
+                    : undefined}
                   onClick={() => setCheDo('chien_dich')}>Chiến dịch</button>
           <button className={cheDo === 'sang_tao' ? 'bat' : ''} disabled={dangChay}
                   onClick={() => setCheDo('sang_tao')}>Sáng tạo</button>
@@ -274,7 +292,10 @@ export default function ManChoi() {
           </>
         ) : (
           <button className="nut chinh" disabled={!chayDuoc} onClick={() => chay('tu_do')}
-                  title="Chạy với symbol và khoảng ngày bạn chọn — không chấm sao">▶ chạy</button>
+                  title={laMay
+                    ? 'Chạy cỗ máy trên rổ mã và khoảng ngày bạn chọn — không chấm sao'
+                    : 'Chạy với symbol và khoảng ngày bạn chọn — không chấm sao'}>
+            ▶ chạy</button>
         )}
         <span className="tb-day" />
         {/* Đang hiện điểm màn ẩn thì KHÔNG có nút này: nó trỏ lượt đã thấy, dễ hiểu nhầm
@@ -290,7 +311,11 @@ export default function ManChoi() {
             ? (man ? <TheMan m={man} ds={dsMan} chon={setManId} khoa={dangChay}
                              doGon={boot?.do_gon ?? null} />
                    : <div className="cd-rong">Chưa có màn nào.</div>)
-            : <TheTuDo v={tuDo} dat={setTuDo} khoa={dangChay} />}
+            : laMay
+              ? <TheTuDoMay v={tuDoMay} dat={setTuDoMay} khoa={dangChay}
+                            loaiTT={boot?.loai_thi_truong ?? {}}
+                            tran={boot?.tran_so_ma ?? 20} />
+              : <TheTuDo v={tuDo} dat={setTuDo} khoa={dangChay} />}
         </div>
         <div className="mc-phai">
           {!doc && <div className="mc-bao">Chưa có sơ đồ — bấm <b>◆ Màn chơi</b> ở cửa sổ vẽ.</div>}
@@ -305,7 +330,7 @@ export default function ManChoi() {
           {dangChay && tt ? <TienDo tt={tt} />
             : nop ? <TheNop x={nop} man={man} />
             : kq ? <TheKetQua x={kq} />
-            : <GioiThieu cheDo={cheDo} />}
+            : <GioiThieu cheDo={cheDo} laMay={laMay} />}
         </div>
       </div>
 
@@ -316,7 +341,7 @@ export default function ManChoi() {
             : (
               <div className="nk-boc">
                 <div className="nk-moc">
-                  ▶ {kq.ten} · {kq.symbol} {kq.tu} → {kq.den} · chuột phải một dòng → «Xem trên sơ đồ»
+                  ▶ {kq.ten} · {roChu(kq)} {kq.tu} → {kq.den} · chuột phải một dòng → «Xem trên sơ đồ»
                 </div>
                 <Journey dong={dongNk} chiViec={chiViec} soi={soi} />
                 {nk.length < nkTong && (
@@ -390,6 +415,58 @@ function TheMan({ m, ds, chon, khoa, doGon }: {
 }
 
 /* ================================ sáng tạo ================================ */
+
+/** Sáng tạo cho CỖ MÁY 5 TRẠM: đầu vào là một RỔ mã, không phải một symbol — cỗ máy tự
+ *  chọn mã ở trạm ①, nên đưa nó một mã duy nhất là bỏ phí cả trạm đó.  (D-10, lát 5f)
+ *
+ *  Ô mã là chữ tự do trong lúc gõ; tách, viết hoa, bỏ trùng và soát ký hiệu là việc của
+ *  Python (`qc_chay.soat_tu_do_may`) — hai nơi cùng soát là hai luật sẽ lệch nhau. */
+function TheTuDoMay({ v, dat, khoa, loaiTT, tran }: {
+  v: TuDoMayQC; dat: (x: TuDoMayQC) => void; khoa: boolean
+  loaiTT: Record<string, string>; tran: number
+}) {
+  const [chu, setChu] = useState<string | null>(null)
+  return (
+    <div className="mc-the">
+      <div className="mc-ten-man">Sáng tạo · cỗ máy 5 trạm</div>
+      <div className="mc-dan">
+        Không màn, không boss, không sao — rổ mã nào, khoảng ngày nào cũng được (D-07).
+        Tối đa {tran} mã một lượt.
+      </div>
+      <label className="mc-o">Rổ mã
+        <input className="o" disabled={khoa} spellCheck={false}
+               placeholder="EURUSD, XAUUSD, GBPJPY"
+               title="Cách nhau bằng dấu phẩy hoặc khoảng trắng"
+               value={chu ?? v.ma.join(', ')}
+               onChange={e => {
+                 setChu(e.target.value)
+                 dat({ ...v, ma: e.target.value.split(/[,\s]+/).filter(Boolean) })
+               }}
+               onBlur={() => setChu(null)} /></label>
+      <label className="mc-o">Loại thị trường
+        <select className="o" value={v.loai} disabled={khoa}
+                title="Lớp vỏ đăng ký mã theo loại này trên QuantConnect"
+                onChange={e => dat({ ...v, loai: e.target.value })}>
+          {Object.entries(loaiTT).map(([k, ten]) => (
+            <option key={k} value={k}>{ten}</option>
+          ))}
+        </select></label>
+      <label className="mc-o">Từ ngày
+        <input className="o" type="date" value={v.tu} disabled={khoa}
+               onChange={e => dat({ ...v, tu: e.target.value })} /></label>
+      <label className="mc-o">Đến ngày
+        <input className="o" type="date" value={v.den} disabled={khoa}
+               onChange={e => dat({ ...v, den: e.target.value })} /></label>
+      <label className="mc-o">Vốn ($)
+        <input className="o" type="number" min={1} value={v.von} disabled={khoa}
+               onChange={e => dat({ ...v, von: Number(e.target.value) })} /></label>
+      <div className="mc-dan mc-mo">
+        {v.ma.length} mã trong rổ{v.ma.length > tran ? ` — quá ${tran}, Python sẽ từ chối` : ''}
+      </div>
+    </div>
+  )
+}
+
 function TheTuDo({ v, dat, khoa }: { v: TuDoQC; dat: (x: TuDoQC) => void; khoa: boolean }) {
   return (
     <div className="mc-the">
@@ -517,10 +594,19 @@ function TheNop({ x, man }: { x: KetQuaQC; man: ManQC | null }) {
   )
 }
 
-function GioiThieu({ cheDo }: { cheDo: string }) {
+function GioiThieu({ cheDo, laMay }: { cheDo: string; laMay?: boolean }) {
   return (
     <div className="mc-gioi-thieu">
-      {cheDo === 'chien_dich' ? (
+      {cheDo !== 'chien_dich' && laMay ? (
+        <>
+          <p><b>Thả cỗ máy 5 trạm vào thị trường thật trong quá khứ.</b></p>
+          <p>Chọn <b>rổ mã</b>, loại thị trường, khoảng ngày và vốn ở bên trái rồi bấm
+             <b> ▶ chạy</b>. Cỗ máy tự lọc rổ ở trạm ①, phát tín hiệu ở ②, chia vốn ở ③,
+             cắt rủi ro ở ④ và đặt lệnh ở ⑤.</p>
+          <p>Mở tab <b>Vì sao</b> để xem từng quyết định của từng trạm; chuột phải một
+             dòng → <b>Xem trên sơ đồ</b> để tô đúng khối đã chạy ở cửa sổ vẽ.</p>
+        </>
+      ) : cheDo === 'chien_dich' ? (
         <>
           <p><b>Lắp cỗ máy, thả nó vào thị trường thật trong quá khứ.</b></p>
           <p>▶ nhanh và ▶ đầy đủ chạy trên <b>màn đã thấy</b> — chạy bao nhiêu lần cũng được,

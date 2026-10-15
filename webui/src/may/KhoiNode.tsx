@@ -1,6 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import Icon from '../components/Icon'
-import type { TheKhoi } from './mayTypes'
+import type { SoiKhoiMay, TheKhoi } from './mayTypes'
 
 /** Một khối của cỗ máy 5 trạm trên canvas.  (D-10, phần 5)
  *
@@ -35,6 +35,10 @@ const SIDES: [string, Position][] = [
 export default function KhoiNode({ data, selected }: NodeProps) {
   const card = (data as { card: TheKhoi }).card
   const so = (data as { so?: string | null }).so ?? null
+  /* SOI một lượt đã chạy: khối này có nằm trên đường đi không, và nếu là cổng thì trượt
+     ở điều kiện nào. `moSoi` = đang soi nhưng khối này không dính gì. */
+  const soi = (data as { soiKhoi?: SoiKhoiMay }).soiKhoi
+  const moSoi = (data as { moSoi?: boolean }).moSoi
   const hien = card.lines.slice(0, TOI_DA_DONG)
   const con = card.lines.length - hien.length
   const laStart = card.kind === 'start'
@@ -62,7 +66,9 @@ export default function KhoiNode({ data, selected }: NodeProps) {
         + (laStart ? ' la-start' : '')
         + (card.ghim ? ' da-ghim' : '')
         + (card.la_cong ? ' la-cong' : '')
-        + (laPhu ? ' khoi-phu' : '')}>
+        + (laPhu ? ' khoi-phu' : '')
+        + (soi?.truot ? ' soi-truot' : soi?.daChay ? ' soi-chay' : '')
+        + (moSoi ? ' soi-mo' : '')}>
 
         {/* Số thứ tự của CHÍNH trạm này, do Python tính bằng phép duyệt của bộ máy.
             Không có số = không đường nối nào dẫn tới, khối sẽ KHÔNG chạy. */}
@@ -89,7 +95,8 @@ export default function KhoiNode({ data, selected }: NodeProps) {
              tên khối — nên đổi lịch là hộp đổi theo. */
           <div className="than" title={card.mo_ta}>
             {hien.map((d, i) => (
-              <div key={i} className="dong">
+              <div key={i} className={'dong'
+                   + (soi?.dieuKien.length ? (soi.dieuKien[i] ? ' dk-dat' : ' dk-truot') : '')}>
                 {/* "và" CHỈ đúng ở khối Hỏi: mỗi dòng một điều kiện, nối nhau bằng VÀ.
                     Ở khối Làm mỗi dòng là một Ô, dán "và" vào là nói sai. */}
                 <span className="danh">{card.la_cong && i > 0 ? 'và' : ''}</span>
