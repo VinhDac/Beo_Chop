@@ -331,7 +331,15 @@ export interface VeNop extends ChamQC { t: string; ten: string; duong: string }
 
 /** Một màn (KHÔNG có ngày của màn ẩn — app giữ, D-06). */
 export interface ManQC {
-  id: string; ten: string; ban_do: string; symbol: string; von: number
+  id: string; ten: string; ban_do: string; von: number
+  /** Dạng tài liệu màn này dành cho: `"may5"` (cỗ máy 5 trạm) hay `"so_do"` (sơ đồ cũ). */
+  dang: string
+  /** Màn của cỗ máy chạy trên cả một RỔ mã; màn của sơ đồ cũ chỉ có một symbol — ở đó
+   *  `ro` là chính symbol ấy, để giao diện chỉ phải biết MỘT khái niệm. */
+  ro: string[]
+  /** Loại thị trường của rổ (`forex` · `cfd` · `co_phieu` · `crypto`), màn cỗ máy mới có. */
+  loai: string | null
+  symbol: string | null
   thay: [string, string]; nhanh: [string, string]; an_mo_ta: string
   boss: BossQC; loi_dan: string; tien_do: TienDoMan; ve_nop: VeNop | null
 }

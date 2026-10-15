@@ -118,9 +118,6 @@ export default function ManChoi() {
     setKhoa(b.khoa)
     setTuDo(b.tu_do)
     if (b.tu_do_may) setTuDoMay(b.tu_do_may)
-    /* Chiến dịch cho cỗ máy 5 trạm chưa mở (phần 6) — mở thẳng Sáng tạo thay vì để
-       người chơi bấm ▶ rồi mới nghe Python từ chối. */
-    if (b.dang === 'may5') setCheDo('sang_tao')
     setTt(b.trang_thai)
     return b
   }, [])
@@ -267,11 +264,7 @@ export default function ManChoi() {
       {/* ---- thanh công cụ: chế độ, nút chạy ---- */}
       <div className="tb mc-tb">
         <div className="mc-che-do" role="tablist">
-          <button className={cheDo === 'chien_dich' ? 'bat' : ''}
-                  disabled={dangChay || laMay}
-                  title={laMay
-                    ? 'Chiến dịch cho cỗ máy 5 trạm chưa mở — chạy chế độ Sáng tạo'
-                    : undefined}
+          <button className={cheDo === 'chien_dich' ? 'bat' : ''} disabled={dangChay}
                   onClick={() => setCheDo('chien_dich')}>Chiến dịch</button>
           <button className={cheDo === 'sang_tao' ? 'bat' : ''} disabled={dangChay}
                   onClick={() => setCheDo('sang_tao')}>Sáng tạo</button>
@@ -376,6 +369,13 @@ export default function ManChoi() {
 }
 
 /* ================================ thẻ màn ================================ */
+
+/** Nhãn loại thị trường. Bản của Python (`qc_boot().loai_thi_truong`) là nguồn thật; cái
+ *  này chỉ để thẻ màn đọc được khi boot chưa về tới. */
+const LOAI_TT: Record<string, string> = {
+  forex: 'Ngoại hối', cfd: 'CFD', co_phieu: 'Cổ phiếu Mỹ', crypto: 'Crypto',
+}
+
 function TheMan({ m, ds, chon, khoa, doGon }: {
   m: ManQC; ds: ManQC[]; chon: (id: string) => void; khoa: boolean; doGon: BootQC['do_gon'] | null
 }) {
@@ -393,7 +393,15 @@ function TheMan({ m, ds, chon, khoa, doGon }: {
       </div>
       <div className="mc-dan">{m.loi_dan}</div>
       <table className="mc-bang-nho"><tbody>
-        <tr><td>Bản đồ</td><td>{m.ban_do} · {m.symbol}</td></tr>
+        {/* Màn của cỗ máy chạy cả RỔ: bày đủ rổ ra, vì chính nó là đầu vào của trạm
+            ① — và vì «bản đồ · XAUUSD» cho một màn 4 mã là nói sai. */}
+        <tr><td>Bản đồ</td><td>{m.ban_do}{
+          /* Loại thị trường chỉ thêm vào khi nó NÓI THÊM được gì — «Ngoại hối · Ngoại
+             hối» là một dòng rỗng nghĩa. */
+          m.loai && (LOAI_TT[m.loai] ?? m.loai) !== m.ban_do
+            ? ` · ${LOAI_TT[m.loai] ?? m.loai}` : ''}</td></tr>
+        <tr><td>Rổ mã</td><td className="mono" title={m.ro.join(', ')}>
+          {m.ro.join(' · ')} <span className="mc-mo">({m.ro.length} mã)</span></td></tr>
         <tr><td>Màn đã thấy</td><td className="mono">{m.thay[0]} → {m.thay[1]}</td></tr>
         <tr><td>▶ nhanh</td><td className="mono">{m.nhanh[0]} → {m.nhanh[1]}</td></tr>
         <tr><td>Màn ẩn</td><td>{m.an_mo_ta} — chỉ chạy khi <b>Nộp</b></td></tr>
@@ -605,6 +613,16 @@ function GioiThieu({ cheDo, laMay }: { cheDo: string; laMay?: boolean }) {
              cắt rủi ro ở ④ và đặt lệnh ở ⑤.</p>
           <p>Mở tab <b>Vì sao</b> để xem từng quyết định của từng trạm; chuột phải một
              dòng → <b>Xem trên sơ đồ</b> để tô đúng khối đã chạy ở cửa sổ vẽ.</p>
+        </>
+      ) : cheDo === 'chien_dich' && laMay ? (
+        <>
+          <p><b>Chọn một màn, thả cỗ máy 5 trạm vào cả RỔ mã của màn đó.</b></p>
+          <p>▶ nhanh và ▶ đầy đủ chạy trên <b>màn đã thấy</b> — chạy bao nhiêu lần cũng
+             được. Boss của màn là <b>«Mua rồi giữ cả rổ»</b>: chia đều vốn cho mọi mã rồi
+             để yên. Muốn hơn nó, cỗ máy phải chọn đúng mã (trạm ①), đúng lúc (trạm ②) và
+             dám đứng ngoài.</p>
+          <p><b>Nộp</b> chạy cỗ máy trên <b>màn ẩn</b> — đoạn thị trường nó chưa từng thấy
+             — rồi chấm sao. Phải ▶ đầy đủ đúng cỗ máy đó trước đã.</p>
         </>
       ) : cheDo === 'chien_dich' ? (
         <>
