@@ -523,8 +523,6 @@ class ApiQC(NenCuaSo):
             "loai": game.LOAI,
             "khoa": qc_api.trang_thai_khoa(),
             "do_gon": game.do_gon(doc or {}),
-            "tu_do": {"symbol": cd.get("symbol") or "XAUUSD", "tu": "2025-10-01",
-                      "den": "2025-12-31", "von": 10_000.0},
             # Chế độ Sáng tạo của cỗ máy 5 trạm: một RỔ mã, kèm loại thị trường (lớp vỏ
             # đăng ký mã theo loại — ngoại hối/CFD qua OANDA, cổ phiếu Mỹ, crypto).
             "tu_do_may": {"ma": [cd.get("symbol") or "XAUUSD"], "loai": "cfd",

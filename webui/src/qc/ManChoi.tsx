@@ -8,8 +8,9 @@ import ThongKe from '../chung/ThongKe'
 import HopKhoa from './HopKhoa'
 import type {
   BootQC, DongNkQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, ManQC, MucLichSuQC,
-  ProcessDoc, ThongKeChay, TrangThaiQC, TuDoMayQC, TuDoQC,
+  ThongKeChay, TrangThaiQC, TuDoMayQC,
 } from '../types'
+import type { MayDoc } from '../may/mayTypes'
 
 /** CỬA SỔ MÀN CHƠI — cỗ máy chạy trên QuantConnect.  (DECISIONS.md D-03 · D-05 · D-06 · D-07)
  *
@@ -74,12 +75,10 @@ export default function ManChoi() {
 
   const [boot, setBoot] = useState<BootQC | null>(null)
   const [loiBoot, setLoiBoot] = useState('')
-  const [doc, setDoc] = useState<ProcessDoc | null>(null)
+  const [doc, setDoc] = useState<MayDoc | null>(null)
   const [dsMan, setDsMan] = useState<ManQC[]>([])
   const [manId, setManId] = useState('')
   const [cheDo, setCheDo] = useState<'chien_dich' | 'sang_tao'>('chien_dich')
-  const [tuDo, setTuDo] = useState<TuDoQC>({ symbol: 'XAUUSD', tu: '2025-10-01',
-                                             den: '2025-12-31', von: 10000 })
   /** Chế độ Sáng tạo của CỖ MÁY 5 TRẠM: cả một rổ mã (D-10, phần 5). */
   const [tuDoMay, setTuDoMay] = useState<TuDoMayQC>({ ma: ['XAUUSD'], loai: 'cfd',
                                                       tu: '2025-10-01', den: '2025-12-31',
@@ -116,7 +115,6 @@ export default function ManChoi() {
     setDsMan(b.man)
     setManId(id => id || b.man[0]?.id || '')
     setKhoa(b.khoa)
-    setTuDo(b.tu_do)
     if (b.tu_do_may) setTuDoMay(b.tu_do_may)
     setTt(b.trang_thai)
     return b
@@ -192,9 +190,8 @@ export default function ManChoi() {
 
   const chay = useCallback(async (loai: LoaiChay) => {
     setLoi('')
-    const laMay = boot?.dang === 'may5'
     const r = await pyQC.qc_chay(loai, loai === 'tu_do' ? null : (man?.id ?? null),
-                                 loai === 'tu_do' ? (laMay ? tuDoMay : tuDo) : null)
+                                 loai === 'tu_do' ? tuDoMay : null)
     if (!r.ok) {
       setLoi(r.error ?? 'không chạy được')
       if ((r.error ?? '').includes('khoá')) setMoKhoa(true)
@@ -202,7 +199,7 @@ export default function ManChoi() {
     }
     setTt({ dang_chay: true, loai, chu: 'Đóng gói cỗ máy', ti_le_chung: 0, xong: null,
             loi: null })
-  }, [man, tuDo, tuDoMay, boot])
+  }, [man, tuDoMay])
 
   const moLai = useCallback(async (duong: string) => {
     setLoi('')
@@ -304,11 +301,9 @@ export default function ManChoi() {
             ? (man ? <TheMan m={man} ds={dsMan} chon={setManId} khoa={dangChay}
                              doGon={boot?.do_gon ?? null} />
                    : <div className="cd-rong">Chưa có màn nào.</div>)
-            : laMay
-              ? <TheTuDoMay v={tuDoMay} dat={setTuDoMay} khoa={dangChay}
-                            loaiTT={boot?.loai_thi_truong ?? {}}
-                            tran={boot?.tran_so_ma ?? 20} />
-              : <TheTuDo v={tuDo} dat={setTuDo} khoa={dangChay} />}
+            : <TheTuDoMay v={tuDoMay} dat={setTuDoMay} khoa={dangChay}
+                          loaiTT={boot?.loai_thi_truong ?? {}}
+                          tran={boot?.tran_so_ma ?? 20} />}
         </div>
         <div className="mc-phai">
           {!doc && <div className="mc-bao">Chưa có sơ đồ — bấm <b>◆ Màn chơi</b> ở cửa sổ vẽ.</div>}
@@ -471,30 +466,6 @@ function TheTuDoMay({ v, dat, khoa, loaiTT, tran }: {
       <div className="mc-dan mc-mo">
         {v.ma.length} mã trong rổ{v.ma.length > tran ? ` — quá ${tran}, Python sẽ từ chối` : ''}
       </div>
-    </div>
-  )
-}
-
-function TheTuDo({ v, dat, khoa }: { v: TuDoQC; dat: (x: TuDoQC) => void; khoa: boolean }) {
-  return (
-    <div className="mc-the">
-      <div className="mc-ten-man">Sáng tạo</div>
-      <div className="mc-dan">
-        Không màn, không boss, không sao — mọi symbol, mọi khoảng ngày. Chỗ để thử ý tưởng
-        tự do (D-07). Symbol là CFD của OANDA trên QuantConnect, vd. XAUUSD, XAGUSD.
-      </div>
-      <label className="mc-o">Symbol
-        <input className="o" value={v.symbol} disabled={khoa} spellCheck={false}
-               onChange={e => dat({ ...v, symbol: e.target.value.toUpperCase() })} /></label>
-      <label className="mc-o">Từ ngày
-        <input className="o" type="date" value={v.tu} disabled={khoa}
-               onChange={e => dat({ ...v, tu: e.target.value })} /></label>
-      <label className="mc-o">Đến ngày
-        <input className="o" type="date" value={v.den} disabled={khoa}
-               onChange={e => dat({ ...v, den: e.target.value })} /></label>
-      <label className="mc-o">Vốn ($)
-        <input className="o" type="number" min={1} value={v.von} disabled={khoa}
-               onChange={e => dat({ ...v, von: Number(e.target.value) })} /></label>
     </div>
   )
 }

@@ -52,10 +52,9 @@
      · Kiểm tra ĐK -> lam, một CÂU HỎI.
      · Mua/Bán -> xanh/đỏ (`--ok`/`--err`), kèm ▲/▼ để không phải chỉ dựa vào màu.
      · Sửa lệnh -> tím, không đụng warn/accent đã có nghĩa khác. */
+  /* BA loại khối, ba màu (D-10): Bắt đầu xám `--action` (điểm neo, không phải hành
+     động) · Hỏi lam (một CÂU HỎI) · Làm tím (thứ duy nhất đổi kết quả của một trạm). */
   --khoi-hoi: #6cb6ff;
-  --khoi-sua: #b892f0;
-  /* CỖ MÁY 5 TRẠM (D-10): ba loại khối, ba màu. Khối LÀM là thứ duy nhất đổi kết quả
-     của một trạm — tím, cùng tông với `--khoi-sua` của sơ đồ cũ (phần 7 xoá cái đó). */
   --khoi-lam: #b892f0;
 
   /* Ghim số ⟲ — dùng cho cả huy hiệu khối đã ghim lẫn đường nối quay lại.

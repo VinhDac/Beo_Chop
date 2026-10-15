@@ -4,9 +4,9 @@
  * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  */
 import type {
-  Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab, ThamSo,
+  KhoDanhMuc, Reply, ThamSo,
   BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
-  TrangThaiQC, TuDoMayQC, TuDoQC,
+  TrangThaiQC, TuDoMayQC,
 } from './types'
 import type {
   BootMay, KetQuaSoatMay, KhoiVaThe, MayDoc, TramKey,
@@ -60,57 +60,13 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
 }
 
 export const py = {
-  bootstrap: () => goi<Bootstrap>('bootstrap'),
-  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Nhận CẢ cỗ máy 5 trạm lẫn
-   *  sơ đồ cũ; còn lỗi thì từ chối kèm `loi` (danh sách lỗi y bảng Vấn đề). */
-  mo_qc: (doc: ProcessDoc | MayDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
+  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Cỗ máy còn lỗi thì từ chối
+   *  kèm `loi` (danh sách lỗi y bảng Vấn đề). */
+  mo_qc: (doc: MayDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
   set_title: (ten: string) => goi<null>('set_title', ten),
 
-  // --- tài liệu ---
-  new_process: () => goi<ProcessDoc>('new_process'),
-  demo_process: () => goi<ProcessDoc>('demo_process'),
-  load_process: (ten: string) => goi<ProcessDoc>('load_process', ten),
-  /** Khối + nối của MỘT tab trong một chiến lược đã lưu, để THÊM CHỒNG lên sơ đồ đang
-   *  mở. Kèm những tham số đám khối đó thật sự đọc. */
-  import_steps: (ten: string, tab: Tab) =>
-    goi<{ steps: Step[]; edges: ProcEdge[]; tham_so: ThamSo[]
-          bo_start: boolean; ten: string }>('import_steps', ten, tab),
-  save_process: (doc: ProcessDoc) =>
-    goi<{ path: string; name: string }>('save_process', doc),
-  open_process_file: () => goi<ProcessDoc>('open_process_file'),
-  save_process_file: (doc: ProcessDoc) => goi<{ path: string }>('save_process_file', doc),
-
-  // --- template ---
-  list_templates: () => goi<string[]>('list_templates', 'strategy'),
-  delete_template: (ten: string) => goi<boolean>('delete_template', 'strategy', ten),
-
-  // --- khối ---
-  new_step: (kind: string, actionType?: string) =>
-    goi<{ step: Step; card: Card }>('new_step', kind, actionType ?? null),
-  /** `tham_so` = bảng của sơ đồ ĐÍCH. Thiếu nó thì thẻ ghi `nguong_nen_bps = ?`. */
-  clone_steps: (steps: Step[], tham_so?: ThamSo[]) =>
-    goi<{ steps: Step[]; map: Record<string, string>; cards: Card[] }>(
-      'clone_steps', steps, tham_so ?? []),
-  describe: (steps: Step[], thamSo: ThamSo[]) =>
-    goi<Card[]>('describe', steps, thamSo),
-
-  /** Danh mục kho — engine nào đang nạp, tính được những gì, lưu ở đâu. */
+  /** Hộp thoại "Kho": app đang có những gì — từ điển 5 trạm, mẫu, chỗ lưu file. */
   kho_danh_muc: () => goi<KhoDanhMuc>('kho_danh_muc'),
-
-  /** Nguồn của HUY HIỆU SỐ và của bảng Vấn đề — CẢ HAI sơ đồ, một lời gọi. */
-  validate: (doc: ProcessDoc) => goi<never>('validate', doc) as Promise<KetQuaSoat>,
-
-  // --- hộp thoại hành động ---
-  save_action: (draft: Record<string, unknown>, tab: Tab, thamSo: ThamSo[]) =>
-    goi<{ action: Record<string, unknown>; display: string }>(
-      'save_action', draft, tab, thamSo),
-  action_defaults: (t: string) => goi<Record<string, unknown>>('action_defaults', t),
-
-  // --- cài đặt ---
-  save_settings: (s: Record<string, unknown>) =>
-    goi<Record<string, unknown>>('save_settings', s),
-  save_ui: (state: Record<string, unknown>) =>
-    goi<Record<string, unknown>>('save_ui', state),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
@@ -136,9 +92,8 @@ export const pyQC = {
   qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
   qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
   /** Chạy NỀN, trả ngay — rồi hỏi `qc_trang_thai` tới khi `dang_chay` tắt. */
-  /** `tuDo` là một symbol (sơ đồ cũ) hay một RỔ mã (cỗ máy 5 trạm) — Python soát và
-   *  nhận ra dạng nào, giao diện chỉ gửi đúng cái nó đang bày ra. */
-  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoQC | TuDoMayQC | null) =>
+  /** `tuDo` là RỔ mã của chế độ Sáng tạo; Chiến dịch thì lấy rổ của màn, nên `null`. */
+  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoMayQC | null) =>
     goi<boolean>('qc_chay', loai, man, tuDo),
   qc_trang_thai: () => goi<TrangThaiQC>('qc_trang_thai'),
   qc_ket_qua: () => goi<KetQuaQC | null>('qc_ket_qua'),
