@@ -34,8 +34,8 @@ function Nut({ ten, icon, onClick, tat, title }: {
 }
 
 export default function MayRibbon({
-  tramMoTa, ten, datTen, themHoi, themLam, sua, xoa, doiGhim, hoanTac, lamLai,
-  vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai, dang,
+  tramMoTa, ten, datTen, themHoi, themLam, sua, xoa, doiGhim, chinhGom, thamSo,
+  hoanTac, lamLai, vuaKhung, coChon, chonDaGhim, coTheHoanTac, coTheLamLai, coGom, dang,
 }: {
   /** Trạm đang mở — nhãn nhóm "Thêm khối" gọi đúng tên trạm. */
   tramMoTa?: TramMoTa
@@ -46,6 +46,8 @@ export default function MayRibbon({
   sua: () => void
   xoa: () => void
   doiGhim: () => void
+  chinhGom: () => void
+  thamSo: () => void
   hoanTac: () => void
   lamLai: () => void
   vuaKhung: () => void
@@ -53,6 +55,8 @@ export default function MayRibbon({
   chonDaGhim: boolean
   coTheHoanTac: boolean
   coTheLamLai: boolean
+  /** Trạm đang mở có bảng Gom không — chỉ ① và ③ có. */
+  coGom: boolean
   /** Đã có cỗ máy chưa. */
   dang: boolean
 }) {
@@ -63,6 +67,16 @@ export default function MayRibbon({
           <input className="o-ten-process" value={ten} spellCheck={false}
                  title="Tên cỗ máy — cũng là tên file khi lưu"
                  onChange={e => datTen(e.target.value)} />
+          <div className="nut-hang">
+            <button className="nut-nho" onClick={thamSo} disabled={!dang}
+                    title="Bảng tham số — núm vặn CÓ TÊN của cỗ máy">Tham số…</button>
+            <button className="nut-nho" onClick={chinhGom} disabled={!dang || !coGom}
+                    title={coGom
+                      ? 'Gom — bước cuối của trạm, chạy một lần cho cả trạm'
+                      : 'Trạm này không có Gom (chỉ ① Chọn mã và ③ Chia vốn có)'}>
+              Gom…
+            </button>
+          </div>
         </div>
       </Nhom>
 

@@ -7,10 +7,13 @@ import {
 import { cho_cau_noi, py, pyMay } from '../api'
 import KhoDialog from '../components/KhoDialog'
 import TitleBar, { type NhomMenu } from '../components/TitleBar'
+import BatDauDialog from './BatDauDialog'
 import ChonKhoiLam from './ChonKhoiLam'
 import DaiTram from './DaiTram'
+import GomDialog from './GomDialog'
 import KhoiDialog from './KhoiDialog'
 import KhoiNode from './KhoiNode'
+import ThamSoMayDialog from './ThamSoMayDialog'
 import MayPicker from './MayPicker'
 import MayRibbon from './MayRibbon'
 import {
@@ -68,6 +71,9 @@ function Trinh() {
   /** Khối đang sửa (id) và hộp chọn khối Làm — lát 5c. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [moChonLam, setMoChonLam] = useState(false)
+  /** Bảng Gom của trạm và bảng tham số của cỗ máy — lát 5d. */
+  const [moGom, setMoGom] = useState(false)
+  const [moThamSo, setMoThamSo] = useState(false)
   const [lui, setLui] = useState<string[]>([])
   const [toi, setToi] = useState<string[]>([])
 
@@ -228,6 +234,20 @@ function Trinh() {
     ghi(`thêm khối ${r.value.card.title} vào ${nhan(k)}`)
     setDangSua(st.id)
   }, [doi, ghi, nhan])
+
+  /** Ghi bảng Gom của trạm đang mở. */
+  const ghiGom = useCallback(async (gom: Record<string, unknown>) => {
+    await doi((d, k) => ({
+      ...d, tram: { ...d.tram, [k]: { ...d.tram[k], gom } },
+    }))
+    ghi(`đổi Gom của ${nhan(tramRef.current)}`)
+  }, [doi, ghi, nhan])
+
+  /** Ghi bảng tham số. Tham số là của CẢ cỗ máy, không của riêng trạm nào. */
+  const ghiThamSo = useCallback(async (ds: MayDoc['tham_so']) => {
+    await doi(d => ({ ...d, tham_so: ds }))
+    ghi(`bảng tham số: ${ds.length} tham số`)
+  }, [doi, ghi])
 
   /** Ghi một khối đã sửa trở lại trạm của nó. */
   const ghiKhoi = useCallback(async (st: KhoiMay) => {
@@ -445,6 +465,12 @@ function Trinh() {
       { ten: 'Lưu cỗ máy', icon: 'save', phim: 'Ctrl+S', onClick: () => void luu() },
       { ten: 'Lưu ra file khác…', onClick: () => void luuRaFile() },
       { ngan: true },
+      { ten: 'Tham số của cỗ máy…', icon: 'edit', tat: !doc, viSao: 'chưa có cỗ máy',
+        onClick: () => setMoThamSo(true) },
+      { ten: 'Gom của trạm đang mở…', tat: !(boot?.gom[tram]?.length),
+        viSao: 'trạm này không có Gom (chỉ ① và ③ có)',
+        onClick: () => setMoGom(true) },
+      { ngan: true },
       { ten: 'Kho — app đang có những gì…', icon: 'folder', onClick: () => setMoKho(true) },
       { ten: 'Thoát', onClick: () => py.cua_so_dong() },
     ] },
@@ -472,8 +498,8 @@ function Trinh() {
         onClick: () => setPanelGap(v => !v) },
     ] },
   ], [coMayMoi, coMayMau, moFile, luu, luuRaFile, hoanTac, lamLai, xoaChon, dsTram,
-      doiTram, doc, vuaKhung, zoomIn, zoomOut, panelGap, lui.length, toi.length,
-      dangChon.length])
+      doiTram, doc, boot, tram, vuaKhung, zoomIn, zoomOut, panelGap, lui.length,
+      toi.length, dangChon.length])
 
   /* ------------------------------------------------------------------ vẽ */
 
@@ -486,6 +512,9 @@ function Trinh() {
         themHoi={() => void themKhoi(null)}
         themLam={() => setMoChonLam(true)}
         sua={() => dangChon[0] && setDangSua(dangChon[0].id)}
+        chinhGom={() => setMoGom(true)}
+        thamSo={() => setMoThamSo(true)}
+        coGom={!!(boot && (boot.gom[tram]?.length ?? 0) > 0)}
         xoa={() => void xoaChon()}
         doiGhim={() => void doiGhim()}
         hoanTac={hoanTac} lamLai={lamLai}
@@ -642,14 +671,30 @@ function Trinh() {
 
       {dangSua && boot && doc && (() => {
         const st = doc.tram[tram].steps.find(s => s.id === dangSua)
-        /* Khối Bắt đầu có hộp thoại riêng (lịch, khung, phạm vi) — lát 5d. */
-        if (!st || st.kind === 'start') return null
-        return (
+        if (!st) return null
+        /* Khối Bắt đầu KHÁC hẳn: nó không có điều kiện hay ô nào của từ điển khối Làm —
+           thứ đổi được ở nó là LỊCH, KHUNG và (ở ①) phạm vi. */
+        return st.kind === 'start' ? (
+          <BatDauDialog khoi={st} tram={tram} boot={boot}
+                        onLuu={s => void ghiKhoi(s)}
+                        onDong={() => setDangSua(null)} />
+        ) : (
           <KhoiDialog khoi={st} tram={tram} boot={boot} thamSo={doc.tham_so}
                       onLuu={s => void ghiKhoi(s)}
                       onDong={() => setDangSua(null)} />
         )
       })()}
+
+      {moGom && boot && doc && (
+        <GomDialog doc={doc} tram={tram} boot={boot}
+                   onLuu={g => void ghiGom(g)} onDong={() => setMoGom(false)} />
+      )}
+
+      {moThamSo && boot && doc && (
+        <ThamSoMayDialog dsGoc={doc.tham_so} boot={boot}
+                         onLuu={ds => { setMoThamSo(false); void ghiThamSo(ds) }}
+                         onDong={() => setMoThamSo(false)} />
+      )}
     </div>
   )
 }

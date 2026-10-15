@@ -286,5 +286,43 @@ r = a.may_ap_mau(None, T.TIN_HIEU, "khong-co-mau")
 kiem("mẫu không có: câu tiếng Việt gọi tên trạm",
      r["ok"] is False and "Tín hiệu" in r["error"])
 
+# ===========================================================================
+print("\n▸ 8. Khối Bắt đầu và bảng Gom (hộp thoại lát 5d)")
+# ===========================================================================
+r = a.may_khoi_moi(T.CHON_MA, "start")
+st = r["value"]["step"]
+kiem("khối Bắt đầu của ① mang phạm vi «mọi mã của màn»",
+     st["lich"] == "bat_dau" and st["pham_vi"] == {"loai": "tat_ca"} and not r["loi"])
+# Lịch KHÔNG có ở trạm này (① không chạy theo nến) phải rơi về lịch mặc định của trạm,
+# chứ không được giữ nguyên rồi chạy sai.
+r = a.may_luu_khoi(T.CHON_MA, {"kind": "start", "lich": "moi_nen", "khung": "M5"})
+kiem("lịch lạ với trạm → rơi về lịch mặc định của chính trạm đó",
+     r["value"]["step"]["lich"] == "bat_dau" and "khung" not in r["value"]["step"])
+r = a.may_luu_khoi(T.CHON_MA, {"kind": "start", "lich": "bat_dau", "pham_vi": {
+    "loai": "danh_sach", "ma": ["eurusd", " xauusd ", "EURUSD", ""]}})
+kiem("danh sách mã: viết HOA, bỏ trùng, bỏ ô rỗng — việc của Python, không của hộp thoại",
+     r["value"]["step"]["pham_vi"] == {"loai": "danh_sach", "ma": ["EURUSD", "XAUUSD"]},
+     f"({r['value']['step']['pham_vi']['ma']})")
+kiem("… và chữ trên khối nói đúng danh sách ấy",
+     "EURUSD, XAUUSD" in " ".join(d["text"] for d in r["value"]["card"]["lines"]))
+r = a.may_luu_khoi(T.TIN_HIEU, {"kind": "start", "lich": "moi_nen", "khung": "H4"})
+kiem("② chạy mỗi nến thì khung đi kèm, và hiện ra trên khối",
+     r["value"]["step"]["khung"] == "H4"
+     and "H4" in r["value"]["card"]["lines"][0]["text"])
+
+# Gom: đổi một ô Gom làm nổi lên một câu gắn với KHỐI — hộp thoại Gom dựa vào đúng chỗ đó.
+mg = json.loads(json.dumps(gt(a.may_mo_mau())))
+mg["tram"][T.CHON_MA]["gom"] = {"top_n": 5, "xep": "cao"}
+s = a.may_soat(mg)
+canh = [p for p in s["value"] if p["tram"] == T.CHON_MA]
+kiem("giữ N mã mà khối «Cho vào rổ» không có điểm → cảnh báo, gắn vào CHÍNH khối đó",
+     len(canh) == 1 and canh[0]["severity"] == "warning" and canh[0]["step"]
+     and "điểm cao nhất" in canh[0]["message"])
+mg["tram"][T.CHON_MA]["gom"] = {"top_n": 0, "xep": "cao"}
+s = a.may_soat(mg)
+kiem("ô Gom ngoài khoảng → LỖI, nói rõ ô nào và khoảng nào",
+     any(p["severity"] == "error" and "giữ tối đa" in p["message"]
+         for p in s["value"]))
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

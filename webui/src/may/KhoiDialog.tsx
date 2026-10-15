@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { pyMay } from '../api'
 import Icon from '../components/Icon'
 import Modal from '../components/Modal'
-import { chotSo, locSo } from '../so'
 import type { ThamSo } from '../types'
 import { daiLuongCuaTram, nhomDaiLuong, oCoNghia } from './doThi'
+import OSo from './OSo'
 import type {
   BootMay, KhoiMay, OKhai, TheKhoi, ToanHangKhai, TramKey, VanDeMay,
 } from './mayTypes'
@@ -20,67 +20,6 @@ import type {
  *     chỉ những cái trạm này đọc được («tín hiệu» chỉ ở ③, «khớp lệnh» chỉ ở ⑤). Bày hết
  *     rồi báo lỗi sau là bắt người chơi học bằng cách làm sai.
  */
-
-/* ---------------------------- ô số (có thể là TÊN THAM SỐ) ---------------------- */
-
-function OSo({ v, dat, thamSo, nguyen, title, lop }: {
-  v: number | string | undefined
-  dat: (x: number | string) => void
-  thamSo: ThamSo[]
-  nguyen?: boolean
-  title?: string
-  lop?: string
-}) {
-  /** Bản nháp đang gõ — `null` = ô đang hiện giá trị thật. */
-  const [nhap, datNhap] = useState<string | null>(null)
-  const laTen = typeof v === 'string' && v !== ''
-  const ts = laTen ? thamSo.find(t => t.ten === v) : undefined
-  const hop = thamSo.filter(t => t.ten !== v)
-
-  if (laTen) {
-    return (
-      <span className={'chip-ts' + (ts ? '' : ' mat') + (lop ? ' ' + lop : '')}
-            title={ts
-              ? `Tham số "${v}" = ${ts.gia_tri}${ts.don_vi ? ` (${ts.don_vi})` : ''}`
-              : `Không còn tham số nào tên "${v}" trong bảng — bấm ✕ để gõ lại một số.`}>
-        <span className="chip-ten">{v}</span>
-        <button className="chip-x" title="Bỏ tên, quay lại gõ số"
-                onClick={() => dat(ts ? Number(ts.gia_tri) : 0)}>✕</button>
-      </span>
-    )
-  }
-  return (
-    <span className={'cum-so' + (lop ? ' ' + lop : '')}>
-      {/* ⚠ BẢN NHÁP khi đang gõ — ép về số ngay từng phím là NUỐT dấu chấm: `"1."` ra
-          `1`, state không đổi, React ghi đè ô về `"1"`, phím kế cho `"15"`. Xem
-          `src/so.ts` và bài kiểm `webui/kiem/o_so.mjs`. */}
-      <input className="o so nho" inputMode="decimal" spellCheck={false}
-             value={nhap ?? (v ?? '')} title={title}
-             onChange={e => {
-               const { chu, so } = locSo(e.target.value, nguyen)
-               datNhap(chu)
-               if (so !== null) dat(so)
-             }}
-             onBlur={() => {
-               if (nhap !== null && locSo(nhap, nguyen).so === null) dat(chotSo(nhap))
-               datNhap(null)
-             }} />
-      {/* Chỉ hiện khi cỗ máy CÓ tham số — không có thì ô sạch như cũ. */}
-      {hop.length > 0 && (
-        <select className="chon-ts" value=""
-                title="Dùng một tham số đã có thay cho con số này"
-                onChange={e => e.target.value && dat(e.target.value)}>
-          <option value="">▾</option>
-          {hop.map(t => (
-            <option key={t.ten} value={t.ten}>
-              {t.ten} = {t.gia_tri}{t.don_vi ? ` ${t.don_vi}` : ''}
-            </option>
-          ))}
-        </select>
-      )}
-    </span>
-  )
-}
 
 /* ------------------------------- ô ĐẠI LƯỢNG ----------------------------------- */
 
