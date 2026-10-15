@@ -267,4 +267,10 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   Nay dây nối ghi bằng NHÃN ĐÁNH SỐ (`1 · 1A · 1A.1`) thay cho id, và khối không có đường
   nối tới (không bao giờ chạy) không vào vân tay. Đổi thứ tự nhánh VẪN đổi vân tay: nhánh
   xếp trên được thử trước, đó là luật chứ không phải cách bày.
-- **Trạng thái:** chốt. Phần ① xong — gỡ những gì, chuyển những gì: core.md §18. Phần ② (lõi) §19 · ③ (bộ máy chạy) §20 · ④ (cầu nối QC: lớp vỏ, đóng gói, chạy từ app, đọc kết quả) §21 · ⑤ (trình vẽ 5 trạm: dải ①→⑤, hộp thoại khối theo trạm, Gom, tham số, lắp mẫu, nối sang Màn chơi) §22 — xong. **Cửa sổ vẽ của app giờ là trình vẽ 5 trạm; sơ đồ cũ Entry/Manage không còn lối vào nào.** Còn ⑥ (Màn chơi theo RỔ mã, boss, sao) và ⑦ (dọn bộ máy cũ + viết lại tài liệu).
+- **Trạng thái: XONG CẢ BẢY PHẦN** (2026-10-15). core.md §18 (bỏ tester) · §19 (lõi) ·
+  §20 (bộ máy chạy) · §21 (cầu nối QC) · §22 (trình vẽ 5 trạm) · §23 (Màn chơi theo rổ mã,
+  boss cả rổ, nộp, chấm sao, cỗ máy dựng sẵn) · §24 (dọn bộ máy cũ).
+  **App giờ chỉ còn MỘT thế giới: cỗ máy 5 trạm chạy trên QuantConnect.** Sơ đồ
+  Entry/Manage, bộ chạy tại máy, cầu nối cũ và giao diện của chúng đã bị xoá hẳn
+  (≈ 13.700 dòng). Việc còn lại là của chủ dự án: chạy thật trên tài khoản QuantConnect
+  bằng khoá của mình — đến giờ mọi lượt mới chạy trên bản giả lập QC trong bài kiểm.

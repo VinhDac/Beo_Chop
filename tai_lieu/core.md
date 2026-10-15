@@ -2878,3 +2878,88 @@ mất khi đổi trạm, chấm đỏ đếm riêng từng trạm, lọc đại 
 
 **Chỗ CHƯA có bằng chứng:** một lượt chạy THẬT trên tài khoản QuantConnect bằng khoá thật —
 vẫn là bài nghiệm thu còn lại, trên máy người chủ (xem §21).
+
+## 23. ⭐ MÀN CHƠI CHO CỖ MÁY 5 TRẠM (D-10, phần 6)
+
+> `game.py` (màn, boss, chấm, sổ) · `qc_chay.ViecQC` (chạy theo màn, ghi vé, nộp) ·
+> `mau_tram.MAY_SAN` (bốn cỗ máy dựng sẵn) · `webui/src/qc/ManChoi.tsx`. Bài kiểm:
+> `test_qc_may` (cả vòng ▶ đầy đủ → vé → Nộp trên máy chủ QC giả), `test_may` (vân tay),
+> `test_mau_tram` (cỗ máy dựng sẵn).
+
+**Màn chia theo DẠNG tài liệu.** Màn của cỗ máy mang một RỔ mã và một loại thị trường;
+màn của sơ đồ cũ mang một symbol. Hai dạng không dùng chung màn được: boss của rổ là
+«mua giữ chia đều cả rổ», boss của một symbol là «mua giữ đúng symbol ấy» — cùng một màn
+mà hai thước đo thì bảng điểm nói dối. (Phần 7 xoá hẳn màn của sơ đồ cũ.)
+
+Chương 1 có ba màn: **Bộ bốn ngoại hối** (EURUSD · GBPUSD · USDJPY · AUDUSD) ·
+**Vàng và bạc** (XAUUSD · XAGUSD, CFD) · **Bốn ông lớn** (AAPL · MSFT · GOOGL · AMZN).
+Màn đã thấy là cả năm 2024, màn ẩn là 2025 — app giữ ngày, người chơi không chọn được.
+
+**Boss «Mua rồi giữ cả rổ» không phải tính thêm:** bộ máy đã có `boss_pt` — lãi trung
+bình của mọi mã kể từ lúc HẾT KHỞI ĐỘNG, đúng bằng lãi của một danh mục chia đều vốn mua
+một lần rồi để yên. `game.cham` đọc nó, và đếm «sạch» bằng **lệnh ĐÃ KHỚP**: ở cỗ máy
+không còn khái niệm "lệnh đóng", vị thế là một TỶ TRỌNG và đóng chỉ là đưa tỷ trọng về 0.
+
+**Vân tay LOGIC** (chốt trong D-10, lúc làm phần 6). Vé nộp chấm theo vân tay, mà vân tay
+cũ băm cả `id` khối — nên lắp lại y hệt một mẫu dựng sẵn (id mới toàn bộ, luật không đổi
+một chữ) là MẤT vé, tức app nói dối "anh đã sửa cỗ máy". Nay:
+
+* dây nối ghi bằng **nhãn đánh số** (`1 · 1A · 1A.1`) thay cho id;
+* khối không có đường nối tới (không bao giờ chạy) **không vào** vân tay;
+* đổi **thứ tự nhánh** VẪN đổi vân tay — nhánh xếp trên được thử trước, đó là luật chứ
+  không phải cách bày.
+
+**Nộp giữ nguyên luật của D-06:** lượt nộp chạy trên màn ẩn và chỉ trả con số tổng —
+không ngày, không link QC, không đường vốn, không lượt; không mở lại được để xem từng
+nến. Xem từng nến của màn ẩn là học thuộc đề thi.
+
+**Bốn cỗ máy dựng sẵn** (`MAY_SAN`): Theo EMA · Bắt đáy RSI · Chọn mã mạnh nhất · Thận
+trọng. Bốn Ý TƯỞNG khác nhau, không phải bốn biến thể; mỗi cái chỉ là một bộ năm mẫu nên
+mở ra thấy đúng những khối tự vẽ được. ⚠ «Chọn mã mạnh nhất» cố ý KHÔNG chia theo độ tin
+cậy: mẫu ② «Động lượng» không đặt độ tin cậy, ghép vào là cỗ máy mẫu mở ra đã có sẵn một
+cảnh báo — thứ tệ nhất để đưa người chơi mới, vì họ không biết đó là lỗi của ai.
+
+**Bằng chứng:** `test_qc_may` 38/38 — cả vòng Chiến dịch chạy trên máy chủ QC giả, với
+dữ liệu seed theo khoảng ngày nên màn ẩn khác màn đã thấy thật; `test_may` 72/72 (9 kiểm
+riêng cho vân tay); `test_game_qc` cũ đã nhập vào các bài trên ở phần 7.
+
+## 24. ⛔ DỌN BỘ MÁY CŨ (D-10, phần 7)
+
+Từ đây app chỉ còn MỘT thế giới: cỗ máy 5 trạm chạy trên QuantConnect.
+
+**Xoá hẳn** (Python): `bo_chay` · `khop_lenh` · `so_lenh` · `tinh_toan` · `mau` (sơ đồ mẫu
+Compress) · `nhat_ky` · `kho/` · `lean/cat_lean.py` · `lean/vo_qc.py` · `lean/do_nhip.py`
+· `tools/dong_goi_lean.*` và 11 bài kiểm của chúng. **Giao diện**: `App.tsx` ·
+`ActionDialog` · `Ribbon` · `TemplatePicker` · `ThamSoDialog` · `SettingsDialog` ·
+`StepNode`, cùng toàn bộ kiểu của mô hình cũ trong `types.ts`. Tổng cộng ≈ 13.700 dòng.
+
+**`core.py` 2296 → 673 dòng.** Giữ đúng phần cỗ máy dùng: đồ thị, đánh số, soát lỗi đồ
+thị, id khối, bảng tham số, cài đặt. Cách cắt: đọc CÂY CÚ PHÁP, lấy mọi tên cấp cao nhất,
+tìm tên nào còn được gọi từ ngoài, rồi giữ đóng truyền của chúng — cắt tay một file 2300
+dòng là sớm muộn bỏ sót hoặc cắt nhầm. Hai chỗ phải gỡ bằng tay vì chúng KÉO cả bảng từ
+vựng cũ theo: `step_title` (rơi về nhãn hành động cũ) và `_khoa_dieu_kien` (so hai cổng
+bằng CHỮ hiển thị của mô hình cũ — nay so bằng chính JSON của điều kiện).
+
+**Một công thức khoá Object Store** (`goi_qc.khoa_mac_dinh`): trước đây lúc đóng gói và
+lúc tải về mỗi bên tự ghép tên khoá, mà `dong_goi_may` lại chỉ ghi khoá khi được truyền —
+thiếu nó thì lớp vỏ chết GIỮA LƯỢT trên cloud, ở nơi xa nhất để dò.
+
+**`tools/chay_qc.py` viết lại cho cỗ máy:** chạy một cỗ máy dựng sẵn hay một file `.json`
+trên rổ mã tự chọn, hoặc `--man <id>` lấy đúng rổ và ngày của một màn Chiến dịch. In cả
+boss cả rổ. Không chấm sao, không ghi vé — chấm là việc của app.
+
+**Hộp thoại Kho** giờ gom thẳng từ từ điển 5 trạm: năm trạm · 14 khối Làm · 42 đại lượng
+(kèm trạm nào đọc được) · cỗ máy dựng sẵn · file trên đĩa. Thêm một khối ở `tram.py` là
+hộp thoại có ngay — không có danh sách thứ hai để quên cập nhật.
+
+**Bỏ `numpy`** khỏi `requirements.txt`: bộ máy 5 trạm cố ý thuần Python, vì cùng một file
+phải chạy được cả trên máy lẫn trên QuantConnect, nơi ta không chọn được thư viện.
+
+**CÒN LẠI, cố ý:** `webui/src/app.css` vẫn giữ luật CSS của mấy hộp thoại đã xoá. Không
+dọn bằng máy được — class của React Flow (`react-flow__handle`…) nhìn y như class chết vì
+không component nào của ta viết ra chúng, xoá nhầm là canvas mất cổng nối. Dọn tay khi
+nào sờ tới chính mấy luật đó.
+
+**Bằng chứng:** `tools\chay_test.bat` 12/12 sau khi dọn; giao diện build sạch; app mở lên
+vẫn đúng vòng chơi (đã soi bằng `tools/xem_thu.py`: trình vẽ, ◆ Màn chơi, Chiến dịch ba
+màn, Sáng tạo theo rổ).
