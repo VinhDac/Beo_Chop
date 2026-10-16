@@ -39,6 +39,12 @@ const HINH: Record<string, React.ReactNode> = {
   /* --- loại khối --- */
   start: <><circle {...S} cx="8" cy="8" r="5.9" /><path {...S} d="M8 3.6l2.6 4.4L8 12.4 5.4 8z" /></>,
   action: <><path {...S} d="M9.4 1.8 4 9h3.3l-.8 5.2L11.9 7H8.6z" /></>,
+  /* Nhóm: một hộp ôm mấy dòng — đúng hình "chuỗi hành động gói lại". */
+  group: <><rect {...S} x="2.2" y="3" width="11.6" height="10" rx="1.6" /><path {...S} d="M5 6.2h6M5 8.6h6M5 11h3.5" /></>,
+  /* Quay về: mũi tên vồng NGƯỢC lên rồi chỉ về sau — cùng hình với đường ↻ trên canvas,
+     để nhìn nút và nhìn dây là biết cùng một thứ. */
+  'quay-ve': <><path {...S} d="M12.6 11.4a4.6 4.6 0 0 0-4.6-5.8H4.2" /><path {...S} d="M6.6 3.2 3.4 5.6l3.2 2.4" /></>,
+  file: <><path {...S} d="M4 1.9h5l3.2 3.2v8.9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2.9a1 1 0 0 1 1-1z" /><path {...S} d="M9 1.9v3.4h3.2" /></>,
 
   /* --- ghim số: đinh ghim + mũi tên quay lại --- */
   ghim: <><path {...S} d="M9.6 1.9l4.5 4.5-1.8 1L9 5.1z" /><path {...S} d="M9 5.1L4.6 8.3l3.1 3.1 3.2-4.4" /><path {...S} d="M6.2 9.8L2.4 13.6" /></>,
@@ -81,4 +87,5 @@ export const ICON_HANH_DONG: Record<string, string> = {
   vao_lenh: 'vao-lenh',
   sua_lenh: 'sua-lenh',
   dat_co: 'dat-co',
+  quay_ve: 'quay-ve',
 }

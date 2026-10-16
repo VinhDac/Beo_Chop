@@ -337,3 +337,509 @@ select.o { cursor: pointer; }
 .mc-hop-khoa p { margin: 0; }
 .mc-canh-khoa { color: var(--warn); }
 .mc-trang-khoa { color: var(--muted); }
+
+/* ==========================================================================
+   TRÌNH VẼ SƠ ĐỒ  —  chép từ Jenifer_Studio
+   ==========================================================================
+   Mọi luật dưới đây phục vụ MỘT yêu cầu: vẽ nổi một sơ đồ cỡ nghìn khối. Đó là
+   quy mô đã đo được trên một sơ đồ thật (1.170 khối, 1.468 dây), và nó quyết
+   gần hết mấy con số ở đây — bề rộng hộp, số dòng tối đa, cỡ mũi tên. */
+
+/* ---------------- Thanh tiêu đề tự vẽ ----------------
+   Thay hẳn caption của Windows. Bắt buộc phải tự vẽ vì Win10 không cho đổi màu
+   caption hệ thống. Khoảng trống ở giữa (chỗ `.ten-cua-so`) CHÍNH LÀ vùng kéo cửa
+   sổ — Python báo cho Windows nó là HTCAPTION, nên nó không cần nghe chuột. */
+.thanh-tieu-de {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 32px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+/* Nút Đóng hover đỏ — quy ước của Windows, thiếu là thấy lạ ngay. */
+.nut-cs.dong:hover { background: #c42b1c; color: #fff; }
+/* ---------------- Ribbon kiểu Paint ---------------- */
+/* Đây là dải điều khiển DUY NHẤT. Trước còn một dải riêng ở trên cho tên Process
+   và nút Chạy — trong khi bên phải ribbon bỏ trống 254px. Gộp lại: canvas cao
+   thêm 46px và app còn 3 dải ngang thay vì 4. */
+.ribbon {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 4px 0;
+  flex: 0 0 auto;
+  overflow-x: auto;
+}
+.nhom-ribbon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 10px 3px;
+  border-right: 1px solid var(--border-soft);
+  /* KHÔNG cho co. Mặc định của flex là co lại khi hết chỗ, mà nhóm co thì nhãn nút
+     tràn ra ngoài nút và đè lên nút bên cạnh — "Delay" chồng lên "Sửa", "Xoá" chồng
+     lên "Đặt số". `overflow-x: auto` của ribbon không bao giờ cứu được chuyện đó, vì
+     các nhóm đã tự co cho vừa nên chẳng có gì để tràn. */
+  flex: 0 0 auto;
+}
+/* `:last-of-type` chứ không `:last-child`: con cuối của ribbon là cụm Chạy, nên luật
+   cũ không khớp nhóm nào cả. */
+.nhom-ribbon:last-of-type { border-right: none; }
+.nhom-ribbon .cac-nut { display: flex; gap: 4px; align-items: flex-start; flex: 1; }
+/* Nhãn nhóm nằm DƯỚI như ribbon của Paint — đây là thứ làm nó đọc ra "ribbon"
+   chứ không phải "một hàng nút". */
+.nhom-ribbon .ten-nhom {
+  font-size: 10.5px;
+  color: var(--dim);
+  margin-top: 3px;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+.nut-lon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 58px;
+  padding: 6px 8px 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: 11.5px var(--font);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.nut-lon:hover:not(:disabled) { background: var(--raised); border-color: var(--border); }
+.nut-lon:active:not(:disabled) { background: var(--raised-hover); }
+.nut-lon:disabled { opacity: .38; cursor: default; }
+.nut-lon .hinh { width: 22px; height: 22px; display: block; }
+.o-tro-thu.bang-craft .dai-mau { background: #b8860b; }
+.react-flow__edge.day-goi-y { pointer-events: none; }
+.react-flow__edge.day-goi-y path { stroke-dasharray: 5 5; opacity: .45; }
+/* ---------------- Hộp (node) ---------------- */
+.hop {
+  width: 296px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color .12s, box-shadow .12s;
+}
+.hop:hover { border-color: #4d4d4d; }
+/* Chọn = viền accent + quầng mờ. KHÔNG tô nền cả hộp bằng màu accent — màu no
+   trải rộng trên nền tối bị rung mắt (đã gặp ở bản tkinter). */
+.hop.dang-chon {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
+}
+/* TRONG VÒNG: đang bấm vào một khối "Quay về" thì cả thân vòng sáng lên màu ↻ — đó là
+   cách duy nhất nhìn thấy vòng ấy, vì nó không có sợi dây nào trên sơ đồ. */
+.hop.trong-vong {
+  border-color: var(--vong);
+  box-shadow: 0 0 0 1px var(--vong), var(--shadow-lg);
+}
+/* Khối Quay về đang được bấm: vừa "chọn" vừa "trong vòng" — ưu tiên màu ↻ cho khớp
+   với đường ảo và với các khối còn lại của vòng. */
+.hop.dang-chon.trong-vong { border-color: var(--vong); }
+/* SOI LẦN CHẠY: chuột phải một dòng nhật ký rồi chọn "Soi lần chạy này" — khối đã đi
+   qua sáng XANH LÁ, khối làm lần chạy dừng lại sáng ĐỎ. Quầng dày hơn "trong vòng"
+   để nhìn ra ngay lúc zoom nhỏ xem cả sơ đồ, vì đó chính là lúc người ta đi tìm
+   xem hỏng ở đâu. Xếp SAU mấy luật trên để thắng cả `.dang-chon` lẫn `.trong-vong`. */
+.hop.soi-qua {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok), var(--shadow-lg);
+}
+.hop.soi-dung {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px var(--err), var(--shadow-lg);
+}
+.hop.dang-chon.soi-qua  { border-color: var(--ok); }
+.hop.dang-chon.soi-dung { border-color: var(--err); }
+/* TÌM KHỐI (ô cạnh công tắc chế độ): khối khớp sáng viền VÀNG, đoạn chữ khớp tô nền
+   vàng như bút dạ quang. Khối Enter vừa tới thì được chọn — viền trong mang màu chọn,
+   quầng vàng vẫn còn. Đặt SAU "soi lần chạy": đang tìm thì cái mình đang tìm thắng. */
+.hop.tim-thay {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 2px var(--warn), var(--shadow-lg);
+}
+.hop.dang-chon.tim-thay { border-color: var(--accent); }
+mark.tim-chu {
+  background: color-mix(in srgb, var(--warn) 45%, transparent);
+  color: inherit; border-radius: 2px;
+}
+/* Huy hiệu "↻ 4A.2" trên đầu khối Quay về: đọc sơ đồ khỏi phải mở hộp thoại. */
+.hop .dau .ve-nhan {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vong);
+  background: var(--vong-soft);
+  color: var(--vong);
+  font: 600 10.5px/1.5 var(--font);
+  white-space: nowrap;
+}
+/* TAG báo về điện thoại (📷 chụp ảnh, ⚠ N kẹt vòng) — cùng dáng huy hiệu trên, nhìn sơ
+   đồ là biết khối nào báo gì. */
+.hop .dau .tag-khoi {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font: 600 10.5px/1.5 var(--font);
+  white-space: nowrap;
+}
+.hop .dau .tag-khoi.canh-bao { border-color: var(--warn); color: var(--warn); }
+.o-vong.chi-doc { padding-right: 9px; }
+.o-vong.chi-doc .don-vi { color: var(--text); font-weight: 600; }
+.hop .dau {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
+}
+.hop .dau .dai-mau { width: 3px; height: 15px; border-radius: 2px; flex: 0 0 auto; }
+/* Khối hành động Craft đồ: đầu khối nhuốm nhẹ màu nhóm currency của nó (`--mau`,
+   StepNode) — orb, essence, abyss như trong game; nhìn sơ đồ là biết bước nào dùng gì.
+   Chỉ nhuốm, không tô đặc: màu no cả mảng trên nền tối là rung mắt. */
+.hop.mau-item .dau { background: color-mix(in srgb, var(--mau) 16%, var(--raised)); }
+.hop .dau .ten {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.hop .dau .loai { font-size: 10.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.hop .than { padding: 5px 0; }
+.hop .dong {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 2px 10px;
+  font: 11.5px/1.55 var(--mono);
+  color: var(--text);
+}
+.hop .dong .danh {
+  flex: 0 0 20px;
+  font-size: 9.5px;
+  color: var(--dim);
+  text-align: right;
+}
+/* Cắt chữ phải đặt trên chính phần tử chứa CHỮ. Đặt trên .dong (flex container)
+   thì con flex mặc định min-width:auto nên nó cứ nở ra và tràn khỏi hộp.
+   XUỐNG TỐI ĐA HAI HÀNG rồi mới cắt, thay vì cắt ngay ở hàng đầu.
+   Đo được: một hàng chứa 36 ký tự ở thẻ loop/nhóm/HĐ lẻ.
+   Phần lớn dòng nay đã viết gọn dưới ngưỡng ấy, nhưng có dòng KHÔNG BAO GIỜ bó
+   được — "Chiêu mỗi 1,2s: …" in ra chuỗi chiêu do người dùng tự đặt, dài ngắn tuỳ
+   họ. Với những dòng đó, một hàng là mất chữ LẶNG LẼ, còn hai hàng là đọc được.
+   Vẫn phải có trần: bỏ trần thì một chuỗi chiêu dài kéo cả khối cao gấp mấy lần
+   khối bên cạnh, và sơ đồ hết nhìn ra hình. */
+.hop .dong > span:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* Hành động chạy 1 lần lúc đầu: làm mờ, vì nhìn hộp phải biết ngay Loop thật sự
+   LẶP LẠI những gì. Đây chính là cái bản Listbox cũ phải diễn tả bằng chữ "(1 lần)". */
+.hop .dong.mo-dau { color: var(--dim); }
+.hop .dong.muc-tieu { color: var(--accent); }
+/* MỐC DỪNG PHỤ — nhiệm vụ mà khối "Di chuyển" vừa đi vừa canh.
+   Hổ phách chứ không phải `--accent`: `--accent` đã là màu của MỤC TIÊU (thứ kết
+   thúc được một Loop), mà đây không cùng hạng — nó là một điều kiện dừng riêng của
+   khối. Dùng chung màu thì nhìn lướt qua tưởng hai thứ giống nhau. */
+.hop .dong.moc-phu { color: var(--warn); }
+.hop .dong.con-nua { color: var(--dim); font-style: italic; font-family: var(--font); font-size: 11px; }
+.hop .dong.rong { color: var(--dim); font-style: italic; font-family: var(--font); }
+.hop .chan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border-soft);
+  background: rgba(0, 0, 0, .12);
+}
+/* ---------------- Cổng nối ----------------
+   VÙNG BẤM và CHẤM NHÌN THẤY là hai thứ khác nhau.
+   Trước đây cổng chỉ 9×9px — đúng bằng cái chấm — nên phải rê chuột rất chính xác
+   mới trúng. Giờ phần tử bắt chuột là 24×24 trong suốt, còn cái chấm vẽ bằng
+   ::after. Diện tích bấm gấp ~7 lần mà nhìn vẫn gọn như cũ.
+   Phóng to đối xứng nên TÂM không đổi -> đường nối vẫn cắm đúng chỗ. */
+.react-flow__handle {
+  width: 24px; height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  /* BẮT BUỘC. `.hop` là position:relative và nằm SAU cổng trong DOM, nên với
+     z-index mặc định nó vẽ đè lên cổng. Nửa vùng bấm nằm trong lòng khối bị hộp
+     nuốt mất, chỉ còn nửa thò ra ngoài mép mới bấm được — nên dù có nới rộng
+     bao nhiêu thì cảm giác vẫn là "rê mãi không trúng". */
+  z-index: 10;
+}
+.react-flow__handle::after {
+  content: '';
+  position: absolute; left: 50%; top: 50%;
+  width: 9px; height: 9px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--raised);
+  border: 1.5px solid var(--muted);
+  transition: width .12s, height .12s, background .12s, border-color .12s;
+}
+.react-flow__node:hover .react-flow__handle::after {
+  width: 12px; height: 12px; border-color: var(--accent);
+}
+/* Đang kéo dây: MỌI cổng của MỌI khối hiện rõ, khỏi phải đoán thả vào đâu được. */
+.vung-canvas.dang-noi .react-flow__handle::after {
+  width: 13px; height: 13px;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+/* Rê trúng một cổng và nối được -> cổng sáng hẳn lên.
+   Ba dòng dưới lặp lại y hệt nhưng thêm tiền tố `.vung-canvas.dang-noi`: luật "mọi
+   cổng hiện rõ" ở trên có 3 lớp nên ăn đứt luật 2 lớp này, làm cổng trúng đích chỉ
+   to bằng cổng thường. Nâng độ ưu tiên cho bằng thì cái cụ thể mới thắng cái chung. */
+.react-flow__handle.connectingto::after,
+.react-flow__handle.valid::after,
+.react-flow__handle:hover::after,
+.vung-canvas.dang-noi .react-flow__handle.connectingto::after,
+.vung-canvas.dang-noi .react-flow__handle.valid::after,
+.vung-canvas.dang-noi .react-flow__handle:hover::after {
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+/* …VÀ viền cả khối đích sáng lên — tín hiệu "thả ra là dính" nhìn từ xa cũng thấy. */
+.react-flow__node:has(.react-flow__handle.connectingto) .hop,
+.react-flow__node:has(.react-flow__handle.valid) .hop {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--accent-soft);
+}
+/* Khối đang kéo dây RA thì làm mờ viền, khỏi lẫn với khối đích. */
+.react-flow__node:has(.react-flow__handle.connectingfrom) .hop {
+  border-color: var(--muted);
+}
+.muc-phai .dang-chon-muc { margin-left: auto; color: var(--accent); font-size: 11px; }
+/* ĐẬM HƠN BẢN GỐC. #5a5a5a trên nền canvas gần như mất hút khi thu nhỏ, mà sơ đồ
+   nghìn khối thì người ta ngồi ở mức thu nhỏ gần như suốt — dây là thứ phải thấy
+   trước cả chữ, vì nó mới là cái nói sơ đồ chạy đường nào. */
+.react-flow__edge-path { stroke: #7e7e7e; stroke-width: 2; }
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.2; }
+/* Dây bấm được (double-click để huỷ nối) thì con trỏ phải nói ra điều đó — chứ
+   không ai tự nhiên đi nhấp đúp vào một đường kẻ để thử xem có gì xảy ra không. */
+.react-flow__edge { cursor: pointer; }
+/* ---------------- ĐƯỜNG ↻ QUAY LẠI ----------------
+   Dày hơn và màu riêng: đường này chạy NGƯỢC dòng, nhìn nhầm nó thành dây thường là
+   hiểu sai cả sơ đồ. Đè được lên luật `:hover` phía trên nhờ đứng sau và có class
+   riêng — rê chuột lên nó vẫn là màu của nó, chỉ sáng thêm. */
+.react-flow__edge-path.duong-vong { stroke: var(--vong); stroke-width: 2.6; }
+.react-flow__edge:hover .react-flow__edge-path.duong-vong,
+.react-flow__edge-path.duong-vong.chon { stroke: var(--vong); stroke-width: 3.2; }
+/* Ô SỐ VÒNG nằm giữa đường. `nodrag nopan` (đặt ở component) để gõ số không kéo cả
+   canvas. Nền đặc chứ không trong suốt: nó nằm đè lên dây, nền trong là chữ số chồng
+   lên nét vẽ và không đọc được. */
+.o-vong {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1.5px solid var(--vong);
+  box-shadow: var(--shadow);
+  font-size: 11.5px;
+  color: var(--text);
+  pointer-events: all;
+}
+.o-vong .dau { color: var(--vong); font-size: 13px; line-height: 1; }
+.o-vong .don-vi { color: var(--muted); }
+.o-vong input {
+  width: 34px;
+  padding: 0 2px;
+  border: none;
+  border-radius: 4px;
+  background: var(--vong-soft);
+  color: var(--text);
+  font: 600 11.5px/1.6 var(--font);
+  text-align: center;
+  outline: none;
+}
+.o-vong input:focus { background: var(--field); box-shadow: 0 0 0 1.5px var(--vong); }
+.react-flow__connection-path { stroke: var(--accent); stroke-width: 2; }
+.react-flow__attribution { display: none; }
+/* Thanh kéo: mỏng nhưng vùng bấm dày hơn phần nhìn thấy — 1px thì không ai trúng. */
+.thanh-keo {
+  position: absolute; top: -3px; left: 0; right: 0; height: 7px;
+  cursor: ns-resize; z-index: 5;
+}
+.thanh-keo:hover { background: var(--accent); opacity: .35; }
+.dong-van-de {
+  display: flex; gap: 8px; align-items: baseline;
+  padding: 3px 12px; cursor: pointer; font-size: 12.5px;
+}
+.dong-van-de:hover { background: var(--raised); }
+.dong-van-de .muc { flex: 0 0 auto; font-size: 11px; }
+.dong-van-de.loi .muc { color: var(--err); }
+.dong-van-de.canh-bao .muc { color: var(--warn); }
+/* ---------------- Thanh trạng thái ---------------- */
+.thanh-trang-thai {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  /* Cả hàng phóng ×1.1 so với bản đầu: chữ 11.5→12.6, nút ⚙ 24→26, nút zoom
+     20→22, cao 30→33. Giữ đúng một hệ số cho mọi thứ trong hàng, không chỉnh
+     lẻ từng cái — lệch tỉ lệ là nhìn ra ngay. */
+  gap: 13px;
+  padding: 5px 11px;
+  min-height: 33px;
+  background: var(--chrome);
+  border-top: 1px solid var(--border);
+  font-size: 12.6px;
+  color: var(--muted);
+}
+.thanh-trang-thai .day { flex: 1; }
+.thanh-trang-thai .so { color: var(--text); }
+.hop-thoai {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 80px);
+}
+/* --- danh sách (thay tk.Listbox) --- */
+.danh-sach {
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: auto;
+  font: 12px/1.6 var(--mono);
+}
+.danh-sach.cao-4 { height: 92px; }
+.danh-sach.cao-10 { height: 236px; }
+.danh-sach .muc {
+  /* Flex để TAG (nếu có) dạt hẳn sang phải; tên dài thì cắt bớt tên, không đẩy tag
+     ra khỏi dòng. */
+  display: flex; align-items: center; gap: 8px;
+  padding: 2px 8px; cursor: default;
+  white-space: nowrap; overflow: hidden;
+}
+.danh-sach .muc .ten { overflow: hidden; text-overflow: ellipsis; }
+.danh-sach .muc:hover { background: var(--raised); }
+/* Chọn = thanh accent bên trái + nền nhạt, KHÔNG tô cả dòng màu accent: màu no
+   trải rộng trên nền tối bị rung mắt (đúng lỗi đã gặp ở bản tkinter). */
+.danh-sach .muc.chon {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.danh-sach .muc.mo { color: var(--dim); font-style: italic; font-family: var(--font); }
+/* Hàng mod của "Giơ chuột". Tên TIẾNG ANH (đúng chữ game in ra) chiếm hết chỗ còn
+   lại và cắt bằng "…" nếu chật — nhãn tiếng Việt đi sau nên nó là phần bị cắt
+   trước, đúng thứ tự quan trọng. Nút dồn về phải, không co. */
+.mod-hang, .danh-sach .muc.mod-muc { display: flex; align-items: center; gap: 6px; }
+.danh-sach .muc.mod-muc:hover { background: var(--raised); }
+.danh-hd { display: inline-block; width: 20px; color: var(--dim); font-size: 10px; }
+.khung-hd .danh-sach { flex: 1; min-width: 0; }
+/* Danh sách cao BẰNG cột nút bên cạnh, không phải một con số gõ tay. Cột nút là thứ
+   quyết định chiều cao hàng này (đo trên chính bộ CSS này: 8 nút = 262px, còn
+   `cao-5` chỉ 116px — 146px bỏ không ngay cạnh chỗ đang phải cuộn), mà số nút thì
+   còn đổi: đặt cứng một
+   con số thì thêm một nút là lại hụt ra đúng khoảng trống vừa lấp. `align-items:
+   stretch` của `.khung-hd` lo phần đó, ở đây chỉ cần THÔI ép chiều cao.
+   `max-height` để chuỗi ba mươi bước không kéo cả hộp thoại dài ra. */
+.khung-hd .danh-sach.theo-cot-nut { height: auto; max-height: 320px; }
+.dong-log { padding: 0 12px; white-space: pre-wrap; word-break: break-word; }
+.dong-log .gio { color: var(--dim); margin-right: 10px; }
+.dong-log.t-ok   { color: var(--ok); }
+.dong-log.t-warn { color: var(--warn); }
+.dong-log.t-err  { color: var(--err); }
+.dong-log.t-dim  { color: var(--dim); }
+.dong-log.t-skip { color: var(--accent); }
+/* Dòng thuộc về một khối: chuột phải được (soi lần chạy đó lên sơ đồ). Đổi CON TRỎ
+   chứ không tô thêm màu — nhật ký đã dùng hết màu để phân loại nặng/nhẹ rồi. */
+.dong-log.co-khoi { cursor: context-menu; }
+/* ---------------- Số thứ tự chạy trên góc khối ---------------- */
+.hop { position: relative; overflow: visible; }
+.hop .dau { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+/* Huy hiệu bước. Từng là hình tròn cứng 24px, đủ cho "1".."9" — nhưng nhãn giờ là
+   CHUỖI PHÂN CẤP ("4A.2B") nên phải nở ngang được, nếu không chữ tràn ra ngoài.
+   Vẫn tròn khi nhãn ngắn: `min-width` = chiều cao và bo 999px. */
+.so-thu-tu {
+  position: absolute;
+  left: -11px; top: -11px;
+  min-width: 24px; height: 24px;
+  padding: 0 7px;
+  display: flex; align-items: center; justify-content: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #1a1a1a;
+  font: 700 12px/1 var(--font);
+  border: 2px solid var(--canvas-bg);
+  z-index: 2;
+}
+/* Không có số = không có đường nối dẫn tới = sẽ KHÔNG chạy. Phải nhìn ra ngay. */
+.so-thu-tu.trong { background: var(--field); color: var(--dim); border-color: var(--border); }
+.hop.khong-toi { border-style: dashed; opacity: .72; }
+/* ---------------- Hạt nhân ---------------- */
+/* KHUNG HẠT NHÂN: to GẤP BỐN một khối (cả ngang lẫn cao của hình) — bên trong là cả một
+   mảng sơ đồ, khổ một khối thì hình thu nhỏ chỉ còn một nhúm chấm. Chồng thêm một lớp
+   viền như một xấp giấy, nhìn là biết bên trong còn cả một mảng. Dải đầu mang màu chọn.
+   Khổ hình đổi thì sửa cả `HN_VE` trong App.tsx — đó là phần trong của `.hn-ve`. */
+.hop.hat-nhan {
+  width: 1184px;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 -1px var(--surface), 5px 5px 0 0 var(--border), var(--shadow);
+}
+.hop.hat-nhan .dau .dai-mau { background: var(--accent); }
+.hop.hat-nhan .hn-goi-y { margin-left: auto; color: var(--dim); font-size: 10.5px; }
+/* Đang chọn / bên trong có khối khớp ô tìm: thêm quầng như khối thường, giữ lớp giấy. */
+.hop.hat-nhan.dang-chon {
+  box-shadow: 0 0 0 1px var(--accent), 5px 5px 0 -1px var(--surface),
+              5px 5px 0 0 var(--border), var(--shadow-lg);
+}
+.hop.hat-nhan.tim-thay {
+  box-shadow: 0 0 0 2px var(--warn), 5px 5px 0 -1px var(--surface),
+              5px 5px 0 0 var(--border), var(--shadow-lg);
+}
+.the-hat-nhan .dong {
+  border: none; background: var(--raised); color: var(--text);
+  font: 12px var(--font); padding: 4px 12px; border-radius: 999px; cursor: pointer;
+}
+.the-hat-nhan .dong:hover { background: var(--accent); color: #1a1a1a; }
+.dong-van-de { cursor: pointer; }
+.danh-sach .muc.dang-keo { opacity: .4; }
+.danh-sach .muc[draggable="true"] { cursor: grab; }
+.hop .dong .icon { color: var(--dim); }
+.hop .dong.muc-tieu .icon { color: var(--accent); }
+.dong-thu {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12px; padding: 2px 0;
+}
+.dong-thu .day { flex: 1; }
+.dong-thu .ten { color: var(--text); }
+.dong-thu .song { color: var(--ok); font-size: 11.5px; }
+.dong-thu .chet { color: var(--warn); font-size: 11.5px; }
+.hop.lc-khoi-mau { flex: 0 0 auto; width: 250px; box-shadow: none; }
+.bang-phim .ten-nhom {
+  font: 600 11.5px/1.6 var(--font);
+  color: var(--dim); text-transform: uppercase; letter-spacing: .6px;
+  padding: 6px 2px; border-bottom: 1px solid var(--border-soft); margin-bottom: 2px;
+}
+.vien-nut.dong:hover { background: #c42b1c; color: #fff; }

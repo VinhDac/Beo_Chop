@@ -28,8 +28,12 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 GOC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSS = os.path.join(GOC, "webui", "src")
 
-#: Biến do JS đặt trên chính phần tử lúc chạy — xem `components/StepNode.tsx`.
-DAT_LUC_CHAY = {"--mau-khoi"}
+#: Biến do JS đặt trên chính phần tử lúc chạy, không khai trong stylesheet — nên không
+#: có cách nào tìm thấy chúng ở `theme.css`, và cũng KHÔNG NÊN có.
+#:
+#:   --mau   màu người dùng tự đặt cho một khối; `StepNode` gắn thẳng lên thẻ. Bộ chạy
+#:           không đọc — nó chỉ để phân loại bằng mắt trên một sơ đồ dài.
+DAT_LUC_CHAY = {"--mau"}
 
 dung = sai = 0
 

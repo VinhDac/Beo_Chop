@@ -3,10 +3,11 @@
  * Mọi lời gọi Python đi qua đây, không rải `window.pywebview` khắp components — để sau
  * này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
  *
- * D-12: khối cũ đã xoá, nên ở đây chỉ còn những cửa KHÔNG dính gì tới khối — cửa sổ,
- * chỗ lưu file, và khoá QuantConnect.
+ * ⚠ MỘT BỀ MẶT DUY NHẤT. `api.py` chỉ còn một lớp `Api`, nên ở đây cũng chỉ một `py`.
+ * Bản trước tách `pyQC` riêng và bản xem thử tự định tuyến mọi tên `qc_*` sang lớp kia
+ * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
-import type { KhoDanhMuc, KhoaQC, Reply } from './types'
+import type { CoMay, Edge, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -53,8 +54,36 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
 export const py = {
   ping: () => goi<string>('ping'),
   set_title: (ten: string) => goi<null>('set_title', ten),
-  /** App lưu file ở đâu. */
   kho_danh_muc: () => goi<KhoDanhMuc>('kho_danh_muc'),
+
+  // --- sơ đồ ---
+  khoi_moi: (kind: StepKind, loai?: string) =>
+    goi<{ step: Step; card: KetQuaSoat['the'][string] }>('khoi_moi', kind, loai),
+  /** MỘT cửa soát duy nhất — gọi sau MỖI thay đổi, rồi vẽ lại cái nhận về. */
+  soat: (steps: Step[], edges: Edge[]) => goi<KetQuaSoat>('soat', steps, edges),
+  nhan_ban: (steps: Step[], edges: Edge[], giuHatNhan = false) =>
+    goi<{ steps: Step[]; edges: Edge[]; map: Record<string, string>;
+          the: KetQuaSoat['the'] }>('nhan_ban', steps, edges, giuHatNhan),
+
+  // --- lưu / mở ---
+  ds_co_may: () => goi<string[]>('ds_co_may'),
+  luu_co_may: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<{ ten: string; duong: string }>('luu_co_may', ten, steps, edges),
+  mo_co_may: (ten: string) => goi<CoMay>('mo_co_may', ten),
+  xoa_co_may: (ten: string) => goi<boolean>('xoa_co_may', ten),
+  tu_luu_co_may: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<{ ten: string; duong: string } | null>('tu_luu_co_may', ten, steps, edges),
+  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<string>('luu_ban_nhap', ten, steps, edges),
+  doc_ban_nhap: () => goi<CoMay | null>('doc_ban_nhap'),
+  xoa_ban_nhap: () => goi<boolean>('xoa_ban_nhap'),
+
+  // --- khoá QuantConnect. Mọi lỗi từ đây đã là một câu tiếng Việt. ---
+  qc_khoa: () => goi<KhoaQC>('qc_khoa'),
+  qc_luu_khoa: (userId: string, token: string) => goi<KhoaQC>('qc_luu_khoa', userId, token),
+  qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
+  qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
+  qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
@@ -65,10 +94,5 @@ export const py = {
   cua_so_dong: () => goi<null>('cua_so_dong'),
 }
 
-/** Khoá QuantConnect — của `api.ApiQC`. Mọi lỗi từ đây đã là một câu tiếng Việt. */
-export const pyQC = {
-  qc_khoa: () => goi<KhoaQC>('qc_khoa'),
-  qc_luu_khoa: (userId: string, token: string) => goi<KhoaQC>('qc_luu_khoa', userId, token),
-  qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
-  qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
-}
+/** ⚠ Giữ tên cũ cho `HopKhoa` khỏi phải sửa — nhưng nó TRỎ VÀO CÙNG một bề mặt. */
+export const pyQC = py

@@ -42,6 +42,11 @@
      rực lên thì không còn gì nổi bật nữa. */
   --start: #4ec96a;
   --loop: #ffa657;
+  /* VÒNG LẶP — màu riêng, không mượn màu nào khác. Khối "Quay về", đường ↻ và
+     mảng khối nằm trong vòng đều tô bằng nó: bấm vào một khối Quay về là cả cái
+     vòng sáng lên cùng một màu, nhìn một cái thấy ngay nó ôm những khối nào. */
+  --vong: #2fb6a8;
+  --vong-soft: rgba(47, 182, 168, 0.14);
   --group: #6cb6ff;
   --action: #a8a8a8;
 

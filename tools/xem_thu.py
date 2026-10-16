@@ -14,6 +14,14 @@ cho máy bấm thử. Ba thứ ấy là cách duy nhất canh được giao di�
 
 Chỉ nghe trên 127.0.0.1.
 
+⚠ KHUNG XEM THỬ KHÔNG VẼ THÌ PHÉP ĐO NÓI DỐI. Trang chỉ chạy nhịp vẽ khi cửa sổ thật sự
+hiện ra; cửa sổ bị che là trình duyệt bỏ nhịp ấy. Mà `ResizeObserver` — thứ React Flow
+dùng để đo cỡ từng khối — CHỈ bắn trong nhịp vẽ. Hậu quả: đọc DOM bằng JavaScript thì
+thấy đủ khối nhưng KHÔNG một đường nối nào, vì chưa đo được cỡ thì chưa tính nổi chỗ
+cắm dây. Đã mất một buổi truy bản React Flow, bản React, StrictMode và CSS trước khi
+nhận ra không có lỗi nào cả.
+   Luật: muốn tin phép đo thì CHỤP ẢNH một nhát trước (ảnh ép trang vẽ), rồi mới đo.
+
 ⚠ BÀI HỌC D-12 — ĐỪNG DỰNG LẠI HAI BỀ MẶT. Bản trước phục vụ `Api` và `ApiQC` cùng lúc,
 tự định tuyến mọi tên `qc_*` sang `ApiQC`. Thành ra hộp Khoá bấm NGON trong trình duyệt
 mà trong app thật thì báo «api.py không có hàm qc_khoa» — vì cửa sổ chính chỉ có `Api`.

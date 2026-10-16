@@ -1,13 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import '@xyflow/react/dist/style.css'
 import './theme.css'
 import './app.css'
-import TrangTrong from './TrangTrong'
+import SoDo from './SoDo'
 
-/* D-12: bộ khối cũ và cách tương tác cũ đã gỡ bỏ. Cửa sổ mở lên nói đúng điều đó, thay
-   vì bày ra một trình vẽ không còn khối nào để vẽ. */
+/* THỨ TỰ QUAN TRỌNG: stylesheet gốc của React Flow phải nạp TRƯỚC app.css, không thì
+   nó đè lên luật của ta mà không báo gì. */
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <TrangTrong />
+    <SoDo />
   </React.StrictMode>,
 )

@@ -1,7 +1,8 @@
 /** Hình dạng dữ liệu đi qua cầu nối.
  *
- * D-12: khối cũ đã xoá, nên ở đây chỉ còn ba thứ không dính gì tới khối. Kiểu của bộ
- * khối mới sẽ khai cùng lúc với bộ khối đó.
+ * Luật: giao diện KHÔNG tự ghép chữ trên khối, KHÔNG tự tính số thứ tự, KHÔNG tự soát
+ * luật nào — nó gửi sơ đồ sang Python rồi vẽ lại đúng cái nhận về (`Card`, `thu_tu`,
+ * `van_de`). Nhờ vậy huy hiệu trên hộp không thể nói khác thứ lõi thật sự hiểu.
  */
 
 export interface Reply<T> {
@@ -11,6 +12,100 @@ export interface Reply<T> {
   trace?: string
   [k: string]: unknown
 }
+
+/* ----------------------------------- Sơ đồ ----------------------------------- */
+
+export type StepKind = 'start' | 'action' | 'group'
+
+/** Khối nằm trong HẠT NHÂN nào — một mảng sơ đồ gói lại cho dễ nhìn.
+ *  CHỈ là cách nhìn: bộ chạy, số thứ tự, bảng Vấn đề đều không đọc nó. */
+export interface HatNhanTag {
+  id: string
+  ten: string
+  /** Chỗ đứng của cái KHUNG trên sơ đồ chính (có thể chưa có). */
+  x?: number
+  y?: number
+}
+
+/** Một khối. Khoá riêng của từng loại hành động đi kèm tự do — lõi giữ nguyên chúng
+ *  cho tới khi có từ điển khối (D-12). */
+export interface Step {
+  id: string
+  kind: StepKind
+  name?: string
+  /** Loại hành động; Nhóm và Bắt đầu không có. */
+  type?: string
+  /** Chỉ Nhóm: chuỗi hành động bên trong. */
+  actions?: Record<string, unknown>[]
+  /** Chỉ khối Quay về: id khối đích, và số vòng (trống = lặp mãi). */
+  ve?: string
+  so_vong?: number | null
+
+  // --- khoá tả CÁI NÚT, không tả việc khối làm (core.KHOA_CANVAS) ---
+  pos?: [number, number]
+  mau?: string
+  ghim?: boolean
+  hat_nhan?: HatNhanTag
+
+  [k: string]: unknown
+}
+
+export interface Edge {
+  from: string
+  to: string
+  port?: string
+  from_side?: string
+  to_side?: string
+  /** Có khoá này tức đây là ĐƯỜNG ↻ quay lại, không phải dây thường. */
+  so_vong?: number | null
+}
+
+/** Một dòng chữ trên thẻ khối. `type` để giao diện chọn icon — Python nói ĐÓ LÀ GÌ,
+ *  web quyết VẼ GÌ. */
+export interface DongThe {
+  text: string
+  type?: string | null
+}
+
+/** Thẻ vẽ một khối. Mọi chuỗi trong đây do Python sinh. */
+export interface Card {
+  id: string
+  kind: StepKind
+  title: string
+  badges: string[]
+  lines: DongThe[]
+  so_hanh_dong: number
+  la_cong: boolean
+}
+
+export interface VanDe {
+  severity: 'error' | 'warning'
+  step: string | null
+  index: number | null
+  message: string
+}
+
+/** Những gì `api.soat` trả về — tất cả trong MỘT lượt. */
+export interface KetQuaSoat {
+  /** {id khối: "4A.2"}. Không có khoá = khối không chạy tới. */
+  thu_tu: Record<string, string>
+  entry: string | null
+  the: Record<string, Card>
+  van_de: VanDe[]
+  /** {id khối cuối vòng: [id khối đầu vòng, số vòng | null]} */
+  vong: Record<string, [string, number | null]>
+  edges: Edge[]
+}
+
+export interface CoMay {
+  schema: number
+  type: string
+  name: string
+  steps: Step[]
+  edges: Edge[]
+}
+
+/* ------------------------------- Kho và khoá -------------------------------- */
 
 /** App lưu file ở đâu — `api.kho_danh_muc`. */
 export interface KhoDanhMuc {
@@ -22,6 +117,9 @@ export interface KhoDanhMuc {
 
 /** Khoá đặt ở đâu. KHÔNG BAO GIỜ có token. */
 export interface KhoaQC {
-  co: boolean; nguon: 'bien_moi_truong' | 'file' | null; user_id: string | null
-  duong: string; loi?: string
+  co: boolean
+  nguon: 'bien_moi_truong' | 'file' | null
+  user_id: string | null
+  duong: string
+  loi?: string
 }
