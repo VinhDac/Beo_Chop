@@ -21,6 +21,7 @@ import time
 import traceback
 
 from . import core
+from . import hoi
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -189,6 +190,15 @@ class Api(NenCuaSo):
     # nào. Nhờ vậy huy hiệu trên khối không thể nói khác thứ lõi hiểu.
 
     @_bat_loi
+    def tu_dien_hoi(self):
+        """Từ điển XÁC NHẬN — năm loại câu hỏi và kho đại lượng của từng loại.
+
+        Giao diện KHÔNG tự khai danh sách này: nó hỏi Python. Hai nơi cùng giữ một
+        bảng thì sớm muộn lệch nhau, và lúc ấy hộp thoại bày ra một đại lượng mà bộ
+        sinh mã không biết viết."""
+        return _ok(hoi.tu_dien())
+
+    @_bat_loi
     def khoi_moi(self, kind, loai=None):
         """Một khối mới + thẻ vẽ của nó."""
         if kind == core.KIND_GROUP:
@@ -197,6 +207,8 @@ class Api(NenCuaSo):
             st = core.make_start_step()
         elif loai == core.QUAY_VE:
             st = core.make_quay_ve_step()
+        elif hoi.la_loai_hoi(loai):
+            st = core.make_hoi_step(loai)
         else:
             st = core.make_action_step({"type": loai or core.CHECK_COND})
         return _ok({"step": st, "card": core.the_buoc(st)})
@@ -211,11 +223,16 @@ class Api(NenCuaSo):
         edges = core.clean_edges(edges, steps) if edges is not None \
             else core.default_edges(steps)
         kq = core.flow_order(steps, edges)
+        # Bảng Vấn đề = lỗi ĐỒ THỊ (nối dây) + lỗi RUỘT từng khối. Gộp ở đây chứ
+        # không ở `validate_flow_graph`: cái đó chỉ biết về dây, cố ý vậy.
+        van_de = core.validate_flow_graph(steps, edges)
+        for s in steps:
+            van_de.extend(core.soat_khoi_hoi(s))
         return _ok({
             "thu_tu": kq["order"],
             "entry": kq["entry"],
             "the": {s["id"]: core.the_buoc(s) for s in steps},
-            "van_de": core.validate_flow_graph(steps, edges),
+            "van_de": van_de,
             "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
             "edges": edges,
         })

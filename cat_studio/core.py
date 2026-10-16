@@ -10,6 +10,7 @@ Xem `tai_lieu/core.md` để hiểu VÌ SAO. File này giữ HÀNH VI.
 import json
 import uuid
 
+from . import hoi
 from . import luu_tru
 
 PHIEN_BAN = "0.2"
@@ -171,6 +172,31 @@ def make_action_step(action):
     return st
 
 
+def make_hoi_step(loai, name=None):
+    """Một khối XÁC NHẬN rỗng của loại `loai` (xem `hoi.LOAI_HOI`)."""
+    d = hoi.LOAI_HOI.get(loai)
+    if not d:
+        raise ValueError(f"không có loại hỏi {loai!r}")
+    return {"kind": KIND_ACTION, "id": new_step_id(), "type": loai,
+            "name": name or d["nhan"], "dieu_kien": []}
+
+
+def make_dieu_kien(ma_dl, phep=">", so=0.0, ma=None, tham_so=None, duong=None):
+    """Một DÒNG điều kiện.
+
+    Hình: {trai, phep, phai}. Hai vế rút từ cùng kho đại lượng, nên vế phải có thể là
+    một con số (`{"so": 30}`) hoặc một đại lượng khác (`{"ma_dl": …}`) — chính chỗ này
+    làm được "so sánh chéo mã" mà không cần tính năng riêng nào."""
+    trai = {"ma_dl": ma_dl}
+    if ma:
+        trai["ma"] = ma
+    if tham_so:
+        trai["tham_so"] = dict(tham_so)
+    if duong:
+        trai["duong"] = duong
+    return {"trai": trai, "phep": phep, "phai": {"so": so}}
+
+
 def make_quay_ve_step(ve=None, so_vong=None, name=None):
     """Khối QUAY VỀ — nhảy ngược lên một khối phía trước.
 
@@ -190,21 +216,61 @@ def make_quay_ve_step(ve=None, so_vong=None, name=None):
 # mấy hàm này, không chép lại.
 
 
-def mo_ta_hanh_dong(a):
-    """Một dòng chữ tả một hành động.
+def _ve_dieu_kien(ve, loai):
+    """Một VẾ của dòng điều kiện -> chữ. Dùng cho cả vế trái lẫn vế phải."""
+    if not isinstance(ve, dict):
+        return "?"
+    if "so" in ve and "ma_dl" not in ve:
+        n = ve["so"]
+        # Số nguyên thì đừng in ".0" — "RSI < 30" đọc dễ hơn "RSI < 30.0".
+        return str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
+    dl = hoi.dai_luong(loai, ve.get("ma_dl"))
+    if not dl:
+        return str(ve.get("ma_dl") or "?")
+    chu = dl["nhan"]
+    # Tham số hiện trong ngoặc: "EMA — trung bình trượt luỹ thừa" quá dài trên thẻ,
+    # nên lấy phần TRƯỚC dấu gạch làm tên ngắn.
+    ngan = chu.split(" — ")[0]
+    ts = ve.get("tham_so") or {}
+    if ts:
+        ngan += "(" + ",".join(str(v) for v in ts.values()) + ")"
+    if ve.get("duong"):
+        ngan += "." + str(ve["duong"])
+    if ve.get("ma"):
+        ngan = f"{ve['ma']}·{ngan}"
+    return ngan
 
-    ⚠ BẢN TẠM. Bộ khối giao dịch chưa thiết kế xong (D-12), nên ở đây mới chỉ đọc ra
-    `type` kèm mấy ô của nó. Khi có từ điển khối thì chỗ này thành một BẢNG TRA theo
-    loại — mỗi loại một câu viết tay, đúng như Jenifer làm (`core.action_display`)."""
+
+def mo_ta_dieu_kien(dk, loai):
+    """Một DÒNG điều kiện -> một dòng chữ trên thẻ khối."""
+    if not isinstance(dk, dict):
+        return "?"
+    trai = _ve_dieu_kien(dk.get("trai"), loai)
+    phep = str(dk.get("phep") or ">")
+    dl = hoi.dai_luong(loai, (dk.get("trai") or {}).get("ma_dl"))
+    # Đại lượng ĐÚNG/SAI không so với số nào — "Đang giữ mã này là SAI".
+    if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
+        return f"{trai} {'là SAI' if phep == 'khong' else 'là ĐÚNG'}"
+    return f"{trai} {phep} {_ve_dieu_kien(dk.get('phai'), loai)}"
+
+
+def mo_ta_hanh_dong(a):
+    """Một dòng chữ tả một hành động. BẢNG TRA theo loại, không ghép câu tự động.
+
+    Giao diện KHÔNG tự ghép chữ này — nếu nó ghép thì sớm muộn nó mô tả khác với thứ
+    lõi thật sự hiểu, và người dùng tin vào cái sai."""
     if not isinstance(a, dict):
         return "?"
     t = str(a.get("type") or "?")
     if t == QUAY_VE:
         n = a.get("so_vong")
         return f"Quay về ({n} vòng)" if n else "Quay về"
+    if hoi.la_loai_hoi(t):
+        ds = a.get("dieu_kien") or []
+        return ds and mo_ta_dieu_kien(ds[0], t) or "chưa có điều kiện nào"
     o = [f"{k}={v}" for k, v in a.items()
-         if k not in ("type", "kind", "id", "name", "actions") + KHOA_CANVAS
-         and v not in (None, "", [], {}, False)]
+         if k not in ("type", "kind", "id", "name", "actions", "dieu_kien")
+         + KHOA_CANVAS and v not in (None, "", [], {}, False)]
     return f"{t} · {' · '.join(o[:3])}" if o else t
 
 
@@ -221,6 +287,16 @@ def the_buoc(step):
     elif kind == KIND_START:
         nhan = []
         dong = []
+    elif hoi.la_loai_hoi(step.get("type")):
+        # KHỐI HỎI: MỖI điều kiện một dòng, nối bằng VÀ. Nhồi thành một chuỗi dài là
+        # thẻ cắt cụt mất vế phải — đúng chỗ người ta cần đọc nhất.
+        ds = step.get("dieu_kien") or []
+        nhan = [hoi.LOAI_HOI[step["type"]]["nhan"]]
+        if len(ds) > 1:
+            nhan.append(f"{len(ds)} điều kiện · VÀ")
+        dong = ([{"text": mo_ta_dieu_kien(dk, step["type"]), "type": step["type"]}
+                 for dk in ds]
+                or [{"text": "chưa có điều kiện nào", "type": step["type"]}])
     else:
         nhan = ["chạy 1 lần"]
         dong = [{"text": mo_ta_hanh_dong(step), "type": step.get("type")}]
@@ -424,8 +500,12 @@ def is_branch_gate(step):
     làm gì ra thị trường. Một khối `check_cond` chỉ ĐỌC dữ liệu nên lùi bao nhiêu lần
     cũng vô hại; một Nhóm thì không hứa được điều đó (nó có thể đã đặt lệnh rồi mới
     kiểm tra, và lệnh đó không rút lại được)."""
-    return (isinstance(step, dict) and step.get("kind") == KIND_ACTION
-            and step.get("type") == CHECK_COND)
+    if not (isinstance(step, dict) and step.get("kind") == KIND_ACTION):
+        return False
+    t = step.get("type")
+    # NĂM LOẠI HỎI đều là cổng: cả năm chỉ ĐỌC thế giới, không đụng vào thị trường,
+    # nên nhánh trượt lùi lại bao nhiêu lần cũng vô hại.
+    return t == CHECK_COND or hoi.la_loai_hoi(t)
 
 
 def _khoa_dieu_kien(conds):
@@ -864,6 +944,74 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
              f"{ten(sid)} không bao giờ chạy tới — chưa có đường nối dẫn vào từ khối "
              f"bắt đầu.")
 
+    return ra
+
+
+def soat_khoi_hoi(step):
+    """Soát RUỘT một khối Xác nhận. -> [{severity, step, index, message}]
+
+    Mấy chỗ này đều hỏng LẶNG lúc chạy: thiếu điều kiện thì cổng luôn khớp (nhánh
+    dưới nó không bao giờ được thử), đại lượng lạ thì bộ sinh mã không biết viết gì,
+    chỉ báo nhiều đường mà chưa chọn đường thì "giá > Bollinger" là câu vô nghĩa."""
+    ra = []
+    t = step.get("type")
+    if not hoi.la_loai_hoi(t):
+        return ra
+    sid = step.get("id")
+    ten = step_title(step)
+    d = hoi.LOAI_HOI[t]
+    ds = step.get("dieu_kien") or []
+
+    if not ds:
+        _loi(ra, "warning", sid,
+             f'"{ten}" chưa có điều kiện nào — cổng không có điều kiện thì LUÔN khớp, '
+             f"nên mọi nhánh xếp dưới nó không bao giờ được thử.")
+
+    if d.get("tat"):
+        _loi(ra, "warning", sid, f'"{ten}": {d["tat"]}')
+
+    for i, dk in enumerate(ds):
+        if not isinstance(dk, dict):
+            _loi(ra, "error", sid, f'"{ten}" có dòng điều kiện {i + 1} hỏng.')
+            continue
+        for ten_ve, ve in (("trái", dk.get("trai")), ("phải", dk.get("phai"))):
+            if not isinstance(ve, dict):
+                _loi(ra, "error", sid,
+                     f'"{ten}" dòng {i + 1}: vế {ten_ve} để trống.')
+                continue
+            if "ma_dl" not in ve:
+                if ten_ve == "trái":
+                    _loi(ra, "error", sid,
+                         f'"{ten}" dòng {i + 1}: vế trái phải là một đại lượng, '
+                         f"không phải một con số.")
+                continue        # vế phải là số: hợp lệ
+            dl = hoi.dai_luong(t, ve["ma_dl"])
+            if not dl:
+                _loi(ra, "error", sid,
+                     f'"{ten}" dòng {i + 1}: không có đại lượng "{ve["ma_dl"]}" trong '
+                     f'nhóm {d["nhan"]}. Hãy chọn lại.')
+                continue
+            thieu = [ts["nhan"] for ts in dl["tham_so"]
+                     if ts["ten"] not in (ve.get("tham_so") or {})]
+            if thieu:
+                _loi(ra, "error", sid,
+                     f'"{ten}" dòng {i + 1}: {dl["nhan"]} còn thiếu ô '
+                     f"{', '.join(thieu)}.")
+            if dl.get("duong") and not ve.get("duong"):
+                _loi(ra, "error", sid,
+                     f'"{ten}" dòng {i + 1}: {dl["nhan"]} có nhiều đường — phải chọn '
+                     f"một ({', '.join(n for _m, n in dl['duong'])}).")
+        # Đại lượng đúng/sai không so với số nào.
+        dl_trai = hoi.dai_luong(t, (dk.get("trai") or {}).get("ma_dl"))
+        phep = dk.get("phep")
+        if dl_trai and dl_trai["kieu"] == hoi.KIEU_CO_KHONG:
+            if phep not in [m for m, _n in hoi.PHEP_CO_KHONG]:
+                _loi(ra, "error", sid,
+                     f'"{ten}" dòng {i + 1}: {dl_trai["nhan"]} chỉ trả ĐÚNG/SAI, '
+                     f"không so lớn-nhỏ được.")
+        elif dl_trai and phep not in [m for m, _n in hoi.PHEP_SO]:
+            _loi(ra, "error", sid,
+                 f'"{ten}" dòng {i + 1}: phép so "{phep}" không có.')
     return ra
 
 
