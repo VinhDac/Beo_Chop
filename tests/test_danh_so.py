@@ -1,8 +1,9 @@
 """Đánh số phân cấp, ghim số, và ba trường hợp "gặp lại khối đã có nhãn".
 
-Bộ đánh số này là của `core` và dùng chung cho CẢ NĂM TRẠM của cỗ máy (D-10): mỗi trạm
-đánh số riêng từ khối Bắt đầu của nó. Khối trong bài là khối thật của cỗ máy — Hỏi làm
-cổng, Làm làm mắt xích.
+Bộ đánh số này là của `core` và KHÔNG biết gì về bộ khối đứng trên nó. Bộ khối cũ đã
+xoá (D-12), nên bài này dựng khối bằng dict trần — đúng ba thứ core thật sự đọc: `kind`,
+`type` (để nhận ra cổng rẽ nhánh) và `pos` (để sắp thứ tự ưu tiên nhánh). Nhờ vậy bộ
+khối mới đổi hình dạng thế nào thì bài này vẫn canh đúng cái nó phải canh.
 
 ĐÁNH SỐ: SỐ = đi được bao xa, CHỮ = đi nhánh nào.
 
@@ -39,8 +40,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from cat_studio import core  # noqa: E402
-from cat_studio import may as M  # noqa: E402
-from cat_studio import tram as T  # noqa: E402
 
 dung = sai = 0
 
@@ -56,19 +55,24 @@ def kiem(ten, dk, chi_tiet=""):
 
 
 # ---------------- tiện ích dựng sơ đồ ----------------
+def bat_dau(x=80.0, y=300.0):
+    """Khối BẮT ĐẦU — điểm neo đánh số. Không nhận đường vào."""
+    return {"kind": core.KIND_START, "id": core.new_step_id(), "name": "Bắt đầu",
+            "pos": [x, y]}
+
+
 def cong(nguong, x, y, ten=None):
-    """Khối HỎI — chính là cổng của một nhánh (`core.is_branch_gate` nhận ra nó)."""
-    s = M.khoi_hoi([{"trai": {"ten": "rsi"}, "phep": "<", "phai": {"value": nguong}}],
-                   name=ten or f"Hỏi {nguong}")
-    s["pos"] = [x, y]
-    return s
+    """Một CỔNG rẽ nhánh — `core.is_branch_gate` nhận ra nó qua `type`."""
+    return {"kind": core.KIND_ACTION, "id": core.new_step_id(), "type": core.CHECK_COND,
+            "name": ten or f"Hỏi {nguong}", "pos": [x, y],
+            "conditions": [{"trai": {"ten": "rsi"}, "phep": "<",
+                            "phai": {"value": nguong}}]}
 
 
 def viec(ten, x, y):
-    """Một khối LÀM — mắt xích thường trên chuỗi, không phải cổng."""
-    s = M.khoi_lam("bao", name=ten)
-    s["pos"] = [x, y]
-    return s
+    """Một mắt xích thường trên chuỗi — KHÔNG phải cổng."""
+    return {"kind": core.KIND_ACTION, "id": core.new_step_id(), "type": "lam",
+            "name": ten, "pos": [x, y]}
 
 
 def noi_day(b, cap):
@@ -139,7 +143,7 @@ b2["B"]["pos"] = [300, 400]
 
 # ================= 3. Khối Bắt đầu =================
 print("\n▸ Khối Bắt đầu")
-bd = M.khoi_bat_dau(T.TIN_HIEU)
+bd = bat_dau()
 bd["pos"] = [0, 200]
 b3 = {"BD": bd, "A": cong(7, 300, 0), "B": cong(8, 300, 400),
       "A1": viec("a", 600, 0), "B1": viec("b", 600, 400)}
@@ -154,7 +158,7 @@ kq6 = core.flow_order(list(b4.values()), noi_day(b4, [("1", "2"), ("2", "3"), ("
 kiem("KHÔNG có khối Bắt đầu + vòng khép kín → mất hết nhãn (đúng bệnh của bản cũ)",
      kq6["entry"] is None and not kq6["order"])
 
-b5 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0),
+b5 = {"BD": bat_dau(), "1": viec("1", 300, 0),
       "2": viec("2", 600, 0), "3": viec("3", 900, 0)}
 b5["BD"]["pos"] = [0, 0]
 b5["1"]["ghim"] = True
@@ -163,7 +167,7 @@ kiem("CÓ khối Bắt đầu → vòng khép kín vẫn giữ đủ nhãn",
      n7 == {"BD": "1", "1": "2", "2": "3", "3": "4"}, f"— {n7}")
 
 # khối Bắt đầu không được nhận đường vào
-b6 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0)}
+b6 = {"BD": bat_dau(), "1": viec("1", 300, 0)}
 b6["BD"]["pos"] = [0, 0]
 ds = loi(list(b6.values()), noi_day(b6, [("BD", "1"), ("1", "BD")]), "error")
 kiem("nối ngược vào khối Bắt đầu → báo LỖI",
@@ -172,7 +176,7 @@ kiem("nối ngược vào khối Bắt đầu → báo LỖI",
 
 # ================= 4. GHIM SỐ =================
 print("\n▸ Ghim số ⟲")
-b7 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("một", 300, 0),
+b7 = {"BD": bat_dau(), "1": viec("một", 300, 0),
       "2": viec("hai", 600, 0), "3": viec("ba", 900, 0)}
 b7["BD"]["pos"] = [0, 0]
 CAP7 = [("BD", "1"), ("1", "2"), ("2", "3"), ("3", "1")]
@@ -201,7 +205,7 @@ kiem("ghim rồi → KHÔNG còn cảnh báo vòng lặp nào",
      f"— {[p['message'][:60] for p in w2]}")
 
 # quay lại từ trong một nhánh
-b8 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "M": viec("mua", 300, 200),
+b8 = {"BD": bat_dau(), "M": viec("mua", 300, 200),
       "A": cong(7, 600, 0), "B": cong(8, 600, 400), "A1": viec("a", 900, 0)}
 b8["BD"]["pos"] = [0, 200]
 b8["M"]["ghim"] = True
@@ -234,7 +238,7 @@ kiem("không cảnh báo nào GẮN VỚI KHỐI gọi đây là vòng lặp",
 
 # ================= 6. Bẫy 3 — thông báo dùng nhãn =================
 print("\n▸ Bẫy 3: thông báo lỗi dùng NHÃN, không dùng index")
-b10 = {"BD": M.khoi_bat_dau(T.TIN_HIEU), "1": viec("1", 300, 0),
+b10 = {"BD": bat_dau(), "1": viec("1", 300, 0),
        "A": cong(7, 600, 0), "B": viec("mặc định", 600, 200),
        "C": viec("thừa", 600, 400)}
 b10["BD"]["pos"] = [0, 200]

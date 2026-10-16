@@ -1,60 +1,77 @@
 # Tiếp tục — Cat Studio
 
-> Cập nhật 15/10/2026 · Nhánh `claude/affectionate-thompson-8hqazr` · Chưa tạo pull request,
+> Cập nhật 16/10/2026 · Nhánh `claude/affectionate-thompson-8hqazr` · Chưa tạo pull request,
 > chưa gộp vào `main`. Đang làm trên máy local (Windows).
 
 ## 1. Đang ở đâu
 
-**D-10 xong cả bảy phần, rồi D-11 dọn tiếp.** Chốt mới (16/10/2026): **app chỉ là VỎ của
-QuantConnect** — không mô phỏng gì tại máy nữa. Bộ máy chạy, chuỗi nến, chỉ báo, lớp vỏ
-LEAN, bộ đóng gói và ba đồ giả đã bị xoá (≈5.800 dòng).
+**Hai lần dọn liền nhau, kho đang ở trạng thái SẠCH ĐỂ LÀM LẠI.**
+
+* **D-11 (16/10)** — app chỉ là **VỎ** của QuantConnect. Bộ mô phỏng tại máy (bộ máy chạy,
+  chuỗi nến, chỉ báo, lớp vỏ LEAN, bộ đóng gói, ba đồ giả) đã xoá: ≈ 5.800 dòng.
+* **D-12 (16/10)** — xoá **toàn bộ bộ khối cũ**: `tram.py` · `may.py` · `mau_tram.py` ·
+  cả `webui/src/may/` · `ManChoi.tsx` · `webui/src/chung/` và sáu bài kiểm của chúng:
+  ≈ 3.200 dòng nữa. Lý do: bộ khối ấy nghĩ ra TRƯỚC D-11 nên mỗi khối là một phép tính
+  của riêng app — đúng cái D-11 cấm.
 
 **Trạng thái thật:**
 
 | Việc | Được chưa |
 |---|---|
-| Vẽ cỗ máy 5 trạm, soát lỗi, đánh số | ✅ |
-| Lưu / mở cỗ máy, lắp 22 mẫu, 4 cỗ máy dựng sẵn | ✅ |
-| Bảng tham số, Gom, hộp thoại khối theo trạm | ✅ |
-| Luật chơi (màn theo rổ, boss cả rổ, sao, sổ nộp) | ✅ còn nguyên |
-| Nói chuyện với QuantConnect (khoá, project, file, backtest) | ✅ còn nguyên |
+| Mở app, thanh tiêu đề, menu, hộp thoại | ✅ |
+| Đặt / xoá / kiểm **khoá QuantConnect** | ✅ |
+| Xem **app lưu file ở đâu** (hộp Kho) | ✅ |
+| Đánh số phân cấp + soát nối dây (`core.py`) | ✅ còn nguyên, chưa có khối để dùng |
+| Luật chơi (màn, boss, sao, sổ nộp) | ✅ còn nguyên, chưa nối vào đâu |
+| Nói chuyện với QuantConnect (`qc_api.py`) | ✅ còn nguyên |
+| **Vẽ một cỗ máy** | ❌ **chưa** — bộ khối mới chưa thiết kế |
 | **Chạy một cỗ máy** | ❌ **chưa** — đường chạy mới chưa dựng |
 
-Bài kiểm: **7/7 bài qua**, nhưng đều là bài TĨNH (từ điển, chuẩn hoá, soát lỗi, cửa API,
-giao diện). Không còn sàn giả nào để chạy thử.
+Bài kiểm: **3/3 qua** (`test_danh_so` · `test_giao_dien` · `test_o_so`).
+`tsc --noEmit` sạch, `npm run build` sạch.
+
+Mở app lúc này thấy: một câu giữa màn hình nói app đang dựng lại, cộng hai hộp thoại còn
+thật. Cố ý không để lại trình vẽ rỗng — canvas trống kèm thanh công cụ chết trông như app
+hỏng, chứ không như app đang được làm lại.
 
 ## 2. Chạy ở máy local (Windows)
 
 ```bat
 tools\setup.bat        REM một lần sau khi clone
-tools\chay_test.bat    REM phải thấy: ✔ 7/7 bài đều qua
-tools\chay.bat         REM mở app — vẽ được, chưa chạy được
+tools\chay_test.bat    REM phải thấy: ✔ 3/3 bài đều qua
+tools\chay.bat         REM mở app
 ```
 
 Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py` →
-`http://127.0.0.1:8777`, thêm `?qc=1` để xem cửa sổ Màn chơi.
+`http://127.0.0.1:8777`. Chỉ còn MỘT bề mặt, đúng như app thật (xem §3, bài học D-12).
 
-## 3. Việc kế tiếp — dựng đường chạy mới
+## 3. Việc kế tiếp — thiết kế lại khối và cách tương tác
 
-Chủ dự án sẽ chỉ đường lối. Nguyên tắc đã chốt ở D-11:
+Chủ dự án chỉ đường lối. Bắt đầu từ **danh sách những gì QuantConnect thật sự cho**, rồi
+mới nghĩ khối.
 
-> **Cái gì QuantConnect làm được thì để QC làm. App chỉ giữ phần luật chơi.**
+> **Luật bắt buộc của bộ khối mới:** mỗi khối phải ứng với một món **CÓ THẬT** của
+> QuantConnect — một hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần
+> (Universe Selection · Alpha · Portfolio Construction · Risk Management · Execution).
+> Cách kiểm nhanh: hỏi *"QC làm việc này bằng gì?"* — không trả lời được bằng một dòng
+> code QC thì khối đó đang là phép tính của riêng ta, và nó không được có.
 
-Nghĩa là: sơ đồ 5 trạm phải dịch thành một thuật toán QC dùng CHÍNH bộ khung của họ —
-bộ chọn mã, chỉ báo, tín hiệu, mô hình chia vốn, mô hình rủi ro, mô hình khớp lệnh. Và từ
-nay mỗi "item" trong game phải là **một món có thật của QC**, không phải một thứ ta tự
-nghĩ rồi tự tính.
+Ba bài học phải mang theo:
 
-Hai việc đi kèm, sẽ quyết khi thiết kế:
-
-* **Từ điển 5 trạm (`tram.py`) phải soát lại**: có đại lượng chỉ tồn tại vì bộ máy cũ tự
-  tính (vd. «phút từ lúc đổi mục tiêu»). Món nào QC không có thì phải bỏ hoặc đổi.
-* **Chữ «vì sao»**: phải do chính đoạn code gửi lên QC tự ghi ra.
+1. **Đừng để app tính hộ.** Nến, chỉ báo, số lượng, ký quỹ, phí, trượt giá, lãi lỗ, thống
+   kê — của QC hết. Hai nơi cùng tính một thứ thì ra hai số.
+2. **Cầu nối giả không được nói dối.** `tools/xem_thu.py` từng phục vụ hai bề mặt và tự
+   định tuyến `qc_*` sang `ApiQC`, che mất lỗi "cửa sổ chính không có `qc_khoa`". Bản
+   xem thử phải giống app thật từng chi tiết, nếu không thì kiểm bằng mắt là vô nghĩa.
+3. **Giao diện không tự ghép chữ trên khối.** Python dựng chữ, giao diện vẽ lại — thứ
+   hiện trên màn hình luôn đúng bằng thứ lõi hiểu.
 
 ## 4. Những việc còn để lại (không gấp)
 
-* `webui/src/app.css` vẫn giữ luật của mấy hộp thoại đã xoá (core.md §24).
-* Chương 2 của trò chơi: mới có 3 màn và 4 cỗ máy dựng sẵn.
+* Hai phép kiểm CSS đang **ngủ** (`.menu-th-noi`, `.dong-dk`): chúng tự thức khi trình vẽ
+  mới dựng lại một menu nổi hoặc một hàng dạng lưới. Xem `tests/test_giao_dien.py`.
+* `game.py` còn nguyên luật chơi nhưng chưa nối vào đâu — màn, boss, sao, sổ nộp.
+* File cỗ máy cũ trong `du_lieu\co_may\` app không đọc được nữa. Cố ý không tự xoá.
 
 ## 5. Luật phải giữ
 
@@ -68,40 +85,38 @@ Hai việc đi kèm, sẽ quyết khi thiết kế:
    không dán code.
 4. Dữ liệu không được nhìn trước (point-in-time). Lõi không import giao diện hay mạng.
 5. Quyết định lớn ghi vào `DECISIONS.md`. Mỗi phần xong ghi một mục trong
-   `tai_lieu/core.md` (§18–§24 là của D-10; phần sau tiếp từ §25).
+   `tai_lieu/core.md` (§18–§24 của D-10 · §25 của D-11 · §26 của D-12; phần sau tiếp từ §27).
 6. Không tự đổi bộ công cụ đã chọn: Python + pywebview, React + @xyflow/react + Vite.
 7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa
    được bảo.
 8. Giao diện không tự ghép chữ trên khối, không tự tính số thứ tự, không tự soát luật
-   nào: gửi cỗ máy sang Python rồi vẽ lại cái nhận về.
+   nào: gửi sang Python rồi vẽ lại cái nhận về.
 
 ## 6. Bản đồ
 
-**Python — `cat_studio/`**: `tram.py` (từ điển 5 trạm) · `may.py` (định dạng, chuẩn hoá,
-soát lỗi, vân tay) · `chuoi_nen.py` · `bo_may.py` · `mau_tram.py` (22 mẫu + 4 cỗ máy dựng
-sẵn) · `nhat_ky_may.py` · `goi_qc.py` · `qc_api.py` · `ket_qua_may.py` · `game.py` (màn,
-boss, sao, sổ) · `qc_chay.py` · `core.py` (đồ thị, đánh số) · `luu_tru.py` · `api.py` (bề
-mặt cho giao diện: `may_*`, `mo_qc`, `kho_danh_muc`, `ApiQC` cho cửa sổ Màn chơi).
+**Python — `cat_studio/`**: `core.py` (đồ thị, đánh số, soát nối dây) · `luu_tru.py` (chỗ
+duy nhất biết file nằm ở đâu) · `game.py` (màn, boss, sao, sổ) · `qc_api.py` (khoá,
+project, file, biên dịch, backtest, Object Store) · `qc_chay.py` (soát đầu vào một lượt) ·
+`khung_cua_so.py` (vá khung Win32) · `api.py` (**một** bề mặt duy nhất cho giao diện).
 
-**QuantConnect — `lean/vo_may.py`**: lớp vỏ chạy trên QC, không chứa luật nào.
+**Giao diện — `webui/src/`**: `TrangTrong.tsx` (trang tạm) · `components/` (TitleBar,
+Modal, ContextMenu, Icon, KhoDialog) · `qc/HopKhoa.tsx` (hộp Khoá QC) · `so.ts` (đọc số
+khi gõ từng phím) · `api.ts` · `types.ts` · `theme.css` + `app.css` (336 dòng, chỉ còn
+phần khung dùng chung).
 
-**Giao diện — `webui/src/`**: `may/` (trình vẽ 5 trạm) · `qc/ManChoi.tsx` (cửa sổ Màn
-chơi) · `components/` (TitleBar, Modal, ContextMenu, Icon, KhoDialog) · `chung/` (bảng
-dưới, Vì sao, Thống kê) · `api.ts` (`py`, `pyQC`, `pyMay`) · `types.ts`.
+**Bài kiểm — `tests/`** (3): `test_danh_so` (đánh số phân cấp, ghim số, ba bẫy của
+Auto_Clicker) · `test_giao_dien` (biến CSS ma) · `test_o_so` (ô số gõ từng phím, qua
+`webui/kiem/o_so.mjs`).
 
-**Bài kiểm — `tests/`** (12): `test_danh_so` · `test_may` · `test_chuoi_nen` ·
-`test_bo_may` · `test_mau_tram` · `test_vo_may` · `test_qc_may` · `test_may_api` ·
-`test_trinh_ve` · `test_giao_dien` · `test_o_so` · `test_qc_api`. Đồ giả: `san_gia.py`
-(sàn giá), `lean_gia.py` (LEAN), `qc_gia.py` (máy chủ QC).
-
-**Tài liệu**: `README.md` (app là gì, chơi thế nào) · `DECISIONS.md` (quyết định lớn) ·
-`tai_lieu/core.md` §18–§24 (nhật ký kỹ thuật của D-10).
+**Tài liệu**: `README.md` (app là gì, đang ở đâu) · `DECISIONS.md` (quyết định lớn, D-01→D-12) ·
+`tai_lieu/core.md` §25–§26 (hai lần dọn gần nhất).
 
 ## 7. Câu lệnh dán cho Claude Code
 
 ```text
-Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-10 và tai_lieu/core.md §19–§24.
-Tôi không đọc code. App đã xong D-10 (cỗ máy 5 trạm trên QuantConnect).
+Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-11 và D-12, và tai_lieu/core.md §25–§26.
+Tôi không đọc code. App vừa bị dọn sạch: không còn khối nào, không chạy được gì.
+Luật: app chỉ là VỎ của QuantConnect — mỗi khối phải là một món có thật của QC.
 Việc tôi muốn làm tiếp: <viết ở đây>.
 Nói định làm gì + tiêu chí xong bằng tiếng Việt đời thường, rồi code + bài kiểm
 + chạy tools\chay_test.bat + commit tiếng Việt.

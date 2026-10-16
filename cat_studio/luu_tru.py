@@ -19,9 +19,10 @@ import sys
 
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
-THU_MUC_CHIEN_LUOC = "chien_luoc"
-#: Cỗ máy 5 trạm (D-10) ở THƯ MỤC RIÊNG, không trộn với chiến lược cũ: hai dạng tài
-#: liệu khác nhau, mở lẫn nhau là ra một mớ khối không soát nổi.
+#: Cỗ máy người chơi lưu. Thư mục này KHÔNG biết gì về hình dạng bên trong file — nó
+#: chỉ ghi/đọc JSON — nên nó sống sót qua D-12 (xoá bộ khối cũ) mà không phải sửa gì.
+#: ⚠ File cũ còn nằm đây vẫn mở được bằng tay, nhưng app KHÔNG đọc được nữa: chúng viết
+#: bằng bộ khối đã xoá. Cố ý không tự xoá — đó là công người chơi bỏ ra.
 THU_MUC_CO_MAY = "co_may"
 THU_MUC_NHAT_KY = "nhat_ky"
 
@@ -71,10 +72,6 @@ def _thu_muc(ten):
     d = os.path.join(goc(), ten)
     os.makedirs(d, exist_ok=True)
     return d
-
-
-def thu_muc_chien_luoc():
-    return _thu_muc(THU_MUC_CHIEN_LUOC)
 
 
 def thu_muc_co_may():
@@ -132,10 +129,8 @@ def ghi_json_nguyen_tu(duong, du_lieu):
 
 
 # ---------------------------------------------------------------------------
-# Chiến lược
+# Tên file an toàn
 # ---------------------------------------------------------------------------
-
-
 def _ten_an_toan(ten):
     """Tên file an toàn. Chặn cả `..` và dấu phân cách để một cái tên gõ tay không
     ghi được ra ngoài thư mục chiến lược."""
@@ -154,44 +149,12 @@ def _ten_an_toan(ten):
     return s or "khong_ten"
 
 
-def duong_dan_chien_luoc(ten):
-    return os.path.join(thu_muc_chien_luoc(), _ten_an_toan(ten) + ".json")
-
-
-def liet_ke_chien_luoc():
-    try:
-        return sorted(f[:-5] for f in os.listdir(thu_muc_chien_luoc())
-                      if f.endswith(".json"))
-    except Exception:
-        return []
-
-
-def ghi_chien_luoc(ten, doc):
-    """Lưu một chiến lược. Ghi NGUYÊN TỬ: ngắt giữa chừng mà ghi thẳng lên file đích thì
-    còn lại một JSON cụt, tức mất hẳn chiến lược cũ chứ không phải mất bản mới."""
-    p = duong_dan_chien_luoc(ten)
-    ghi_json_nguyen_tu(p, doc)
-    return p
-
-
-def doc_chien_luoc(ten):
-    with open(duong_dan_chien_luoc(ten), encoding="utf-8") as f:
-        return json.load(f)
-
-
-def xoa_chien_luoc(ten):
-    p = duong_dan_chien_luoc(ten)
-    if os.path.exists(p):
-        os.remove(p)
-        return True
-    return False
-
-
 # ---------------------------------------------------------------------------
-# Cỗ máy 5 trạm  (D-10)
+# Cỗ máy
 # ---------------------------------------------------------------------------
-# Y hệt bốn hàm của chiến lược, chỉ khác thư mục: cùng `_ten_an_toan` (bẫy tên thiết bị
-# Windows không phân biệt dạng tài liệu) và cùng lối ghi nguyên tử.
+# Ghi/đọc JSON thuần: `_ten_an_toan` (bẫy tên thiết bị Windows — CON, PRN, NUL…) và lối
+# ghi nguyên tử. Không hàm nào ở đây mở file ra xem bên trong, nên bộ khối mới dùng lại
+# được nguyên xi.
 
 
 def duong_dan_co_may(ten):
@@ -282,10 +245,7 @@ def tom_tat():
     return {
         "goc": goc(),
         "muc": [
-            {"ten": "Chiến lược", "duong_dan": thu_muc_chien_luoc(),
-             "so_luong": len(liet_ke_chien_luoc()),
-             "danh_sach": liet_ke_chien_luoc()},
-            {"ten": "Cỗ máy 5 trạm", "duong_dan": thu_muc_co_may(),
+            {"ten": "Cỗ máy", "duong_dan": thu_muc_co_may(),
              "so_luong": len(liet_ke_co_may()),
              "danh_sach": liet_ke_co_may()},
             {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),

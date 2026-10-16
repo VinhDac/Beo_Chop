@@ -31,20 +31,12 @@ from datetime import datetime, timezone
 
 from . import core
 from . import luu_tru
-from . import may as M
 
 FILE_SO = "game.json"
 
 #: Màn của chế độ Chiến dịch. `an` KHÔNG BAO GIỜ ra tới giao diện (`man_cong_khai`).
-#:
-#: `dang` nói màn này dành cho tài liệu nào: `"may5"` — cỗ máy 5 trạm, chạy trên cả một RỔ
-#: mã; `"so_do"` — sơ đồ Entry/Manage cũ, một symbol (phần 7 của D-10 xoá hẳn phần đó).
-#: Hai dạng KHÔNG dùng chung màn được: boss của rổ là "mua giữ chia đều cả rổ", còn boss
-#: của một symbol là "mua giữ đúng symbol ấy" — cùng một màn mà hai thước đo thì bảng
-#: điểm nói dối.
 MAN = (
     {
-        "dang": "may5",
         "id": "ro-ngoai-hoi-2024",
         "ten": "Bộ bốn ngoại hối · 2024",
         "ban_do": "Ngoại hối",
@@ -61,7 +53,6 @@ MAN = (
                     "cho spread. Màn này thưởng cỗ máy biết ĐỨNG NGOÀI."),
     },
     {
-        "dang": "may5",
         "id": "kim-loai-2024",
         "ten": "Vàng và bạc · 2024",
         "ban_do": "Kim loại",
@@ -78,7 +69,6 @@ MAN = (
                     "④ — biết lúc nào ôm và lúc nào cắt."),
     },
     {
-        "dang": "may5",
         "id": "co-phieu-my-2024",
         "ten": "Bốn ông lớn · 2024",
         "ban_do": "Cổ phiếu Mỹ",
@@ -93,30 +83,14 @@ MAN = (
         "loi_dan": ("Cả bốn đều tăng trong năm, nên hơn «Mua rồi giữ cả rổ» nghĩa là phải "
                     "chọn ĐÚNG mã và dồn vốn vào nó: màn của trạm ① và ③."),
     },
-    {
-        # Màn của sơ đồ Entry/Manage cũ — phần 7 của D-10 xoá cùng bộ chạy cũ.
-        "dang": "so_do",
-        "id": "vang-2024",
-        "ten": "Vàng · 2024",
-        "ban_do": "Vàng",
-        "symbol": "XAUUSD",
-        "von": 10_000.0,
-        "thay": ("2024-01-01", "2024-12-31"),
-        "nhanh": ("2024-10-01", "2024-12-31"),
-        "an": ("2025-01-01", "2025-12-31"),
-        "an_mo_ta": "12 tháng ngay sau màn này",
-        "boss": "mua_giu",
-        "loi_dan": ("Năm vàng tăng rất mạnh, nên \"Mua rồi giữ\" là đối thủ khó. Muốn hơn "
-                    "nó, cỗ máy phải biết lúc nào nên đứng ngoài và lúc nào ôm lệnh."),
-    },
 )
 
 BOSS = {
     "mua_giu": {"ten": "Mua rồi giữ",
                 "mo_ta": "Mua ở nến đầu tiên, giữ tới nến cuối cùng. Không làm gì khác."},
-    # Boss của một RỔ. Bộ máy tự tính (`bo_may.thong_ke()["boss_pt"]`): lãi % trung bình
-    # của mọi mã trong rổ kể từ lúc HẾT KHỞI ĐỘNG — đúng bằng lãi của một danh mục chia
-    # đều vốn, mua một lần rồi để yên.
+    # Boss của một RỔ: lãi % trung bình của mọi mã trong rổ kể từ lúc hết khởi động —
+    # đúng bằng lãi của một danh mục chia đều vốn, mua một lần rồi để yên. Từ D-11 con
+    # số này do QuantConnect tính, app chỉ so.
     "mua_giu_deu": {"ten": "Mua rồi giữ cả rổ",
                     "mo_ta": "Chia đều vốn cho mọi mã trong rổ ngay khi đủ dữ liệu, rồi giữ "
                              "tới hết. Không chọn mã, không cắt lỗ, không làm gì khác."},
@@ -151,15 +125,13 @@ def man(man_id):
 
 
 def ro_cua(m):
-    """Rổ mã của một màn. Màn của sơ đồ cũ chỉ có một symbol — coi như rổ một mã, để mọi
-    chỗ đọc màn chỉ phải biết MỘT khái niệm."""
-    return list(m.get("ro") or ([m["symbol"]] if m.get("symbol") else []))
+    """Rổ mã của một màn."""
+    return list(m.get("ro") or [])
 
 
 def man_cong_khai(m):
     """Thông tin màn cho giao diện — KHÔNG có ngày của màn ẩn (D-06: app giữ màn ẩn)."""
     return {"id": m["id"], "ten": m["ten"], "ban_do": m["ban_do"],
-            "dang": m.get("dang", "so_do"), "symbol": m.get("symbol"),
             "ro": ro_cua(m), "loai": m.get("loai"),
             "von": m["von"], "thay": list(m["thay"]), "nhanh": list(m["nhanh"]),
             "an_mo_ta": m["an_mo_ta"], "boss": {"id": m["boss"], **BOSS[m["boss"]]},
@@ -181,17 +153,6 @@ def khoang(man_id, loai):
 # ---------------------------------------------------------------------------
 # Chấm
 # ---------------------------------------------------------------------------
-def do_gon(doc):
-    """Số khối (không tính khối Bắt đầu) + số tham số. Ít hơn là gọn hơn.
-
-    Đếm trên cả NĂM trạm — độ gọn là thứ người chơi so với nhau, nói sai là hỏng bảng."""
-    so_khoi = sum(1 for g in (doc.get("tram") or {}).values()
-                  for st in (g or {}).get("steps") or []
-                  if not core.is_start_step(st))
-    so_tham_so = len(doc.get("tham_so") or [])
-    return {"so_khoi": so_khoi, "so_tham_so": so_tham_so, "tong": so_khoi + so_tham_so}
-
-
 def cham(meta):
     """Một lần chạy → `{lai_pt, mua_giu_pt, thang_boss, so_dong, sach}`.
 
@@ -305,23 +266,16 @@ def tien_do_man(man_id):
             "tot_nhat": tot, "lan_cuoi": nop[-1] if nop else None}
 
 
-def danh_sach_man(van_tay_may=None, dang=None):
+def danh_sach_man(van_tay_may=None):
     """Màn cho giao diện. Có `van_tay_may` (cỗ máy đang mở) thì kèm `ve_nop` — phần chấm
     ▶ đầy đủ của ĐÚNG cỗ máy đó, hoặc None: giao diện bật/tắt nút Nộp theo nó.
 
-    `dang` lọc theo dạng tài liệu đang mở. Bày màn của dạng kia ra là mời người chơi bấm
-    vào một thứ bộ chạy sẽ từ chối — mà lúc đó họ tưởng mình vừa làm sai cái gì."""
+    """
     return [{**man_cong_khai(m), "tien_do": tien_do_man(m["id"]),
              "ve_nop": ve_nop(m["id"], van_tay_may) if van_tay_may else None}
-            for m in MAN if dang is None or m.get("dang", "so_do") == dang]
+            for m in MAN]
 
 
 def lich_su(n=GIU_LICH_SU):
     with _khoa:
         return copy.deepcopy(_doc_so()["lan_chay"][:n])
-
-
-def van_tay(doc):
-    """Vân tay cỗ máy — cùng hàm với nhật ký và với vé nộp, để "đúng cỗ máy đó" là MỘT
-    định nghĩa (xem `may.van_tay`: vân tay LOGIC, không có id khối)."""
-    return M.van_tay(doc)

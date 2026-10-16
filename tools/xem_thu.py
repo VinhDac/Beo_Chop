@@ -1,4 +1,4 @@
-"""XEM THỬ GIAO DIỆN TRONG TRÌNH DUYỆT — cầu nối giả thay pywebview.  (D-10, phần 5)
+"""XEM THỬ GIAO DIỆN TRONG TRÌNH DUYỆT — cầu nối giả thay pywebview.
 
     .venv\\Scripts\\python.exe tools\\xem_thu.py          ->  http://127.0.0.1:8777
     .venv\\Scripts\\python.exe tools\\xem_thu.py 9000     ->  cổng khác
@@ -12,11 +12,13 @@ Vì sao cần: không có nó thì cách duy nhất để xem một màn vừa s
 trong cửa sổ pywebview thì không chụp được ảnh, không đọc được console, không có cách nào
 cho máy bấm thử. Ba thứ ấy là cách duy nhất canh được giao diện mà không mở mắt ra nhìn.
 
-Chỉ nghe trên 127.0.0.1. Phục vụ CẢ HAI bề mặt: `Api` (cửa sổ vẽ) và `ApiQC` (cửa sổ Màn
-chơi, các cửa `qc_*`) — mở `http://127.0.0.1:8777/?qc=1` là xem được Màn chơi.
+Chỉ nghe trên 127.0.0.1.
 
-MỘT chỗ khác bản thật, cố ý: `mo_qc` trong trình duyệt không mở nổi một cửa sổ pywebview
-nào, nên ở đây nó chỉ NẠP cỗ máy cho trang `?qc=1` (vẫn soát lỗi y như thật rồi mới nạp).
+⚠ BÀI HỌC D-12 — ĐỪNG DỰNG LẠI HAI BỀ MẶT. Bản trước phục vụ `Api` và `ApiQC` cùng lúc,
+tự định tuyến mọi tên `qc_*` sang `ApiQC`. Thành ra hộp Khoá bấm NGON trong trình duyệt
+mà trong app thật thì báo «api.py không có hàm qc_khoa» — vì cửa sổ chính chỉ có `Api`.
+Cầu nối giả nói dối một chỗ là cả bài kiểm bằng mắt mất giá trị. Nay `api.py` chỉ còn
+MỘT bề mặt, và file này cũng vậy.
 """
 import io
 import json
@@ -62,29 +64,11 @@ window.pywebview = { api: {} };
 """
 
 
-class _CuaSoGia:
-    """Chỗ của cửa sổ Màn chơi trong bản xem thử — chỉ cần nuốt `set_title`.
-
-    Nhờ nó, `Api.mo_qc` đi vào nhánh "cửa sổ còn sống": soát lỗi, nạp cỗ máy, bắn
-    `so_do_moi` — đúng mọi bước trừ bước tạo cửa sổ."""
-
-    def set_title(self, ten):
-        pass
-
-
 API = api_mod.Api()
-API_QC = api_mod.ApiQC(API)
-API._qc = _CuaSoGia()
-API._api_qc = API_QC
 
 
 class Tay(BaseHTTPRequestHandler):
     api = API
-    api_qc = API_QC
-
-    def _be_mat(self, ten):
-        """Cửa `qc_*` thuộc cửa sổ Màn chơi; còn lại thuộc cửa sổ vẽ."""
-        return self.api_qc if ten.startswith("qc_") else self.api
 
     def _tra(self, ma, kieu, body):
         self.send_response(ma)
@@ -101,8 +85,8 @@ class Tay(BaseHTTPRequestHandler):
         if duong == "/_gia.js":
             return self._tra(200, KIEU[".js"], SHIM.encode("utf-8"))
         if duong == "/_ten":
-            ten = sorted({n for be in (self.api, self.api_qc) for n in dir(be)
-                          if not n.startswith("_") and callable(getattr(be, n))})
+            ten = sorted(n for n in dir(self.api)
+                         if not n.startswith("_") and callable(getattr(self.api, n)))
             return self._tra(200, KIEU[".json"],
                              json.dumps(ten).encode("utf-8"))
         if duong in ("/", "/index.html"):
@@ -125,7 +109,7 @@ class Tay(BaseHTTPRequestHandler):
         ten = self.path[len("/_goi/"):]
         n = int(self.headers.get("Content-Length") or 0)
         args = json.loads(self.rfile.read(n) or b"[]")
-        ham = getattr(self._be_mat(ten), ten, None)
+        ham = getattr(self.api, ten, None)
         if ten.startswith("_") or not callable(ham):
             ra = {"ok": False, "error": f"api.py không có hàm «{ten}»"}
         else:

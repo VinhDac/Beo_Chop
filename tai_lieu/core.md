@@ -2994,3 +2994,63 @@ QuantConnect.
 **Việc kế tiếp (chưa thiết kế):** dịch sơ đồ 5 trạm thành một thuật toán QC dùng CHÍNH bộ
 khung của họ — universe selection, indicator, insight, portfolio construction, risk
 management, execution. Từ nay mỗi "item" trong game phải là một món có thật của QC.
+
+## 26. ⛔ XOÁ TOÀN BỘ BỘ KHỐI CŨ (D-12)
+
+> Xoá: `cat_studio/tram.py` · `may.py` · `mau_tram.py` · `tests/test_may.py` ·
+> `test_mau_tram.py` · `test_may_api.py` · `test_trinh_ve.py` · cả thư mục
+> `webui/src/may/` (14 file) · `webui/src/qc/ManChoi.tsx` · `webui/src/chung/` ·
+> `webui/kiem/trinh_ve.mjs` · `webui/kiem/man_choi.mjs`. Khoảng 9.000 dòng.
+
+**Vì sao, một câu:** D-11 chốt app không được tính gì về thị trường nữa, mà bộ khối cũ
+chính là một bộ máy tính toán viết bằng hình hộp. Giữ nó thì D-11 không có thật.
+
+**Vì sao, kỹ hơn:** bộ khối ấy trả lời câu hỏi "người chơi muốn vẽ gì" trước, rồi app
+nhận phần tính toán về mình — 14 khối Làm, một bảng đại lượng, một bảng tham số, một ô
+Gom mỗi trạm, tất cả đều do app định nghĩa và do app thực hiện. Muốn nó chạy được trên
+QuantConnect thì phải có một bộ dịch biết mọi ô của mọi khối, và bộ dịch đó chính là bộ
+máy thứ hai mà D-11 vừa xoá.
+
+**Luật của bộ khối mới — ghi ở đây để khỏi trôi mất:** mỗi khối phải chỉ ra được MỘT
+món có thật của QuantConnect đứng sau nó (một hàm API, một loại lệnh, một chỉ báo, một
+bước trong khung 5 phần). Khối nào không chỉ ra được thì không được có. Cách kiểm nhanh:
+hỏi "QC làm việc này bằng gì?" — không trả lời được bằng một dòng code QC thì khối đó
+đang là phép tính của riêng ta.
+
+**Còn lại gì trong gói:**
+- `core` — đồ thị THUẦN: đánh số phân cấp (`1 · 1A · 1A.1`), thứ tự ưu tiên nhánh theo
+  vị trí trên canvas, soát nối dây (vòng hở, nhánh chụm không đều, nhánh mặc định xếp
+  sai, hai cổng trùng điều kiện). Nó chưa bao giờ biết "khối" là gì — chỉ biết `kind`,
+  `type` (để nhận ra cổng rẽ nhánh) và `pos`. Nên nó sống sót nguyên vẹn, và bộ khối
+  mới dùng lại được ngay.
+- `luu_tru` (ghi/đọc JSON, không mở file ra xem) · `game` (màn, boss, sao, sổ nộp) ·
+  `qc_api` (khoá, project, file, biên dịch, backtest, Object Store) · `qc_chay` (soát
+  đầu vào) · `khung_cua_so` · khung giao diện.
+- `webui/src/so.ts` + `webui/kiem/o_so.mjs` — bài học ô số: ép `Number()` ngay từng phím
+  thì `"1."` thành `1`, React ghi đè, dấu chấm biến mất, `1.5` thành `15`. Bộ khối mới
+  chắc chắn lại có ô số, nên bài kiểm này ở lại.
+
+**Một lỗi thật mà việc dọn moi ra:** `HopKhoa` (hộp Khoá QC) gọi `qc_khoa`, nhưng hàm đó
+nằm ở lớp `ApiQC` — bề mặt của cửa sổ Màn chơi, không phải cửa sổ chính. Trong app thật,
+bấm vào là «api.py không có hàm qc_khoa». Không ai thấy, vì bản xem thử
+(`tools/xem_thu.py`) phục vụ CẢ HAI bề mặt và tự định tuyến mọi tên `qc_*` sang `ApiQC`.
+**Cầu nối giả nói dối một chỗ là cả cách kiểm bằng mắt mất giá trị.** Đã sửa tận gốc:
+`api.py` còn đúng một lớp `Api`, `xem_thu.py` cũng chỉ phục vụ một bề mặt.
+
+**Hai bài kiểm CSS chuyển sang chế độ NGỦ, không xoá:** `.menu-th-noi` (menu ⚙ nền đặc,
+lật khi ở vế phải) và `.dong-dk` (hàng điều kiện phải là lưới, ô không tự đặt width) canh
+ba cái bẫy đã hỏng thật, nhưng trên những thành phần vừa xoá. Mỗi phép kiểm giờ chỉ chạy
+NẾU luật CSS tương ứng có mặt — trình vẽ mới dựng lại một menu nổi là nó tự thức dậy.
+Xoá đi thì bẫy quay lại mà không ai canh.
+
+**Giao diện hiện tại:** `webui/src/TrangTrong.tsx` — thanh tiêu đề, một câu giữa màn hình
+nói app đang dựng lại, thanh trạng thái, và hai hộp thoại còn thật (Khoá QC, Kho). Cố ý
+không để lại một trình vẽ rỗng: một canvas trống kèm thanh công cụ không bấm được thì
+trông như app hỏng, chứ không như app đang được làm lại.
+
+**Trạng thái:** 3 bài kiểm (`test_danh_so` · `test_giao_dien` · `test_o_so`) đều xanh,
+`tsc --noEmit` sạch, `npm run build` sạch (CSS 57 KB → 7,7 KB). App mở lên được, đặt được
+khoá, chưa vẽ và chưa chạy được gì.
+
+**Việc kế tiếp:** thiết kế bộ khối mới + cách tương tác, bắt đầu từ danh sách những gì
+QuantConnect thật sự cho.

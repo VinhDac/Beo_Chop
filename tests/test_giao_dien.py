@@ -66,11 +66,12 @@ for ten in ("--panel", "--line"):
     kiem(f"`{ten}` (từng hỏng lặng) không còn được dùng",
          ten not in dung_bien)
 
-print("\n▸ Menu ⚙ phải có nền ĐẶC")
+print("\n▸ Menu ⚙ phải có nền ĐẶC  (ngủ từ D-12 — chưa có menu nổi nào)")
 # Menu nổi trên hộp thoại mà nền trong suốt thì vô dụng — canh thẳng thuộc tính đó.
 kh = re.search(r"\.menu-th-noi\s*\{(.*?)\}", app, flags=re.S)
-kiem("`.menu-th-noi` tồn tại", kh is not None)
-if kh:
+if kh is None:
+    print("  · chưa có `.menu-th-noi` — bỏ qua")
+else:
     than = kh.group(1)
     m = re.search(r"background:\s*var\((--[a-z0-9-]+)\)", than)
     kiem("nền lấy từ một biến CÓ KHAI",
@@ -84,22 +85,26 @@ if kh:
 # Toán hạng VẾ PHẢI: bánh răng của nó nằm sát mép phải hộp thoại (787→813 trong vùng nội
 # dung 0→850), nên menu 240px mở sang phải là chạy tới 1027 — tràn 177px. Và nó bị CẮT
 # thật chứ không chỉ thò ra, vì `.ht-than` có `overflow: auto` nên là một khung cắt.
-kh2 = re.search(r"\.ve-phai \.menu-th-noi\s*\{([^}]*)\}", bo_chu_thich(app))
-kiem("menu ⚙ của vế PHẢI lật sang trái",
-     kh2 is not None and "right: 0" in kh2.group(1) and "left: auto" in kh2.group(1),
-     "" if kh2 else "— không có luật lật nào")
-kh3 = re.search(r"\.ve-phai \.menu-th-noi::before\s*\{([^}]*)\}", bo_chu_thich(app))
-kiem("mũi tên cũng lật theo, không thì nó trỏ vào chỗ trống",
-     kh3 is not None and "right:" in kh3.group(1))
+if kh is not None:
+    kh2 = re.search(r"\.ve-phai \.menu-th-noi\s*\{([^}]*)\}", bo_chu_thich(app))
+    kiem("menu ⚙ của vế PHẢI lật sang trái",
+         kh2 is not None and "right: 0" in kh2.group(1) and "left: auto" in kh2.group(1),
+         "" if kh2 else "— không có luật lật nào")
+    kh3 = re.search(r"\.ve-phai \.menu-th-noi::before\s*\{([^}]*)\}", bo_chu_thich(app))
+    kiem("mũi tên cũng lật theo, không thì nó trỏ vào chỗ trống",
+         kh3 is not None and "right:" in kh3.group(1))
 
-print("\n▸ Ô lưới không được tự đặt bề rộng RIÊNG")
+print("\n▸ Ô lưới không được tự đặt bề rộng RIÊNG  (ngủ từ D-12 — chưa có hàng lưới nào)")
 # ⚠ Bẫy có thật: `.o.phep { width: 128px }` — rác từ hồi hàng điều kiện dựng bằng flex.
 # Khi hàng chuyển sang LƯỚI, cột phép rộng 88px, nên ô 128px tràn 40px sang cột vế phải
 # và ĐÈ LÊN nó. Không lỗi, không cảnh báo. Mà phép đo canh cột cũng không bắt được, vì
 # nó so MÉP TRÁI — mép trái vẫn thẳng tăm tắp, chỉ phần đuôi thò sang ô bên cạnh.
 luoi = re.search(r"\.dong-dk\s*\{(.*?)\}", bo_chu_thich(app), flags=re.S)
-kiem("`.dong-dk` là một LƯỚI có cột cố định",
-     luoi is not None and "grid-template-columns" in luoi.group(1))
+if luoi is None:
+    print("  · chưa có `.dong-dk` — bỏ qua")
+else:
+    kiem("`.dong-dk` là một LƯỚI có cột cố định",
+         "grid-template-columns" in luoi.group(1))
 for lop in (r"\.o\.phep", r"\.o\.nho\.don-vi"):
     kh = re.search(lop + r"\s*\{([^}]*)\}", bo_chu_thich(app))
     if kh is None:

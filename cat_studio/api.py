@@ -16,16 +16,11 @@ Hai luật của file này:
 import functools
 import inspect
 import json
-import os
 import sys
-import threading
 import time
 import traceback
 
 from . import core
-from . import mau_tram
-from . import may as M
-from . import tram as T
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -33,9 +28,7 @@ else:
     # của Win32 — `khung_cua_so` gọi `ctypes.windll` ngay lúc nạp — nên thay bằng bản
     # rỗng cho `api.py` nạp được. Trên Windows không đổi gì.
     from . import khung_rong as khung_cua_so
-from . import game
 from . import qc_api
-from . import qc_chay
 from . import luu_tru
 
 
@@ -176,358 +169,31 @@ class Api(NenCuaSo):
 
     def __init__(self):
         super().__init__()
-        self._qc = None              # cửa sổ Màn chơi (chạy trên QuantConnect)
-        self._api_qc = None
-        self._doc_qc = None
         self._cai_dat = core.load_settings()
-        self._khoa = threading.Lock()
 
     # ------------------------------------------------------------------ cơ bản
     @_bat_loi
     def ping(self):
         return _ok("pong")
 
-    # ------------------------------------------------ cỗ máy 5 trạm (D-10)
-    #: Trình vẽ 5 trạm. Các cửa `may_*` KHÔNG dùng chung với các cửa sơ đồ cũ
-    #: (`validate`, `describe`, `save_process`…): hai dạng tài liệu khác hẳn nhau, và
-    #: nhập nhằng một cửa cho cả hai là đường ngắn nhất tới chỗ mở chiến lược cũ ra
-    #: thành một cỗ máy trắng mà không ai hay.
-    _LOC_MAY = "Cỗ máy Cat_Studio (*.json)"
-
-    @_bat_loi
-    def may_boot(self):
-        """Từ điển 5 trạm — lấy MỘT lần lúc mở trình vẽ.
-
-        Giao diện không viết cứng danh sách nào: thêm một khối Làm, một đại lượng hay một
-        mẫu ở `tram.py` / `mau_tram.py` là trình vẽ có ngay. Mẫu trả về CHỈ phần nhãn —
-        hàm dựng sơ đồ (`dung`) ở lại Python, việc lắp là của `may_ap_mau`."""
-        return _ok({
-            "dang": M.DANG,
-            "phien_ban": M.PHIEN_BAN,
-            "tram": T.TRAM,
-            "tram_keys": T.TRAM_KEYS,
-            "lich": T.LICH,
-            "khung": T.KHUNG,
-            "khung_phut": T.KHUNG_PHUT,
-            "hoi": T.HOI,
-            "nhan_hoi": T.NHAN_HOI,
-            "phep_so": T.PHEP_SO,
-            "don_vi": T.DON_VI,
-            "tham_so_th": T.THAM_SO_TH,
-            "toan_hang": T.TOAN_HANG,
-            # Đại lượng nào đọc được ở trạm nào — hộp thoại Hỏi chỉ bày ra đúng bộ của
-            # trạm đang mở, chứ không bày hết rồi báo lỗi sau.
-            "toan_hang_cua_tram": {k: [x["key"] for x in T.toan_hang_cua_tram(k)]
-                                   for k in T.TRAM_KEYS},
-            "khoi_lam": T.KHOI_LAM,
-            "khoi_lam_cua_tram": {k: T.khoi_lam_cua_tram(k) for k in T.TRAM_KEYS},
-            "can_co": {k: list(v) for k, v in T.CAN_CO.items()},
-            "gom": T.GOM,
-            "huong_tin_hieu": T.HUONG_TIN_HIEU,
-            "cach_chia": T.CACH_CHIA,
-            "cach_tuong_doi": list(T.CACH_TUONG_DOI),
-            "mau": {k: [{"key": m["key"], "ten": m["ten"], "qc": m["qc"],
-                         "mo_ta": m["mo_ta"]} for m in (mau_tram.MAU.get(k) or [])]
-                    for k in T.TRAM_KEYS},
-            "may_mau": dict(mau_tram.MAY_MAU),
-            # Cỗ máy dựng sẵn của chương 1 — chỉ phần nhãn; dựng là việc của `may_mo_san`.
-            "may_san": [{"key": m["key"], "ten": m["ten"], "mo_ta": m["mo_ta"]}
-                        for m in mau_tram.MAY_SAN],
-        })
-
-    @_bat_loi
-    def may_moi(self, ten=None):
-        """Cỗ máy trắng: năm trạm, mỗi trạm đúng một khối Bắt đầu."""
-        return _ok(M.kem_the(M.may_moi(str(ten).strip() if ten else "Cỗ máy mới")))
-
-    @_bat_loi
-    def may_mo_mau(self, chon=None, ma=None):
-        """Cỗ máy mẫu — đủ năm trạm, sạch lỗi, chạy được ngay."""
-        return _ok(M.kem_the(mau_tram.may_tu_mau(chon=chon, ma=ma)))
-
-    @_bat_loi
-    def may_mo_san(self, key, ma=None):
-        """Một cỗ máy dựng sẵn của chương 1 — bốn ý tưởng khác hẳn nhau, cái nào mở ra
-        cũng SẠCH và chạy được ngay."""
-        return _ok(M.kem_the(mau_tram.may_san(key, ma)))
-
-    @_bat_loi
-    def may_kem_the(self, doc):
-        """Chuẩn hoá + đánh số + chữ trên khối.
-
-        Mọi thay đổi cấu trúc (thêm/xoá khối, nối dây, sửa Gom) gửi CẢ cỗ máy sang đây rồi
-        vẽ lại từ cái trả về: chữ trên khối do Python dựng, giao diện không ghép một mẩu
-        nào — y luật của sơ đồ cũ."""
-        return _ok(M.kem_the(doc))
-
-    @_bat_loi
-    def may_soat(self, doc):
-        """Nguồn của CHẤM ĐỎ trên dải 5 trạm và của bảng Vấn đề — một lời gọi, cả cỗ máy.
-
-        Soát cả năm trạm chứ không riêng trạm đang mở: giấu lỗi của trạm kia thì bấm ▶ mới
-        lòi ra, mà lúc đó không ai hiểu vì sao."""
-        ds = M.soat(doc)
-        d = M.chuan_hoa(doc)
-        tram = {}
-        for k in T.TRAM_KEYS:
-            g = d["tram"][k]
-            kq = core.flow_order(g["steps"], g["edges"])
-            cua = [p for p in ds if p.get("tram") == k]
-            tram[k] = {
-                "order": kq["order"],
-                "unreachable": kq["unreachable"],
-                "quay_lai": [list(c) for c in kq["quay_lai"]],
-                "vong_ho": [list(c) for c in kq["vong_ho"]],
-                "lech_nhanh": kq["lech_nhanh"],
-                "so_loi": sum(1 for p in cua if p["severity"] == "error"),
-                "so_canh_bao": sum(1 for p in cua if p["severity"] == "warning"),
-            }
-        return _ok(ds,
-                   so_loi=sum(1 for p in ds if p["severity"] == "error"),
-                   so_canh_bao=sum(1 for p in ds if p["severity"] == "warning"),
-                   tram=tram, van_tay=M.van_tay(d))
-
-    @_bat_loi
-    def may_khoi_moi(self, tram, kind="action", loai=None, tham_so=None):
-        """Khối mới cho trạm `tram`: Bắt đầu, Hỏi, hay một khối Làm của chính trạm đó.
-
-        Ô của khối Làm nhận MẶC ĐỊNH của từ điển (hạn 24 nến, chu kỳ 20…) chứ không phải
-        0 — người chơi có thứ hợp lý để sửa, không phải bịa từ số không. Khối Hỏi mới mang
-        sẵn một điều kiện «Giá đóng > SMA(20)»: hai vế cùng đơn vị giá và đọc được ở MỌI
-        trạm, nên khối vừa tạo đã sạch lỗi, không phải một khối đỏ chờ gõ."""
-        tram = tram if tram in T.TRAM_KEYS else T.TRAM_KEYS[0]
-        if kind == core.KIND_START:
-            st = M.khoi_bat_dau(tram)
-        elif loai in T.KHOI_LAM:
-            st = M.khoi_lam(loai)
-        else:
-            st = M.khoi_hoi([{"trai": {"ten": "gia_dong"}, "phep": ">",
-                              "phai": {"ten": "sma", "chu_ky": 20}}])
-        return self.may_luu_khoi(tram, st, tham_so)
-
-    @_bat_loi
-    def may_luu_khoi(self, tram, draft, tham_so=None):
-        """Chuẩn hoá + soát MỘT khối. Hộp thoại không tự soát gì — nó gửi bản nháp thô
-        sang đây, để luật hợp lệ chỉ nằm ở đúng một chỗ (y như `save_action` của sơ đồ cũ).
-        """
-        tram = tram if tram in T.TRAM_KEYS else T.TRAM_KEYS[0]
-        st, loi = M.soat_khoi(draft, tram, tham_so)
-        if st is None:
-            return _loi("Khối không đọc được.")
-        ts = M.bang_tham_so({"tham_so": tham_so or []})
-        return _ok({"step": st, "card": M.the_khoi(st, tram, ts)}, loi=loi)
-
-    @_bat_loi
-    def may_ap_mau(self, doc, tram, mau_key, ma=None):
-        """Lắp một mẫu dựng sẵn vào MỘT trạm. Tham số của mẫu được thêm vào bảng, tên nào
-        đã có thì GIỮ giá trị người chơi đã chỉnh — lắp mẫu không được lặng lẽ đặt lại núm
-        vặn đã vặn."""
-        goc = doc if M.la_may(doc) else M.may_moi()
-        return _ok(M.kem_the(mau_tram.ap_mau(goc, tram, mau_key, ma)))
-
-    # -- kho cỗ máy trên đĩa --
-    @_bat_loi
-    def may_ds(self):
-        return _ok(luu_tru.liet_ke_co_may())
-
-    @_bat_loi
-    def may_luu(self, doc):
-        d = M.chuan_hoa(doc)
-        p = luu_tru.ghi_co_may(d["name"], d)
-        return _ok({"path": p, "name": d["name"], "van_tay": M.van_tay(d)})
-
-    @_bat_loi
-    def may_mo(self, ten):
-        return self._mo_may(luu_tru.doc_co_may(ten), ten)
-
-    @_bat_loi
-    def may_xoa(self, ten):
-        return _ok(luu_tru.xoa_co_may(ten))
-
-    def _mo_may(self, d, nguon):
-        """Một chỗ duy nhất mở cỗ máy từ đĩa — KHÔNG bọc `_bat_loi` (không phải cửa JS).
-
-        Chặn tài liệu không phải cỗ máy NGAY: `may.chuan_hoa` của một chiến lược cũ trả về
-        một cỗ máy TRẮNG hợp lệ, nên mở lầm file thì không có lỗi nào, chỉ là năm trạm
-        trống trơn — rồi lưu lại là mất hẳn chiến lược đó."""
-        if not M.la_may(d):
-            return _loi(f"«{nguon}» không phải cỗ máy 5 trạm — mở ở Chiến lược chứ không "
-                        f"phải ở đây.")
-        return _ok(M.kem_the(d))
-
-    @_bat_loi
-    def may_mo_file(self):
-        import webview
-        r = self._window.create_file_dialog(
-            webview.FileDialog.OPEN, allow_multiple=False, file_types=(self._LOC_MAY,))
-        if not r:
-            return {"ok": False}          # người dùng bấm Huỷ — KHÔNG phải lỗi
-        with open(r[0], encoding="utf-8") as f:
-            return self._mo_may(json.load(f), os.path.basename(r[0]))
-
-    @_bat_loi
-    def may_luu_file(self, doc):
-        import webview
-        d = M.chuan_hoa(doc)
-        r = self._window.create_file_dialog(
-            webview.FileDialog.SAVE, save_filename=f"{d['name']}.json",
-            file_types=(self._LOC_MAY,))
-        if not r:
-            return {"ok": False}
-        p = r if isinstance(r, str) else r[0]
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False, indent=2)
-        return _ok({"path": p})
-
-    # ------------------------------------------------------------------ chạy
-    @_bat_loi
-    def mo_qc(self, doc):
-        """◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect (D-03 · D-05 · D-06).
-
-        Chặn TRƯỚC nếu sơ đồ còn lỗi: mở cửa sổ ra để nó báo lại đúng mấy lỗi mà bảng Vấn
-        đề đã hiện sẵn là bắt người chơi đi hai vòng cho một thông tin.
-
-        CỬA SỔ CÒN SỐNG THÌ GIỮ, chỉ nạp sơ đồ mới và kéo lên trước: vòng chơi thật là
-        *sửa → chạy → so*, huỷ rồi tạo lại mỗi lần là mất lượt đang xem, mất bộ lọc nhật ký.
-
-        Chặn TRƯỚC nếu cỗ máy còn lỗi — mở cửa sổ ra để nó báo lại đúng mấy lỗi mà bảng
-        Vấn đề đã hiện sẵn là bắt người chơi đi hai vòng cho một thông tin."""
-        if not M.la_may(doc):
-            return _loi("Tài liệu này không phải cỗ máy 5 trạm.")
-        loi = [p for p in M.soat(doc) if p["severity"] == "error"]
-        if loi:
-            return {"ok": False, "error": "Cỗ máy còn lỗi, chưa chạy được.", "loi": loi}
-        d = M.chuan_hoa(doc)
-        self._doc_qc = d
-        if self._qc is not None:
-            self._qc.set_title(f"{d['name']} — Màn chơi")
-            self._api_qc._ban("so_do_moi", d)
-            self._api_qc._khung.keo_len_truoc()
-            return _ok({"da_mo": True})
-
-        import webview
-        # Trang giao diện chắc chắn đã có: thiếu nó thì cửa sổ chính đã không mở lên được
-        # (`app_web.main`), nên ở đây không có nhánh "chưa build".
-        #
-        # ⚠ KHÔNG được viết `file:///{trang}`. pywebview coi mọi url mở đầu `file://` là
-        # KHÔNG phải local url nên không dựng http server cho cửa sổ đó, mà trang build ra
-        # là ES module → origin "null" → Chromium chặn → TRANG TRẮNG. Truyền đường dẫn cục
-        # bộ TRẦN thì pywebview tự phục vụ qua http.
-        trang = luu_tru.trang_giao_dien()
-        self._api_qc = ApiQC(self)
-        self._qc = webview.create_window(
-            f"{d['name']} — Màn chơi",
-            url=f"{trang.replace(os.sep, '/')}?qc=1",
-            js_api=self._api_qc,              # ⚠ KHÔNG phải `self` — xem `NenCuaSo`
-            width=1180, height=800, min_size=(900, 600),
-            background_color="#202020",
-            frameless=True, easy_drag=False)
-        self._api_qc._gan_window(self._qc)
-
-        def quen_di():
-            self._qc = None
-            self._api_qc = None
-
-        self._qc.events.closed += quen_di
-        # Vá khung phải đợi cửa sổ được map xong — `_va_khung` tự thử lại. Khớp theo
-        # "— Màn chơi" chứ không theo tên chiến lược: tên có thể chứa bất cứ chữ gì, kể cả
-        # "Cat Studio", và khớp nhầm là vá lên cửa sổ chính.
-        aq = self._api_qc
-        threading.Thread(target=lambda: aq._va_khung("— Màn chơi"), daemon=True).start()
-        return _ok({"da_mo": True})
-
     # ------------------------------------------------------------------ kho
     @_bat_loi
     def kho_danh_muc(self):
-        """App đang có những gì — cho hộp thoại "Kho".
-
-        Gom thẳng từ TỪ ĐIỂN 5 TRẠM (`tram.py`) và bộ mẫu (`mau_tram.py`), nên thêm một
-        khối Làm hay một đại lượng ở đó là hộp thoại có ngay, không phải sửa gì ở đây."""
-        return _ok({
-            "tram": [{"so": t["so"], "ten": t["ten"], "qc": t["qc"], "hoi": t["hoi"],
-                      "cho_ai": t["cho_ai"], "ra": t["ra"],
-                      "so_khoi_lam": len(T.khoi_lam_cua_tram(t["key"])),
-                      "so_dai_luong": len(T.toan_hang_cua_tram(t["key"])),
-                      "so_mau": len(mau_tram.MAU.get(t["key"]) or [])}
-                     for t in T.TRAM],
-            "khoi_lam": [{"key": k, "nhan": v["nhan"], "tram": T.nhan_tram(v["tram"]),
-                          "vai": v["vai"], "mo_ta": v["mo_ta"]}
-                         for k, v in T.KHOI_LAM.items()],
-            "toan_hang": [{"key": t["key"], "nhan": t["nhan"], "nhom": t["nhom"],
-                           "don_vi": T.DON_VI.get(t["don_vi"], t["don_vi"]),
-                           "tram": ("mọi trạm" if t["tram"] is None
-                                    else " · ".join(T.nhan_tram(x) for x in t["tram"])),
-                           "mo_ta": t["mo_ta"]}
-                          for t in T.TOAN_HANG],
-            "may_san": [{"ten": m["ten"], "mo_ta": m["mo_ta"]} for m in mau_tram.MAY_SAN],
-            "luu_tru": luu_tru.tom_tat(),
-        })
+        """App đang có gì trên đĩa. Từ điển khối đã xoá cùng khối cũ (D-12) — mục này
+        dựng lại khi có bộ khối mới."""
+        return _ok({"luu_tru": luu_tru.tom_tat()})
 
     def dong_app(self):
-        """Cửa sổ chính đóng — dọn cửa sổ Màn chơi theo. KHÔNG bọc `_bat_loi`: pywebview
-        gọi nó từ sự kiện `closing`, không phải từ JS."""
-        try:
-            if self._qc:
-                self._qc.destroy()
-        except Exception:
-            pass
+        """Cửa sổ chính đóng. KHÔNG bọc `_bat_loi`: pywebview gọi nó từ sự kiện `closing`,
+        không phải từ JS. Hiện không phải dọn gì — cửa sổ thứ hai đã gỡ cùng D-12 — nhưng
+        giữ chỗ vì `app_web.py` đã nối sự kiện vào đây."""
+        return None
 
-
-
-# ---------------------------------------------------------------------------
-class ApiQC(NenCuaSo):
-    """Bề mặt của cửa sổ MÀN CHƠI — chạy cỗ máy trên QuantConnect (D-05 · D-06 · D-07).
-
-    Vỏ MỎNG: luật chơi ở `game`, việc chạy ở `qc_chay`, nói chuyện với QC ở `qc_api`. Ở đây
-    chỉ nối chúng với JS và đổi lỗi thành câu. Không nến, không chart nến: kết quả QC không
-    mang chuỗi giá về máy (điều khoản dữ liệu của QC) — mỗi lượt tự mang giờ của nó."""
-
-    _HAU_TO = "Màn chơi"
-
-    def __init__(self, cha):
-        super().__init__()
-        self._cha = cha          # `Api` của cửa sổ chính — giữ sơ đồ và việc chạy QC
-
-    def _ds_man(self):
-        """Màn CỦA ĐÚNG DẠNG tài liệu đang mở. Chưa có tài liệu thì bày màn của cỗ máy 5
-        trạm — đó là thứ duy nhất app còn vẽ được (D-10, phần 5)."""
-        doc = self._cha._doc_qc
-        dang = "so_do" if (doc and not M.la_may(doc)) else M.DANG
-        return game.danh_sach_man(game.van_tay(doc) if doc else None, dang)
-
-    @_bat_loi
-    def ping(self):
-        return _ok("pong")
-
-    @_bat_loi
-    def qc_boot(self):
-        """Mọi thứ cửa sổ Màn chơi cần lúc mở."""
-        cd = self._cha._cai_dat or {}
-        doc = self._cha._doc_qc
-        return _ok({
-            "phien_ban": core.PHIEN_BAN,
-            "accent": cd.get("accent"),
-            "doc": doc,
-            # Dạng tài liệu đang chạy: cửa sổ Màn chơi bày ô RỔ mã cho cỗ máy 5 trạm và ô
-            # một symbol cho sơ đồ cũ. Hỏi Python chứ không đoán từ hình dạng `doc` bên JS.
-            "dang": M.DANG if M.la_may(doc) else "so_do",
-            "man": self._ds_man(),
-            "loai": game.LOAI,
-            "khoa": qc_api.trang_thai_khoa(),
-            "do_gon": game.do_gon(doc or {}),
-            # Chế độ Sáng tạo của cỗ máy 5 trạm: một RỔ mã, kèm loại thị trường (lớp vỏ
-            # đăng ký mã theo loại — ngoại hối/CFD qua OANDA, cổ phiếu Mỹ, crypto).
-            "tu_do_may": {"ma": [cd.get("symbol") or "XAUUSD"], "loai": "cfd",
-                          "tu": "2025-10-01", "den": "2025-12-31", "von": 10_000.0},
-            "loai_thi_truong": qc_chay.LOAI_THI_TRUONG,
-            "tran_so_ma": qc_chay.TRAN_SO_MA,
-            "trang_thai": {"dang_chay": False, "xong": None, "loi": None},
-            "co_ket_qua": False,
-            # D-11: chưa có đường chạy — cửa sổ Màn chơi nói thẳng câu này ra.
-            "chua_noi": self._CHUA_NOI,
-        })
-
-    # ------------------------------------------------------------------ khoá
+    # ------------------------------------------------------------------ khoá QC
+    # D-12: bốn cửa này trước ở `ApiQC` — bề mặt của cửa sổ Màn chơi. Cửa sổ đó đã gỡ
+    # cùng bộ khối cũ, mà hộp Khoá thì vẫn phải mở được, nên chúng về ĐÚNG chỗ: cửa sổ
+    # chính. Bản xem thử (`tools/xem_thu.py`) từng che lỗi này vì nó tự định tuyến mọi
+    # tên `qc_*` sang `ApiQC`; nay cả hai cùng một bề mặt nên không che được nữa.
     @_bat_loi
     def qc_khoa(self):
         return _ok(qc_api.trang_thai_khoa())
@@ -553,50 +219,6 @@ class ApiQC(NenCuaSo):
             return _loi(str(e))
         return _ok(True)
 
-    # ------------------------------------------------------------------ chạy
-    #: D-11 — app chỉ là VỎ của QuantConnect. Đường chạy cũ (bộ máy tự tính tại máy) đã
-    #: bị gỡ; đường mới sẽ sinh thẳng một thuật toán QC từ sơ đồ. Trong lúc chưa có, mọi
-    #: cửa chạy nói ĐÚNG MỘT CÂU, thay vì bày ra nút bấm vào rồi hỏng ở đâu đó.
-    _CHUA_NOI = ("Đường chạy đang được dựng lại: từ nay QuantConnect tính hết, app chỉ "
-                 "sinh ra thuật toán rồi gửi đi (D-11). Hiện giờ app vẽ và soát cỗ máy "
-                 "được, chưa chạy được.")
-
-    @_bat_loi
-    def qc_chay(self, loai, man_id=None, tu_do=None):
-        return _loi(self._CHUA_NOI)
-
-    @_bat_loi
-    def qc_trang_thai(self):
-        return _ok({"dang_chay": False, "xong": None, "loi": None})
-
-    @_bat_loi
-    def qc_ket_qua(self):
-        return _ok(None)
-
-    @_bat_loi
-    def qc_nhat_ky(self, tu=0, so=200, chi_viec=True):
-        return _loi(self._CHUA_NOI)
-
-    @_bat_loi
-    def qc_lenh(self):
-        return _loi(self._CHUA_NOI)
-
-    @_bat_loi
-    def qc_soi_luot(self, i):
-        return _loi(self._CHUA_NOI)
-
-    @_bat_loi
-    def qc_man(self):
-        return _ok(self._ds_man())
-
-    @_bat_loi
-    def qc_lich_su(self):
-        return _ok(game.lich_su())
-
-    @_bat_loi
-    def qc_mo_lai(self, duong):
-        return _loi(self._CHUA_NOI)
-
     @_bat_loi
     def qc_mo_web(self, url):
         """Mở trang backtest trên quantconnect.com bằng trình duyệt của máy. CHỈ link của QC."""
@@ -606,4 +228,3 @@ class ApiQC(NenCuaSo):
         import webbrowser
         webbrowser.open(url)
         return _ok(True)
-

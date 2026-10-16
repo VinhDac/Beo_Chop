@@ -24,19 +24,14 @@ a = Analysis(
     pathex=[],
     binaries=[],
     # Giao diện đã build. Không có nó thì app mở ra một cửa sổ trắng.
-    # Và NGUỒN .py của bộ luật + cầu nối: nút ▶ trên QuantConnect đóng gói chúng thành
-    # `main.py` gửi lên QC (`cat_studio/goi_qc.py` đọc chúng như chữ, qua `thu_muc_goi`).
-    # Bản đóng gói chỉ giữ bytecode, nên không khai ở đây là ▶ QC hỏng "không thấy file".
+    # Và NGUỒN .py của gói `cat_studio`: đường chạy QuantConnect gửi code lên QC dưới
+    # dạng CHỮ, mà bản đóng gói chỉ giữ bytecode — không khai ở đây thì ▶ QC sẽ hỏng
+    # "không thấy file". Đường chạy mới (D-11) chưa dựng, nhưng nó cũng sẽ cần đúng thế.
+    # ⚠ D-12: đã bỏ `lean/` và `cat_studio/kho/` khỏi đây — hai thư mục ấy không còn,
+    # mà PyInstaller báo lỗi NGAY khi một đường dẫn trong `datas` không tồn tại.
     datas=[("webui/dist", "webui/dist"),
-           ("cat_studio/*.py", "cat_studio"),
-           ("cat_studio/kho/*.py", "cat_studio/kho"),
-           ("lean/cat_lean.py", "lean"),
-           ("lean/vo_qc.py", "lean")],
-    # `cat_studio/kho/` import TĨNH ba module con (`from . import chi_bao, …`) nên
-    # PyInstaller lần theo được — khai ở đây chỉ để chắc, và để ai thêm module mới vào
-    # `kho/` thì thấy ngay chỗ cần khai nếu lỡ import động.
-    hiddenimports=["cat_studio.kho.chi_bao", "cat_studio.kho.engine_d02",
-                   "cat_studio.kho.nen_tang"],
+           ("cat_studio/*.py", "cat_studio")],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -306,3 +306,41 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   kế — chủ dự án sẽ chỉ đường lối, và từ nay mỗi "item" trong game phải là một món CÓ
   THẬT của QuantConnect.
 
+## D-12 · Xoá TOÀN BỘ bộ khối cũ — làm lại khối và cách tương tác từ đầu  (chốt 2026-10-16)
+
+> Chủ dự án: *"xóa toàn bộ khối cũ đi, bây giờ ta sẽ làm lại khối, cách tương tác từ
+> đầu"* — ngay sau D-11, và sau nhận xét *"đánh giá hiện tại là hơi bừa"*.
+
+- **Vấn đề:** D-11 chốt app chỉ là VỎ của QuantConnect, nhưng bộ khối thì được nghĩ ra
+  TRƯỚC luật đó. Nó sinh ra từ câu hỏi "người chơi muốn vẽ gì", rồi app tự tính phần
+  còn lại. Mỗi khối Làm, mỗi đại lượng, mỗi ô Gom đều là một phép tính của riêng app —
+  đúng cái D-11 cấm. Giữ lại bộ khối ấy thì D-11 chỉ là lời hứa: sớm muộn phải dựng lại
+  một bộ máy tính toán sau lưng nó để nó chạy được.
+- **Quyết định:** xoá sạch bộ khối, từ điển, mẫu dựng sẵn, trình vẽ và màn chơi. Bộ khối
+  mới thiết kế lại từ đầu với MỘT luật bắt buộc: **mỗi khối phải ứng với một món CÓ THẬT
+  của QuantConnect** — một API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần
+  của họ. Khối nào không chỉ ra được món QC tương ứng thì không được có.
+- **Phương án đã cân nhắc:** (a) xoá hết, làm lại ← **chọn** / (b) giữ khối, sửa dần
+  từng cái cho khớp QC — sửa dần thì lúc nào cũng còn một nửa cũ một nửa mới, và không
+  ai biết đang ở nửa nào / (c) giữ khối làm "bản phác", dịch sang QC lúc chạy — tức là
+  hai ngôn ngữ phải khớp nhau mãi mãi, đúng cái bẫy D-11 vừa thoát.
+- **Đã xoá (2026-10-16):** `tram.py` · `may.py` · `mau_tram.py` · bốn bài kiểm của
+  chúng · cả thư mục `webui/src/may/` (trình vẽ 5 trạm, 14 file) · `webui/src/qc/
+  ManChoi.tsx` · `webui/src/chung/` · hai bài kiểm giao diện của chúng. Cùng với D-11 là
+  ≈ 9.000 dòng rời khỏi kho trong một ngày.
+- **Dọn theo, vì chúng chỉ phục vụ bộ khối cũ:** `api.py` mất hết cửa `may_*` và cả lớp
+  `ApiQC`; `game.py` mất `do_gon`/`van_tay` (chúng đọc định dạng cỗ máy cũ); `luu_tru`
+  mất kho chiến lược; `app.css` mất 1.360 dòng; `types.ts` còn ba kiểu.
+- **Giữ lại, vì KHÔNG dính bộ khối:** `core` (đồ thị thuần: đánh số phân cấp, thứ tự ưu
+  tiên nhánh, soát nối dây — nó chưa bao giờ biết khối là gì) · `luu_tru` · `game` (luật
+  chơi) · `qc_api` · `khung_cua_so` · khung giao diện (thanh tiêu đề, hộp thoại, menu).
+  Và `so.ts` — bài học "gõ từng phím, đừng ép `Number()` ngay" vẫn còn nguyên giá trị.
+- **Một lỗi lộ ra nhờ dọn:** hộp Khoá QC gọi `qc_khoa`, mà hàm đó nằm ở `ApiQC` — bề mặt
+  của cửa sổ Màn chơi. Cửa sổ chính không có nó. Bản xem thử trong trình duyệt che mất
+  vì nó tự định tuyến mọi tên `qc_*` sang `ApiQC`, tức **cầu nối giả nói dối so với app
+  thật**. Nay `api.py` chỉ còn MỘT bề mặt, và `tools/xem_thu.py` cũng vậy.
+- **Trạng thái app sau D-12:** mở lên được, đặt được khoá QC, xem được chỗ lưu file.
+  **Chưa vẽ được gì, chưa chạy được gì** — và cửa sổ nói thẳng ra điều đó thay vì bày
+  một trình vẽ rỗng. 3 bài kiểm còn lại đều xanh.
+- **Trạng thái quyết định:** chốt, đã dọn. Bộ khối mới và cách tương tác mới sẽ do chủ
+  dự án chỉ đường lối, bắt đầu từ danh sách những gì QuantConnect thật sự cho.
