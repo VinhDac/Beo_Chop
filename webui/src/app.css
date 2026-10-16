@@ -891,10 +891,10 @@ mark.tim-chu {
 }
 
 /* ---------------- Ô tìm khối ----------------
-   Dạt hẳn sang PHẢI ribbon: nó không "thêm" gì vào sơ đồ, nó chỉ giúp NHÌN. Trộn vào
-   giữa các nhóm nút là người ta bấm nhầm. */
-.ribbon-day { flex: 1 1 auto; min-width: 8px; }
-.ribbon .o-tim-khoi { align-self: center; margin-right: 10px; }
+   NỔI Ở GÓC TRÁI TRÊN CANVAS. Nó không "thêm" gì vào sơ đồ, nó chỉ giúp NHÌN — mà thứ
+   nó giúp nhìn là chính cái canvas ngay dưới nó. Để trên ribbon thì mắt phải nhảy lên
+   một dải khác để tìm, và nó dễ bị bấm nhầm lẫn với mấy nút "thêm". */
+.o-tim-noi { position: absolute; z-index: 6; left: 12px; top: 12px; }
 /* Khối khớp ô tìm: viền vàng, thấy từ xa trên một sơ đồ nghìn khối. */
 .hop.tim-thay { box-shadow: 0 0 0 2px var(--warn), var(--shadow-lg); }
 /* Ô TÌM KHỐI — cùng dáng viên thuốc, cùng cao với công tắc bên trái nó. */
@@ -920,11 +920,11 @@ mark.tim-chu {
 /* Danh sách xổ của ô tìm: dùng chung `.goi-y-khoi` (xem dưới), rộng hơn cái ô. Lọc nhanh
    nằm trên: tên, lời giải thích mờ, số khối khớp sát phải; khối khớp nằm dưới. */
 .o-tim-khoi { position: relative; }
-/* BUNG SANG TRÁI, không sang phải: ô tìm nằm sát mép phải ribbon, nên neo `left` là
-   danh sách chạy ra ngoài cửa sổ và mất nửa chữ. Bên Jenifer ô này nằm giữa thanh nên
-   không dính; ở đây thì dính ngay. */
+/* Neo TRÁI — ô tìm nay nổi ở góc trái canvas, nên danh sách bung xuống dưới nó là
+   vừa. (Hồi ô còn nằm sát mép phải ribbon thì phải neo `right`, không thì nó chạy ra
+   ngoài cửa sổ; chuyển chỗ ô mà quên chuyển chỗ này là mất nửa chữ.) */
 .o-tim-khoi .goi-y-khoi {
-  left: auto; right: 0; width: 380px; max-height: 340px; color: var(--text);
+  left: 0; right: auto; width: 380px; max-height: 340px; color: var(--text);
 }
 .goi-y-khoi .muc.loc { display: flex; align-items: baseline; gap: 8px; }
 .goi-y-khoi .muc .mo { color: var(--dim); font-size: 11.5px; }
@@ -1073,3 +1073,15 @@ mark.tim-chu {
 .thanh-trang-thai .nhay { cursor: pointer; }
 .thanh-trang-thai .nhay:hover { color: var(--text); }
 .thanh-trang-thai .loi { color: var(--err); }
+
+.thanh-trang-thai .so { color: var(--text); }
+/* ---------------- 3 nút thu phóng ở thanh trạng thái ---------------- */
+.cum-zoom { display: flex; align-items: center; gap: 2px; }
+.nut-zoom {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 20px;
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--muted); font: 14.3px/1 var(--font); cursor: pointer; padding: 0;
+}
+.nut-zoom:hover { background: var(--raised); border-color: var(--border); color: var(--text); }
+.nut-zoom:active { background: var(--raised-hover); }

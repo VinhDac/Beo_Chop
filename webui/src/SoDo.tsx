@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Background, BackgroundVariant, ConnectionMode, Controls, MarkerType, ReactFlow,
+  Background, BackgroundVariant, ConnectionMode, MarkerType, ReactFlow,
   ReactFlowProvider, SelectionMode, addEdge, useEdgesState, useNodesState, useReactFlow,
+  useStore,
   type Connection, type Edge as RfEdge, type Node as RfNode, type Viewport,
 } from '@xyflow/react'
 import { py } from './api'
@@ -172,7 +173,10 @@ const idHatNhanMoi = () =>
 
 function SoDoTrong() {
   useKhungCuaSo(32)
-  const { fitView, getViewport, setViewport, setCenter } = useReactFlow()
+  const { fitView, getViewport, setViewport, setCenter, zoomIn, zoomOut } = useReactFlow()
+  /** Mức phóng hiện tại — đọc thẳng từ kho của React Flow nên con số không bao giờ
+   *  trôi khỏi thứ đang hiện trên màn. */
+  const mucZoom = useStore(st => st.transform[2])
   const [nodes, setNodes, onNodesChange] = useNodesState<RfNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<RfEdge>([])
   const [ten, setTen] = useState('')
@@ -935,15 +939,18 @@ function SoDoTrong() {
     <div className="khung">
       <TitleBar tieuDe={ten || 'Cỗ máy mới'} menus={menus} />
       <Ribbon v={viec} soChon={dangChon.length} trongHatNhan={!!trongHN}
-              coHoanTac={coHoanTac} coLamLai={coLamLai}
-              oTim={
-                <OTimKhoi giaTri={tim} onDoi={setTim} soKhop={khopTim.length}
-                          dangO={dangO} onToi={toiKe}
-                          loc={locTim} dsLoc={locHien} onLoc={m => setLocTim(m)}
-                          goiY={goiYTim} onChon={id => { setDangO(khopTim.indexOf(id));
-                                                         toiKhoi(id) }} />
-              } />
+              coHoanTac={coHoanTac} coLamLai={coLamLai} />
       <div className="vung-canvas">
+        {/* Ô TÌM nổi ở GÓC TRÁI TRÊN canvas, không nằm trên ribbon: nó không "thêm" gì
+            vào sơ đồ, nó chỉ giúp nhìn — mà thứ nó giúp nhìn là cái canvas ngay dưới
+            nó. Để trên ribbon thì mắt phải nhảy lên một dải khác để tìm. */}
+        <div className="o-tim-noi">
+          <OTimKhoi giaTri={tim} onDoi={setTim} soKhop={khopTim.length}
+                    dangO={dangO} onToi={toiKe}
+                    loc={locTim} dsLoc={locHien} onLoc={m => setLocTim(m)}
+                    goiY={goiYTim} onChon={id => { setDangO(khopTim.indexOf(id));
+                                                   toiKhoi(id) }} />
+        </div>
         {hnDangO && (
           <div className="thanh-hn">
             <span className="nhan">đang ở trong</span>
@@ -992,7 +999,6 @@ function SoDoTrong() {
           fitView
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1} />
-          <Controls showInteractive={false} />
         </ReactFlow>
         {nodesVe.length === 0 && (
           <div className="trong-rong">
@@ -1016,6 +1022,23 @@ function SoDoTrong() {
           <span className="nhay" onClick={() => { setTab('van-de'); setPanelGap(false) }}
                 title="Bấm để mở bảng Vấn đề">{vanDe.length - soLoi} cảnh báo</span>
         )}
+        {/* BA NÚT THU PHÓNG. Trước đây là cụm DỌC của React Flow nổi trên canvas — nó
+            che mất góc dưới-trái và trùng chức năng với thanh này. Gom về đây, xếp
+            ngang, ngay cạnh con số phần trăm mà chúng điều khiển. */}
+        <div className="cum-zoom">
+          <button className="nut-zoom" onClick={() => zoomOut({ duration: 160 })}
+                  title="Thu nhỏ">−</button>
+          <button className="nut-zoom" onClick={() => zoomIn({ duration: 160 })}
+                  title="Phóng to">+</button>
+          <button className="nut-zoom" title="Vừa khung — thu phóng cho vừa cả sơ đồ"
+                  onClick={() => fitView({ padding: 0.2, duration: 300 })}>
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor"
+                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2.5 5.5v-3h3M13.5 5.5v-3h-3M2.5 10.5v3h3M13.5 10.5v3h-3" />
+            </svg>
+          </button>
+        </div>
+        <span className="so">{Math.round(mucZoom * 100)}%</span>
       </div>
 
       {menuPhai && (
