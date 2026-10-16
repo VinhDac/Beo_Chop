@@ -1118,3 +1118,43 @@ mark.tim-chu {
   margin-top: 8px; max-height: 220px; overflow: auto;
   color: var(--muted); font-size: 12px; line-height: 1.55; white-space: pre-wrap;
 }
+
+/* ==========================================================================
+   HỘP THOẠI KHỐI XÁC NHẬN
+   ==========================================================================
+   MỘT HÀNG = MỘT ĐIỀU KIỆN, các hàng nối bằng VÀ. Hàng là một LƯỚI có cột cố định,
+   KHÔNG phải flex: hai hàng cạnh nhau mà ô «phép so» lệch nhau vài pixel thì mắt
+   không đọc được cột nào ra cột nào. (Đây đúng là cái bẫy `test_giao_dien` canh —
+   xem phép kiểm `.dong-dk` đang ngủ trong đó.) */
+.hop-dk { display: flex; flex-direction: column; gap: 10px; }
+.hop-dk .mo-ta-loai {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--muted); font-size: 12px;
+}
+.hop-dk .o-hang { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.hop-dk .o-hang > span { flex: 0 0 72px; color: var(--muted); }
+.hop-dk .dau-dk {
+  color: var(--dim); font-size: 11.5px; line-height: 1.5;
+  padding: 7px 9px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft);
+}
+.dong-dk {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 150px minmax(0, 1fr) 26px;
+  align-items: center; gap: 8px;
+}
+.dong-dk .va {
+  font: 600 11px var(--font); color: var(--accent); text-align: right;
+}
+.ve-dk { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.ve-dk.mo { color: var(--dim); justify-content: center; }
+.ve-dk .o { min-width: 0; }
+.ve-dk .o.dl { flex: 1 1 auto; }
+.ve-dk .o.ma { flex: 0 0 62px; text-transform: uppercase; }
+.ve-dk .o.so { flex: 0 0 68px; text-align: right; }
+.ve-dk .o.nho { flex: 0 0 98px; font-size: 11.5px; }
+/* Ô tham số: nhãn nhỏ nằm TRÊN ô, để "Chu kỳ 14" đọc được mà không ăn chiều ngang. */
+.o-ts { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; }
+.o-ts > span { font-size: 9.5px; color: var(--dim); letter-spacing: .02em; }
+.dong-dk > .nut-nho { color: var(--dim); }
+.dong-dk > .nut-nho:hover { color: var(--err); background: var(--raised); }

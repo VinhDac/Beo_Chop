@@ -105,6 +105,65 @@ export interface Strategy {
   edges: Edge[]
 }
 
+/* ----------------------------- Khối XÁC NHẬN ------------------------------- */
+
+/** Một ô tham số của đại lượng (chu kỳ, hệ số…). */
+export interface ThamSo {
+  ten: string
+  nhan: string
+  mac_dinh: number
+  nho_nhat: number
+  lon_nhat: number
+}
+
+/** Một đại lượng đọc được từ LEAN. `lean` là lời khai: thứ của LEAN đứng sau nó —
+ *  không khai được thì nó không được có mặt trong từ điển. */
+export interface DaiLuong {
+  ma: string
+  nhan: string
+  lean: string
+  kieu: 'so' | 'co_khong'
+  don_vi: string
+  tham_so: ThamSo[]
+  /** Chỉ báo trả NHIỀU đường (MACD, Bollinger…): [mã, nhãn]. */
+  duong?: [string, string][]
+}
+
+/** Một VẾ của dòng điều kiện: một đại lượng, hoặc một con số. */
+export interface VeDieuKien {
+  ma_dl?: string
+  /** Để trống = mã đang xét. Gõ mã khác là ra so sánh chéo mã. */
+  ma?: string
+  tham_so?: Record<string, number>
+  duong?: string
+  so?: number
+}
+
+export interface DongDieuKien {
+  trai: VeDieuKien
+  phep: string
+  phai: VeDieuKien
+}
+
+export interface LoaiHoi {
+  ma: string
+  nhan: string
+  mo_ta: string
+  icon: string
+  can_ma: boolean
+  /** Vế phải có ô chọn mã riêng không — chỉ loại nào cho so chéo mã. */
+  hai_ve_ma: boolean
+  /** Chuỗi = loại này chưa chạy được, và đây là lý do. `false` = dùng được. */
+  tat: string | false
+  nhom: { ten: string; dai_luong: DaiLuong[] }[]
+}
+
+export interface TuDienHoi {
+  phep_so: { ma: string; nhan: string }[]
+  phep_co_khong: { ma: string; nhan: string }[]
+  loai: LoaiHoi[]
+}
+
 /* ------------------------------- Kho và khoá -------------------------------- */
 
 /** App lưu file ở đâu — `api.kho_danh_muc`. */

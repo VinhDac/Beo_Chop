@@ -37,6 +37,11 @@ export interface ViecRibbon {
   themNhom: () => void
   themKhoiLe: () => void
   themQuayVe: () => void
+  /** Thêm một khối XÁC NHẬN của loại `loai`. */
+  themHoi: (loai: string) => void
+  /** Năm loại câu hỏi, lấy từ từ điển Python — ribbon KHÔNG tự khai danh sách. */
+  loaiHoi: { ma: string; nhan: string; icon: string; mo_ta: string;
+             tat: string | false }[]
   xoa: () => void
   nhanBan: () => void
   hoanTac: () => void
@@ -59,9 +64,19 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
         <Nut ten="Bắt đầu" icon="start" onClick={v.themBatDau} />
         <Nut ten="Nhóm" icon="group" onClick={v.themNhom}
              title="Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt" />
-        <Nut ten="Khối lẻ" icon="action" onClick={v.themKhoiLe} />
         <Nut ten="Quay về" icon="quay-ve" onClick={v.themQuayVe}
              title="Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp" />
+      </Nhom>
+
+      {/* NĂM LOẠI CÂU HỎI, mỗi loại một nút riêng. Không gộp thành một nút "Hỏi" rồi
+          bắt chọn loại trong hộp thoại: chọn loại là quyết định ĐẦU TIÊN, mà nó cũng
+          quyết luôn hộp thoại bày ra cái gì. */}
+      <Nhom ten="Xác nhận">
+        {v.loaiHoi.map(l => (
+          <Nut key={l.ma} ten={l.nhan.replace('Hỏi ', '')} icon={l.icon}
+               onClick={() => v.themHoi(l.ma)}
+               title={l.tat ? `${l.mo_ta} — ${l.tat}` : l.mo_ta} />
+        ))}
       </Nhom>
 
       <Nhom ten="Sửa">
