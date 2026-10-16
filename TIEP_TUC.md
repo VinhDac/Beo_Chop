@@ -5,72 +5,85 @@
 
 ## 1. Đang ở đâu
 
-**Hai lần dọn liền nhau, kho đang ở trạng thái SẠCH ĐỂ LÀM LẠI.**
+**Trình vẽ sơ đồ đã chạy thật. Bộ khối thì chưa có.**
 
-* **D-11 (16/10)** — app chỉ là **VỎ** của QuantConnect. Bộ mô phỏng tại máy (bộ máy chạy,
-  chuỗi nến, chỉ báo, lớp vỏ LEAN, bộ đóng gói, ba đồ giả) đã xoá: ≈ 5.800 dòng.
-* **D-12 (16/10)** — xoá **toàn bộ bộ khối cũ**: `tram.py` · `may.py` · `mau_tram.py` ·
-  cả `webui/src/may/` · `ManChoi.tsx` · `webui/src/chung/` và sáu bài kiểm của chúng:
-  ≈ 3.200 dòng nữa. Lý do: bộ khối ấy nghĩ ra TRƯỚC D-11 nên mỗi khối là một phép tính
-  của riêng app — đúng cái D-11 cấm.
+Ba quyết định liền nhau:
+
+* **D-11 (16/10)** — app chỉ là **VỎ** của QuantConnect. Bộ mô phỏng tại máy đã xoá
+  (≈5.800 dòng).
+* **D-12 (16/10)** — xoá **toàn bộ bộ khối cũ** (≈3.200 dòng nữa). Nó nghĩ ra TRƯỚC
+  D-11 nên mỗi khối là một phép tính của riêng app.
+* **D-13 (16/10)** — **chép hạ tầng trình vẽ từ `Jenifer_Studio`**, bộ tự động hoá game
+  của chính chủ dự án. Không phải tham khảo một thư viện đẹp: template `trial chaos 30`
+  ở đó là một sơ đồ THẬT **1.170 khối · 1.468 dây · canvas 19.367×16.055**.
 
 **Trạng thái thật:**
 
 | Việc | Được chưa |
 |---|---|
-| Mở app, thanh tiêu đề, menu, hộp thoại | ✅ |
-| Đặt / xoá / kiểm **khoá QuantConnect** | ✅ |
-| Xem **app lưu file ở đâu** (hộp Kho) | ✅ |
-| Đánh số phân cấp + soát nối dây (`core.py`) | ✅ còn nguyên, chưa có khối để dùng |
-| Luật chơi (màn, boss, sao, sổ nộp) | ✅ còn nguyên, chưa nối vào đâu |
-| Nói chuyện với QuantConnect (`qc_api.py`) | ✅ còn nguyên |
-| **Vẽ một cỗ máy** | ❌ **chưa** — bộ khối mới chưa thiết kế |
-| **Chạy một cỗ máy** | ❌ **chưa** — đường chạy mới chưa dựng |
+| Vẽ sơ đồ: thêm khối, nối dây, kéo, xoá, nhân bản | ✅ |
+| **Đánh số phân cấp** `1 · 2 · 2A · 2A.1 · 2B · 2B.1 · 3 · 4` | ✅ |
+| **Nhóm** — gập một chuỗi hành động vào một hộp | ✅ |
+| **Quay về** — vòng lặp vẽ ra, có đích, thấy cả vòng khi bấm | ✅ |
+| **Hạt nhân** — gói một mảng sơ đồ, bấm đúp vào trong sửa | ✅ |
+| **Ô tìm** không dấu + bốn lọc hỏi theo dây | ✅ |
+| Menu chuột phải · phím tắt (F2) · bảng Vấn đề · Nhật ký | ✅ |
+| Lưu / mở / bản nháp / bản tự lưu / hoàn tác | ✅ |
+| **Nội dung khối** (hỏi gì, làm gì) | ❌ **chưa** — khối còn trống ruột |
+| **Chạy một cỗ máy** | ❌ **chưa** — đường chạy chưa dựng |
 
-Bài kiểm: **3/3 qua** (`test_danh_so` · `test_giao_dien` · `test_o_so`).
-`tsc --noEmit` sạch, `npm run build` sạch.
-
-Mở app lúc này thấy: một câu giữa màn hình nói app đang dựng lại, cộng hai hộp thoại còn
-thật. Cố ý không để lại trình vẽ rỗng — canvas trống kèm thanh công cụ chết trông như app
-hỏng, chứ không như app đang được làm lại.
+Bài kiểm: **5/5 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
 
 ## 2. Chạy ở máy local (Windows)
 
 ```bat
 tools\setup.bat        REM một lần sau khi clone
-tools\chay_test.bat    REM phải thấy: ✔ 3/3 bài đều qua
+tools\chay_test.bat    REM phải thấy: ✔ 5/5 bài đều qua
 tools\chay.bat         REM mở app
 ```
 
 Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py` →
-`http://127.0.0.1:8777`. Chỉ còn MỘT bề mặt, đúng như app thật (xem §3, bài học D-12).
+`http://127.0.0.1:8777`.
 
-## 3. Việc kế tiếp — thiết kế lại khối và cách tương tác
+> ⚠ **Khung xem thử không vẽ thì phép đo nói dối.** `ResizeObserver` chỉ bắn trong nhịp
+> vẽ; cửa sổ bị che là trình duyệt bỏ nhịp ấy, và đọc DOM sẽ thấy đủ khối mà KHÔNG một
+> đường nối nào. Chụp ảnh một nhát rồi mới tin phép đo. (Chi tiết ở đầu `xem_thu.py`.)
 
-Chủ dự án chỉ đường lối. Bắt đầu từ **danh sách những gì QuantConnect thật sự cho**, rồi
-mới nghĩ khối.
+## 3. Việc kế tiếp — NỘI DUNG từng khối
 
-> **Luật bắt buộc của bộ khối mới:** mỗi khối phải ứng với một món **CÓ THẬT** của
-> QuantConnect — một hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần
-> (Universe Selection · Alpha · Portfolio Construction · Risk Management · Execution).
-> Cách kiểm nhanh: hỏi *"QC làm việc này bằng gì?"* — không trả lời được bằng một dòng
-> code QC thì khối đó đang là phép tính của riêng ta, và nó không được có.
+Hình đã xong. Giờ tới ruột.
 
-Ba bài học phải mang theo:
+> **Luật bắt buộc:** mỗi khối phải ứng với một món **CÓ THẬT** của QuantConnect — một
+> hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần (Universe Selection ·
+> Alpha · Portfolio Construction · Risk Management · Execution). Cách kiểm nhanh: hỏi
+> *"QC làm việc này bằng gì?"* — không trả lời được bằng một dòng code QC thì khối đó
+> đang là phép tính của riêng ta, và nó không được có.
 
-1. **Đừng để app tính hộ.** Nến, chỉ báo, số lượng, ký quỹ, phí, trượt giá, lãi lỗ, thống
-   kê — của QC hết. Hai nơi cùng tính một thứ thì ra hai số.
-2. **Cầu nối giả không được nói dối.** `tools/xem_thu.py` từng phục vụ hai bề mặt và tự
-   định tuyến `qc_*` sang `ApiQC`, che mất lỗi "cửa sổ chính không có `qc_khoa`". Bản
-   xem thử phải giống app thật từng chi tiết, nếu không thì kiểm bằng mắt là vô nghĩa.
-3. **Giao diện không tự ghép chữ trên khối.** Python dựng chữ, giao diện vẽ lại — thứ
-   hiện trên màn hình luôn đúng bằng thứ lõi hiểu.
+Từ vựng chỉ có bốn thứ, và ba trong số đó đã dựng xong:
+
+| Jenifer | Cat_Studio | Xong chưa |
+|---|---|---|
+| **HỎI** (`xac_nhan_chu`, `xac_dinh_map`…) | **HỎI** — giá, chỉ báo, vị thế, tài khoản, giờ | ❌ chưa nghĩ |
+| **LÀM** (`left_click`, `key_press`…) | **LÀM** — vào lệnh, sửa lệnh, đóng, huỷ | ❌ chưa nghĩ |
+| **NHÓM** | **NHÓM** | ✅ |
+| **QUAY VỀ** | **QUAY VỀ** | ✅ |
+
+Còn lại không phải từ vựng mà là **hình học**: N làn cạnh nhau, mỗi làn một cổng, nhánh
+thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
+
+**Hai chỗ sẽ phải sửa khi có từ điển khối:**
+
+* `core.mo_ta_hanh_dong` — hiện là bản TẠM (đọc `type` kèm mấy ô). Khi có từ điển thì
+  nó thành một BẢNG TRA, mỗi loại một câu viết tay.
+* `core.chuan_hoa_khoi` — hiện giữ nguyên xi khoá riêng của từng loại. Khi có từ điển
+  thì dựng lại từ một danh sách khoá cố định, đó mới là chỗ chặn file rác.
 
 ## 4. Những việc còn để lại (không gấp)
 
-* Hai phép kiểm CSS đang **ngủ** (`.menu-th-noi`, `.dong-dk`): chúng tự thức khi trình vẽ
-  mới dựng lại một menu nổi hoặc một hàng dạng lưới. Xem `tests/test_giao_dien.py`.
-* `game.py` còn nguyên luật chơi nhưng chưa nối vào đâu — màn, boss, sao, sổ nộp.
+* Hai phép kiểm CSS đang **ngủ** (`.menu-th-noi`, `.dong-dk`) — tự thức khi trình vẽ có
+  menu nổi hoặc hàng dạng lưới. Xem `tests/test_giao_dien.py`.
+* Phím tắt chưa cho người dùng đặt lại (bảng F2 mới là bảng TRA). Jenifer có phần ấy.
+* `game.py` còn nguyên luật chơi nhưng chưa nối vào đâu.
 * File cỗ máy cũ trong `du_lieu\co_may\` app không đọc được nữa. Cố ý không tự xoá.
 
 ## 5. Luật phải giữ
@@ -80,42 +93,41 @@ Ba bài học phải mang theo:
    `du_lieu\` đã bị chặn trong `.gitignore`), hoặc gõ vào hộp Khoá trong app. Khoá có
    toàn quyền tài khoản, kể cả giao dịch thật, nên chỉ dùng để chạy backtest.
 2. Mỗi lần một lát nhỏ: nói trước định làm gì và tiêu chí xong; mọi thay đổi có bài kiểm;
-   `tools\chay_test.bat` xanh rồi mới commit.
+   `tools\chay_test.bat` xanh rồi mới commit. **Soát MÃ THOÁT, đừng soát qua ống dẫn** —
+   `chay_test.bat | tail` trả mã thoát của `tail`, nên cổng chặn không chặn gì cả.
 3. Commit message tiếng Việt, ngắn. Giải thích cho chủ dự án bằng tiếng Việt đời thường,
    không dán code.
 4. Dữ liệu không được nhìn trước (point-in-time). Lõi không import giao diện hay mạng.
-5. Quyết định lớn ghi vào `DECISIONS.md`. Mỗi phần xong ghi một mục trong
-   `tai_lieu/core.md` (§18–§24 của D-10 · §25 của D-11 · §26 của D-12; phần sau tiếp từ §27).
+5. Quyết định lớn ghi vào `DECISIONS.md`; mỗi phần xong ghi một mục trong
+   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13; phần sau tiếp từ §28).
 6. Không tự đổi bộ công cụ đã chọn: Python + pywebview, React + @xyflow/react + Vite.
 7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa
    được bảo.
-8. Giao diện không tự ghép chữ trên khối, không tự tính số thứ tự, không tự soát luật
-   nào: gửi sang Python rồi vẽ lại cái nhận về.
+8. **Giao diện không tự ghép chữ trên khối, không tự tính số thứ tự, không tự soát luật
+   nào**: gửi sơ đồ sang Python (`api.soat`) rồi vẽ lại đúng cái nhận về.
 
 ## 6. Bản đồ
 
-**Python — `cat_studio/`**: `core.py` (đồ thị, đánh số, soát nối dây) · `luu_tru.py` (chỗ
-duy nhất biết file nằm ở đâu) · `game.py` (màn, boss, sao, sổ) · `qc_api.py` (khoá,
-project, file, biên dịch, backtest, Object Store) · `qc_chay.py` (soát đầu vào một lượt) ·
-`khung_cua_so.py` (vá khung Win32) · `api.py` (**một** bề mặt duy nhất cho giao diện).
+**Python — `cat_studio/`**: `core.py` (đồ thị, đánh số, Nhóm, Quay về, thẻ khối, chuẩn
+hoá) · `luu_tru.py` (chỗ duy nhất biết file nằm ở đâu, + bản nháp/bản tự lưu) ·
+`game.py` · `qc_api.py` · `qc_chay.py` · `khung_cua_so.py` · `api.py` (**một** bề mặt).
 
-**Giao diện — `webui/src/`**: `TrangTrong.tsx` (trang tạm) · `components/` (TitleBar,
-Modal, ContextMenu, Icon, KhoDialog) · `qc/HopKhoa.tsx` (hộp Khoá QC) · `so.ts` (đọc số
-khi gõ từng phím) · `api.ts` · `types.ts` · `theme.css` + `app.css` (336 dòng, chỉ còn
-phần khung dùng chung).
+**Giao diện — `webui/src/`**: `SoDo.tsx` (canvas, hạt nhân, ô tìm, menu, bàn phím) ·
+`components/` (StepNode, HatNhan, DuongVong, Ribbon, OTimKhoi, BangDuoi, BangPhimTat,
+ContextMenu, Modal, TitleBar, Icon, KhoDialog, HopDoiTen) · `qc/HopKhoa.tsx` ·
+`tim.ts` · `phim_tat.ts` · `so.ts` · `api.ts` · `types.ts` · `theme.css` + `app.css`.
 
-**Bài kiểm — `tests/`** (3): `test_danh_so` (đánh số phân cấp, ghim số, ba bẫy của
-Auto_Clicker) · `test_giao_dien` (biến CSS ma) · `test_o_so` (ô số gõ từng phím, qua
-`webui/kiem/o_so.mjs`).
+**Bài kiểm — `tests/`** (5): `test_danh_so` · `test_so_do` (Nhóm, Quay về, vòng phải
+khép, bộ nhớ của cái nút) · `test_so_do_api` (một cửa soát, ba tầng lưu) ·
+`test_giao_dien` (biến CSS ma) · `test_o_so`.
 
-**Tài liệu**: `README.md` (app là gì, đang ở đâu) · `DECISIONS.md` (quyết định lớn, D-01→D-12) ·
-`tai_lieu/core.md` §25–§26 (hai lần dọn gần nhất).
+**Tài liệu**: `README.md` · `DECISIONS.md` (D-01→D-13) · `tai_lieu/core.md` §25–§27.
 
 ## 7. Câu lệnh dán cho Claude Code
 
 ```text
-Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-11 và D-12, và tai_lieu/core.md §25–§26.
-Tôi không đọc code. App vừa bị dọn sạch: không còn khối nào, không chạy được gì.
+Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-11, D-12, D-13 và tai_lieu/core.md §25–§27.
+Tôi không đọc code. Trình vẽ sơ đồ đã chạy; bộ khối thì chưa có nội dung gì.
 Luật: app chỉ là VỎ của QuantConnect — mỗi khối phải là một món có thật của QC.
 Việc tôi muốn làm tiếp: <viết ở đây>.
 Nói định làm gì + tiêu chí xong bằng tiếng Việt đời thường, rồi code + bài kiểm

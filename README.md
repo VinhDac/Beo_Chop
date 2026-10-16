@@ -5,7 +5,8 @@ trên **QuantConnect**. Không gõ code, không công thức — kéo khối, n�
 
 > ## ⚠ Đang làm lại từ đầu (16/10/2026)
 >
-> App **chưa vẽ được và chưa chạy được**. Hai quyết định liền nhau đã dọn sạch phần ruột:
+> **Trình vẽ sơ đồ đã chạy. Bộ khối thì chưa có nội dung gì** — `Nhóm`, `Khối lẻ`,
+> `Quay về` còn trống ruột, và app chưa chạy được cỗ máy nào. Ba quyết định liền nhau:
 >
 > * **D-11 — app chỉ là VỎ của QuantConnect.** Mọi phép tính về thị trường (nến, chỉ báo,
 >   số lượng, lệnh, lãi lỗ) là việc của QC. App giữ đúng ba việc: **vẽ · soát lỗi · dịch
@@ -14,11 +15,17 @@ trên **QuantConnect**. Không gõ code, không công thức — kéo khối, n�
 >   một phép tính của riêng app. Khối, từ điển, mẫu dựng sẵn, trình vẽ và màn chơi đã xoá
 >   hết (≈ 9.000 dòng). Bộ khối mới và cách tương tác mới đang được thiết kế.
 >
+> * **D-13 — chép hạ tầng trình vẽ từ `Jenifer_Studio`**, bộ tự động hoá game của chính
+>   chủ dự án. Không phải tham khảo một thư viện đẹp: template `trial chaos 30` ở đó là
+>   một sơ đồ **thật** gồm 1.170 khối, 1.468 dây, canvas 19.367×16.055 — nên mọi thứ chép
+>   về đều là lời giải cho câu hỏi *làm sao không lạc trong 1.170 khối*.
+>
 > **Luật của bộ khối mới:** mỗi khối phải ứng với một món **có thật** của QuantConnect —
 > một hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần của họ. Khối nào
 > không chỉ ra được món QC đứng sau nó thì không được có.
 >
-> Mở app lúc này: đặt được **khoá QuantConnect**, xem được **app lưu file ở đâu**. Hết.
+> Mở app lúc này: vẽ được sơ đồ (nối dây, đánh số, Nhóm, Quay về, hạt nhân, tìm khối),
+> đặt được **khoá QuantConnect**, xem được **app lưu file ở đâu**.
 
 ---
 
@@ -35,6 +42,19 @@ trên **QuantConnect**. Không gõ code, không công thức — kéo khối, n�
 | Execution | Đưa vị thế về mục tiêu bằng lệnh gì, lúc nào? | lệnh thật |
 
 Số lượng, lô tối thiểu, ký quỹ, phí, trượt giá: QC tính. App không đụng vào.
+
+## Trình vẽ làm được gì
+
+* **Bốn loại khối**: Bắt đầu · **Nhóm** (gói một chuỗi hành động vào một hộp) · Khối lẻ ·
+  **Quay về** (nhảy ngược lên một khối phía trước — khối trụ để vẽ vòng lặp).
+* **Hạt nhân** — gói cả một mảng sơ đồ thành một khung nhỏ, bấm đúp là vào bên trong
+  sửa như một sơ đồ riêng. **Chỉ là cách nhìn**: bộ chạy và số thứ tự không biết gì về
+  nó, nên vào trong rồi huy hiệu vẫn là số của cả sơ đồ.
+* **Ô tìm** không dấu (`ghi so` ra `Ghi sổ`), tìm cả số thứ tự, cộng **bốn lọc hỏi theo
+  dây**: chia nhánh · gộp nhánh · khối cuối · không chạy tới. Bấm một kết quả là máy
+  quay bay tới đúng khối, tự bước vào hạt nhân nếu nó nằm trong một mảng.
+* **Bảng Vấn đề** — bấm một dòng là tới đúng khối sai. **Nhật ký**, **phím tắt** (F2),
+  **menu chuột phải**, **hoàn tác**, **bản nháp + bản tự lưu**.
 
 ## Thứ sống sót qua hai lần dọn
 
@@ -54,7 +74,7 @@ Số lượng, lô tối thiểu, ký quỹ, phí, trượt giá: QC tính. App 
 
 ```bat
 tools\setup.bat        REM một lần sau khi clone: .venv + thư viện + build giao diện
-tools\chay_test.bat    REM phải thấy: ✔ 3/3 bài đều qua
+tools\chay_test.bat    REM phải thấy: ✔ 5/5 bài đều qua
 tools\chay.bat         REM mở app
 ```
 
@@ -85,11 +105,15 @@ cat_studio/
   khung_cua_so.py     vá khung cửa sổ Win32 cho thanh tiêu đề tự vẽ
   api.py              bề mặt DUY NHẤT giao diện gọi tới
 webui/src/
-  TrangTrong.tsx      trang tạm — nói thẳng là đang dựng lại
-  components/         thanh tiêu đề, hộp thoại, menu chuột phải, icon, hộp Kho
+  SoDo.tsx            TRÌNH VẼ: canvas, hạt nhân, ô tìm, menu chuột phải, bàn phím
+  components/         StepNode (thẻ khối) · HatNhan · DuongVong (dây ↻) · Ribbon ·
+                      OTimKhoi · BangDuoi · BangPhimTat · ContextMenu · Modal ·
+                      TitleBar · Icon · KhoDialog · HopDoiTen
   qc/HopKhoa.tsx      hộp Khoá QuantConnect
+  tim.ts              tìm khối: bỏ dấu, tô đoạn khớp
+  phim_tat.ts         bảng lệnh + phím tắt (tra BẢNG, không phải chuỗi else if)
   so.ts               đọc số khi gõ TỪNG PHÍM
-tests/                3 bài kiểm, chạy bằng `tools\chay_test.bat`
+tests/                5 bài kiểm, chạy bằng `tools\chay_test.bat`
 tai_lieu/core.md      nhật ký kỹ thuật: vì sao từng thứ như hiện tại
 DECISIONS.md          quyết định lớn, kèm phương án đã cân nhắc
 TIEP_TUC.md           đang ở đâu, làm gì tiếp

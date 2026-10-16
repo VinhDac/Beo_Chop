@@ -344,3 +344,51 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   một trình vẽ rỗng. 3 bài kiểm còn lại đều xanh.
 - **Trạng thái quyết định:** chốt, đã dọn. Bộ khối mới và cách tương tác mới sẽ do chủ
   dự án chỉ đường lối, bắt đầu từ danh sách những gì QuantConnect thật sự cho.
+
+## D-13 · Chép hạ tầng trình vẽ từ Jenifer_Studio  (chốt 2026-10-16)
+
+> Chủ dự án chỉ sang `Jenifer_Studio` — một bộ tự động hoá game của chính mình — và
+> nói: *"đó là những gì tôi thực sự muốn về cách tạo sơ đồ, tư duy"*, rồi
+> *"copy hết những gì copy được, sau đó ta tự sửa chi tiết sau"*.
+
+- **Vì sao tin được:** không phải tham khảo một thư viện đẹp trên mạng, mà một sơ đồ
+  THẬT đã được dựng tới quy mô ấy: template `trial chaos 30` có **1.170 khối ·
+  1.468 dây · 243 Nhóm ôm 2.253 hành động** trên canvas **19.367 × 16.055**. Mọi thứ
+  chép về đều là lời giải cho một câu hỏi duy nhất: *làm sao không lạc trong 1.170
+  khối*.
+- **NGỮ PHÁP CHỈ CÓ BỐN HÌNH** (đo trên chính sơ đồ ấy):
+  1. **Chuỗi** → gập thành **Nhóm** (một hộp ôm một dãy hành động).
+  2. **Bảng tra vẽ ra** — một khối rẽ N nhánh, **mỗi nhánh mở đầu bằng CÙNG MỘT KIỂU
+     CÂU HỎI chỉ khác tham số**, rồi gộp về một chỗ. Đo được **45/45 chỗ rẽ ≥3 nhánh
+     đều đồng loại**, nhánh thoát không cổng xếp dưới cùng ở 28/45 chỗ.
+  3. **Quay về** — khối cụt nhảy ngược lên, 91 cái, 37 đích, **91/91 trỏ trong cùng
+     một lớp**.
+  4. **Hình thoi khép kín** — mở ra bao nhiêu thì đóng lại bấy nhiêu.
+- **Lối tư duy đứng sau:** **559/610 khối mở đầu nhánh là khối HỎI**. Chương trình
+  không viết theo lối "làm A rồi B rồi C" mà theo lối *nhìn xem thế giới đang ở trạng
+  thái nào → chạy tay xử lý của trạng thái ấy → quay về nhìn lại*. Đó là **máy trạng
+  thái phản ứng**, và nó khớp đúng hình dạng của QuantConnect: mỗi nến, nhìn dữ liệu,
+  quyết, đặt lệnh, chờ nến sau.
+- **Hệ quả quan trọng nhất:** khối hỏi chỉ trả lời được về MỘT thứ, nên *"cái nào
+  trong N cái"* không có cú pháp — nó thành **hình học**: N làn kẻ cạnh nhau.
+  **Cấu trúc CHÍNH LÀ chương trình.** Giữ nguyên lối ấy, không đẻ ra một khối "rẽ theo
+  giá trị" nhiều cổng có nhãn: nhãn trên cổng là thứ có thể nói dối, còn N làn thì mỗi
+  làn tự nói ra nó là nhánh nào và ưu tiên nhìn thấy được trên canvas.
+- **Chốt hình dạng tài liệu:** **MỘT SƠ ĐỒ PHẲNG DUY NHẤT**, không chia năm trạm. Cấu
+  trúc do người chơi tự đặt bằng **hạt nhân**, không do app áp sẵn.
+- **Đã chép về (8 bước, mỗi bước một commit, mỗi bước xanh rồi mới sang bước sau):**
+  Nhóm · Quay về (hai cách khai đổ vào một bảng `canh_vong`) · `KHOA_CANVAS` (pos, màu,
+  ghim, hạt nhân — khoá tả CÁI NÚT, bộ chạy không đọc) · một cửa soát duy nhất · ba
+  tầng lưu · thẻ khối do Python dựng · dây ↻ vồng lên · **hạt nhân** · ô tìm không dấu
+  + bốn lọc hỏi theo dây · menu chuột phải · phím tắt tra bảng · bảng dưới.
+- **Cố ý KHÔNG chép:** bộ song ngữ (Cat chỉ tiếng Việt), chế độ (Cat chỉ một loại tài
+  liệu), và mọi thứ dính game.
+- **Bài học đắt nhất, đã ghi vào `tools/xem_thu.py`:** khung xem thử không vẽ thì phép
+  đo nói dối. `ResizeObserver` chỉ bắn trong nhịp vẽ, mà cửa sổ bị che là trình duyệt
+  bỏ nhịp ấy — đọc DOM thấy đủ khối mà KHÔNG một đường nối nào. Đã truy nhầm sang bản
+  React Flow, bản React, StrictMode và CSS trước khi nhận ra không có lỗi nào cả.
+- **Trạng thái:** trình vẽ chạy thật — vẽ được sơ đồ rẽ nhánh có vòng, đánh số
+  `1 · 2 · 2A · 2A.1 · 2B · 2B.1 · 3 · 4`, gom hạt nhân và bấm đúp vào trong sửa.
+  **Bộ khối vẫn chưa có**: khối hiện mới là `Nhóm` / `Khối lẻ` / `Quay về` trống ruột.
+  Việc kế tiếp là nghĩ nội dung từng khối HỎI và LÀM, mỗi cái phải là một món có thật
+  của QuantConnect.

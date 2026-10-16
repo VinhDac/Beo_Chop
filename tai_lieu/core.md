@@ -3054,3 +3054,73 @@ khoá, chưa vẽ và chưa chạy được gì.
 
 **Việc kế tiếp:** thiết kế bộ khối mới + cách tương tác, bắt đầu từ danh sách những gì
 QuantConnect thật sự cho.
+
+## 27. ⭐ CHÉP HẠ TẦNG TRÌNH VẼ TỪ JENIFER_STUDIO (D-13)
+
+**Nguồn:** `C:\Users\Davin\Desktop\Jenifer_Studio` — bộ tự động hoá Path of Exile 2
+của chính chủ dự án. Hai lõi cùng dòng dõi (cùng cách đặt tên, cùng chú thích về bẫy
+Auto_Clicker), nên phần lớn việc không phải chép mù mà là **mang lại thứ Cat_Studio đã
+bỏ mất**.
+
+**Vì sao tin được nguồn này:** template `trial chaos 30` là một sơ đồ THẬT ở quy mô
+1.170 khối / 1.468 dây / canvas 19.367×16.055 — khoảng 60 màn hình ngang, 50 màn hình
+dọc. Mọi con số thiết kế dưới đây đều đến từ việc phải sống được với quy mô ấy.
+
+### Bốn hình của ngữ pháp sơ đồ
+
+| Hình | Đo được trên `trial chaos 30` |
+|---|---|
+| Chuỗi gập thành **Nhóm** | 243 Nhóm ôm 2.253 hành động — không có nó thì canvas 3.180 hộp thay vì 1.170 |
+| **Bảng tra vẽ ra** | 45/45 chỗ rẽ ≥3 nhánh ĐỀU đồng loại; nhánh thoát không cổng xếp cuối ở 28/45 |
+| **Quay về** | 91 khối, 37 đích, 91/91 trỏ trong cùng một lớp |
+| **Hình thoi** | 11 chỗ rẽ 7 nhánh ↔ 11 chỗ gộp 7 dây |
+
+Độ rộng chỗ rẽ thực tế: 2 nhánh (173 chỗ) · 3 (13) · 4 (1) · 5 (8) · 7 (11) · 8 (4) ·
+9 (8). **559/610 khối mở đầu nhánh là khối HỎI.**
+
+### Thứ đã chép, và vì sao
+
+- **Nhóm** — `core.py` từng TỪ CHỐI nó: *"gộp nhóm chỉ đẻ thêm câu hỏi nhóm có phải một
+  đơn vị chạy không"*. Câu hỏi ấy có câu trả lời: **không**. Nhóm là một hộp ôm một
+  chuỗi hành động chạy thẳng một lượt — đúng bằng ngần ấy khối lẻ nối thành hàng.
+- **Quay về** — vòng lặp VẼ RA thay vì để ngầm. Vòng ngầm "mỗi nến chạy lại từ khối Bắt
+  đầu" chỉ quay về đúng một chỗ; sơ đồ thật cần quay về GIỮA CHỪNG. Hai cách khai
+  (đường ↻ mang số vòng, khối Quay về điền đích) đổ vào MỘT bảng `canh_vong`.
+- **`KHOA_CANVAS`** (`pos`, `mau`, `ghim`, `hat_nhan`) — khoá tả CÁI NÚT, không tả việc
+  khối làm. Bộ chạy, đánh số, bảng Vấn đề đều không đọc. `hat_nhan` ghi trên TỪNG khối
+  chứ không thành danh sách riêng, nên lưu / mở / tự lưu / hoàn tác tự mang theo.
+- **Hạt nhân** — gói một mảng sơ đồ thành một khung, bấm đúp vào trong. Lối vào / lối
+  ra đều SUY RA từ dây, không ai khai. Vào trong rồi huy hiệu vẫn là số của CẢ sơ đồ.
+- **Ô tìm** — không dấu, tìm cả số thứ tự, và bốn **lọc hỏi theo DÂY**: chia nhánh ·
+  gộp nhánh · khối cuối · không chạy tới. Đây mới là cách soát sơ đồ nghìn khối.
+- **Một cửa soát duy nhất** (`api.soat`) — số thứ tự + thẻ + Vấn đề + bảng vòng trong
+  một lượt. Tách ba cửa thì ba lượt gọi có thể thấy ba trạng thái khác nhau.
+- **Ba tầng lưu** — bản nháp dùng chung / bản tự lưu cạnh bản gốc (CHỈ đẻ khi nội dung
+  thật sự khác đĩa) / lưu thật (xong là xoá bản tự lưu).
+- **Phím tắt tra BẢNG** — không phải chuỗi `else if` (bản cũ có ba chỗ phải kèm cảnh
+  báo cùng một lỗi: `ctrl && key==='g'` nuốt luôn Ctrl+Shift+G).
+
+### Cố ý KHÔNG chép
+
+Bộ song ngữ (Cat chỉ tiếng Việt), hệ chế độ (Cat chỉ một loại tài liệu), và mọi thứ
+dính game. Khối "HĐ đặc biệt", "Loop", `--dacbiet` cũng để lại.
+
+### ⚠ Bài học đắt nhất: khung xem thử không vẽ thì phép đo nói dối
+
+`ResizeObserver` — thứ React Flow dùng để đo cỡ từng khối — **chỉ bắn trong nhịp vẽ**,
+mà cửa sổ bị che là trình duyệt bỏ nhịp ấy. Hậu quả: đọc DOM bằng JavaScript thì thấy
+đủ 8 khối nhưng **không một đường nối nào**, vì chưa đo được cỡ thì chưa tính nổi chỗ
+cắm dây. Đã truy nhầm sang bản React Flow, bản React, StrictMode và CSS — rồi gắn máy
+đếm vào `ResizeObserver` mới thấy `observe()` gọi 10 lần mà callback chạy 0 lần.
+**Luật: chụp ảnh một nhát (ảnh ép trang vẽ) rồi mới tin phép đo.** Đã ghi vào đầu
+`tools/xem_thu.py`.
+
+### Một lần nữa, bài kiểm làm đúng việc của nó
+
+`test_giao_dien` bắt được **năm biến CSS ma** theo bản chép vào (`--dacbiet`, `--mau`,
+`--vong`, `--vong-soft`, `--surface-2`). Hai cái là màu vòng lặp phải khai thật, một
+cái là biến JS đặt lúc chạy, hai cái còn lại đi kèm những luật CSS cho class mà Cat
+KHÔNG hề vẽ ra — luật chết mang theo biến ma.
+
+**Trạng thái:** trình vẽ chạy thật. **Bộ khối vẫn chưa có** — `Nhóm` / `Khối lẻ` /
+`Quay về` còn trống ruột. Việc kế tiếp: nghĩ nội dung từng khối HỎI và LÀM.
