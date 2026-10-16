@@ -19,13 +19,14 @@ import KhoStrategy from './components/KhoStrategy'
 import HopDieuKien from './components/HopDieuKien'
 import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
 import HopBatDau from './components/HopBatDau'
+import HopSinhMa from './components/HopSinhMa'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  TuDienBatDau, TuDienLam, VanDe,
+  KetQuaSinh, TuDienBatDau, TuDienLam, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -197,6 +198,8 @@ function SoDoTrong() {
   const [tuDienLam, setTuDienLam] = useState<TuDienLam | null>(null)
   /** Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập. */
   const [tuDienBD, setTuDienBD] = useState<TuDienBatDau | null>(null)
+  /** Mã LEAN vừa sinh — null = chưa mở hộp. */
+  const [maSinh, setMaSinh] = useState<KetQuaSinh | null>(null)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -942,6 +945,12 @@ function SoDoTrong() {
     themNhom: () => void themKhoi('group'),
     themKhoiLe: () => void themKhoi('action'),
     themQuayVe: () => void themKhoi('action', 'quay_ve'),
+    sinhMa: () => void (async () => {
+      const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
+                                 rfSangEdges(edges), false)
+      if (r.ok && r.value) setMaSinh(r.value)
+      else await bao({ loi: r.error ?? 'không sinh được mã' })
+    })(),
     themHoi: (loai: string) => void themKhoi('action', loai),
     themLam: (loai: string) => void themKhoi('action', loai),
     loaiLam: (tuDienLam?.loai ?? []).map(l => ({ ma: l.ma, nhan: l.nhan, icon: l.icon,
@@ -1162,6 +1171,14 @@ function SoDoTrong() {
         }
         return null
       })()}
+      {maSinh && (
+        <HopSinhMa kq={maSinh} onDong={() => setMaSinh(null)}
+                   onGhi={() => void (async () => {
+                     const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
+                                                rfSangEdges(edges), true)
+                     if (r.ok && r.value) setMaSinh(r.value)
+                   })()} />
+      )}
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
       {moKhoStrategy && (
         <KhoStrategy

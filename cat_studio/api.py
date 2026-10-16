@@ -21,6 +21,7 @@ import time
 import traceback
 
 from . import core
+from . import sinh_ma
 from . import bat_dau
 from . import hoi
 from . import lam
@@ -199,6 +200,17 @@ class Api(NenCuaSo):
         bảng thì sớm muộn lệch nhau, và lúc ấy hộp thoại bày ra một đại lượng mà bộ
         sinh mã không biết viết."""
         return _ok(hoi.tu_dien())
+
+    @_bat_loi
+    def sinh_ma(self, ten, steps, edges=None, ghi=False):
+        """Sơ đồ -> thuật toán LEAN Python. `ghi` True thì ghi luôn ra file.
+
+        Trả cả `van_de`: có lỗi thì `ok` False và ĐừNG chạy file ấy — nhưng vẫn đưa
+        mã ra để người chơi nhìn thấy sơ đồ của mình thành cái gì."""
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        if ghi and kq["ma"]:
+            kq["duong"] = luu_tru.ghi_ma(kq["ten_lop"], kq["ma"])
+        return _ok(kq)
 
     @_bat_loi
     def tu_dien_bat_dau(self):

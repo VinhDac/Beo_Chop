@@ -62,6 +62,8 @@ export interface ViecRibbon {
   lamLai: () => void
   gomHatNhan: () => void
   taHatNhan: () => void
+  /** Sinh thuật toán LEAN từ sơ đồ đang vẽ. */
+  sinhMa: () => void
   luu: () => void
   luuThanh: () => void
   mo: () => void
@@ -130,6 +132,13 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
         <Nut ten="Lưu" icon="save" onClick={v.luu} />
         <Nut ten="Lưu thành…" icon="copy" onClick={v.luuThanh}
              title="Lưu thành một Strategy mới, giữ nguyên bản đang mở" />
+      </Nhom>
+
+      {/* Sơ đồ thành thuật toán LEAN. Đứng riêng một nhóm vì nó là ĐẦU RA của cả việc
+          vẽ, không phải một thao tác sửa. */}
+      <Nhom ten="Chạy">
+        <Nut ten="Sinh mã" icon="chay" onClick={v.sinhMa}
+             title="Sơ đồ này thành thuật toán LEAN Python — xem trước rồi lưu ra file" />
       </Nhom>
     </div>
   )

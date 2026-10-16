@@ -3323,3 +3323,108 @@ trả xu nào. Nên khối Bắt đầu mặc định chạy trên XAUUSD.
 
 **Trạng thái:** cả hai nửa của thuật toán đã khai được trên canvas. **Bộ sinh mã vẫn
 chưa có** — sơ đồ chưa biến thành file Python chạy được. Đó là việc kế tiếp.
+
+---
+
+## 30. ⭐ BỘ SINH MÃ — sơ đồ thành thuật toán LEAN chạy được (D-16)
+
+Đây là chỗ cả dự án quy về một câu của chủ dự án: *cái script và cái ta vẽ phải ra
+cùng một thứ, chỉ khác cách trình bày*.
+
+### Luật gốc: bộ sinh mã KHÔNG tự nghĩ ra một câu LEAN nào
+
+Mọi câu nó viết đều lấy từ ô `lean` của ba từ điển, chỉ thay chỗ trống bằng giá trị.
+Để làm được thế, **ô `lean` phải đổi từ lời khai sang BIỂU THỨC PYTHON CHẠY ĐƯỢC**:
+
+| | trước | nay |
+|---|---|---|
+| đại lượng | `Securities[sym].Price` | `self.securities[sym].price` |
+| chỉ báo | `RSI(sym, n)` | `self.rsi(sym, n)` |
+| hành động | `SetHoldings(sym, ty_trong, …)` | `self.set_holdings({sym}, {ty_trong}, …)` |
+
+Vì sao đáng đổi 68 + 8 chuỗi: **nếu `lean` chỉ là lời khai thì phải có một bộ chuyển
+đổi ở giữa, và bộ đó sai thì sai ÂM THẦM.** Nay lời khai và đoạn code là MỘT. Thêm một
+chỉ báo = thêm một dòng vào từ điển, không đụng bộ sinh mã.
+
+Và bản LEAN này **392/444 thuật toán Python dùng snake_case, PascalCase không còn file
+nào** — nên đổi casing cũng là bắt buộc, không phải chuyện thẩm mỹ.
+
+⚠ Đổi xong lộ ra **một mục bịa**: `Delay(n)` khai là chỉ báo, mà grep
+`QCAlgorithm.Indicators.cs` ra **0 chữ ký**. Nó là một LỚP dựng tay rồi `register_
+indicator`, đúng như `DisplacedMovingAverageRibbon.py` làm — nên nó có thêm ô `lean_dk`
+(dòng đăng ký).
+
+### Ba thứ bộ sinh mã TỰ LO
+
+Cả ba đều là đếm trên **sơ đồ của chính ta**, không phải tính trên dữ liệu thị trường:
+
+1. **Nâng chỉ báo lên `initialize`.** Hai khối cùng viết RSI(14) dùng CHUNG một chỉ
+   báo — khai hai lần là LEAN nuôi hai bộ đếm y hệt nhau.
+2. **Làm nóng.** `set_warm_up(chu kỳ dài nhất)`.
+3. **Vòng lặp nhiều mã.** Ô *nhịp* + ô *mã* của khối Bắt đầu đã khai trọn vòng.
+
+### Hình dạng mã sinh ra — cố ý DỄ ĐỌC
+
+Không sinh máy trạng thái, không sinh bảng nhảy. Khối Hỏi thành `if`, nhánh thành
+`if/elif` (vì các làn được thử LẦN LƯỢT — ngữ nghĩa `is_branch_gate` đã chốt từ D-13),
+khối Làm thành đúng một câu gọi:
+
+```
+if (self._cb[sym]['rsi_14'].current.value < 30):   # 1A · Quá bán?
+    self.set_holdings(sym, 1.0, False, tag='[1A.1] RSI(14) < 30')
+elif (self._cb[sym]['rsi_14'].current.value > 70): # 1B · Quá mua?
+    self.liquidate(sym, tag='[1B.1] RSI(14) > 70')
+```
+
+Ô `tag` tự điền **số khối + điều kiện vừa khớp** — lời hứa D-11 *"chữ vì sao do chính
+đoạn code tự ghi"*, và nó miễn phí vì LEAN nhận sẵn tham số ấy.
+
+### CHƯA sinh được — báo rõ chứ không đoán
+
+- **Vòng lặp** (khối Quay về, đường ↻). Trong một nến thì dữ liệu không đổi, nên chạy
+  lại một đoạn chỉ cho đúng kết quả cũ; sinh bừa một `for` là sinh ra thứ sơ đồ không
+  nói. Vòng DUY NHẤT có nghĩa trong giao dịch — mỗi nến, mỗi mã — thì khối Bắt đầu lo.
+- **Mã lạ**: điều kiện trỏ tới mã chưa khai ở khối Bắt đầu. Tự `add_*` thêm là tự
+  quyết hộ người chơi một đăng ký dữ liệu.
+
+### ✅ ĐÃ CHẠY THẬT trên LEAN
+
+Sơ đồ *vàng + RSI(14)*, XAUUSD giá ngày 2015–2018, dữ liệu miễn phí:
+
+| | |
+|---|---|
+| Tổng lệnh | 15 |
+| Lãi ròng | **+16,376%** |
+| Tỉ lệ thắng | 71% |
+| Sụt sâu nhất | 13,2% |
+| Sharpe | 0,219 |
+
+(Python 3.14 + QuantConnect.pythonnet 2.0.66 chạy được; lỗi *"GIL must always be
+released"* lúc tắt là vô hại — kết quả đã ghi xong, đừng tin mã thoát, hãy đọc file.)
+
+### ⚠⚠ BẪY LỚN NHẤT TÌM RA — và nó lặng hoàn toàn
+
+Lần chạy ĐẦU ra **111 lệnh, lãi 0%, phí $0**. Mở `order-events.json` mới thấy cả 111
+lệnh đều `invalid`:
+
+> *The OandaBrokerageModel does not support MarketOnClose order type.*
+
+Gốc rễ, truy trong `QCAlgorithm.Trading.cs`: nhịp **mỗi nến NGÀY** thì LEAN không có
+giá trong ngày để khớp (`IsDailyResolutionOnly`), nên nó **tự đổi lệnh thị trường
+thành MarketOnClose**. Mà `_supportedOrderTypes` của Oanda / Binance / Coinbase chỉ có
+`[Limit, Market, StopMarket, StopLimit]`.
+
+**Hậu quả:** backtest chạy hết, báo đủ thống kê, lãi 0% — và không một dòng lỗi nào
+nổi lên. Nay `soat_khoi_bat_dau` cảnh báo đúng tổ hợp ấy (`bat_dau.SAN_KHONG_NHAN_MOC`,
+danh sách đọc thẳng từ `Common/Brokerages/`). Đổi sàn sang Mặc định: **15 lệnh,
++16,376%**.
+
+### Và một cảnh báo SAI đã sống từ D-14
+
+`validate_flow_graph` đọc khoá `conditions` — thứ đã chết cùng bộ khối cũ (D-12). Nên
+MỌI cặp cổng đều băm ra `[]` giống nhau và bị báo *"hai nhánh trùng điều kiện"*, kể cả
+`RSI < 30` với `RSI > 70`. Cảnh báo sai thì người ta học cách bỏ qua nó, và lần nó
+đúng cũng bị bỏ qua nốt.
+
+**Trạng thái:** vẽ → sinh → chạy đã thông. Chưa có: chạy LEAN *từ trong app* (hiện
+phải tự chạy tay), vòng lặp, chọn mã động, và lớp game.

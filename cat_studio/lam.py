@@ -67,7 +67,7 @@ DAT_TY_TRONG = {
     "icon": "dat-co",
     "nhom": NHOM_LENH,
     "can_ma": True,
-    "lean": "SetHoldings(sym, ty_trong, ban_sach_truoc, tag=tag)",
+    "lean": "self.set_holdings({sym}, {ty_trong}, {ban_sach_truoc}, tag={tag})",
     "o": [
         _o("ty_trong", "Tỷ trọng mục tiêu", O_SO, 0.3, "phần",
            "0.3 = 30% danh mục. Số âm = bán khống. 0 = thoát sạch."),
@@ -86,7 +86,7 @@ LENH_THI_TRUONG = {
     "icon": "vao-lenh",
     "nhom": NHOM_LENH,
     "can_ma": True,
-    "lean": "MarketOrder(sym, so_luong, tag=tag)",
+    "lean": "self.market_order({sym}, {so_luong}, tag={tag})",
     "o": [_O_SO_LUONG, O_TAG],
 }
 
@@ -99,7 +99,7 @@ DONG = {
     "icon": "minus",
     "nhom": NHOM_LENH,
     "can_ma": True,
-    "lean": "Liquidate(sym, tag=tag)  |  Liquidate(tag=tag)",
+    "lean": "self.liquidate(…)",
     "o": [
         _o("pham_vi", "Đóng cái gì", O_CHON, "ma_nay", "", "", [
             ("ma_nay", "Chỉ mã này"),
@@ -107,6 +107,11 @@ DONG = {
         ]),
         O_TAG,
     ],
+    # Hai phạm vi là HAI câu gọi khác nhau của LEAN, nên mỗi cái một mẫu riêng.
+    "theo_loai": {
+        "ma_nay": {"lean": "self.liquidate({sym}, tag={tag})", "o": []},
+        "tat_ca": {"lean": "self.liquidate(tag={tag})", "o": []},
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -138,26 +143,26 @@ LENH_CHO = {
     ],
     #: Ô thêm theo từng loại lệnh, kèm đúng hàm LEAN của nó.
     "theo_loai": {
-        "limit": {"lean": "LimitOrder(sym, so_luong, gia_gh, tag=tag)",
+        "limit": {"lean": "self.limit_order({sym}, {so_luong}, {gia_gh}, tag={tag})",
                   "o": [_o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
-        "stop": {"lean": "StopMarketOrder(sym, so_luong, gia_kh, tag=tag)",
+        "stop": {"lean": "self.stop_market_order({sym}, {so_luong}, {gia_kh}, tag={tag})",
                  "o": [_o("gia_kh", "Giá kích hoạt", O_SO, 0, "giá")]},
         "stop_limit": {
-            "lean": "StopLimitOrder(sym, so_luong, gia_kh, gia_gh, tag=tag)",
+            "lean": "self.stop_limit_order({sym}, {so_luong}, {gia_kh}, {gia_gh}, tag={tag})",
             "o": [_o("gia_kh", "Giá kích hoạt", O_SO, 0, "giá"),
                   _o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
         "trailing": {
-            "lean": "TrailingStopOrder(sym, so_luong, khoang_truot, truot_theo_pt, "
-                    "tag=tag)",
+            "lean": "self.trailing_stop_order({sym}, {so_luong}, {khoang_truot}, "
+                    "{truot_theo_pt}, tag={tag})",
             "o": [_o("khoang_truot", "Khoảng trượt", O_SO, 0.05, "",
                      "Theo % thì 0.05 = 5%; theo tiền thì là số tiền."),
                   _o("truot_theo_pt", "Trượt theo %", O_CO_KHONG, True, "",
                      "Tắt = trượt theo số tiền tuyệt đối.", bat_buoc=False)]},
-        "lit": {"lean": "LimitIfTouchedOrder(sym, so_luong, gia_cham, gia_gh, tag=tag)",
+        "lit": {"lean": "self.limit_if_touched_order({sym}, {so_luong}, {gia_cham}, {gia_gh}, tag={tag})",
                 "o": [_o("gia_cham", "Giá chạm", O_SO, 0, "giá"),
                       _o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
-        "moo": {"lean": "MarketOnOpenOrder(sym, so_luong, tag=tag)", "o": []},
-        "moc": {"lean": "MarketOnCloseOrder(sym, so_luong, tag=tag)", "o": []},
+        "moo": {"lean": "self.market_on_open_order({sym}, {so_luong}, tag={tag})", "o": []},
+        "moc": {"lean": "self.market_on_close_order({sym}, {so_luong}, tag={tag})", "o": []},
     },
 }
 
@@ -172,7 +177,7 @@ HUY_LENH_CHO = {
     "icon": "unlink",
     "nhom": NHOM_LENH,
     "can_ma": True,
-    "lean": "Transactions.CancelOpenOrders(sym, tag)",
+    "lean": "self.transactions.cancel_open_orders({sym}, {tag})",
     "o": [O_TAG],
 }
 
@@ -185,7 +190,7 @@ GHI_CHU = {
     "icon": "edit",
     "nhom": NHOM_GHI,
     "can_ma": False,
-    "lean": "Debug(cau) | Log(cau) | Error(cau) | Quit(cau)",
+    "lean": "self.debug / log / error / quit",
     "o": [
         _o("muc", "Mức", O_CHON, "debug", "", "", [
             ("debug", "Debug — hiện ngay trong nhật ký"),
@@ -198,6 +203,13 @@ GHI_CHU = {
         _o("cau", "Câu chữ", O_CHU, "", "",
            "Viết thẳng, hoặc để trống cho bộ sinh mã tự điền.", bat_buoc=False),
     ],
+    # Bốn mức là BỐN hàm khác nhau của LEAN, không phải một hàm có tham số mức.
+    "theo_loai": {
+        "debug": {"lean": "self.debug({cau})", "o": []},
+        "log": {"lean": "self.log({cau})", "o": []},
+        "error": {"lean": "self.error({cau})", "o": []},
+        "quit": {"lean": "self.quit({cau})", "o": []},
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -211,7 +223,7 @@ VE_BANG = {
     "icon": "kieu-line",
     "nhom": NHOM_GHI,
     "can_ma": True,
-    "lean": "Plot(bang, ten_duong, gia_tri)",
+    "lean": "self.plot({bang}, {ten_duong}, {gia_tri})",
     "o": [
         _o("bang", "Tên bảng", O_CHU, "Chỉ báo"),
         # `ten_duong` chứ không phải `duong`: trong một vế đại lượng, `duong` đã có
@@ -231,7 +243,7 @@ BAO_TIN = {
     "icon": "up",
     "nhom": NHOM_GHI,
     "can_ma": False,
-    "lean": "Notify.Email | Notify.Sms | Notify.Telegram | Notify.Web",
+    "lean": "self.notify.email / sms / telegram / web",
     "tat": "Backtest KHÔNG gửi gì — khối này chỉ có tác dụng khi chạy thật (paper "
            "hoặc tiền thật). Vẽ ra thì chạy backtest sẽ lặng.",
     "o": [
@@ -245,6 +257,15 @@ BAO_TIN = {
            "", "Địa chỉ email / số điện thoại / id Telegram / địa chỉ web."),
         _o("cau", "Nội dung", O_CHU, ""),
     ],
+    # Bốn kênh, bốn chữ ký khác nhau — đọc từ `NotificationManager.cs`:
+    #   Email(address, subject, message)  ·  Sms(phoneNumber, message)
+    #   Telegram(id, message)             ·  Web(address, data)
+    "theo_loai": {
+        "email": {"lean": "self.notify.email({dich}, {cau}, {cau})", "o": []},
+        "sms": {"lean": "self.notify.sms({dich}, {cau})", "o": []},
+        "telegram": {"lean": "self.notify.telegram({dich}, {cau})", "o": []},
+        "web": {"lean": "self.notify.web({dich}, {cau})", "o": []},
+    },
 }
 
 # ---------------------------------------------------------------------------

@@ -206,6 +206,17 @@ export interface TuDienLam {
   loai: LoaiLam[]
 }
 
+/** Kết quả sinh mã. `ok` False thì `ma` vẫn có (phần sinh được) — nhưng ĐừNG chạy:
+ *  `van_de` nói chỗ nào sơ đồ chưa diễn đạt hết. */
+export interface KetQuaSinh {
+  ok: boolean
+  ma: string
+  ten_lop: string
+  van_de: VanDe[]
+  /** Có khi đã ghi ra file. */
+  duong?: string
+}
+
 /* ------------------------------ Khối BẮT ĐẦU -------------------------------- */
 
 /** Một dòng trong danh sách mã. Mỗi loại tài sản là một hàm `add_*` khác của LEAN. */

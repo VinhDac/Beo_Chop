@@ -471,3 +471,38 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   trên XAUUSD.
 - **Trạng thái:** cả hai nửa của thuật toán đã khai được trên canvas, 8/8 bài kiểm
   xanh. **Bộ sinh mã vẫn chưa có.**
+
+## D-16 — Bộ sinh mã: sơ đồ thành thuật toán LEAN chạy được
+
+- **Luật gốc:** bộ sinh mã **không tự nghĩ ra một câu LEAN nào**. Mọi câu nó viết lấy
+  từ ô `lean` của ba từ điển, chỉ thay chỗ trống bằng giá trị.
+- **Hệ quả: ô `lean` phải đổi từ lời khai sang BIỂU THỨC PYTHON CHẠY ĐƯỢC**
+  (`Securities[sym].Price` → `self.securities[sym].price`). Vì nếu `lean` chỉ là lời
+  khai thì phải có một bộ chuyển đổi ở giữa, mà bộ đó sai thì sai ÂM THẦM. Nay lời
+  khai và đoạn code là MỘT — thêm một chỉ báo là thêm một dòng vào từ điển.
+  Bản LEAN này cũng đã bỏ PascalCase: 392/444 thuật toán Python dùng snake_case.
+- **Đổi xong lộ ra một mục BỊA:** `Delay(n)` khai là chỉ báo, mà
+  `QCAlgorithm.Indicators.cs` không có chữ ký nào. Nó là một lớp dựng tay rồi
+  `register_indicator` — nay có thêm ô `lean_dk` cho đúng.
+- **Ba thứ bộ sinh mã tự lo**, cả ba đều đếm trên sơ đồ của chính ta: nâng chỉ báo lên
+  `initialize` (hai khối cùng RSI(14) dùng chung một cái) · `set_warm_up` · vòng lặp
+  nhiều mã.
+- **Mã sinh ra cố ý DỄ ĐỌC**: không máy trạng thái, không bảng nhảy. Khối Hỏi thành
+  `if`, nhánh thành `if/elif`, khối Làm thành đúng một câu gọi. Người đọc file phải
+  nhận ra sơ đồ của mình trong đó — đó là cả lý do dự án tồn tại.
+- **Chưa sinh được thì BÁO, không đoán:** vòng lặp (trong một nến dữ liệu không đổi,
+  chạy lại một đoạn chỉ cho đúng kết quả cũ) và mã chưa khai ở khối Bắt đầu (tự
+  `add_*` là tự quyết hộ một đăng ký dữ liệu).
+- **✅ ĐÃ CHẠY THẬT:** sơ đồ vàng + RSI(14) trên XAUUSD giá ngày 2015–2018 (dữ liệu
+  miễn phí) → **15 lệnh, +16,376%, thắng 71%, sụt sâu nhất 13,2%**.
+- **⚠⚠ BẪY LỚN NHẤT, và nó lặng hoàn toàn:** lần chạy đầu ra *111 lệnh, lãi 0%*. Mở
+  `order-events.json` mới thấy cả 111 lệnh đều `invalid` vì
+  *"OandaBrokerageModel does not support MarketOnClose"*. Gốc rễ: nhịp **mỗi nến
+  NGÀY** thì LEAN không có giá trong ngày để khớp nên nó tự đổi lệnh thị trường thành
+  **MarketOnClose**, mà Oanda/Binance/Coinbase không nhận loại ấy. Backtest vẫn chạy
+  hết, báo đủ thống kê, không một dòng lỗi. Nay `soat` cảnh báo đúng tổ hợp đó.
+- **Và một cảnh báo SAI đã sống từ D-14:** `validate_flow_graph` đọc khoá `conditions`
+  đã chết từ D-12, nên MỌI cặp cổng đều bị báo "trùng điều kiện" — kể cả `RSI < 30`
+  với `RSI > 70`. Cảnh báo sai thì người ta học cách bỏ qua nó.
+- **Trạng thái:** vẽ → sinh → chạy đã thông, 9/9 bài kiểm xanh. Chưa có: chạy LEAN
+  *từ trong app* (hiện phải chạy tay), vòng lặp, chọn mã động, lớp game.

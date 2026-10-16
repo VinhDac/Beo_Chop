@@ -46,16 +46,23 @@ KIEU_SO = "so"
 KIEU_CO_KHONG = "co_khong"
 
 
-def _s(ma, nhan, lean, don_vi="", tham_so=()):
-    """Một đại lượng trả về SỐ."""
+def _s(ma, nhan, lean, don_vi="", tham_so=(), lean_dk=""):
+    """Một đại lượng trả về SỐ.
+
+    `lean` là BIỂU THỨC PYTHON CHẠY ĐƯỢC, không phải lời khai cho người đọc: bộ sinh
+    mã viết ra đúng chuỗi này (thay `sym` và tên tham số). Nhờ vậy không còn chỗ nào
+    cho một bộ chuyển đổi sai âm thầm — lời khai và đoạn code là MỘT.
+
+    `lean_dk` = dòng ĐĂNG KÝ phải viết thêm, cho chỉ báo nào dựng xong còn phải nối
+    vào dữ liệu (xem `delay`). `{bien}` = tên biến chỉ báo, `{res}` = độ phân giải."""
     return {"ma": ma, "nhan": nhan, "lean": lean, "kieu": KIEU_SO,
-            "don_vi": don_vi, "tham_so": list(tham_so)}
+            "don_vi": don_vi, "tham_so": list(tham_so), "lean_dk": lean_dk}
 
 
 def _ck(ma, nhan, lean):
     """Một đại lượng trả về ĐÚNG/SAI."""
     return {"ma": ma, "nhan": nhan, "lean": lean, "kieu": KIEU_CO_KHONG,
-            "don_vi": "", "tham_so": []}
+            "don_vi": "", "tham_so": [], "lean_dk": ""}
 
 
 def _ts(ten, nhan, mac_dinh, nho_nhat=1, lon_nhat=5000):
@@ -71,14 +78,14 @@ def _ts(ten, nhan, mac_dinh, nho_nhat=1, lon_nhat=5000):
 # chéo mã ("SPY tăng hơn QQQ không").
 
 GIA = [
-    _s("gia", "Giá hiện tại", "Securities[sym].Price", "giá"),
-    _s("mo", "Giá mở", "slice.Bars[sym].Open", "giá"),
-    _s("cao", "Giá cao", "slice.Bars[sym].High", "giá"),
-    _s("thap", "Giá thấp", "slice.Bars[sym].Low", "giá"),
-    _s("dong", "Giá đóng", "slice.Bars[sym].Close", "giá"),
-    _s("khoi_luong", "Khối lượng", "slice.Bars[sym].Volume", "lượng"),
-    _s("gia_mua", "Giá mua (bid)", "slice.QuoteBars[sym].Bid.Close", "giá"),
-    _s("gia_ban", "Giá bán (ask)", "slice.QuoteBars[sym].Ask.Close", "giá"),
+    _s("gia", "Giá hiện tại", "self.securities[sym].price", "giá"),
+    _s("mo", "Giá mở", "data.bars[sym].open", "giá"),
+    _s("cao", "Giá cao", "data.bars[sym].high", "giá"),
+    _s("thap", "Giá thấp", "data.bars[sym].low", "giá"),
+    _s("dong", "Giá đóng", "data.bars[sym].close", "giá"),
+    _s("khoi_luong", "Khối lượng", "data.bars[sym].volume", "lượng"),
+    _s("gia_mua", "Giá mua (bid)", "data.quote_bars[sym].bid.close", "giá"),
+    _s("gia_ban", "Giá bán (ask)", "data.quote_bars[sym].ask.close", "giá"),
 ]
 
 #: CHỈ BÁO. LEAN có 167 cái; đây là bộ ĐANG MỞ, chọn theo mức hay dùng. Thêm một cái
@@ -87,84 +94,88 @@ GIA = [
 #: `duong` = chỉ báo trả NHIỀU đường (MACD, Bollinger, Stochastic…). Giao diện bắt
 #: chọn một đường; thiếu nó thì "giá > Bollinger" là một câu vô nghĩa.
 CHI_BAO = [
-    _s("sma", "SMA — trung bình trượt", "SMA(sym, n)", "giá",
+    _s("sma", "SMA — trung bình trượt", "self.sma(sym, n)", "giá",
        [_ts("n", "Chu kỳ", 20)]),
-    _s("ema", "EMA — trung bình trượt luỹ thừa", "EMA(sym, n)", "giá",
+    _s("ema", "EMA — trung bình trượt luỹ thừa", "self.ema(sym, n)", "giá",
        [_ts("n", "Chu kỳ", 20)]),
-    _s("rsi", "RSI — sức mạnh tương đối", "RSI(sym, n)", "0–100",
+    _s("rsi", "RSI — sức mạnh tương đối", "self.rsi(sym, n)", "0–100",
        [_ts("n", "Chu kỳ", 14)]),
-    _s("atr", "ATR — biên độ thật trung bình", "ATR(sym, n)", "giá",
+    _s("atr", "ATR — biên độ thật trung bình", "self.atr(sym, n)", "giá",
        [_ts("n", "Chu kỳ", 14)]),
-    _s("adx", "ADX — độ mạnh xu hướng", "ADX(sym, n)", "0–100",
+    _s("adx", "ADX — độ mạnh xu hướng", "self.adx(sym, n)", "0–100",
        [_ts("n", "Chu kỳ", 14)]),
-    _s("cci", "CCI", "CCI(sym, n)", "", [_ts("n", "Chu kỳ", 20)]),
-    _s("mfi", "MFI — dòng tiền", "MFI(sym, n)", "0–100", [_ts("n", "Chu kỳ", 14)]),
-    _s("wilr", "Williams %R", "WILR(sym, n)", "-100–0", [_ts("n", "Chu kỳ", 14)]),
-    _s("mom", "Momentum", "MOM(sym, n)", "giá", [_ts("n", "Chu kỳ", 10)]),
-    _s("roc", "ROC — tốc độ đổi giá", "ROC(sym, n)", "tỉ lệ",
+    _s("cci", "CCI", "self.cci(sym, n)", "", [_ts("n", "Chu kỳ", 20)]),
+    _s("mfi", "MFI — dòng tiền", "self.mfi(sym, n)", "0–100", [_ts("n", "Chu kỳ", 14)]),
+    _s("wilr", "Williams %R", "self.wilr(sym, n)", "-100–0", [_ts("n", "Chu kỳ", 14)]),
+    _s("mom", "Momentum", "self.mom(sym, n)", "giá", [_ts("n", "Chu kỳ", 10)]),
+    _s("roc", "ROC — tốc độ đổi giá", "self.roc(sym, n)", "tỉ lệ",
        [_ts("n", "Chu kỳ", 10)]),
-    _s("std", "Độ lệch chuẩn", "STD(sym, n)", "giá", [_ts("n", "Chu kỳ", 20)]),
-    _s("obv", "OBV — khối lượng cân bằng", "OBV(sym)", "lượng"),
-    _s("vwap", "VWAP — giá bình quân theo khối lượng", "VWAP(sym)", "giá"),
-    _s("psar", "Parabolic SAR", "PSAR(sym)", "giá"),
+    _s("std", "Độ lệch chuẩn", "self.std(sym, n)", "giá", [_ts("n", "Chu kỳ", 20)]),
+    _s("obv", "OBV — khối lượng cân bằng", "self.obv(sym)", "lượng"),
+    _s("vwap", "VWAP — giá bình quân theo khối lượng", "self.vwap(sym)", "giá"),
+    _s("psar", "Parabolic SAR", "self.psar(sym)", "giá"),
     # --- NHỚ LẠI QUÁ KHỨ: ba cái này thay cho mọi phép "nhìn lại" ---
-    _s("max", "Cao nhất N nến", "MAX(sym, n)", "giá", [_ts("n", "Số nến", 20)]),
-    _s("min", "Thấp nhất N nến", "MIN(sym, n)", "giá", [_ts("n", "Số nến", 20)]),
+    _s("max", "Cao nhất N nến", "self.max(sym, n)", "giá", [_ts("n", "Số nến", 20)]),
+    _s("min", "Thấp nhất N nến", "self.min(sym, n)", "giá", [_ts("n", "Số nến", 20)]),
+    # ⚠ `Delay` KHÔNG phải hàm của QCAlgorithm — grep `QCAlgorithm.Indicators.cs` ra
+    # 0 chữ ký. Nó là một LỚP chỉ báo: dựng tay rồi ĐĂNG KÝ vào mã, đúng như
+    # `DisplacedMovingAverageRibbon.py` của QuantConnect làm. Nên nó cần `lean_dk`.
     _s("delay", "Giá trị N nến TRƯỚC", "Delay(n)", "",
-       [_ts("n", "Lùi mấy nến", 1, 1, 500)]),
+       [_ts("n", "Lùi mấy nến", 1, 1, 500)],
+       lean_dk="self.register_indicator(sym, {bien}, {res})"),
 ]
 
 #: Chỉ báo NHIỀU ĐƯỜNG — khai riêng vì giao diện phải bắt chọn đường.
 CHI_BAO_NHIEU_DUONG = [
-    {**_s("macd", "MACD", "MACD(sym, nhanh, cham, tin_hieu)", "",
+    {**_s("macd", "MACD", "self.macd(sym, nhanh, cham, tin_hieu)", "",
           [_ts("nhanh", "Chu kỳ nhanh", 12), _ts("cham", "Chu kỳ chậm", 26),
            _ts("tin_hieu", "Chu kỳ tín hiệu", 9)]),
-     "duong": [("Fast", "Đường nhanh"), ("Slow", "Đường chậm"),
-               ("Signal", "Đường tín hiệu"), ("Histogram", "Histogram")]},
-    {**_s("bb", "Bollinger Bands", "BB(sym, n, k)", "giá",
+     "duong": [("fast", "Đường nhanh"), ("slow", "Đường chậm"),
+               ("signal", "Đường tín hiệu"), ("histogram", "Histogram")]},
+    {**_s("bb", "Bollinger Bands", "self.bb(sym, n, k)", "giá",
           [_ts("n", "Chu kỳ", 20), _ts("k", "Số lần độ lệch", 2, 1, 10)]),
-     "duong": [("UpperBand", "Dải trên"), ("MiddleBand", "Dải giữa"),
-               ("LowerBand", "Dải dưới")]},
-    {**_s("sto", "Stochastic", "STO(sym, n)", "0–100", [_ts("n", "Chu kỳ", 14)]),
-     "duong": [("StochK", "%K"), ("StochD", "%D")]},
-    {**_s("kch", "Keltner Channel", "KCH(sym, n, k)", "giá",
+     "duong": [("upper_band", "Dải trên"), ("middle_band", "Dải giữa"),
+               ("lower_band", "Dải dưới")]},
+    {**_s("sto", "Stochastic", "self.sto(sym, n)", "0–100", [_ts("n", "Chu kỳ", 14)]),
+     "duong": [("stoch_k", "%K"), ("stoch_d", "%D")]},
+    {**_s("kch", "Keltner Channel", "self.kch(sym, n, k)", "giá",
           [_ts("n", "Chu kỳ", 20), _ts("k", "Số lần ATR", 2, 1, 10)]),
-     "duong": [("UpperBand", "Dải trên"), ("MiddleBand", "Dải giữa"),
-               ("LowerBand", "Dải dưới")]},
-    {**_s("dch", "Donchian Channel", "DCH(sym, n)", "giá", [_ts("n", "Chu kỳ", 20)]),
-     "duong": [("UpperBand", "Dải trên"), ("MiddleBand", "Dải giữa"),
-               ("LowerBand", "Dải dưới")]},
+     "duong": [("upper_band", "Dải trên"), ("middle_band", "Dải giữa"),
+               ("lower_band", "Dải dưới")]},
+    {**_s("dch", "Donchian Channel", "self.dch(sym, n)", "giá", [_ts("n", "Chu kỳ", 20)]),
+     "duong": [("upper_band", "Dải trên"), ("middle_band", "Dải giữa"),
+               ("lower_band", "Dải dưới")]},
 ]
 
 #: Trạng thái của một mã — không so số, chỉ đúng/sai.
 TRANG_THAI_MA = [
-    _ck("giao_dich_duoc", "Mã này giao dịch được", "Securities[sym].IsTradable"),
-    _ck("huy_niem_yet", "Mã này đã huỷ niêm yết", "Securities[sym].IsDelisted"),
-    _ck("co_du_lieu", "Mã này có dữ liệu", "Securities[sym].HasData"),
-    _ck("chia_co_tuc", "Hôm nay chia cổ tức", "sym in slice.Dividends"),
-    _ck("chia_tach", "Hôm nay chia tách", "sym in slice.Splits"),
+    _ck("giao_dich_duoc", "Mã này giao dịch được", "self.securities[sym].is_tradable"),
+    _ck("huy_niem_yet", "Mã này đã huỷ niêm yết", "self.securities[sym].is_delisted"),
+    _ck("co_du_lieu", "Mã này có dữ liệu", "self.securities[sym].has_data"),
+    _ck("chia_co_tuc", "Hôm nay chia cổ tức", "sym in data.dividends"),
+    _ck("chia_tach", "Hôm nay chia tách", "sym in data.splits"),
 ]
 
 # ---------------------------------------------------------------------------
 # ② HỎI VỊ THẾ — mã này tôi đang ra sao
 # ---------------------------------------------------------------------------
 VI_THE = [
-    _ck("dang_giu", "Đang giữ mã này", "Portfolio[sym].Invested"),
-    _ck("dang_long", "Đang LONG", "Portfolio[sym].IsLong"),
-    _ck("dang_short", "Đang SHORT", "Portfolio[sym].IsShort"),
-    _s("so_luong", "Số lượng đang giữ", "Portfolio[sym].Quantity", "lượng"),
-    _s("gia_von", "Giá vốn trung bình", "Portfolio[sym].AveragePrice", "giá"),
-    _s("lai_lo", "Lãi/lỗ chưa chốt", "Portfolio[sym].UnrealizedProfit", "tiền"),
+    _ck("dang_giu", "Đang giữ mã này", "self.portfolio[sym].invested"),
+    _ck("dang_long", "Đang LONG", "self.portfolio[sym].is_long"),
+    _ck("dang_short", "Đang SHORT", "self.portfolio[sym].is_short"),
+    _s("so_luong", "Số lượng đang giữ", "self.portfolio[sym].quantity", "lượng"),
+    _s("gia_von", "Giá vốn trung bình", "self.portfolio[sym].average_price", "giá"),
+    _s("lai_lo", "Lãi/lỗ chưa chốt", "self.portfolio[sym].unrealized_profit", "tiền"),
     _s("lai_lo_pt", "Lãi/lỗ chưa chốt (%)",
-       "Portfolio[sym].UnrealizedProfitPercent", "%"),
-    _s("gia_tri_giu", "Giá trị đang giữ", "Portfolio[sym].HoldingsValue", "tiền"),
-    _s("phi_da_tra", "Phí đã trả cho mã này", "Portfolio[sym].TotalFees", "tiền"),
+       "self.portfolio[sym].unrealized_profit_percent", "%"),
+    _s("gia_tri_giu", "Giá trị đang giữ", "self.portfolio[sym].holdings_value", "tiền"),
+    _s("phi_da_tra", "Phí đã trả cho mã này", "self.portfolio[sym].total_fees", "tiền"),
     _s("lai_lan_truoc", "Lãi lần đóng gần nhất",
-       "Portfolio[sym].LastTradeProfit", "tiền"),
-    _s("don_bay", "Đòn bẩy", "Portfolio[sym].Leverage", "lần"),
+       "self.portfolio[sym].last_trade_profit", "tiền"),
+    _s("don_bay", "Đòn bẩy", "self.portfolio[sym].leverage", "lần"),
     # Đọc THUẦN — không sinh ra trạng thái nào của app.
     _s("so_lenh_cho", "Số lệnh đang chờ",
-       "len(Transactions.GetOpenOrders(sym))", "lượng"),
+       "len(self.transactions.get_open_orders(sym))", "lượng"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -172,16 +183,16 @@ VI_THE = [
 # ---------------------------------------------------------------------------
 TAI_KHOAN = [
     _s("tong_gia_tri", "Tổng giá trị danh mục",
-       "Portfolio.TotalPortfolioValue", "tiền"),
-    _s("tien_mat", "Tiền mặt", "Portfolio.Cash", "tiền"),
-    _s("ky_quy_con", "Ký quỹ còn lại", "Portfolio.MarginRemaining", "tiền"),
-    _s("ky_quy_dung", "Ký quỹ đã dùng", "Portfolio.TotalMarginUsed", "tiền"),
+       "self.portfolio.total_portfolio_value", "tiền"),
+    _s("tien_mat", "Tiền mặt", "self.portfolio.cash", "tiền"),
+    _s("ky_quy_con", "Ký quỹ còn lại", "self.portfolio.margin_remaining", "tiền"),
+    _s("ky_quy_dung", "Ký quỹ đã dùng", "self.portfolio.total_margin_used", "tiền"),
     _s("lai_chua_chot", "Tổng lãi chưa chốt",
-       "Portfolio.TotalUnrealizedProfit", "tiền"),
-    _s("lai_da_chot", "Tổng lãi đã chốt", "Portfolio.TotalProfit", "tiền"),
-    _s("tong_phi", "Tổng phí đã trả", "Portfolio.TotalFees", "tiền"),
+       "self.portfolio.total_unrealized_profit", "tiền"),
+    _s("lai_da_chot", "Tổng lãi đã chốt", "self.portfolio.total_profit", "tiền"),
+    _s("tong_phi", "Tổng phí đã trả", "self.portfolio.total_fees", "tiền"),
     _s("gia_tri_giu_het", "Tổng giá trị đang giữ",
-       "Portfolio.TotalHoldingsValue", "tiền"),
+       "self.portfolio.total_holdings_value", "tiền"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -190,12 +201,12 @@ TAI_KHOAN = [
 # ⚠ ĐÃ BỎ «số nến đã chạy»: LEAN không đếm nến cho cả thuật toán, nó chỉ có `Samples`
 # của TỪNG chỉ báo. Muốn con số ấy là app phải tự đếm — tức tự đẻ backend.
 LICH = [
-    _s("gio", "Giờ", "Time.hour", "0–23"),
-    _s("phut", "Phút", "Time.minute", "0–59"),
-    _s("thu", "Thứ trong tuần", "Time.isoweekday()", "1–7 (2=thứ Hai)"),
-    _s("ngay", "Ngày trong tháng", "Time.day", "1–31"),
-    _s("thang", "Tháng", "Time.month", "1–12"),
-    _ck("phien_mo", "Phiên đang mở", "IsMarketOpen(sym)"),
+    _s("gio", "Giờ", "self.time.hour", "0–23"),
+    _s("phut", "Phút", "self.time.minute", "0–59"),
+    _s("thu", "Thứ trong tuần", "self.time.isoweekday()", "1–7 (2=thứ Hai)"),
+    _s("ngay", "Ngày trong tháng", "self.time.day", "1–31"),
+    _s("thang", "Tháng", "self.time.month", "1–12"),
+    _ck("phien_mo", "Phiên đang mở", "self.is_market_open(sym)"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -206,16 +217,16 @@ LICH = [
 # bày được, nhưng CHẠY KHÔNG RA SỐ cho tới khi mua bộ fine. Để `tat = True` nên giao
 # diện làm mờ và nói rõ vì sao, thay vì để người chơi vẽ xong rồi ngồi hỏi sao nó lặng.
 DOANH_NGHIEP = [
-    _s("pe", "P/E", "Securities[sym].Fundamentals.ValuationRatios.PERatio", "lần"),
-    _s("pb", "P/B", "Securities[sym].Fundamentals.ValuationRatios.PBRatio", "lần"),
-    _s("ps", "P/S", "Securities[sym].Fundamentals.ValuationRatios.PSRatio", "lần"),
-    _s("peg", "PEG", "Securities[sym].Fundamentals.ValuationRatios.PEGRatio", "lần"),
+    _s("pe", "P/E", "self.securities[sym].fundamentals.valuation_ratios.pe_ratio", "lần"),
+    _s("pb", "P/B", "self.securities[sym].fundamentals.valuation_ratios.pb_ratio", "lần"),
+    _s("ps", "P/S", "self.securities[sym].fundamentals.valuation_ratios.ps_ratio", "lần"),
+    _s("peg", "PEG", "self.securities[sym].fundamentals.valuation_ratios.peg_ratio", "lần"),
     _s("ev_ebitda", "EV/EBITDA",
-       "Securities[sym].Fundamentals.ValuationRatios.EVToEBITDA", "lần"),
+       "self.securities[sym].fundamentals.valuation_ratios.ev_to_ebitda", "lần"),
     _s("loi_suc_co_tuc", "Lợi suất cổ tức",
-       "Securities[sym].Fundamentals.ValuationRatios.ForwardDividendYield", "%"),
+       "self.securities[sym].fundamentals.valuation_ratios.forward_dividend_yield", "%"),
     _s("von_hoa", "Vốn hoá thị trường",
-       "Securities[sym].Fundamentals.MarketCap", "tiền"),
+       "self.securities[sym].fundamentals.market_cap", "tiền"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -297,6 +308,19 @@ def dai_luong(loai, ma):
 
 def la_loai_hoi(t):
     return t in LOAI_HOI
+
+
+#: Mã của mọi đại lượng là CHỈ BÁO — thứ phải khai trong `initialize` rồi LEAN tự cập
+#: nhật mỗi nến, chứ không đọc thẳng ra số được như `giá` hay `tiền mặt`.
+#: (*"We never need to 'update' our indicators with the data, the engine takes care of
+#: this for us"* — chú thích trong `MovingAverageCrossAlgorithm` của QuantConnect.)
+MA_CHI_BAO = frozenset(d["ma"] for d in CHI_BAO + CHI_BAO_NHIEU_DUONG)
+
+
+def la_chi_bao(ma):
+    """Đại lượng này có phải chỉ báo không — tức bộ sinh mã phải NÂNG nó lên
+    `initialize`, và hai khối cùng dùng một chỉ báo thì dùng CHUNG một cái."""
+    return ma in MA_CHI_BAO
 
 
 def tu_dien():

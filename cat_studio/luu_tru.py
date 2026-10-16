@@ -27,6 +27,9 @@ THU_MUC_STRATEGY = "strategy"
 #: Tên thư mục đời trước. `di_cu` chép sang tên mới, KHÔNG xoá bản cũ.
 THU_MUC_CU = "co_may"
 THU_MUC_NHAT_KY = "nhat_ky"
+#: Nơi đặt file .py do bộ sinh mã viết ra — để riêng, vì chúng là thứ SINH LẠI ĐƯỢC
+#: từ sơ đồ, không phải tài liệu người dùng.
+THU_MUC_MA = "ma_sinh"
 
 CAI_DAT_MAC_DINH = {
     "symbol": "XAUUSD",
@@ -82,6 +85,19 @@ def thu_muc_strategy():
 
 def thu_muc_nhat_ky():
     return _thu_muc(THU_MUC_NHAT_KY)
+
+
+def thu_muc_ma():
+    return _thu_muc(THU_MUC_MA)
+
+
+def ghi_ma(ten_lop, ma):
+    """Ghi một file .py bộ sinh mã vừa viết. -> đường dẫn đầy đủ."""
+    p = os.path.join(thu_muc_ma(), _ten_an_toan(ten_lop) + ".py")
+    # `newline="\n"`: file Python, LEAN đọc trên Linux lẫn Windows — đừng để CRLF.
+    with open(p, "w", encoding="utf-8", newline="\n") as f:
+        f.write(ma)
+    return p
 
 
 # ---------------------------------------------------------------------------

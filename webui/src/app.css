@@ -1234,3 +1234,28 @@ mark.tim-chu {
    giống danh sách mã, nên hai bên chia đôi chể ngang và ô "loại tài sản" bị bóp còn
    một mẩu không đọc nổi tên loại nào. */
 .hop-lam .o-hang:has(.ds-ma) .goi-y-o { flex: 0 0 150px; }
+
+/* ==========================================================================
+   HỘP SINH MÃ — bày nguyên file Python ra
+   ==========================================================================
+   KHÔNG tóm tắt, không gấp dòng: đây là chỗ người chơi soi xem khối mình vẽ đã thành
+   câu LEAN nào, nên phải đọc được từng ký tự như trong file thật. */
+.hop-ma { display: flex; flex-direction: column; gap: 9px; }
+.hop-ma .mc-bao ul { margin: 5px 0 0; padding-left: 18px; }
+.hop-ma .mc-bao li { margin-bottom: 3px; line-height: 1.45; }
+.hop-ma .mc-bao code { font: 11.5px var(--font-mono); word-break: break-all; }
+.ma-lean {
+  margin: 0;
+  padding: 11px 13px;
+  max-height: 52vh;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  border: 1px solid var(--border-soft);
+  font: 12px/1.55 var(--font-mono);
+  color: var(--text);
+  /* `pre` mặc định không xuống dòng — giữ nguyên, vì gấp dòng một file Python là làm
+     hỏng đúng thứ người ta đang soi: mức thụt lề. */
+  white-space: pre;
+  tab-size: 4;
+}

@@ -16,6 +16,7 @@ Không mở cửa sổ, không nối mạng -> chạy được ở bất cứ đ
 import io
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -57,13 +58,27 @@ ds_lean = [d["lean"] for d in lam.LENH_CHO["theo_loai"].values()]
 kiem("bảy loại lệnh là BẢY hàm khác nhau", len(set(ds_lean)) == len(ds_lean),
      "— hai loại cùng một hàm là một loại bịa")
 
+print("\n▸ MẪU `lean` phải CHẠY ĐƯỢC, không phải lời khai cho người đọc")
+# Bộ sinh mã viết ra ĐÚNG chuỗi này, chỉ thay ô bằng giá trị. Nếu nó chỉ là lời khai
+# thì phải có một bộ chuyển đổi ở giữa — và bộ đó sai thì sai ÂM THẦM.
+for _ma, _d in lam.LOAI_LAM.items():
+    _st = core.make_lam_step(_ma)
+    _h = lam.ham_lean(_ma, _st)
+    kiem(f"`{_ma}` có mẫu gọi thật", _h.startswith("self.") and _h.endswith(")"),
+         f"— {_h}")
+    _o_co = {o["ten"] for o in lam.o_cua(_ma, _st)} | {"sym", "gia_tri"}
+    _dung = set(re.findall(r"\{(\w+)\}", _h))
+    kiem(f"`{_ma}` chỉ điền ô CÓ THẬT", _dung <= _o_co, f"— thừa {_dung - _o_co}")
+
 print("\n▸ ĐƯỜNG RANH: sửa một lệnh cụ thể thì KHÔNG, vì phải nhớ ticket qua nhiều nến")
 ca_bo = json.dumps(lam.tu_dien(), ensure_ascii=False).lower()
-for cam in ("ticket", "updatestop", "updatelimit", "updatequantity", "cancelorder",
-            "removeorder"):
+# ⚠ Viết ĐÚNG KHUÔN snake_case của LEAN. Bản trước canh "cancelorder" liền nhau, nên
+# từ ngày ô `lean` đổi sang `cancel_order` là phép kiểm qua tuốt mà chẳng canh gì.
+for cam in ("ticket", "update_stop", "update_limit", "update_quantity",
+            "cancel_order(", "remove_order"):
     kiem(f"không có `{cam}`", cam not in ca_bo)
 kiem("HUỶ HẾT của một mã thì CÓ — một câu, không nhớ gì",
-     "cancelopenorders" in ca_bo)
+     "cancel_open_orders" in ca_bo)
 
 print("\n▸ Cố ý bỏ: lệnh quyền chọn nhiều chân")
 for cam in ("combo", "exerciseoption"):
@@ -124,7 +139,7 @@ st["loai_lenh"] = "moo"
 kiem("Khớp lúc mở cửa không có ô giá nào",
      not [o for o in lam.o_cua(lam.LAM_LENH_CHO, st) if o["ten"].startswith("gia")])
 kiem("và hàm LEAN đổi theo",
-     lam.ham_lean(lam.LAM_LENH_CHO, st).startswith("MarketOnOpenOrder"),
+     lam.ham_lean(lam.LAM_LENH_CHO, st).startswith("self.market_on_open_order"),
      f"— {lam.ham_lean(lam.LAM_LENH_CHO, st)}")
 
 print("\n▸ File cũ thiếu một ô thì rơi về mặc định, không phải di cư gì")

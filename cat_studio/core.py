@@ -1085,7 +1085,12 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
         for uv in nhanh:
             if not is_branch_gate(theo_id[uv]):
                 continue
-            khoa = _khoa_dieu_kien(theo_id[uv].get("conditions"))
+            # ⚠ Bản trước đọc khoá `conditions` — thứ đã chết cùng bộ khối cũ (D-12).
+            # Nên MỌI cặp cổng đều băm ra `[]` giống nhau và phép kiểm này báo "hai
+            # nhánh trùng điều kiện" cho cả những cặp khác hẳn nhau. Cảnh báo sai thì
+            # người ta học cách bỏ qua nó, và lần nó đúng cũng bị bỏ qua nốt.
+            khoa = _khoa_dieu_kien(theo_id[uv].get("dieu_kien")
+                                   or theo_id[uv].get("conditions"))
             if khoa in da_thay:
                 _loi(ra, "warning", uv,
                      f"{ten(uv)} có điều kiện giống hệt {ten(da_thay[khoa])} xếp trên — "
@@ -1325,9 +1330,22 @@ def soat_khoi_bat_dau(step):
              f'"{ten}": vốn phải lớn hơn 0 — không có tiền thì mọi lệnh đều bị từ '
              f"chối, mà backtest vẫn chạy hết.")
 
-    if not bat_dau.nhip_cua(str(o_bat_dau(step, "nhip") or "")):
-        _loi(ra, "error", sid,
-             f'"{ten}": không có nhịp "{o_bat_dau(step, "nhip")}".')
+    nhip = str(o_bat_dau(step, "nhip") or "")
+    if not bat_dau.nhip_cua(nhip):
+        _loi(ra, "error", sid, f'"{ten}": không có nhịp "{nhip}".')
+
+    # ⚠ BẪY ĐÃ GẶP THẬT, và nó lặng hoàn toàn: nhịp mỗi nến NGÀY thì LEAN không có dữ
+    # liệu trong ngày để khớp, nên nó đổi lệnh thị trường thành MarketOnClose — mà ba
+    # sàn dưới đây không nhận loại ấy. Backtest chạy hết, báo "111 lệnh", lãi 0%, và
+    # chỉ mở file order-events ra đọc mới thấy mọi lệnh đều `invalid`.
+    if nhip == "ngay" and str(o_bat_dau(step, "san")) in bat_dau.SAN_KHONG_NHAN_MOC:
+        nhan_san = dict(bat_dau.SAN)[str(o_bat_dau(step, "san"))]
+        _loi(ra, "warning", sid,
+             f'"{ten}": nhịp mỗi nến NGÀY cộng sàn {nhan_san} là MỌI LỆNH BỊ TỪ CHỐI. '
+             f"Nến ngày không có giá trong ngày để khớp, nên LEAN đổi lệnh thị trường "
+             f"thành «khớp lúc đóng cửa», mà sàn này không nhận loại ấy — backtest "
+             f"vẫn chạy hết và báo lãi 0%. Hãy đổi nhịp xuống giờ/phút, hoặc chọn sàn "
+             f"Mặc định.")
     return ra
 
 

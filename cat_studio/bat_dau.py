@@ -123,6 +123,20 @@ SAN = (
     ("COINBASE", "Coinbase — tiền mã hoá"),
 )
 
+#: ⚠ SÀN NÀO KHÔNG NHẬN LỆNH «KHỚP LÚC ĐÓNG CỬA» (MarketOnClose).
+#:
+#: Vì sao con số này đáng một ô riêng — ĐÃ GẶP THẬT, và nó hỏng LẶNG hoàn toàn:
+#: với nhịp **mỗi nến NGÀY**, LEAN không có dữ liệu trong ngày để khớp lệnh thị
+#: trường, nên nó tự đổi lệnh ấy thành **MarketOnClose** (xem `IsDailyResolutionOnly`
+#: trong `QCAlgorithm.Trading.cs`). Sàn nào không nhận loại ấy sẽ từ chối SẠCH mọi
+#: lệnh — mà backtest vẫn chạy hết và báo "111 lệnh, lãi 0%". Phải mở file
+#: order-events ra đọc mới thấy chữ *"does not support MarketOnClose order type"*.
+#:
+#: Danh sách đọc thẳng từ `_supportedOrderTypes` của từng model trong
+#: `Common/Brokerages/`: Oanda / Binance / Coinbase đều chỉ có
+#: `[Limit, Market, StopMarket, StopLimit]`. Interactive Brokers và Default thì có.
+SAN_KHONG_NHAN_MOC = ("OANDA_BROKERAGE", "BINANCE", "COINBASE")
+
 
 # ---------------------------------------------------------------------------
 # SÁU Ô
