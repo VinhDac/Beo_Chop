@@ -15,6 +15,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 BAI = [
     ("test_danh_so.py", "Đánh số phân cấp · ghim số · ba trường hợp gặp lại khối cũ"),
     ("test_so_do.py", "Sơ đồ — Nhóm, Quay về, vòng phải khép, bộ nhớ của cái nút"),
+    ("test_so_do_api.py", "Cửa sơ đồ — một cửa soát, ba tầng lưu, nhân bản không dính gốc"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
 ]

@@ -183,6 +183,104 @@ class Api(NenCuaSo):
         dựng lại khi có bộ khối mới."""
         return _ok({"luu_tru": luu_tru.tom_tat()})
 
+    # --------------------------------------------------------------- sơ đồ
+    # MỘT CỬA SOÁT DUY NHẤT. Giao diện gọi `soat` sau MỖI thay đổi và vẽ lại cái nhận
+    # về — nó không tự tính số thứ tự, không tự ghép chữ trên thẻ, không tự soát luật
+    # nào. Nhờ vậy huy hiệu trên khối không thể nói khác thứ lõi hiểu.
+
+    @_bat_loi
+    def khoi_moi(self, kind, loai=None):
+        """Một khối mới + thẻ vẽ của nó."""
+        if kind == core.KIND_GROUP:
+            st = core.make_group_step()
+        elif kind == core.KIND_START:
+            st = core.make_start_step()
+        elif loai == core.QUAY_VE:
+            st = core.make_quay_ve_step()
+        else:
+            st = core.make_action_step({"type": loai or core.CHECK_COND})
+        return _ok({"step": st, "card": core.the_buoc(st)})
+
+    @_bat_loi
+    def soat(self, steps, edges=None):
+        """Tất cả những gì giao diện cần để vẽ lại sơ đồ sau một thay đổi.
+
+        Gộp làm MỘT cửa chứ không ba: đánh số, soát lỗi và dựng thẻ đều đọc cùng một
+        đồ thị, tách ra thì ba lượt gọi có thể thấy ba trạng thái khác nhau."""
+        steps = core.ensure_step_ids([s for s in (steps or []) if isinstance(s, dict)])
+        edges = core.clean_edges(edges, steps) if edges is not None \
+            else core.default_edges(steps)
+        kq = core.flow_order(steps, edges)
+        return _ok({
+            "thu_tu": kq["order"],
+            "entry": kq["entry"],
+            "the": {s["id"]: core.the_buoc(s) for s in steps},
+            "van_de": core.validate_flow_graph(steps, edges),
+            "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
+            "edges": edges,
+        })
+
+    @_bat_loi
+    def nhan_ban(self, steps, edges=None, giu_hat_nhan=False):
+        """Chép một mảng khối, cấp id mới. Đích Quay về trỏ ra ngoài mảng bị để TRỐNG."""
+        moi, day, bang = core.clone_steps(steps, edges, giu_hat_nhan)
+        return _ok({"steps": moi, "edges": day, "map": bang,
+                    "the": {s["id"]: core.the_buoc(s) for s in moi}})
+
+    # ---------------------------------------------------------- lưu / mở cỗ máy
+    @_bat_loi
+    def ds_co_may(self):
+        return _ok(luu_tru.liet_ke_co_may())
+
+    @_bat_loi
+    def luu_co_may(self, ten, steps, edges=None):
+        doc = core.make_process_template(ten, steps, edges)
+        p = luu_tru.ghi_co_may(doc["name"], doc)
+        # Lưu thật xong thì bản tự lưu hết việc — việc dở đã thành việc lưu.
+        luu_tru.xoa_co_may(luu_tru.ten_tu_luu(doc["name"]))
+        return _ok({"ten": doc["name"], "duong": p})
+
+    @_bat_loi
+    def mo_co_may(self, ten):
+        return _ok(core.normalize_process(luu_tru.doc_co_may(ten)))
+
+    @_bat_loi
+    def xoa_co_may(self, ten):
+        return _ok(luu_tru.xoa_co_may(ten))
+
+    @_bat_loi
+    def tu_luu_co_may(self, ten, steps, edges=None):
+        """Bản tự lưu nằm cạnh cỗ máy gốc. CHỈ đẻ ra khi nội dung thật sự khác bản trên
+        đĩa — mở ra xem mà không sửa gì thì không đẻ ra file nào."""
+        ten = luu_tru.ten_goc_cua(ten)
+        if not ten:
+            return _ok(None)          # chưa lưu lần nào: bản nháp lo, không phải chỗ này
+        doc = core.make_process_template(ten, steps, edges)
+        try:
+            cu = core.normalize_process(luu_tru.doc_co_may(ten))
+            if cu["steps"] == doc["steps"] and cu["edges"] == doc["edges"]:
+                return _ok(None)
+        except Exception:
+            pass
+        doc["name"] = luu_tru.ten_tu_luu(ten)
+        return _ok({"ten": doc["name"], "duong": luu_tru.ghi_co_may(doc["name"], doc)})
+
+    # ------------------------------------------------------------- bản nháp
+    @_bat_loi
+    def luu_ban_nhap(self, ten, steps, edges=None):
+        """Việc đang dở của cửa sổ — kể cả cỗ máy chưa từng lưu. Không đụng file cỗ máy."""
+        doc = core.make_process_template(ten or "", steps, edges)
+        return _ok(luu_tru.ghi_ban_nhap(doc))
+
+    @_bat_loi
+    def doc_ban_nhap(self):
+        d = luu_tru.doc_ban_nhap()
+        return _ok(core.normalize_process(d) if d else None)
+
+    @_bat_loi
+    def xoa_ban_nhap(self):
+        return _ok(luu_tru.xoa_ban_nhap())
+
     def dong_app(self):
         """Cửa sổ chính đóng. KHÔNG bọc `_bat_loi`: pywebview gọi nó từ sự kiện `closing`,
         không phải từ JS. Hiện không phải dọn gì — cửa sổ thứ hai đã gỡ cùng D-12 — nhưng

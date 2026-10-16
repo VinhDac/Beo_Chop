@@ -193,6 +193,63 @@ def xoa_co_may(ten):
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Bản nháp và bản tự lưu  (chép lối của Jenifer_Studio)
+# ---------------------------------------------------------------------------
+# HAI TẦNG, KHÁC NHAU HẲN:
+#
+#   ban_nhap.json          MỘT bản dùng chung cho mọi cỗ máy, ghi liên tục trong lúc
+#                          vẽ. Việc đang dở của cửa sổ — kể cả cỗ máy CHƯA TỪNG lưu.
+#                          Không đụng tới file cỗ máy nào.
+#   "<tên> (tự lưu)"       nằm NGAY CẠNH cỗ máy gốc trong kho, và chỉ đẻ ra khi cỗ máy
+#                          ĐÃ lưu ít nhất một lần VÀ nội dung thật sự khác bản trên
+#                          đĩa. Mở ra xem mà không sửa gì thì không đẻ bản tự lưu.
+#                          Lưu thật (Ctrl+S) xong là xoá nó: việc dở đã thành việc lưu.
+TEP_BAN_NHAP = "ban_nhap.json"
+HAU_TO_TU_LUU = " (tự lưu)"
+
+
+def duong_dan_ban_nhap():
+    return os.path.join(goc(), TEP_BAN_NHAP)
+
+
+def ghi_ban_nhap(doc_):
+    ghi_json_nguyen_tu(duong_dan_ban_nhap(), doc_)
+    return duong_dan_ban_nhap()
+
+
+def doc_ban_nhap():
+    try:
+        with open(duong_dan_ban_nhap(), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def xoa_ban_nhap():
+    p = duong_dan_ban_nhap()
+    if os.path.exists(p):
+        os.remove(p)
+        return True
+    return False
+
+
+def ten_tu_luu(ten):
+    """Tên bản tự lưu của một cỗ máy. Đã là bản tự lưu thì giữ nguyên, không chồng đuôi."""
+    ten = (ten or "").strip()
+    return ten if ten.endswith(HAU_TO_TU_LUU) else ten + HAU_TO_TU_LUU
+
+
+def ten_goc_cua(ten):
+    """Bản tự lưu -> tên cỗ máy GỐC của nó. Không phải bản tự lưu thì trả nguyên."""
+    ten = (ten or "").strip()
+    return ten[:-len(HAU_TO_TU_LUU)] if ten.endswith(HAU_TO_TU_LUU) else ten
+
+
+def la_tu_luu(ten):
+    return (ten or "").strip().endswith(HAU_TO_TU_LUU)
+
+
 def di_cu():
     """Chuyển `settings.json` + `templates/strategy/` của bản cũ sang `du_lieu/`.
 

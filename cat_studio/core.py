@@ -185,6 +185,99 @@ def make_quay_ve_step(ve=None, so_vong=None, name=None):
 # ---------------------------------------------------------------------------
 # Mô tả hành động — CHỮ HIỆN TRÊN HỘP DO ĐÂY SINH
 # ---------------------------------------------------------------------------
+# Giao diện KHÔNG tự ghép câu. Nếu nó ghép thì sớm muộn nó mô tả khác với thứ lõi thật
+# sự hiểu, và người dùng tin vào cái sai. Bản vẽ SVG gửi đi nơi khác cũng gọi đúng
+# mấy hàm này, không chép lại.
+
+
+def mo_ta_hanh_dong(a):
+    """Một dòng chữ tả một hành động.
+
+    ⚠ BẢN TẠM. Bộ khối giao dịch chưa thiết kế xong (D-12), nên ở đây mới chỉ đọc ra
+    `type` kèm mấy ô của nó. Khi có từ điển khối thì chỗ này thành một BẢNG TRA theo
+    loại — mỗi loại một câu viết tay, đúng như Jenifer làm (`core.action_display`)."""
+    if not isinstance(a, dict):
+        return "?"
+    t = str(a.get("type") or "?")
+    if t == QUAY_VE:
+        n = a.get("so_vong")
+        return f"Quay về ({n} vòng)" if n else "Quay về"
+    o = [f"{k}={v}" for k, v in a.items()
+         if k not in ("type", "kind", "id", "name", "actions") + KHOA_CANVAS
+         and v not in (None, "", [], {}, False)]
+    return f"{t} · {' · '.join(o[:3])}" if o else t
+
+
+def the_buoc(step):
+    """Một khối -> DỮ LIỆU vẽ hộp trên canvas (không phải HTML).
+
+    Phía giao diện tự quyết trình bày, nhưng mọi chuỗi mô tả đều do đây sinh ra."""
+    kind = step.get("kind")
+    hd = hanh_dong_cua(step)
+
+    if kind == KIND_GROUP:
+        nhan = ["chạy 1 lần"]
+        dong = [{"text": mo_ta_hanh_dong(a), "type": a.get("type")} for a in hd]
+    elif kind == KIND_START:
+        nhan = []
+        dong = []
+    else:
+        nhan = ["chạy 1 lần"]
+        dong = [{"text": mo_ta_hanh_dong(step), "type": step.get("type")}]
+
+    return {
+        "id": step.get("id"),
+        "kind": kind,
+        "title": step_title(step),
+        "badges": nhan,
+        "lines": dong,
+        "so_hanh_dong": len(hd) if kind == KIND_GROUP else (0 if kind == KIND_START else 1),
+        # Cổng rẽ nhánh: giao diện vẽ khác đi, và bảng Vấn đề tra cùng một hàm.
+        "la_cong": is_branch_gate(step),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Nhân bản
+# ---------------------------------------------------------------------------
+
+
+def clone_steps(steps, edges=None, giu_hat_nhan=False):
+    """Chép một mảng khối + dây GIỮA chúng, cấp id mới. -> (khối mới, dây mới, bảng id).
+
+    Hai chỗ dễ sai, cả hai đều im lặng:
+
+    · Dây trỏ ra NGOÀI mảng được chép thì bỏ — chép 3 khối giữa sơ đồ mà kéo theo dây
+      đi tới khối thứ tư là bản dán dính vào bản gốc.
+    · Khối Quay về có đích NẰM NGOÀI mảng được chép thì ĐỂ TRỐNG đích. Giữ đích cũ là
+      bản dán nhảy về chỗ của bản gốc: sửa bên này đổi đường đi bên kia. Bảng Vấn đề
+      sẽ nhắc chọn lại — thà nhắc còn hơn chạy sai lặng lẽ.
+
+    `giu_hat_nhan` False = bỏ khoá hạt nhân (khối rời). Giao diện tự gắn lại cho đúng
+    lớp đang đứng."""
+    ds = [s for s in (steps or []) if isinstance(s, dict) and s.get("id")]
+    bang = {}
+    moi = []
+    for s in ds:
+        c = json.loads(json.dumps(s))     # chép sâu: `actions` không được dùng chung
+        c["id"] = new_step_id()
+        bang[s["id"]] = c["id"]
+        if not giu_hat_nhan:
+            c.pop("hat_nhan", None)
+        moi.append(c)
+    for c in moi:
+        if c.get("type") == QUAY_VE:
+            c["ve"] = bang.get(str(c.get("ve") or ""), "")
+    day = []
+    for e in (edges or []):
+        if not isinstance(e, dict):
+            continue
+        a, b = bang.get(e.get("from")), bang.get(e.get("to"))
+        if a and b:
+            n = dict(e)
+            n["from"], n["to"] = a, b
+            day.append(n)
+    return moi, day, bang
 # Giao diện không tự ghép câu: nếu nó ghép thì sớm muộn nó mô tả khác với thứ lõi
 # thực sự hiểu, và người dùng tin vào cái sai.
 
