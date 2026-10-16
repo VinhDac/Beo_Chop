@@ -431,3 +431,43 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
 - **Trạng thái:** bộ khối đọc/ghi xong, 7/7 bài kiểm xanh. **Bộ sinh mã chưa có** — sơ
   đồ chưa biến thành thuật toán LEAN Python. Việc kế tiếp: ô của khối Bắt đầu (nhịp
   chạy, chạy cho mã nào), rồi bộ sinh mã.
+
+## D-15 — Khối Bắt đầu: mọi thiết lập gom vào MỘT khối
+
+- **Cách tìm ra:** đọc **444 thuật toán Python thật** của LEAN (`Algorithm.Python/`),
+  chứ không suy từ tài liệu. Phát hiện: một script có hai nửa — `initialize` nói MỘT
+  LẦN (ngày nào, bao nhiêu tiền, mã nào, nhịp nào), `on_data` chạy LẠI mỗi nhịp. Sơ đồ
+  ta vẽ là nửa dưới; nửa trên **không có chỗ nào trên canvas**, khối Bắt đầu trước đó
+  chỉ có cái tên. Mà `set_start_date` có ở 395/444, `set_cash` 250, `add_equity` 244.
+- **Chốt:** mọi thiết lập gom vào **một khối Bắt đầu, sáu ô** — mã (danh sách, mỗi
+  dòng một loại tài sản) · từ ngày → đến ngày · vốn · nhịp · mốc so sánh · sàn.
+- **Và nó giải luôn hai thứ tưởng phải đẻ khối mới:**
+  - **Không cần khối "Với mỗi mã".** Ô *nhịp* + ô *mã* đã khai trọn vòng lặp rồi:
+    *"mỗi nến, cho mỗi mã trong danh sách"*. Cả sơ đồ bên dưới là ruột vòng. Vòng vẫn
+    HIỆN RA theo luật D-13, chỉ là hiện ở đúng chỗ nó sinh ra.
+  - **Cái hack "chỉ một lần mỗi ngày" biến mất.** Hai chiến lược kinh điển của QC
+    (`MACDTrendAlgorithm`, `MovingAverageCrossAlgorithm`) đều phải tự nhớ *hôm qua là
+    ngày nào* — đó là TRẠNG THÁI, đúng thứ ta cấm. Họ viết vậy vì không có cách khai
+    nhịp. Nên ô *nhịp* không phải một ô cho tiện: nó xoá hẳn một loại hack.
+- **Nhịp gộp hai thứ của LEAN làm một:** độ phân giải dữ liệu và lúc nào sơ đồ chạy là
+  hai câu trong script, nhưng với người chơi là MỘT câu hỏi — *bao lâu tôi xem một
+  lần*. Năm nhịp theo nến chạy trong `on_data`; ba nhịp hẹn giờ qua `schedule.on` và
+  đăng ký dữ liệu PHÚT, vì dữ liệu ngày không có giờ nào trong đó mà hẹn.
+- **Làm nóng (`set_warm_up`) KHÔNG thành ô** — bộ sinh mã lấy chu kỳ dài nhất trong
+  các chỉ báo đã vẽ. Đếm trên sơ đồ của chính ta, không tính trên dữ liệu thị trường.
+- **Cố ý CHƯA có:** `add_universe` (chọn mã động — 97/444 dùng) và cửa vào thứ hai
+  (*mỗi nến xem tín hiệu + cuối tháng cân danh mục*). Cái sau đụng vào hệ đánh số, vì
+  nó đang neo vào đúng MỘT khối Bắt đầu.
+- **Một khả năng đã xác minh, chưa làm:** sáu phép so hiện không viết nổi
+  `fast > slow * 1.00015` — mà **`IndicatorExtensions` của LEAN có sẵn**
+  `Plus/Minus/Times/Over` với vế phải là một số hoặc một chỉ báo khác, kết quả là
+  `CompositeIndicator` do LEAN tự tính. Nên cho phép ghép đại lượng **không phá luật
+  "không đẻ backend"**.
+- **Hai chỗ hỏng LẶNG bắt được:** `chuan_hoa_khoi` dựng lại khối Bắt đầu chỉ giữ cái
+  tên (sáu ô bay sạch mỗi lần lưu); và mặc định list/dict dùng chung khiến hai khối
+  Bắt đầu xài chung một danh sách mã.
+- **Tiện thể:** dữ liệu miễn phí đi kèm LEAN **có XAUUSD giá ngày 2006–2019, 3.948
+  ngày**. Backtest vàng được ngay, không trả xu nào — nên khối Bắt đầu mặc định chạy
+  trên XAUUSD.
+- **Trạng thái:** cả hai nửa của thuật toán đã khai được trên canvas, 8/8 bài kiểm
+  xanh. **Bộ sinh mã vẫn chưa có.**

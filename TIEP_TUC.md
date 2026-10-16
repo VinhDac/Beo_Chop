@@ -5,7 +5,7 @@
 
 ## 1. Đang ở đâu
 
-**Trình vẽ và BỘ KHỐI đã chạy thật. Bộ sinh mã thì chưa có.**
+**Cả hai nửa của thuật toán đã khai được trên canvas. Bộ sinh mã thì chưa có.**
 
 Ba quyết định liền nhau:
 
@@ -19,6 +19,9 @@ Ba quyết định liền nhau:
 * **D-14 (16/10)** — **bộ khối**: khối **HỎI** (5 loại, 68 đại lượng) và khối **LÀM**
   (8 loại việc). Mỗi mục khai ra MỘT hàm có thật của LEAN trong ô `lean`, và bài kiểm
   canh đúng chuyện đó.
+* **D-15 (16/10)** — **khối BẮT ĐẦU**, sau khi đọc **444 thuật toán Python thật** của
+  LEAN. Một script có HAI nửa: `initialize` nói một lần, `on_data` chạy lại mỗi nhịp.
+  Sơ đồ ta vẽ là nửa dưới; **sáu ô của khối Bắt đầu là nửa trên**.
 
 **Trạng thái thật:**
 
@@ -34,11 +37,11 @@ Ba quyết định liền nhau:
 | Lưu / mở / bản nháp / bản tự lưu / hoàn tác | ✅ |
 | **Khối HỎI** — 5 loại, hộp điều kiện, soát ruột | ✅ |
 | **Khối LÀM** — 8 loại, hộp ô theo loại, soát ruột | ✅ |
-| **Ô của khối Bắt đầu** (nhịp chạy, chạy cho mã nào) | ❌ **chưa** |
+| **Khối BẮT ĐẦU** — mã, khoảng ngày, vốn, nhịp, mốc, sàn | ✅ |
 | **Bộ sinh mã** — sơ đồ → thuật toán LEAN Python | ❌ **chưa** |
 | **Chạy một cỗ máy** | ❌ **chưa** — đường chạy chưa dựng |
 
-Bài kiểm: **7/7 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
+Bài kiểm: **8/8 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
 
 ## 2. Chạy ở máy local (Windows)
 
@@ -59,14 +62,20 @@ Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py
 
 Hình xong, ruột xong. Giờ tới chỗ biến sơ đồ thành một thuật toán LEAN chạy được.
 
-**Hai việc, theo thứ tự:**
+**Bộ sinh mã** — đi theo `flow_order`, mỗi khối HỎI thành một `if`, mỗi khối LÀM
+thành đúng câu gọi đã khai trong ô `lean`, khối BẮT ĐẦU thành cả `initialize()`. Ô
+`tag` để trống thì điền số khối + điều kiện vừa khớp.
 
-1. **Ô của khối Bắt đầu** — nhịp chạy (mỗi nến / mỗi ngày / theo `DateRules` ×
-   `TimeRules`) và chạy cho mã nào. Hiện khối Bắt đầu còn trống ruột, mà bộ sinh mã
-   không viết nổi `Initialize()` nếu thiếu hai thứ ấy.
-2. **Bộ sinh mã** — đi theo `flow_order`, mỗi khối HỎI thành một `if`, mỗi khối LÀM
-   thành đúng câu gọi đã khai trong ô `lean`. Ô `tag` để trống thì điền số khối +
-   điều kiện vừa khớp.
+Ba thứ bộ sinh mã phải TỰ LO, không hỏi người dùng:
+
+1. **Khai chỉ báo lên `initialize`** — `self.rsi("XAU", 14)` phải nằm ở đó, LEAN tự
+   cập nhật mỗi nến. Hai khối cùng viết `RSI(14)` trên một mã thì dùng CHUNG một
+   chỉ báo, đừng đăng ký hai lần.
+2. **Làm nóng** — `set_warm_up(chu kỳ dài nhất trong các chỉ báo đã vẽ)`.
+3. **Vòng lặp nhiều mã** — ô *nhịp* + ô *mã* của khối Bắt đầu đã khai trọn vòng rồi.
+
+Dữ liệu để thử: **XAUUSD giá ngày 2006–2019 (3.948 ngày) có sẵn miễn phí** trong
+`Data/cfd/oanda/` của LEAN.
 
 > **Luật bắt buộc (vẫn nguyên):** mỗi khối phải ứng với một món **CÓ THẬT** của
 > QuantConnect. Cách kiểm nhanh: hỏi *"QC làm việc này bằng gì?"* — không trả lời được
@@ -100,9 +109,15 @@ thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
 
 **Một chỗ CÒN LẠI phải sửa:**
 
-* `core.chuan_hoa_khoi` — vẫn giữ nguyên xi khoá riêng của từng loại. Nay đã có đủ hai
-  từ điển, nên dựng lại được từ một danh sách khoá cố định — đó mới là chỗ chặn file
-  rác. (`core.mo_ta_hanh_dong` thì đã thành BẢNG TRA rồi, xong ở D-14.)
+* `core.chuan_hoa_khoi` — khối **Bắt đầu** đã dựng lại từ danh sách ô cố định (D-15),
+  nhưng khối **Hành động** thì vẫn giữ nguyên xi mọi khoá. Nay đã có đủ ba từ điển
+  nên làm nốt được — đó mới là chỗ chặn file rác.
+
+**Một khả năng đã xác minh, chưa làm:** sáu phép so không viết nổi
+`fast > slow * 1.00015`, mà `IndicatorExtensions` của LEAN có sẵn
+`Plus/Minus/Times/Over` (vế phải là một số hoặc một chỉ báo khác) và kết quả là một
+chỉ báo do LEAN tự tính — nên cho phép ghép đại lượng KHÔNG phá luật "không đẻ
+backend". Xem `tai_lieu/core.md` §29.
 
 ## 4. Những việc còn để lại (không gấp)
 
@@ -125,8 +140,8 @@ thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
    không dán code.
 4. Dữ liệu không được nhìn trước (point-in-time). Lõi không import giao diện hay mạng.
 5. Quyết định lớn ghi vào `DECISIONS.md`; mỗi phần xong ghi một mục trong
-   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13 · §28 của D-14;
-   phần sau tiếp từ §29).
+   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13 · §28 của D-14 ·
+   §29 của D-15; phần sau tiếp từ §30).
 6. Không tự đổi bộ công cụ đã chọn: Python + pywebview, React + @xyflow/react + Vite.
 7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa
    được bảo.

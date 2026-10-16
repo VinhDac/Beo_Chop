@@ -171,7 +171,9 @@ export interface TuDienHoi {
 export interface OLam {
   ten: string
   nhan: string
-  kieu: 'so' | 'chu' | 'chon' | 'co_khong'
+  /** `ds_ma` và `khoang_ngay` chỉ khối Bắt đầu có — widget của chúng nằm ngay trong
+   *  `HopBatDau.tsx`, không ở `ORuot.tsx`, vì ô chung phải ở lại chung. */
+  kieu: 'so' | 'chu' | 'chon' | 'co_khong' | 'ds_ma' | 'khoang_ngay'
   mac_dinh: unknown
   don_vi: string
   goi_y: string
@@ -202,6 +204,42 @@ export interface LoaiLam {
 
 export interface TuDienLam {
   loai: LoaiLam[]
+}
+
+/* ------------------------------ Khối BẮT ĐẦU -------------------------------- */
+
+/** Một dòng trong danh sách mã. Mỗi loại tài sản là một hàm `add_*` khác của LEAN. */
+export interface MaChay {
+  ma: string
+  loai: string
+}
+
+/** Khoảng backtest. Lưu kiểu ISO (`2010-01-31`) chứ không phải kiểu Việt: file phải
+ *  xếp được theo thứ tự chữ và không mập mờ ngày/tháng. Thẻ khối mới hiện kiểu Việt. */
+export interface KhoangNgay {
+  tu: string
+  den: string
+}
+
+/** Một nhịp chạy. `res` = độ phân giải dữ liệu phải đăng ký; `chay` = `on_data` hay
+ *  một câu `schedule.on`. Hai thứ trong LEAN, một câu hỏi với người chơi. */
+export interface NhipChay {
+  ma: string
+  nhan: string
+  res: string
+  chay: string
+  /** Ô chỉ hiện khi chọn nhịp này (giờ, phút, số phút sau khi mở cửa…). */
+  o_them: { ten: string; nhan: string; mac_dinh: number
+            nho_nhat: number; lon_nhat: number }[]
+}
+
+export interface TuDienBatDau {
+  /** Sáu ô, cùng hình dạng với ô của khối Làm nên dùng chung được widget. */
+  o: OLam[]
+  loai_tai_san: { ma: string; nhan: string; lean: string }[]
+  /** Mã có sẵn trong bộ dữ liệu MIỄN PHÍ, để gợi ý — không phải để chặn. */
+  co_san: Record<string, string[]>
+  nhip: NhipChay[]
 }
 
 /* ------------------------------- Kho và khoá -------------------------------- */

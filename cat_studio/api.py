@@ -21,6 +21,7 @@ import time
 import traceback
 
 from . import core
+from . import bat_dau
 from . import hoi
 from . import lam
 if sys.platform == "win32":
@@ -200,6 +201,13 @@ class Api(NenCuaSo):
         return _ok(hoi.tu_dien())
 
     @_bat_loi
+    def tu_dien_bat_dau(self):
+        """Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập, loại tài sản, nhịp chạy.
+
+        Cùng lý do như hai cửa từ điển kia: giao diện hỏi Python chứ không tự khai."""
+        return _ok(bat_dau.tu_dien())
+
+    @_bat_loi
     def tu_dien_lam(self):
         """Từ điển HÀNH ĐỘNG — tám loại việc, và các ô của từng loại.
 
@@ -240,6 +248,7 @@ class Api(NenCuaSo):
         for s in steps:
             van_de.extend(core.soat_khoi_hoi(s))
             van_de.extend(core.soat_khoi_lam(s))
+            van_de.extend(core.soat_khoi_bat_dau(s))
             # Hành động nằm trong một Nhóm cũng phải soát — khối Nhóm không có `type`
             # của riêng nó, nên vòng trên không chạm tới ruột nó.
             for a in core.hanh_dong_cua(s):

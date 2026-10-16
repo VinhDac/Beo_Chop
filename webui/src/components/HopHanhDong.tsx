@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import { Ve } from './HopDieuKien'
-import { locSo, chotSo } from '../so'
+import { Hang, KhaiLean } from './ORuot'
 import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../types'
 
 /** HỘP THOẠI KHỐI HÀNH ĐỘNG — nơi người chơi khai một việc sẽ làm với thị trường.
@@ -17,60 +17,6 @@ import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../t
  *  tự đẻ thêm backend nào (D-11). Bày cái hàm ra là cách người chơi kiểm được lời hứa
  *  ấy, chứ không phải tin suông.
  */
-
-/** Ô SỐ có BẢN NHÁP riêng.
- *
- *  Ép `Number()` ngay từng phím thì `"1."` ra `1`, state không đổi, React ghi đè ô về
- *  `"1"` — dấu chấm biến mất và phím kế cho `"15"`: 1,5 lặng lẽ thành 15. Đã xảy ra
- *  thật, nên luật lọc nằm riêng ở `src/so.ts` để `webui/kiem/o_so.mjs` canh được. */
-function ONhapSo({ gt, onDoi }: { gt: unknown; onDoi: (n: number) => void }) {
-  const [nhap, setNhap] = useState<string | null>(null)
-  return (
-    <input className="o so" inputMode="decimal" spellCheck={false}
-           value={nhap ?? String(gt ?? 0)}
-           onChange={e => {
-             const { chu, so } = locSo(e.target.value)
-             setNhap(chu)
-             // Chuỗi còn dở dang (`""`, `"-"`, `"1."`) thì giữ trong ô, CHƯA lên khối.
-             if (so !== null) onDoi(so)
-           }}
-           onBlur={() => {
-             if (nhap !== null) { onDoi(chotSo(nhap)); setNhap(null) }
-           }} />
-  )
-}
-
-/** Một hàng = một ô. Hình thức do `kieu` quyết, mà `kieu` thì Python khai. */
-function Hang({ o, gt, onDoi }: {
-  o: OLam; gt: unknown; onDoi: (v: unknown) => void
-}) {
-  return (
-    <label className="o-hang" title={o.goi_y || o.nhan}>
-      <span className="nhan-o">{o.nhan}</span>
-      {o.kieu === 'chon' ? (
-        <select className="o day" value={String(gt ?? '')}
-                onChange={e => onDoi(e.target.value)}>
-          {o.chon.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
-        </select>
-      ) : o.kieu === 'co_khong' ? (
-        <input type="checkbox" className="o-tich" checked={gt === true}
-               onChange={e => onDoi(e.target.checked)} />
-      ) : o.kieu === 'so' ? (
-        <ONhapSo gt={gt} onDoi={onDoi} />
-      ) : (
-        <input className="o day" spellCheck={false} value={String(gt ?? '')}
-               placeholder={o.bat_buoc ? '' : 'để trống = bộ sinh mã tự điền'}
-               onChange={e => onDoi(e.target.value)} />
-      )}
-      {/* Tỷ trọng lưu ĐÚNG DẠNG LEAN NHẬN (0.3), nên bày thêm "= 30%" ngay cạnh — một
-          dòng ĐỌC, không phải một phép đổi giấu trong giao diện. */}
-      {o.don_vi === 'phần' && (
-        <span className="doc-them">= {Math.round(Number(gt ?? 0) * 1000) / 10}%</span>
-      )}
-      {o.goi_y && <span className="goi-y-o">{o.goi_y}</span>}
-    </label>
-  )
-}
 
 export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: {
   step: Step
@@ -194,9 +140,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: 
           </label>
         )}
 
-        <div className="lean-khai">
-          <span>LEAN sẽ gọi</span><code>{hamLean}</code>
-        </div>
+        <KhaiLean ham={hamLean} />
       </div>
     </Modal>
   )

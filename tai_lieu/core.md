@@ -3229,3 +3229,97 @@ Gộp hai hình dạng ấy vào một hộp thì cả hai đều dở.
 **Trạng thái:** bộ khối đọc/ghi xong. **Bộ sinh mã chưa có** — sơ đồ chưa biến thành
 thuật toán LEAN Python. Việc kế tiếp: ô của khối Bắt đầu (nhịp chạy, chạy cho mã nào),
 rồi bộ sinh mã.
+
+---
+
+## 29. ⭐ KHỐI BẮT ĐẦU — nửa «thiết lập» của thuật toán (D-15)
+
+**Cách tìm ra:** đọc **444 thuật toán Python thật** trong `Algorithm.Python/` của LEAN
+— kho template và strategy mẫu của QuantConnect, bản gốc trên đĩa. Không suy đoán từ
+tài liệu web.
+
+### Phát hiện: một script có HAI nửa, sơ đồ ta mới vẽ một nửa
+
+```
+def initialize(self):      ← NÓI MỘT LẦN: ngày nào, bao nhiêu tiền, mã nào, nhịp nào
+def on_data(self, data):   ← CHẠY LẠI mỗi nhịp: đọc, so, quyết, đặt lệnh
+```
+
+Các khối Hỏi/Làm nối dây là nửa dưới. Nửa trên **không có chỗ nào trên canvas** —
+khối Bắt đầu trước D-15 có đúng một thứ: cái tên. Mà nửa trên gần như bắt buộc:
+
+| Trong 444 thuật toán | Có mặt ở |
+|---|---|
+| `set_start_date` / `set_end_date` | **395 / 392** |
+| `set_cash` | 250 |
+| `add_equity` (+ forex/cfd/crypto/future/index) | 244 |
+| `schedule.on` | 55 |
+| `set_benchmark` · `set_brokerage_model` | 31 · 28 |
+
+### Ba dòng mở đầu giống hệt nhau ở mọi chiến lược thật
+
+Đọc kỹ hai cái kinh điển — `MACDTrendAlgorithm` và `MovingAverageCrossAlgorithm`. Cả
+hai mở đầu `on_data` bằng đúng ba thứ:
+
+1. **`if not slow.is_ready: return`** — chỉ báo chưa đủ dữ liệu *(47/444 file)*. Không
+   có nó thì N nến đầu cỗ máy quyết trên số rác.
+2. **"chỉ một lần mỗi ngày"**, tự nhớ hôm qua là ngày nào *(8 file)*. **Đây là cái ta
+   KHÔNG được chép** — nó là TRẠNG THÁI. Người ta viết vậy vì không có cách khai nhịp;
+   LEAN thì có (`Schedule.On`). Nên **ô `nhip` không phải một ô cho tiện: nó xoá hẳn
+   một loại hack.**
+3. **`fast > slow * (1 + 0.00015)`** — nhân một đại lượng với một số rồi mới so. Sáu
+   phép so của ta chưa viết nổi. **Nhưng LEAN có sẵn:** `IndicatorExtensions` cho
+   `Plus/Minus/Times/Over` với vế phải là một SỐ hoặc một CHỈ BÁO khác, kết quả là
+   `CompositeIndicator` do LEAN tự tính. Nên cho phép ghép **không phá luật "không đẻ
+   backend"**. Chưa làm — ghi lại để biết nó khả thi.
+
+### MỘT khối ôm trọn, và nó giải luôn hai thứ tưởng phải đẻ khối mới
+
+| Tưởng cần | Thật ra |
+|---|---|
+| khối **"Với mỗi mã"** | Không cần. Ô `nhip` + ô `ma` đã khai trọn vòng: *"mỗi nến, cho mỗi mã trong danh sách"*. Cả sơ đồ bên dưới là ruột vòng. Vòng vẫn HIỆN RA (luật D-13), chỉ là hiện ở đúng chỗ nó sinh ra. |
+| cửa vào thứ hai (`schedule.on` riêng) | Chưa cần. Một nhịp đủ cho 287/444 thuật toán. Khi nào cần *"mỗi nến xem tín hiệu + cuối tháng cân danh mục"* thì thêm khối Bắt đầu thứ hai — và lúc ấy phải sửa hệ đánh số, vì nó đang neo vào đúng MỘT khối Bắt đầu. |
+
+### Sáu ô
+
+| Ô | LEAN gọi |
+|---|---|
+| Chạy trên mã nào *(danh sách, mỗi dòng một loại tài sản)* | `add_cfd` / `add_equity` / `add_forex` / `add_crypto` / `add_index` / `add_future` |
+| Từ ngày → đến ngày | `set_start_date` · `set_end_date` |
+| Vốn | `set_cash` |
+| Nhịp *(8 lựa chọn)* | `Resolution.*` + `on_data` hoặc `schedule.on` |
+| Mốc so sánh | `set_benchmark` |
+| Sàn | `set_brokerage_model` |
+
+**Nhịp gộp hai thứ của LEAN làm một.** Độ phân giải dữ liệu và lúc nào sơ đồ chạy là
+hai câu trong script, nhưng với người chơi nó là MỘT câu hỏi: *bao lâu tôi xem một
+lần*. Năm nhịp theo nến chạy thẳng trong `on_data`; ba nhịp hẹn giờ qua `schedule.on`
+và **đăng ký dữ liệu PHÚT chứ không phải NGÀY** — dữ liệu ngày thì không có giờ nào
+trong đó mà hẹn.
+
+### Hai thứ KHÔNG thành ô — bộ sinh mã tự lo
+
+- **Làm nóng** (`set_warm_up`): lấy chu kỳ dài nhất trong các chỉ báo đã vẽ. Đếm trên
+  sơ đồ của CHÍNH TA, không tính trên dữ liệu thị trường, nên vẫn trong luật.
+- **Khai chỉ báo**: `self.rsi("XAU", 14)` phải nằm trong `initialize`, và LEAN tự cập
+  nhật mỗi nến — *"We never need to 'update' our indicators with the data, the engine
+  takes care of this for us"* (chú thích trong `MovingAverageCrossAlgorithm`).
+
+### ⚠ Hai chỗ hỏng LẶNG bắt được trong lúc làm
+
+1. **`chuan_hoa_khoi` dựng lại khối Bắt đầu từ đầu, chỉ giữ cái tên** — tức sáu ô mới
+   bay sạch mỗi lần lưu: hộp thoại điền xong, thẻ hiện đúng, lưu rồi mở lại là về mặc
+   định. Nay nó dựng lại từ DANH SÁCH Ô CỐ ĐỊNH của từ điển — và đó đúng là chỗ chặn
+   file rác mà `TIEP_TUC.md` vẫn ghi là còn thiếu.
+2. **Mặc định là list/dict dùng chung.** Không chép sâu thì mọi khối Bắt đầu xài chung
+   MỘT danh sách mã — sửa khối này là khối kia đổi theo. Bẫy cũ của Python, im lặng
+   cho tới lúc có hai khối. `test_bat_dau` canh cả hai.
+
+### Tiện thể: dữ liệu miễn phí có VÀNG
+
+`Data/cfd/oanda/` đi kèm LEAN có **XAUUSD giá ngày từ 20/03/2006 đến 25/02/2019 —
+3.948 ngày**, cộng dữ liệu phút/giây/tick vài ngày mẫu. Backtest vàng được ngay, không
+trả xu nào. Nên khối Bắt đầu mặc định chạy trên XAUUSD.
+
+**Trạng thái:** cả hai nửa của thuật toán đã khai được trên canvas. **Bộ sinh mã vẫn
+chưa có** — sơ đồ chưa biến thành file Python chạy được. Đó là việc kế tiếp.

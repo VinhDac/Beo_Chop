@@ -18,13 +18,14 @@ import BangDuoi, { type TabDuoi } from './components/BangDuoi'
 import KhoStrategy from './components/KhoStrategy'
 import HopDieuKien from './components/HopDieuKien'
 import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
+import HopBatDau from './components/HopBatDau'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  TuDienLam, VanDe,
+  TuDienBatDau, TuDienLam, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -194,6 +195,8 @@ function SoDoTrong() {
   const [tuDien, setTuDien] = useState<TuDienHoi | null>(null)
   /** Từ điển HÀNH ĐỘNG, hỏi Python một lần lúc mở app. */
   const [tuDienLam, setTuDienLam] = useState<TuDienLam | null>(null)
+  /** Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập. */
+  const [tuDienBD, setTuDienBD] = useState<TuDienBatDau | null>(null)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -283,6 +286,8 @@ function SoDoTrong() {
       if (td.ok && td.value) setTuDien(td.value)
       const tl = await py.tu_dien_lam()
       if (tl.ok && tl.value) setTuDienLam(tl.value)
+      const tb = await py.tu_dien_bat_dau()
+      if (tb.ok && tb.value) setTuDienBD(tb.value)
       const r = await py.doc_ban_nhap()
       if (r.ok && r.value) await nap(r.value)
       setSanSang(true)
@@ -1025,7 +1030,8 @@ function SoDoTrong() {
             if (n.id.startsWith('hn:')) { vaoHatNhan(n.id.slice(3)); return }
             // Bấm đúp một khối HỎI là mở hộp điều kiện của nó.
             const st = (n.data as { step?: Step }).step
-            if (st && (tuDien?.loai.some(l => l.ma === st.type)
+            if (st && (st.kind === 'start'
+                       || tuDien?.loai.some(l => l.ma === st.type)
                        || laHanhDong(tuDienLam, st.type))) setDangSua(n.id)
           }}
           onPaneContextMenu={ev => {
@@ -1145,6 +1151,10 @@ function SoDoTrong() {
         if (tuDien && tuDien.loai.some(l => l.ma === st.type)) {
           return <HopDieuKien step={st} tuDien={tuDien} onLuu={luu}
                               onDong={() => setDangSua(null)} />
+        }
+        if (st.kind === 'start' && tuDienBD) {
+          return <HopBatDau step={st} tuDien={tuDienBD} onLuu={luu}
+                            onDong={() => setDangSua(null)} />
         }
         if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
           return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}

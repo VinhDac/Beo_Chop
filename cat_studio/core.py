@@ -7,9 +7,11 @@ Ba tầng:  webui/ (vẽ)  →  api.py (cầu nối duy nhất)  →  core.py (l
 
 Xem `tai_lieu/core.md` để hiểu VÌ SAO. File này giữ HÀNH VI.
 """
+import datetime as _dt
 import json
 import uuid
 
+from . import bat_dau
 from . import hoi
 from . import lam
 from . import luu_tru
@@ -152,7 +154,39 @@ def step_title(step):
 
 
 def make_start_step(name="Bắt đầu"):
-    return {"kind": KIND_START, "id": new_step_id(), "name": name}
+    """Khối BẮT ĐẦU — nửa `initialize` của thuật toán, mọi ô đã điền mặc định.
+
+    Trước D-15 khối này chỉ có cái tên: sơ đồ vẽ được nửa `on_data` mà không có chỗ
+    nào nói chạy trên mã gì, từ ngày nào, bao nhiêu tiền. Xem `bat_dau.py`."""
+    st = {"kind": KIND_START, "id": new_step_id(), "name": name}
+    for o in bat_dau.o_cua():
+        st[o["ten"]] = _chep_sau(o["mac_dinh"])
+    return st
+
+
+def _chep_sau(v):
+    """Chép sâu một giá trị mặc định.
+
+    ⚠ Không có hàm này thì MỌI khối Bắt đầu dùng chung đúng một list/dict mặc định —
+    sửa danh sách mã của khối này là khối kia đổi theo. Bẫy cũ của Python, và nó im
+    lặng cho tới lúc có hai khối."""
+    if isinstance(v, dict):
+        return {k: _chep_sau(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_chep_sau(x) for x in v]
+    return v
+
+
+def o_bat_dau(step, ten):
+    """Giá trị một ô của khối Bắt đầu, rơi về mặc định của từ điển nếu khối chưa có.
+
+    Nhờ hàm này mà file cũ (lưu khi khối Bắt đầu còn trống ruột) mở ra vẫn chạy."""
+    if isinstance(step, dict) and ten in step:
+        return step[ten]
+    for o in bat_dau.o_cua(step):
+        if o["ten"] == ten:
+            return _chep_sau(o["mac_dinh"])
+    return None
 
 
 def make_group_step(name="Nhóm mới"):
@@ -241,6 +275,38 @@ def _pt(v):
     """Phần (0.3) -> phần trăm đọc được ("30"). Làm tròn vì 0.3*100 ra 30.000000004."""
     f = _f(v)
     return "?" if f is None else _so_gon(round(f * 100, 6))
+
+
+def _ngay_vn(s):
+    """"2010-01-01" -> "01/01/2010". Hỏng khuôn thì trả nguyên xi, đừng ném."""
+    p = str(s or "").split("-")
+    return f"{p[2]}/{p[1]}/{p[0]}" if len(p) == 3 and all(p) else str(s or "?")
+
+
+def _tien(n):
+    """100000 -> "100.000". Dấu chấm phân nhóm, như người Việt vẫn viết."""
+    f = _f(n)
+    return str(n) if f is None else f"{int(f):,}".replace(",", ".")
+
+
+def mo_ta_bat_dau(step):
+    """Khối BẮT ĐẦU -> mấy dòng chữ trên thẻ."""
+    ds = o_bat_dau(step, "ma") or []
+    ten_loai = {m: n for m, n, _h in bat_dau.LOAI_TAI_SAN}
+    if not ds:
+        dong = ["chưa chọn mã nào"]
+    elif len(ds) == 1:
+        m = ds[0]
+        dong = [f"{m.get('ma') or '?'} · {ten_loai.get(m.get('loai'), m.get('loai'))}"]
+    else:
+        dong = [f"{len(ds)} mã: " + ", ".join(str(m.get("ma") or "?") for m in ds)]
+    k = o_bat_dau(step, "khoang") or {}
+    dong.append(f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}")
+    dong.append(f"vốn {_tien(o_bat_dau(step, 'von'))}$")
+    moc = str(o_bat_dau(step, "moc_so_sanh") or "").strip()
+    if moc:
+        dong.append(f"mốc so sánh: {moc}")
+    return dong
 
 
 def mo_ta_lam(step):
@@ -436,8 +502,11 @@ def the_buoc(step):
         nhan = ["chạy 1 lần"]
         dong = [{"text": mo_ta_hanh_dong(a), "type": a.get("type")} for a in hd]
     elif kind == KIND_START:
-        nhan = []
-        dong = []
+        # Huy hiệu nói NHỊP: đó là thứ quyết cả sơ đồ chạy bao lâu một lần, nên nó
+        # phải đọc được mà không cần mở khối ra.
+        n = bat_dau.nhip_cua(str(o_bat_dau(step, "nhip") or ""))
+        nhan = [n[1]] if n else []
+        dong = [{"text": x, "type": None} for x in mo_ta_bat_dau(step)]
     elif hoi.la_loai_hoi(step.get("type")):
         # KHỐI HỎI: MỖI điều kiện một dòng, nối bằng VÀ. Nhồi thành một chuỗi dài là
         # thẻ cắt cụt mất vế phải — đúng chỗ người ta cần đọc nhất.
@@ -1190,6 +1259,78 @@ def soat_khoi_hoi(step):
     return ra
 
 
+#: Khuôn ngày lưu trong file. Lưu ISO chứ không lưu "01/01/2010": thẻ khối hiện kiểu
+#: Việt, nhưng file phải xếp được theo thứ tự chữ và không mập mờ ngày/tháng.
+_KHUON_NGAY = "%Y-%m-%d"
+
+
+def _doc_ngay(s):
+    try:
+        return _dt.datetime.strptime(str(s), _KHUON_NGAY).date()
+    except (TypeError, ValueError):
+        return None
+
+
+def soat_khoi_bat_dau(step):
+    """Soát RUỘT khối Bắt đầu. -> [{severity, step, index, message}]
+
+    Mấy chỗ này đều hỏng LẶNG: không có mã thì cỗ máy chạy đủ mọi nến mà không mua bán
+    gì; ngày ngược thì LEAN không chạy nến nào; mã trùng thì LEAN đăng ký hai lần."""
+    ra = []
+    if not is_start_step(step):
+        return ra
+    sid = step.get("id")
+    ten = step_title(step)
+
+    ds = o_bat_dau(step, "ma")
+    if not isinstance(ds, list) or not ds:
+        _loi(ra, "error", sid,
+             f'"{ten}": chưa chọn mã nào — cỗ máy sẽ chạy đủ mọi nến mà không mua '
+             f"bán gì.")
+        ds = []
+    hop_le = {m for m, _n, _h in bat_dau.LOAI_TAI_SAN}
+    da_thay = set()
+    for i, m in enumerate(ds):
+        if not isinstance(m, dict):
+            _loi(ra, "error", sid, f'"{ten}": dòng mã {i + 1} hỏng.')
+            continue
+        k = str(m.get("ma") or "").strip().upper()
+        if not k:
+            _loi(ra, "error", sid, f'"{ten}": dòng mã {i + 1} để trống.')
+            continue
+        if m.get("loai") not in hop_le:
+            _loi(ra, "error", sid,
+                 f'"{ten}": mã {k} chưa chọn loại tài sản — mỗi loại một hàm LEAN '
+                 f"khác nhau.")
+        if k in da_thay:
+            _loi(ra, "error", sid,
+                 f'"{ten}": mã {k} khai hai lần — LEAN sẽ đăng ký trùng.')
+        da_thay.add(k)
+
+    k = o_bat_dau(step, "khoang") or {}
+    tu, den = _doc_ngay(k.get("tu")), _doc_ngay(k.get("den"))
+    if tu is None or den is None:
+        _loi(ra, "error", sid,
+             f'"{ten}": ngày sai khuôn — phải là dạng 2010-01-31.')
+    elif tu >= den:
+        _loi(ra, "error", sid,
+             f'"{ten}": ngày bắt đầu không trước ngày kết thúc — LEAN sẽ không chạy '
+             f"nến nào.")
+
+    v = _f(o_bat_dau(step, "von"))
+    if v is None:
+        _loi(ra, "error", sid, f'"{ten}": vốn không phải một con số.')
+    elif v <= 0:
+        _loi(ra, "error", sid,
+             f'"{ten}": vốn phải lớn hơn 0 — không có tiền thì mọi lệnh đều bị từ '
+             f"chối, mà backtest vẫn chạy hết.")
+
+    if not bat_dau.nhip_cua(str(o_bat_dau(step, "nhip") or "")):
+        _loi(ra, "error", sid,
+             f'"{ten}": không có nhịp "{o_bat_dau(step, "nhip")}".')
+    return ra
+
+
 def soat_khoi_lam(step):
     """Soát RUỘT một khối Hành động. -> [{severity, step, index, message}]
 
@@ -1379,6 +1520,11 @@ def chuan_hoa_khoi(s):
     kind = s.get("kind")
     if kind == KIND_START:
         ra = {"kind": KIND_START, "name": (s.get("name") or "").strip() or "Bắt đầu"}
+        # Dựng lại từ DANH SÁCH Ô CỐ ĐỊNH của từ điển, không chép bừa mọi khoá: đây
+        # đúng là chỗ chặn file rác mà `TIEP_TUC.md` vẫn ghi là còn thiếu.
+        for o in bat_dau.o_cua(s):
+            ra[o["ten"]] = (s[o["ten"]] if o["ten"] in s
+                            else _chep_sau(o["mac_dinh"]))
     elif kind == KIND_GROUP:
         acts = [dict(a) for a in (s.get("actions") or []) if isinstance(a, dict)]
         ra = {"kind": KIND_GROUP, "name": (s.get("name") or "").strip() or "Nhóm mới",

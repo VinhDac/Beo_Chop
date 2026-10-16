@@ -1211,3 +1211,26 @@ mark.tim-chu {
 @media (max-width: 1089px) { .hien-tu-1090 { display: none; } }
 @media (max-width: 1249px) { .hien-tu-1250 { display: none; } }
 @media (max-width: 1459px) { .hien-tu-1460 { display: none; } }
+
+/* ==========================================================================
+   HỘP THOẠI KHỐI BẮT ĐẦU — hai widget riêng của nó
+   ==========================================================================
+   Danh sách mã và khoảng ngày dùng lại khung hàng `.o-hang` của hộp Hành động, nên ở
+   đây chỉ tả phần RUỘT. */
+.ds-ma { display: flex; flex-direction: column; gap: 5px; flex: 1 1 auto; min-width: 0; }
+.dong-ma { display: flex; align-items: center; gap: 6px; }
+.dong-ma .o.ma { flex: 0 0 96px; text-transform: uppercase; }
+.dong-ma .o.day { flex: 1 1 auto; min-width: 0; }
+.dong-ma > .nut-nho { color: var(--dim); flex: 0 0 auto; }
+.dong-ma > .nut-nho:hover { color: var(--err); background: var(--raised); }
+.ds-ma > .nut { align-self: flex-start; }
+.khoang-ngay { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
+.khoang-ngay .o { flex: 0 0 auto; }
+.khoang-ngay .mui { color: var(--dim); }
+/* Hàng có widget nhiều dòng thì nhãn phải lên ĐẦU hàng, không căn giữa theo cả cụm. */
+.hop-lam .o-hang:has(.ds-ma) { align-items: flex-start; }
+.hop-lam .o-hang:has(.ds-ma) .nhan-o { padding-top: 6px; }
+/* ...và lời gợi ý KHÔNG được co giãn tự do ở hàng này. Mặc định nó `flex: 1 1 auto`
+   giống danh sách mã, nên hai bên chia đôi chể ngang và ô "loại tài sản" bị bóp còn
+   một mẩu không đọc nổi tên loại nào. */
+.hop-lam .o-hang:has(.ds-ma) .goi-y-o { flex: 0 0 150px; }

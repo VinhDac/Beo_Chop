@@ -7,7 +7,7 @@
  * Bản trước tách `pyQC` riêng và bản xem thử tự định tuyến mọi tên `qc_*` sang lớp kia
  * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
-import type { Edge, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind, Strategy, TuDienHoi, TuDienLam } from './types'
+import type { Edge, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind, Strategy, TuDienBatDau, TuDienHoi, TuDienLam } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -60,6 +60,8 @@ export const py = {
   tu_dien_hoi: () => goi<TuDienHoi>('tu_dien_hoi'),
   /** Từ điển HÀNH ĐỘNG — tám loại việc và các ô của từng loại. Cùng lý do như trên. */
   tu_dien_lam: () => goi<TuDienLam>('tu_dien_lam'),
+  /** Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập. Cùng lý do như hai cửa trên. */
+  tu_dien_bat_dau: () => goi<TuDienBatDau>('tu_dien_bat_dau'),
 
   // --- sơ đồ ---
   khoi_moi: (kind: StepKind, loai?: string) =>
