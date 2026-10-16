@@ -65,11 +65,16 @@ khác hay đổi tên thì không).
 **Sáng tạo** — không màn, không boss, không sao: rổ mã nào, khoảng ngày nào, vốn bao
 nhiêu cũng được. Chỗ để thử ý tưởng.
 
+> **Đang dựng lại đường chạy.** App vẽ và soát cỗ máy được; **chạy thì chưa** — từ
+> 16/10/2026 mọi phép tính giao dịch giao hết cho QuantConnect (D-11), và phần dịch sơ đồ
+> thành thuật toán QC chưa dựng xong. Phần dưới về trò chơi mô tả luật đã có, chưa chạy
+> được.
+
 ## Chạy từ mã nguồn (Windows)
 
 ```bat
 tools\setup.bat        REM một lần sau khi clone: .venv + thư viện + build giao diện
-tools\chay_test.bat    REM phải thấy: ✔ 12/12 bài đều qua
+tools\chay_test.bat    REM phải thấy: ✔ 7/7 bài đều qua
 tools\chay.bat         REM mở app
 ```
 
@@ -77,7 +82,6 @@ tools\chay.bat         REM mở app
 * Muốn xem giao diện trong trình duyệt (chụp ảnh, mở DevTools, cho máy bấm thử):
   `.venv\Scripts\python.exe tools\xem_thu.py` → `http://127.0.0.1:8777`, thêm `?qc=1` để
   xem cửa sổ Màn chơi. Nó gọi `api.py` thật, chỉ thay đường vận chuyển.
-* Chạy một cỗ máy bằng dòng lệnh: `tools\chay_qc.bat --man kim-loai-2024`.
 
 ### Cần gì để chạy thật trên QuantConnect
 
@@ -95,20 +99,15 @@ cat_studio/
   tram.py             TỪ ĐIỂN 5 trạm: khối Làm · đại lượng · tham số · Gom
   may.py              cỗ máy: định dạng, chuẩn hoá, soát lỗi, đánh số, chữ trên khối
   chuoi_nen.py        nến + chỉ báo tính dần (thuần Python)
-  bo_may.py           bộ máy chạy cỗ máy — ra mục tiêu và ý định lệnh
   mau_tram.py         22 mẫu dựng sẵn từng trạm + 4 cỗ máy dựng sẵn
-  nhat_ky_may.py      chữ «vì sao» của từng lượt
-  goi_qc.py           đóng gói bộ file gửi lên QuantConnect
   qc_api.py           nói chuyện với API của QC
-  ket_qua_may.py      đọc nhật ký tải về
   game.py             luật chơi: màn, boss, sao, sổ nộp
-  qc_chay.py          một lượt chạy trên QC, trong luồng nền
+  qc_chay.py          soát đầu vào một lượt chạy (rổ mã, ngày, vốn)
   core.py             đồ thị, đánh số, soát lỗi đồ thị, bảng tham số
   api.py              bề mặt DUY NHẤT giao diện gọi tới
-lean/vo_may.py        lớp vỏ chạy trên QuantConnect (không chứa luật nào)
 webui/src/may/        trình vẽ 5 trạm (React + @xyflow/react)
 webui/src/qc/         cửa sổ Màn chơi
-tests/                12 bài kiểm, chạy bằng `tools\chay_test.bat`
+tests/                7 bài kiểm, chạy bằng `tools\chay_test.bat`
 tai_lieu/core.md      nhật ký kỹ thuật: vì sao từng thứ như hiện tại
 DECISIONS.md          quyết định lớn, kèm phương án đã cân nhắc
 ```

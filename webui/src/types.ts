@@ -190,6 +190,9 @@ export interface BootQC {
    *  nói, không đoán từ hình dạng `doc`. */
   dang: string
   tu_do_may: TuDoMayQC
+  /** D-11: đường chạy đang được dựng lại — câu Python đưa sang để cửa sổ nói thẳng ra.
+   *  Rỗng nghĩa là chạy được bình thường. */
+  chua_noi?: string
   /** Loại thị trường chọn được, và trần số mã một rổ — `qc_chay` khai. */
   loai_thi_truong: Record<string, string>
   tran_so_ma: number

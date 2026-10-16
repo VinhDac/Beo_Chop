@@ -2963,3 +2963,34 @@ nào sờ tới chính mấy luật đó.
 **Bằng chứng:** `tools\chay_test.bat` 12/12 sau khi dọn; giao diện build sạch; app mở lên
 vẫn đúng vòng chơi (đã soi bằng `tools/xem_thu.py`: trình vẽ, ◆ Màn chơi, Chiến dịch ba
 màn, Sáng tạo theo rổ).
+
+## 25. ⛔ BỎ BỘ MÔ PHỎNG TẠI MÁY — app chỉ là VỎ của QC (D-11)
+
+> Xoá: `bo_may.py` · `chuoi_nen.py` · `nhat_ky_may.py` · `ket_qua_may.py` · `goi_qc.py` ·
+> `lean/vo_may.py` · `tests/san_gia.py` · `tests/lean_gia.py` · `tests/qc_gia.py` ·
+> `tools/chay_qc.py` và năm bài kiểm của chúng. Khoảng 5.800 dòng.
+
+**Vì sao** (đo trước khi xoá, không phải cảm tính): ta đang tính lại những thứ QC làm
+sẵn — gộp nến, 16 chỉ báo, «% vốn» → số lượng, huỷ lệnh hết hạn, trailing stop, lãi lỗ,
+boss. Hai nơi cùng tính một thứ thì ra hai số. Rõ nhất: **nến H1 của ta cắt theo giờ UTC
+chẵn, nến H1 của QC cho cổ phiếu Mỹ cắt theo giờ mở cửa sàn** — mở chart QC đối chiếu là
+thấy lệch, mà ta không có gì để giải thích.
+
+**Còn lại gì:** `tram` (từ điển) · `may` (định dạng + soát lỗi + vân tay) · `mau_tram`
+(mẫu) · `core` (đồ thị, đánh số) · `luu_tru` · `game` (màn, boss, sao, sổ) · `qc_api`
+(nói chuyện với QC: khoá, project, file, biên dịch, backtest, Object Store) · `qc_chay`
+(soát đầu vào một lượt) · `api` + giao diện.
+
+**Trạng thái thật của app:** vẽ được, soát lỗi được, lưu/mở được, lắp mẫu được —
+**chưa chạy được**. Mọi cửa chạy trả đúng một câu (`ApiQC._CHUA_NOI`), và cửa sổ Màn chơi
+nói nguyên văn câu đó ngay chỗ người chơi định bấm ▶. Cố ý không để nút bấm được rồi hỏng
+ở đâu đó.
+
+**Cái mất, đã biết trước:** không còn sàn giả để chạy thử trong vài giây. Bài kiểm còn 7
+bài, và tất cả đều là bài kiểm TĨNH (từ điển, chuẩn hoá, soát lỗi, đánh số, cửa API, giao
+diện). Từ nay "cỗ máy này giao dịch ra sao" chỉ trả lời được bằng một lượt chạy thật trên
+QuantConnect.
+
+**Việc kế tiếp (chưa thiết kế):** dịch sơ đồ 5 trạm thành một thuật toán QC dùng CHÍNH bộ
+khung của họ — universe selection, indicator, insight, portfolio construction, risk
+management, execution. Từ nay mỗi "item" trong game phải là một món có thật của QC.

@@ -179,9 +179,6 @@ class Api(NenCuaSo):
         self._qc = None              # cửa sổ Màn chơi (chạy trên QuantConnect)
         self._api_qc = None
         self._doc_qc = None
-        #: Việc chạy QC sống ở CỬA SỔ CHÍNH, không ở cửa sổ Màn chơi: đóng cửa sổ lúc đang
-        #: chạy rồi mở lại vẫn thấy đúng lượt đó, không mất tiến độ hay kết quả.
-        self._viec_qc = None
         self._cai_dat = core.load_settings()
         self._khoa = threading.Lock()
 
@@ -491,11 +488,6 @@ class ApiQC(NenCuaSo):
         super().__init__()
         self._cha = cha          # `Api` của cửa sổ chính — giữ sơ đồ và việc chạy QC
 
-    def _viec(self):
-        if self._cha._viec_qc is None:
-            self._cha._viec_qc = qc_chay.ViecQC()
-        return self._cha._viec_qc
-
     def _ds_man(self):
         """Màn CỦA ĐÚNG DẠNG tài liệu đang mở. Chưa có tài liệu thì bày màn của cỗ máy 5
         trạm — đó là thứ duy nhất app còn vẽ được (D-10, phần 5)."""
@@ -529,8 +521,10 @@ class ApiQC(NenCuaSo):
                           "tu": "2025-10-01", "den": "2025-12-31", "von": 10_000.0},
             "loai_thi_truong": qc_chay.LOAI_THI_TRUONG,
             "tran_so_ma": qc_chay.TRAN_SO_MA,
-            "trang_thai": self._viec().trang_thai(),
-            "co_ket_qua": self._viec().ket_qua is not None,
+            "trang_thai": {"dang_chay": False, "xong": None, "loi": None},
+            "co_ket_qua": False,
+            # D-11: chưa có đường chạy — cửa sổ Màn chơi nói thẳng câu này ra.
+            "chua_noi": self._CHUA_NOI,
         })
 
     # ------------------------------------------------------------------ khoá
@@ -560,65 +554,36 @@ class ApiQC(NenCuaSo):
         return _ok(True)
 
     # ------------------------------------------------------------------ chạy
+    #: D-11 — app chỉ là VỎ của QuantConnect. Đường chạy cũ (bộ máy tự tính tại máy) đã
+    #: bị gỡ; đường mới sẽ sinh thẳng một thuật toán QC từ sơ đồ. Trong lúc chưa có, mọi
+    #: cửa chạy nói ĐÚNG MỘT CÂU, thay vì bày ra nút bấm vào rồi hỏng ở đâu đó.
+    _CHUA_NOI = ("Đường chạy đang được dựng lại: từ nay QuantConnect tính hết, app chỉ "
+                 "sinh ra thuật toán rồi gửi đi (D-11). Hiện giờ app vẽ và soát cỗ máy "
+                 "được, chưa chạy được.")
+
     @_bat_loi
     def qc_chay(self, loai, man_id=None, tu_do=None):
-        """▶ nhanh / ▶ đầy đủ / Nộp / ▶ tự do — chạy NỀN, trả về ngay; JS hỏi `qc_trang_thai`."""
-        doc = self._cha._doc_qc
-        if not doc:
-            return _loi("Chưa có sơ đồ — bấm ◆ Màn chơi ở cửa sổ vẽ.")
-        try:
-            qc_api.doc_khoa()                   # thiếu khoá thì báo NGAY, chưa đóng gói gì
-            self._viec().bat_dau(doc, loai, man_id, tu_do)
-        except (qc_api.LoiQC, game.LoiGame, bo_chay.LoiChay) as e:
-            return _loi(str(e))
-        return _ok(True)
+        return _loi(self._CHUA_NOI)
 
     @_bat_loi
     def qc_trang_thai(self):
-        return _ok(self._viec().trang_thai())
-
-    # ------------------------------------------------------------------ xem kết quả
-    def _ket_qua(self):
-        k = self._viec().ket_qua
-        if k is None:
-            raise game.LoiGame("Chưa có lượt nào để xem — bấm ▶ trước.")
-        return k
+        return _ok({"dang_chay": False, "xong": None, "loi": None})
 
     @_bat_loi
     def qc_ket_qua(self):
-        k = self._viec().ket_qua
-        return _ok(k.tom_tat() if k is not None else None)
+        return _ok(None)
 
     @_bat_loi
     def qc_nhat_ky(self, tu=0, so=200, chi_viec=True):
-        try:
-            return _ok(self._ket_qua().lo(tu, so, chi_viec))
-        except game.LoiGame as e:
-            return _loi(str(e))
+        return _loi(self._CHUA_NOI)
 
     @_bat_loi
     def qc_lenh(self):
-        """Mọi lệnh của lượt đang xem — mỗi lệnh mang giờ đặt/khớp/đóng."""
-        try:
-            return _ok(self._ket_qua().lenh)
-        except game.LoiGame as e:
-            return _loi(str(e))
+        return _loi(self._CHUA_NOI)
 
     @_bat_loi
     def qc_soi_luot(self, i):
-        """SOI một lượt TRÊN SƠ ĐỒ: bắn sang cửa sổ vẽ để nó tô đường lượt `i` đã đi —
-        tới tận dòng điều kiện hỏng — rồi kéo cửa sổ vẽ lên trước. Bắn TRƯỚC rồi mới kéo:
-        kéo trước thì cửa sổ hiện ra trong một nhịp còn chưa có gì được tô, nhìn như hụt."""
-        try:
-            k = self._ket_qua()
-        except game.LoiGame as e:
-            return _loi(str(e))
-        i = int(i)
-        if not (0 <= i < len(k.nhat_ky)):
-            return _ok({"da_ban": False})
-        self._cha._ban("soi_luot", k.soi(i))
-        self._cha._khung.keo_len_truoc()
-        return _ok({"da_ban": True})
+        return _loi(self._CHUA_NOI)
 
     @_bat_loi
     def qc_man(self):
@@ -630,10 +595,7 @@ class ApiQC(NenCuaSo):
 
     @_bat_loi
     def qc_mo_lai(self, duong):
-        try:
-            return _ok(self._viec().mo_lai(duong))
-        except game.LoiGame as e:
-            return _loi(str(e))
+        return _loi(self._CHUA_NOI)
 
     @_bat_loi
     def qc_mo_web(self, url):

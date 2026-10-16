@@ -243,7 +243,9 @@ export default function ManChoi() {
   /* ------------------------------ vẽ ------------------------------ */
   if (loiBoot) return <div className="khung"><div className="tk-trong">{loiBoot}</div></div>
 
-  const chayDuoc = !dangChay && !!doc
+  /** D-11: đường chạy đang dựng lại — Python nói câu này, cửa sổ nói lại nguyên văn. */
+  const chuaNoi = boot?.chua_noi || ''
+  const chayDuoc = !dangChay && !!doc && !chuaNoi
   const coVe = !!man?.ve_nop
 
   return (
@@ -307,6 +309,9 @@ export default function ManChoi() {
         </div>
         <div className="mc-phai">
           {!doc && <div className="mc-bao">Chưa có sơ đồ — bấm <b>◆ Màn chơi</b> ở cửa sổ vẽ.</div>}
+          {/* Nói THẲNG là chưa chạy được, ngay chỗ người chơi định bấm ▶ — chứ không để
+              họ bấm rồi nhận một câu lỗi chẳng hiểu từ đâu ra. */}
+          {chuaNoi && <div className="mc-bao canh">{chuaNoi}</div>}
           {khoa && !khoa.co && (
             <div className="mc-bao canh">
               Chưa có khoá QuantConnect — cần gói <b>Researcher</b> trở lên (gói Free không có API).

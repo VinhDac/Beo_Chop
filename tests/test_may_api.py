@@ -374,24 +374,33 @@ kiem("cỗ máy còn lỗi → ◆ Màn chơi từ chối ngay, kèm danh sách 
      and r["loi"][0]["tram"] in T.TRAM_KEYS)
 kiem("… và CHƯA đặt cỗ máy nào cho cửa sổ Màn chơi", a._doc_qc is None)
 
-# Chiến dịch (D-10, phần 6): soát NGAY tại máy, chưa gửi gì lên QC.
+# D-11: đường chạy đang dựng lại — mọi cửa chạy nói ĐÚNG MỘT CÂU, không cửa nào ném.
+for ten, args in (("qc_chay", ("nhanh", "ro-ngoai-hoi-2024", None)),
+                  ("qc_nhat_ky", ()), ("qc_lenh", ()), ("qc_soi_luot", (0,)),
+                  ("qc_mo_lai", ("x",))):
+    r = getattr(aq, ten)(*args)
+    kiem(f"{ten}: nói thẳng là chưa chạy được, không giả vờ chạy rồi hỏng",
+         r["ok"] is False and "chưa chạy được" in r["error"])
+kiem("trạng thái: không có lượt nào đang chạy, không có kết quả",
+     aq.qc_trang_thai()["value"]["dang_chay"] is False
+     and aq.qc_ket_qua()["value"] is None)
+kiem("qc_boot mang theo câu đó để cửa sổ Màn chơi nói ra",
+     "chưa chạy được" in (b.get("chua_noi") or ""))
+
+# Soát đầu vào Sáng tạo vẫn là việc TẠI MÁY — nó không phải mô phỏng, chỉ là soát.
 from cat_studio import qc_chay  # noqa: E402
 
-
-def bat_dau(loai, man_id):
+for xau, cau in (({"ma": []}, "chưa có mã"), ({"ma": ["EUR USD"]}, "không hợp lệ"),
+                 ({"loai": "vang"}, "loại thị trường"),
+                 ({"tu": "2024-02-01", "den": "2024-01-01"}, "SAU")):
+    tu_do = dict({"ma": ["EURUSD"], "loai": "forex", "tu": "2024-01-01",
+                  "den": "2024-06-30", "von": 10000}, **xau)
     try:
-        qc_chay.ViecQC(tao_qc=lambda: None).bat_dau(may, loai, man_id)
-        return "không báo gì"
+        qc_chay.soat_tu_do_may(tu_do)
+        ra = "không báo gì"
     except Exception as e:                       # noqa: BLE001
-        return str(e)
-
-
-kiem("màn của SƠ ĐỒ CŨ → từ chối, nói rõ hai dạng không dùng chung màn",
-     "sơ đồ cũ" in bat_dau("nhanh", "vang-2024"))
-kiem("nộp mà chưa ▶ đầy đủ đúng cỗ máy đó → báo ngay, chưa gửi gì lên QC",
-     "▶ đầy đủ" in bat_dau("nop", "ro-ngoai-hoi-2024"))
-kiem("màn không có → câu tiếng Việt gọi tên màn",
-     "khong-he-co" in bat_dau("nhanh", "khong-he-co"))
+        ra = str(e)
+    kiem(f"đầu vào sai {list(xau)} → «{cau}»", cau in ra, f"— {ra[:60]}")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

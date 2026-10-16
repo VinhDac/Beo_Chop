@@ -1,14 +1,10 @@
-"""MẪU DỰNG SẴN + CHỮ "VÌ SAO" của cỗ máy 5 trạm.  (D-10, phần 3c)
+"""MẪU DỰNG SẴN — 22 mẫu từng trạm và 4 cỗ máy dựng sẵn.  (D-10)
 
-  1. **Mọi mẫu mở ra SẠCH** — không lỗi, không cảnh báo — và CHẠY ĐƯỢC trên dữ liệu giả: mẫu
-     tín hiệu nào cũng phát được tín hiệu, mẫu khớp lệnh nào cũng ra được lệnh.
-  2. **Đổi mẫu không vặn lại núm** — tham số người chơi đã chỉnh giữ nguyên giá trị.
-  3. **Mẫu làm đúng việc của nó** — N mã thanh khoản giữ đúng N mã, N mã mạnh nhất bỏ mã đi
-     xuống, trailing/cầu dao bật khi sập.
-  4. **Chữ nhật ký** — dòng có việc, dòng trượt nói đúng điều kiện sai kèm con số, dòng Gom,
-     dòng sự kiện; đúng từng chữ.
+Canh: mẫu nào mở ra cũng SẠCH (không lỗi, không cảnh báo), lắp mẫu không vặn lại núm
+người chơi đã chỉnh, và bốn cỗ máy dựng sẵn là bốn cỗ máy KHÁC NHAU thật.
 
-Chạy:  python tests\\test_mau_tram.py
+⚠ Phần "mẫu có chạy ra lệnh không" đã bỏ cùng bộ mô phỏng tại máy (D-11): từ nay chỉ
+QuantConnect chạy, nên câu hỏi đó chỉ trả lời được bằng một lượt chạy thật trên QC.
 """
 import copy
 import io
@@ -24,9 +20,6 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 from cat_studio import may as M  # noqa: E402
 from cat_studio import tram as T  # noqa: E402
 from cat_studio import mau_tram as MT  # noqa: E402
-from cat_studio.bo_may import can_khoi_dong  # noqa: E402
-from cat_studio.nhat_ky_may import DocNhatKy  # noqa: E402
-import san_gia as SG  # noqa: E402
 
 dung = sai = 0
 
@@ -49,8 +42,6 @@ def kiem(ten, dk, chi_tiet=""):
         print(f"  ✘ {ten} {chi_tiet}")
 
 
-BD = SG.NGAY + 3 * SG.NGAY_S          # khởi động 3 ngày: đủ cho EMA 50 nến H1
-DL = SG.du_lieu({"A": 8.0, "B": -8.0, "C": 0.0}, 6, seed=11, nhieu=0.0005)
 
 # ================= 1. mọi mẫu sạch + chạy được =================
 print("\n▸ Mọi mẫu mở ra sạch")
@@ -85,22 +76,14 @@ kiem("lắp mẫu KHÔNG sửa cỗ máy truyền vào (lắp 22 lần, bản g�
      json.dumps(mm, sort_keys=True) == goc)
 
 print("\n▸ Bốn cỗ máy dựng sẵn của chương 1 (D-10, phần 6)")
-ban_san, cam_san = [], []
+ban_san = []
 for d in MT.MAY_SAN:
     ms = MT.may_san(d["key"])
     vd = M.soat(ms)
     if vd:
         ban_san.append((d["key"], vd[0]["message"][:60]))
-    # Chạy thật trên sàn giả: cỗ máy mở ra "sạch lỗi" mà không ra nổi một lệnh thì nó
-    # chưa phải một cỗ máy, chỉ là một bức tranh.
-    ngay = -(-can_khoi_dong(ms) // SG.NGAY_S)
-    dl = SG.du_lieu({"A": 9.0, "B": -9.0, "C": 1.0}, ngay + 6, seed=17, nhieu=0.0006)
-    bm, _, _ = SG.chay(ms, dl, bat_dau_t=SG.NGAY + ngay * SG.NGAY_S)
-    if not bm.thong_ke()["so_lenh"]:
-        cam_san.append(d["key"])
 kiem("mọi cỗ máy dựng sẵn mở ra SẠCH — không lỗi, không cảnh báo", not ban_san,
      f"— {ban_san}")
-kiem("… và cái nào cũng ra được lệnh trên dữ liệu giả", not cam_san, f"— câm: {cam_san}")
 kiem("bốn ý tưởng KHÁC NHAU: không hai cỗ máy nào trùng vân tay",
      len({M.van_tay(MT.may_san(d["key"])) for d in MT.MAY_SAN}) == len(MT.MAY_SAN),
      f"({len(MT.MAY_SAN)} cỗ máy)")
@@ -119,113 +102,6 @@ kiem("lắp lại cùng mẫu: ema_nhanh người chơi chỉnh = 9 vẫn là 9"
      {t["ten"]: t["gia_tri"] for t in m2["tham_so"]}.get("ema_nhanh") == 9.0)
 kiem("tham số của mẫu thêm vào bảng, không trùng tên",
      len({t["ten"] for t in m2["tham_so"]}) == len(m2["tham_so"]) == 2)
-
-print("\n▸ Mỗi mẫu tín hiệu phát được tín hiệu, mỗi mẫu khớp lệnh ra được lệnh")
-khong_tin_hieu, _dl = [], {}
-for d in MT.MAU[T.TIN_HIEU]:
-    m = MT.ap_mau(mm, T.TIN_HIEU, d["key"])
-    # Khởi động đúng bằng thứ cỗ máy CẦN (SMA 200 nến H1 cần hơn 8 ngày) — đặt cứng 3 ngày là
-    # mẫu «Giá trên MA» câm suốt lượt: lỗi thật đã gặp.
-    ngay = -(-can_khoi_dong(m) // SG.NGAY_S)
-    if ngay not in _dl:
-        _dl[ngay] = SG.du_lieu({"A": 8.0, "B": -8.0, "C": 0.0}, ngay + 3, seed=11, nhieu=0.0005)
-    bm, _, _ = SG.chay(m, _dl[ngay], bat_dau_t=SG.NGAY + ngay * SG.NGAY_S)
-    bao = [v for r in bm.nhat_ky if r.get("tram") == T.TIN_HIEU for v in r.get("viec") or []]
-    if not bao:
-        khong_tin_hieu.append(d["key"])
-kiem("6 mẫu tín hiệu đều phát được tín hiệu trên dữ liệu giả", not khong_tin_hieu,
-     f"— câm: {khong_tin_hieu}")
-khong_lenh = []
-for d in MT.MAU[T.KHOP_LENH]:
-    bm, _, yd = SG.chay(MT.ap_mau(mm, T.KHOP_LENH, d["key"]), DL, bat_dau_t=BD)
-    if not bm.thong_ke()["so_lenh_khop"]:
-        khong_lenh.append(d["key"])
-kiem("4 mẫu khớp lệnh đều ra được lệnh và được khớp", not khong_lenh, f"— không lệnh: {khong_lenh}")
-khong_chay = []
-for k in (T.CHON_MA, T.CHIA_VON, T.RUI_RO):
-    for d in MT.MAU[k]:
-        try:
-            bm, _, _ = SG.chay(MT.ap_mau(mm, k, d["key"]), DL, bat_dau_t=BD)
-        except Exception as e:          # noqa: BLE001 — bài kiểm phải nói mẫu nào hỏng
-            khong_chay.append((d["key"], str(e)[:60]))
-kiem("mọi mẫu ① ③ ④ chạy trọn không lỗi", not khong_chay, f"— {khong_chay}")
-
-# ================= 2. mẫu làm đúng việc =================
-print("\n▸ Mẫu làm đúng việc của nó")
-DLTK = SG.du_lieu({"A": 0.0, "B": 0.0, "C": 0.0}, 25, seed=2, nhieu=0.0004)
-for i, n in enumerate(DLTK["B"]):          # B giao dịch dày gấp 10 lần
-    DLTK["B"][i] = n[:5] + (n[5] * 10,)
-mtk = MT.ap_mau(mm, T.CHON_MA, "thanh_khoan")
-for t in mtk["tham_so"]:
-    if t["ten"] == "so_ma":
-        t["gia_tri"] = 1.0
-bm, _, _ = SG.chay(mtk, DLTK, bat_dau_t=SG.NGAY + 21 * SG.NGAY_S)
-g1 = [r["gom"] for r in bm.nhat_ky if r.get("tram") == T.CHON_MA and r.get("gom")]
-kiem("N mã thanh khoản nhất (N = 1) → rổ chỉ có B, mã giao dịch dày nhất",
-     g1 and all(g["ro"] == ["B"] for g in g1), f"— {[g['ro'] for g in g1]}")
-DLM = SG.du_lieu({"A": 6.0, "B": -6.0, "C": 2.0}, 70, seed=4, nhieu=0.0004)
-bm, _, _ = SG.chay(MT.ap_mau(mm, T.CHON_MA, "manh_nhat"), DLM, bat_dau_t=SG.NGAY + 62 * SG.NGAY_S)
-g1 = [r["gom"] for r in bm.nhat_ky if r.get("tram") == T.CHON_MA and r.get("gom")]
-kiem("N mã mạnh nhất → có A (lên mạnh) và C, KHÔNG có B (đang xuống), A đứng đầu",
-     g1 and g1[0]["ro"][:1] == ["A"] and "B" not in g1[0]["ro"] and "C" in g1[0]["ro"],
-     f"— {g1[0]['ro'] if g1 else None}")
-
-DL4 = SG.du_lieu({"A": 8.0}, 6, seed=5, nhieu=0.0005, sap={"A": (4 * 1440 + 630, -12.0)})
-bm, san, _ = SG.chay(MT.ap_mau(mm, T.RUI_RO, "cau_dao"), DL4, bat_dau_t=BD)
-kiem("cầu dao tài khoản bật khi cú sập 12% kéo tài khoản sụt quá 10%",
-     bm.thong_ke()["dung_tai_khoan"] and not san.tk()["giu"])
-bm, _, _ = SG.chay(MT.ap_mau(mm, T.RUI_RO, "khong"), DL4, bat_dau_t=BD)
-kiem("không quản rủi ro → ④ không chạy ra việc gì",
-     not [r for r in bm.nhat_ky if r.get("tram") == T.RUI_RO and r.get("viec")])
-
-# ================= 3. chữ nhật ký =================
-print("\n▸ Chữ «vì sao»")
-bm, _, _ = SG.chay(copy.deepcopy(mm), DL, bat_dau_t=BD, den_t=BD + SG.NGAY_S)
-doc = DocNhatKy(bm.may)
-dong = [doc.chu(r) for r in bm.nhat_ky]
-kiem("mọi bản ghi đều dựng được chữ", len(dong) == len(bm.nhat_ky) and all(dong))
-r_bao = next(r for r in bm.nhat_ky if r.get("tram") == T.TIN_HIEU and r.get("viec"))
-c = doc.chu(r_bao)
-kiem("dòng ② có việc: giờ · trạm · mã · đường đi · báo hướng · hạn",
-     c.startswith("01-04 ") and "② " in c
-     and ("[1]→[1A]→[1A.1]" in c or "[1]→[1B]→[1B.1]" in c)
-     and "báo " in c and "hạn tới" in c, f"— {c}")
-# Giao cắt EMA có hai nhánh BÙ nhau nên hầu như không lượt nào trượt cả hai — dựng một lượt
-# trượt từ lượt thật đã đi nhánh 2: giữ đúng cổng 1A đã trượt (vết thật, con số thật).
-r_b = next(r for r in bm.nhat_ky if r.get("tram") == T.TIN_HIEU and len(r.get("cong") or []) == 2
-           and not r["cong"][0]["khop"])
-r_tr = dict(r_b, viec=[], cong=r_b["cong"][:1], duong=r_b["duong"][:1], ket="het_luot")
-c = doc.chu(r_tr)
-_v = r_b["cong"][0]["ve"][0]
-kiem("dòng ② trượt: «hết lượt tại [1A]» + điều kiện sai kèm con số hai vế",
-     "hết lượt tại [1A] · EMA(H1, 20) = " in c and "không > EMA(H1, 50) = " in c
-     and f"{_v['trai']:.2f}" in c,
-     f"— {c}")
-r_g3 = next(r for r in bm.nhat_ky if r.get("tram") == T.CHIA_VON and r.get("gom"))
-kiem("dòng Gom ③ liệt kê mục tiêu từng mã", "Gom · mục tiêu:" in doc.chu(r_g3),
-     f"— {doc.chu(r_g3)}")
-r_g1 = next(r for r in bm.nhat_ky if r.get("tram") == T.CHON_MA and r.get("gom"))
-kiem("dòng Gom ① nói rổ gồm gì, mã nào mới vào",
-     doc.chu(r_g1).endswith("Gom · rổ: A, B, C · vào: A, B, C"), f"— {doc.chu(r_g1)}")
-r_d5 = next(r for r in bm.nhat_ky if r.get("tram") == T.KHOP_LENH and r.get("viec"))
-kiem("dòng ⑤ nói đặt lệnh nào, loại gì, bao nhiêu % vốn",
-     "đặt L-0001 thị trường +" in doc.chu(r_d5) and "% vốn" in doc.chu(r_d5),
-     f"— {doc.chu(r_d5)}")
-kiem("dòng khớp lệnh", any("khớp L-0001" in x for x in dong))
-lo = doc.lo(bm.nhat_ky, 0, 50, chi_viec=True)
-r2_gia_han = [r for r in bm.nhat_ky if r.get("tram") == T.TIN_HIEU and r.get("doi") is False
-              and r.get("viec")]
-kiem("lô «chỉ dòng có việc» bỏ lượt trượt VÀ lượt ② chỉ gia hạn tín hiệu cũ",
-     r2_gia_han and lo["tong"] == sum(
-         1 for r in bm.nhat_ky if (r.get("viec") or r.get("gom") or r.get("su_kien"))
-         and not (r.get("tram") == T.TIN_HIEU and r.get("doi") is False))
-     and all(d["co_viec"] for d in lo["dong"]) and len(lo["dong"]) <= 50,
-     f"— {len(r2_gia_han)} lượt gia hạn bị lọc")
-kiem("lượt gia hạn khi xem đủ thì ghi rõ «giữ nguyên, gia hạn»",
-     doc.chu(r2_gia_han[0]).endswith("(giữ nguyên, gia hạn)"))
-r_dn = {"t": SG.NGAY, "tram": T.RUI_RO, "ma": "A", "su_kien": "dung_tai_khoan"}
-kiem("dòng sự kiện «dừng cả tài khoản»",
-     doc.chu(r_dn) == "01-01 00:00  ④ A  DỪNG CẢ TÀI KHOẢN — bán sạch, thôi giao dịch")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

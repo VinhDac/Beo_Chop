@@ -274,3 +274,35 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   Entry/Manage, bộ chạy tại máy, cầu nối cũ và giao diện của chúng đã bị xoá hẳn
   (≈ 13.700 dòng). Việc còn lại là của chủ dự án: chạy thật trên tài khoản QuantConnect
   bằng khoá của mình — đến giờ mọi lượt mới chạy trên bản giả lập QC trong bài kiểm.
+
+## D-11 · App chỉ là VỎ của QuantConnect — không mô phỏng gì tại máy nữa  (chốt 2026-10-16)
+
+> Chủ dự án: *"ta tuyệt đối không được động vào backend nữa, ta chỉ làm cái vỏ cho
+> QuantConnect thôi"* — sau khi soi ra rằng hệ thống đang nuôi một bộ mô phỏng thứ hai
+> bên cạnh QC.
+
+- **Vấn đề đã đo được:** ta tự gộp nến, tự tính 16 chỉ báo, tự đổi «% vốn» ra số lượng,
+  tự huỷ lệnh hết hạn, tự tính trailing stop, tự tính lãi lỗ và boss. QC làm sẵn tất cả
+  những thứ đó. Hai nơi cùng tính một thứ thì sẽ ra hai số — rõ nhất là nến: nến H1 của
+  ta cắt theo giờ UTC chẵn, nến H1 của QC cho cổ phiếu Mỹ cắt theo giờ mở cửa sàn. Người
+  chơi mở chart QC đối chiếu sẽ thấy khác, và ta không có gì để giải thích.
+- **Quyết định:** app KHÔNG tính gì về thị trường nữa. Người chơi vẽ sơ đồ → app dịch sơ
+  đồ thành một thuật toán QuantConnect → QC chạy và tính hết: nến, chỉ báo, chọn mã, số
+  lượng, lệnh, rủi ro, thống kê. App giữ đúng ba việc: **vẽ · soát lỗi · dịch ra thuật
+  toán**, cộng với luật chơi (màn, boss, sao).
+- **Phương án đã cân nhắc:** (a) vỏ thuần ← **chọn** / (b) giữ bộ máy riêng và chấp nhận
+  hai bảng điểm — người chơi sẽ không biết tin bảng nào / (c) giữ bộ máy chỉ để xem
+  trước tại máy — vẫn là hai bộ luật phải đồng bộ bằng tay.
+- **Cái mất, nói trước:** (1) không còn chỗ chạy thử tại máy trong vài giây — muốn biết
+  cỗ máy làm gì phải gửi lên QC, vài phút một lượt và cần khoá; bài kiểm từ nay canh
+  "sơ đồ này dịch ra đúng đoạn code kia" chứ không canh được kết quả giao dịch. (2) chữ
+  «vì sao» phải do chính đoạn code gửi lên QC tự ghi.
+- **Đã dọn (2026-10-16):** xoá `bo_may` · `chuoi_nen` · `nhat_ky_may` · `ket_qua_may` ·
+  `goi_qc` · `lean/vo_may.py` · ba đồ giả (sàn giá, LEAN, máy chủ QC) · năm bài kiểm của
+  chúng · `tools/chay_qc.py`. `qc_api` còn phần nói chuyện với QC; `qc_chay` còn phép
+  soát đầu vào. App vẽ và soát cỗ máy được, **chưa chạy được** — mọi cửa chạy nói đúng
+  một câu thay vì giả vờ chạy rồi hỏng ở đâu đó.
+- **Trạng thái:** chốt, đã dọn. Đường chạy mới (dịch sơ đồ → thuật toán QC) chưa thiết
+  kế — chủ dự án sẽ chỉ đường lối, và từ nay mỗi "item" trong game phải là một món CÓ
+  THẬT của QuantConnect.
+

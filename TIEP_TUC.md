@@ -5,60 +5,56 @@
 
 ## 1. Đang ở đâu
 
-**D-10 xong cả bảy phần.** App chỉ còn MỘT thế giới: **cỗ máy 5 trạm chạy trên
-QuantConnect**. Sơ đồ Entry/Manage, bộ chạy tại máy, cầu nối cũ và giao diện của chúng đã
-bị xoá hẳn.
+**D-10 xong cả bảy phần, rồi D-11 dọn tiếp.** Chốt mới (16/10/2026): **app chỉ là VỎ của
+QuantConnect** — không mô phỏng gì tại máy nữa. Bộ máy chạy, chuỗi nến, chỉ báo, lớp vỏ
+LEAN, bộ đóng gói và ba đồ giả đã bị xoá (≈5.800 dòng).
 
-| Phần | Việc | Commit |
-|---|---|---|
-| 1 | Xoá Strategy Tester | `12afe1e` |
-| 2 | Lõi cỗ máy 5 trạm | `6c20b55` |
-| 3 | Bộ máy chạy 5 trạm | `9d63c27` `011b7de` `62df375` |
-| 4 | Cầu nối QuantConnect | `2714430` `cee465d` |
-| 5 | Trình vẽ 5 trạm (6 lát) | `3cb4a61` `099de26` `7b24dad` `a981211` `c1d5081` `40b4a06` |
-| 6 | Màn chơi cho cỗ máy (4 lát) | `69e4665` `0cf17f0` `5b758b8` `b6a50f5` |
-| 7 | Dọn bộ máy cũ | `d89f9fa` `72436ea` |
+**Trạng thái thật:**
 
-Bài kiểm: **12/12 bài qua** (`tools\chay_test.bat`).
+| Việc | Được chưa |
+|---|---|
+| Vẽ cỗ máy 5 trạm, soát lỗi, đánh số | ✅ |
+| Lưu / mở cỗ máy, lắp 22 mẫu, 4 cỗ máy dựng sẵn | ✅ |
+| Bảng tham số, Gom, hộp thoại khối theo trạm | ✅ |
+| Luật chơi (màn theo rổ, boss cả rổ, sao, sổ nộp) | ✅ còn nguyên |
+| Nói chuyện với QuantConnect (khoá, project, file, backtest) | ✅ còn nguyên |
+| **Chạy một cỗ máy** | ❌ **chưa** — đường chạy mới chưa dựng |
 
-**Mở app ra thấy gì:** trình vẽ 5 trạm với một cỗ máy mẫu chạy được — dải ①→⑤ trên đầu,
-canvas vẽ sơ đồ của trạm đang mở, bảng Vấn đề ở dưới. Bấm **◆ Màn chơi** để chạy nó trên
-QuantConnect: Chiến dịch (3 màn, boss «mua rồi giữ cả rổ», sao, nộp) hoặc Sáng tạo (rổ mã
-tuỳ ý).
+Bài kiểm: **7/7 bài qua**, nhưng đều là bài TĨNH (từ điển, chuẩn hoá, soát lỗi, cửa API,
+giao diện). Không còn sàn giả nào để chạy thử.
 
 ## 2. Chạy ở máy local (Windows)
 
 ```bat
-tools\setup.bat        REM một lần sau khi clone: .venv + thư viện + build giao diện
-tools\chay_test.bat    REM phải thấy: ✔ 12/12 bài đều qua
-tools\chay.bat         REM mở app
+tools\setup.bat        REM một lần sau khi clone
+tools\chay_test.bat    REM phải thấy: ✔ 7/7 bài đều qua
+tools\chay.bat         REM mở app — vẽ được, chưa chạy được
 ```
 
-* Sửa giao diện xong thì `tools\build_ui.bat` mới thấy thay đổi.
-* Xem giao diện trong **trình duyệt** (chụp ảnh, đọc console, cho máy bấm thử):
-  `.venv\Scripts\python.exe tools\xem_thu.py` → `http://127.0.0.1:8777`, `?qc=1` để xem
-  cửa sổ Màn chơi. Gọi `api.py` thật, chỉ thay đường vận chuyển.
-* Chạy một cỗ máy bằng dòng lệnh: `tools\chay_qc.bat --man kim-loai-2024` (cần khoá QC).
+Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py` →
+`http://127.0.0.1:8777`, thêm `?qc=1` để xem cửa sổ Màn chơi.
 
-## 3. Việc kế tiếp — của chủ dự án
+## 3. Việc kế tiếp — dựng đường chạy mới
 
-**Chạy thật trên QuantConnect.** Đến giờ mọi lượt mới chạy trên bản giả lập QC trong bài
-kiểm; chạy trên tài khoản thật là bài nghiệm thu còn lại. Cần gói **Researcher** trở lên
-và khoá đặt ở một trong các chỗ an toàn (mục 5).
+Chủ dự án sẽ chỉ đường lối. Nguyên tắc đã chốt ở D-11:
 
-Cách nhanh nhất: mở app → **◆ Màn chơi** → **Sáng tạo** → điền rổ mã, loại thị trường,
-khoảng ngày, vốn → **▶ chạy**. Hoặc **Chiến dịch** → chọn màn → **▶ đầy đủ** → **Nộp ↑**.
+> **Cái gì QuantConnect làm được thì để QC làm. App chỉ giữ phần luật chơi.**
 
-Nếu lượt chạy thật lộ ra chỗ nào lệch (tên mã OANDA, dữ liệu cổ phiếu, phí, lô tối
-thiểu…), đó là thứ chỉ chạy thật mới biết — xem core.md §21 "một giả định về QC".
+Nghĩa là: sơ đồ 5 trạm phải dịch thành một thuật toán QC dùng CHÍNH bộ khung của họ —
+bộ chọn mã, chỉ báo, tín hiệu, mô hình chia vốn, mô hình rủi ro, mô hình khớp lệnh. Và từ
+nay mỗi "item" trong game phải là **một món có thật của QC**, không phải một thứ ta tự
+nghĩ rồi tự tính.
+
+Hai việc đi kèm, sẽ quyết khi thiết kế:
+
+* **Từ điển 5 trạm (`tram.py`) phải soát lại**: có đại lượng chỉ tồn tại vì bộ máy cũ tự
+  tính (vd. «phút từ lúc đổi mục tiêu»). Món nào QC không có thì phải bỏ hoặc đổi.
+* **Chữ «vì sao»**: phải do chính đoạn code gửi lên QC tự ghi ra.
 
 ## 4. Những việc còn để lại (không gấp)
 
-* **`webui/src/app.css`** vẫn giữ luật của mấy hộp thoại đã xoá (core.md §24). Không dọn
-  bằng máy được: class của React Flow nhìn y như class chết. Dọn tay khi sờ tới.
-* **Chương 2 của trò chơi**: mới có 3 màn và 4 cỗ máy dựng sẵn.
-* **Khối Gom riêng** cho Markowitz / Black-Litterman — chúng cần ma trận hiệp phương sai,
-  không diễn tả được bằng một sơ đồ đọc từng mã (xem đầu `mau_tram.py`).
+* `webui/src/app.css` vẫn giữ luật của mấy hộp thoại đã xoá (core.md §24).
+* Chương 2 của trò chơi: mới có 3 màn và 4 cỗ máy dựng sẵn.
 
 ## 5. Luật phải giữ
 
