@@ -843,3 +843,49 @@ mark.tim-chu {
   padding: 6px 2px; border-bottom: 1px solid var(--border-soft); margin-bottom: 2px;
 }
 .vien-nut.dong:hover { background: #c42b1c; color: #fff; }
+
+/* ---------------- Thanh hạt nhân: đang đứng trong mảng nào ----------------
+   Nổi TRÊN canvas, không chiếm một dải riêng — nó là câu trả lời cho "đang ở đâu",
+   nên phải nằm ngay trên chính cái đang xem. */
+.thanh-hn {
+  position: absolute; z-index: 5; left: 50%; top: 10px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 9px 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  max-width: calc(100% - 32px);
+}
+.thanh-hn .nhan { color: var(--dim); }
+.thanh-hn .day { flex: 1; min-width: 10px; }
+/* ---------------- Hạt nhân ---------------- */
+/* KHUNG HẠT NHÂN: to GẤP BỐN một khối (cả ngang lẫn cao của hình) — bên trong là cả một
+   mảng sơ đồ, khổ một khối thì hình thu nhỏ chỉ còn một nhúm chấm. Chồng thêm một lớp
+   viền như một xấp giấy, nhìn là biết bên trong còn cả một mảng. Dải đầu mang màu chọn.
+   Khổ hình đổi thì sửa cả `HN_VE` trong App.tsx — đó là phần trong của `.hn-ve`. */
+.hop.hat-nhan {
+  width: 1184px;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 -1px var(--surface), 5px 5px 0 0 var(--border), var(--shadow);
+}
+.hop.hat-nhan .dau .dai-mau { background: var(--accent); }
+.hn-ve { display: block; width: 100%; height: 472px; box-sizing: border-box; padding: 8px 12px 4px; }
+.hn-ve rect {
+  fill: var(--raised); stroke: var(--border); stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.hn-ve line {
+  stroke: var(--dim); stroke-width: 1px; vector-effect: non-scaling-stroke; opacity: .8;
+}
+.hop.hat-nhan .hn-goi-y { margin-left: auto; color: var(--dim); font-size: 10.5px; }
+/* Đang chọn / bên trong có khối khớp ô tìm: thêm quầng như khối thường, giữ lớp giấy. */
+.hop.hat-nhan.dang-chon {
+  box-shadow: 0 0 0 1px var(--accent), 5px 5px 0 -1px var(--surface),
+              5px 5px 0 0 var(--border), var(--shadow-lg);
+}
+.hop.hat-nhan.tim-thay {
+  box-shadow: 0 0 0 2px var(--warn), 5px 5px 0 -1px var(--surface),
+              5px 5px 0 0 var(--border), var(--shadow-lg);
+}

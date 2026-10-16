@@ -41,13 +41,16 @@ export interface ViecRibbon {
   nhanBan: () => void
   hoanTac: () => void
   lamLai: () => void
+  gomHatNhan: () => void
+  taHatNhan: () => void
   luu: () => void
   mo: () => void
   moi: () => void
 }
 
-export default function Ribbon({ v, soChon, coHoanTac, coLamLai }: {
-  v: ViecRibbon; soChon: number; coHoanTac: boolean; coLamLai: boolean
+export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }: {
+  v: ViecRibbon; soChon: number; trongHatNhan: boolean
+  coHoanTac: boolean; coLamLai: boolean
 }) {
   return (
     <div className="ribbon">
@@ -63,6 +66,13 @@ export default function Ribbon({ v, soChon, coHoanTac, coLamLai }: {
       <Nhom ten="Sửa">
         <Nut ten="Nhân bản" icon="copy" onClick={v.nhanBan} tat={!soChon} />
         <Nut ten="Xoá" icon="trash" onClick={v.xoa} tat={!soChon} />
+      </Nhom>
+
+      <Nhom ten="Hạt nhân">
+        <Nut ten="Gom" icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
+             title="Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi" />
+        <Nut ten="Tách" icon="unlink" onClick={v.taHatNhan} tat={!soChon}
+             title="Đưa các khối đang chọn ra khỏi hạt nhân của chúng" />
       </Nhom>
 
       <Nhom ten="Hoàn tác" hienTu={1090}>

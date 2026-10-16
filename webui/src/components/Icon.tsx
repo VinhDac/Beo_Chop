@@ -44,6 +44,8 @@ const HINH: Record<string, React.ReactNode> = {
   /* Quay về: mũi tên vồng NGƯỢC lên rồi chỉ về sau — cùng hình với đường ↻ trên canvas,
      để nhìn nút và nhìn dây là biết cùng một thứ. */
   'quay-ve': <><path {...S} d="M12.6 11.4a4.6 4.6 0 0 0-4.6-5.8H4.2" /><path {...S} d="M6.6 3.2 3.4 5.6l3.2 2.4" /></>,
+  /* Hạt nhân: một khung bao mấy ô nhỏ — đúng hình "gói một mảng sơ đồ lại". */
+  frame: <><rect {...S} x="1.8" y="2.6" width="12.4" height="10.8" rx="1.4" /><rect {...S} x="4" y="5" width="3.2" height="2.6" /><rect {...S} x="8.8" y="5" width="3.2" height="2.6" /><rect {...S} x="4" y="9" width="3.2" height="2.6" /></>,
   file: <><path {...S} d="M4 1.9h5l3.2 3.2v8.9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2.9a1 1 0 0 1 1-1z" /><path {...S} d="M9 1.9v3.4h3.2" /></>,
 
   /* --- ghim số: đinh ghim + mũi tên quay lại --- */
