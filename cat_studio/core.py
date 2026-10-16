@@ -40,14 +40,34 @@ load_settings = luu_tru.doc_cai_dat
 #   · Vòng theo dõi — CẢ SƠ ĐỒ vốn đã là một vòng lặp: nó chạy lại từ khối Bắt đầu ở
 #     mỗi nến mới, đúng như `OnTick` của MQL5 chạy lại từ đầu mỗi tick. "Chờ tới khi"
 #     không cần vẽ: không cổng nào khớp thì hết lượt, nến sau tự chạy lại.
-#   · Nhóm — cấu trúc của một chiến lược đến từ TÁCH TRÁCH NHIỆM, không từ lồng hộp.
-#     Gộp nhóm chỉ đẻ thêm câu hỏi "nhóm có phải một đơn vị chạy không".
+#   · Nhóm — TRƯỚC ĐÂY BỊ TỪ CHỐI ở đây, với lý do "gộp nhóm chỉ đẻ thêm câu hỏi
+#     nhóm có phải một đơn vị chạy không". Lý do ấy SAI, và một sơ đồ thật đã chứng
+#     minh: nó gộp 2.253 hành động vào 243 Nhóm, nếu không thì canvas có 3.180 hộp
+#     thay vì 1.170 — gấp ba, và hết đọc nổi.
+#     Câu hỏi kia có câu trả lời: Nhóm KHÔNG phải một đơn vị chạy. Nó là một hộp
+#     chứa một CHUỖI hành động chạy thẳng một lượt, không lặp, không rẽ. Đúng bằng
+#     ngần ấy khối lẻ nối thành hàng, chỉ khác là vẽ gọn lại một chỗ.
 KIND_START = "start"     # điểm neo đánh số — mỗi nến chạy lại từ đây
 KIND_ACTION = "action"   # đúng một hành động
+KIND_GROUP = "group"     # một CHUỖI hành động gói vào một hộp, chạy thẳng một lượt
 
 
 def is_start_step(s):
     return isinstance(s, dict) and s.get("kind") == KIND_START
+
+
+def is_group_step(s):
+    """Khối NHÓM — hộp ôm một chuỗi hành động.
+
+    Cố ý KHÔNG cho Nhóm làm cổng rẽ nhánh (xem `is_branch_gate`): ở điểm rẽ các nhánh
+    được thử lần lượt nên nhánh trượt phải LÙI LẠI ĐƯỢC, mà một Nhóm có thể đã đặt
+    lệnh rồi mới tới chỗ kiểm tra — cú đặt lệnh ấy không rút lại được."""
+    return isinstance(s, dict) and s.get("kind") == KIND_GROUP
+
+
+def hanh_dong_cua(s):
+    """Danh sách hành động bên trong một Nhóm; khối khác trả danh sách rỗng."""
+    return list(s.get("actions") or []) if is_group_step(s) else []
 
 
 # ---------------------------------------------------------------------------
@@ -112,12 +132,54 @@ def ensure_step_ids(steps):
 
 
 def step_title(step):
-    """Tên khối cho câu báo lỗi. Mọi khối đi qua chuẩn hoá đều CÓ tên (`may.chuan_hoa`
-    đặt tên mặc định theo từ điển), nên nhánh cuối chỉ là lưới an toàn."""
+    """Tên khối cho câu báo lỗi. Khối đi qua chuẩn hoá đều CÓ tên, nên nhánh cuối chỉ
+    là lưới an toàn."""
     ten = (step.get("name") or "").strip()
     if ten:
         return ten
-    return "Bắt đầu" if is_start_step(step) else "Khối"
+    if is_start_step(step):
+        return "Bắt đầu"
+    if is_group_step(step):
+        return "Nhóm"
+    return "Quay về" if step.get("type") == QUAY_VE else "Khối"
+
+
+# ---------------------------------------------------------------------------
+# Dựng khối
+# ---------------------------------------------------------------------------
+
+
+def make_start_step(name="Bắt đầu"):
+    return {"kind": KIND_START, "id": new_step_id(), "name": name}
+
+
+def make_group_step(name="Nhóm mới"):
+    """Nhóm: nhiều hành động, chạy đúng MỘT lượt, không lặp.
+
+    Cố ý không có số vòng: nhóm không lặp nên ô ấy vô nghĩa, có mặt chỉ tổ hiểu nhầm."""
+    return {"kind": KIND_GROUP, "id": new_step_id(), "name": name, "actions": []}
+
+
+def make_action_step(action):
+    """Một hành động lẻ thành một khối.
+
+    GIỮ id cũ nếu có: giao diện thay cả khối mỗi lần sửa xong hành động, cấp id mới ở
+    đây thì mỗi lần bấm "Sửa" là khối đó thành một nút khác và mất hết đường nối."""
+    st = dict(action or {})
+    st["kind"] = KIND_ACTION
+    st["id"] = st.get("id") or new_step_id()
+    return st
+
+
+def make_quay_ve_step(ve=None, so_vong=None, name=None):
+    """Khối QUAY VỀ — nhảy ngược lên một khối phía trước.
+
+    `so_vong` None = lặp mãi (hết lượt thì nến sau tự chạy lại từ khối Bắt đầu)."""
+    st = {"kind": KIND_ACTION, "id": new_step_id(), "type": QUAY_VE,
+          "name": name or "Quay về", "ve": ve or ""}
+    if so_vong:
+        st["so_vong"] = int(so_vong)
+    return st
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +187,74 @@ def step_title(step):
 # ---------------------------------------------------------------------------
 # Giao diện không tự ghép câu: nếu nó ghép thì sớm muộn nó mô tả khác với thứ lõi
 # thực sự hiểu, và người dùng tin vào cái sai.
+
+
+# ---------------------------------------------------------------------------
+# QUAY VỀ — vòng lặp VẼ RA, thay vì để ngầm
+# ---------------------------------------------------------------------------
+# Trước đây lõi này nói: "CẢ SƠ ĐỒ vốn đã là một vòng lặp, chạy lại từ khối Bắt đầu ở
+# mỗi nến mới, nên không cần vẽ vòng". Đúng, nhưng CHƯA ĐỦ: vòng ngầm chỉ quay về ĐÚNG
+# MỘT chỗ (khối Bắt đầu). Một sơ đồ thật cần quay về giữa chừng — thử lại đúng một
+# đoạn, không phải chạy lại cả lượt.
+#
+# MỘT BẢNG, HAI CÁCH KHAI: đường ↻ kéo tay mang số vòng (`so_vong_canh`), và khối
+# Quay về điền đích (`khoi_quay_ve`). Cả hai đổ vào `canh_vong`, nên bộ chạy và bộ
+# đánh số chỉ phải đọc một chỗ.
+
+QUAY_VE = "quay_ve"
+
+
+def so_vong_canh(e):
+    """Số vòng ghi trên một ĐƯỜNG ↻, hay None nếu đó là dây thường.
+
+    Có khoá `so_vong` tức đây là đường quay lại — kể cả khi giá trị là 0/None, vì
+    "quay lại mãi" cũng là quay lại."""
+    if not isinstance(e, dict) or "so_vong" not in e:
+        return None
+    n = e.get("so_vong")
+    if n in (None, "", 0, False):
+        return -1                        # -1 = lặp mãi, nhưng VẪN là đường ↻
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return -1
+    return n if n >= 1 else -1
+
+
+def khoi_quay_ve(st):
+    """(id khối đích, số vòng | None) của một khối Quay về; None nếu không phải.
+
+    `None` ở số vòng = lặp mãi — thứ đường ↻ cũng khai được bằng số 0."""
+    if not isinstance(st, dict) or st.get("type") != QUAY_VE:
+        return None
+    ve = str(st.get("ve") or "").strip()
+    if not ve:
+        return None                      # chưa chọn đích: `validate_flow_graph` nói
+    n = st.get("so_vong")
+    if n in (None, "", 0, False):
+        return ve, None
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return ve, None
+    return ve, (n if n >= 1 else None)
+
+
+def canh_vong(edges, steps=None):
+    """{id khối cuối vòng: (id khối đầu vòng, số vòng | None)} — MỌI vòng của sơ đồ.
+
+    Một khối chỉ quay lại được MỘT chỗ; vẽ hai đường ↻ ra từ một khối là mâu thuẫn —
+    `validate_flow_graph` báo lỗi, còn ở đây lấy cái đầu để bộ chạy vẫn chạy được."""
+    ra = {}
+    for e in (edges or []):
+        n = so_vong_canh(e)
+        if n and e.get("from") and e.get("to") and e["from"] not in ra:
+            ra[e["from"]] = (e["to"], None if n < 0 else n)
+    for st in (steps or []):
+        q = khoi_quay_ve(st)
+        if q and st.get("id") and st["id"] not in ra:
+            ra[st["id"]] = q
+    return ra
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +304,14 @@ def flow_map(steps, edges):
     for e in (edges or []):
         if not isinstance(e, dict) or (e.get("port") or "out") != "out":
             continue
+        if so_vong_canh(e):
+            continue      # đường ↻ không phải một nhánh đi tiếp — xem `canh_vong`
         a, b = e.get("from"), e.get("to")
+        if a in theo_id and theo_id[a].get("type") == QUAY_VE:
+            # Khối Quay về KHÔNG có lối đi tiếp: chạy tới đó là nhảy về, hết vòng là
+            # hết nhánh. Nối ra từ nó chỉ là dây thừa — bảng Vấn đề nói ra, còn ở đây
+            # bỏ qua để bộ đánh số không vẽ một nhánh không bao giờ đi.
+            continue
         if a in theo_id and b in theo_id:
             ds = ke.setdefault(a, [])
             if b not in ds:      # nối hai lần cùng một cặp vẫn chỉ là một nhánh
@@ -580,6 +717,54 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
              f"này mang nhãn của nhánh chạm tới nó trước. Nối nốt các nhánh còn lại vào "
              f"đây nếu bạn muốn nó là điểm gộp thật.")
 
+    # ---- Đường ↻ và khối Quay về ----
+    # Ba chỗ chúng có thể trỏ hỏng, và cả ba đều IM LẶNG lúc chạy: khối lặng lẽ không
+    # nhảy, lượt chạy kết thúc như thể đã đi hết đường.
+    ra_vong = {}
+    for e in (edges or []):
+        if isinstance(e, dict) and so_vong_canh(e) and e.get("from") in theo_id:
+            ra_vong.setdefault(e["from"], []).append(e.get("to"))
+    for nguon, dich_ds in ra_vong.items():
+        if len(dich_ds) > 1:
+            _loi(ra, "error", nguon,
+                 f"{ten(nguon)} có {len(dich_ds)} đường ↻ đi ra — một khối chỉ quay lại "
+                 f"được MỘT chỗ. Hãy gỡ bớt.")
+
+    for s in ds:
+        if s.get("type") != QUAY_VE:
+            continue
+        ve = str(s.get("ve") or "").strip()
+        if not ve:
+            _loi(ra, "error", s["id"],
+                 f"{ten(s['id'])} chưa chọn khối để quay về — chạy tới đây là hết nhánh, "
+                 f"không lặp gì cả.")
+        elif ve == s["id"]:
+            _loi(ra, "error", s["id"],
+                 f"{ten(s['id'])} quay về CHÍNH NÓ — đó không phải vòng lặp, chỉ là một "
+                 f"khối tự gọi mãi.")
+        elif ve not in theo_id:
+            _loi(ra, "error", s["id"],
+                 f"{ten(s['id'])} trỏ về một khối KHÔNG CÒN trong sơ đồ — khối đích đã bị "
+                 f"xoá. Hãy chọn lại khối đích.")
+
+    # Vòng phải thật sự KHÉP: từ đích đi theo dây thường phải tới lại được nguồn. Không
+    # thì đó là một cú nhảy ngang mang tên vòng lặp — máy nhảy thật, người vẽ thì tưởng
+    # mình vừa vẽ một vòng.
+    for nguon, (dich, _n) in canh_vong(edges, ds).items():
+        if nguon not in theo_id or dich not in theo_id:
+            continue
+        tham, hang = set(), [dich]
+        while hang:
+            x = hang.pop(0)
+            if x in tham:
+                continue
+            tham.add(x)
+            hang.extend(ke.get(x) or [])
+        if nguon not in tham:
+            _loi(ra, "error", nguon,
+                 f"{ten(nguon)} quay về {ten(dich)} mà từ đó KHÔNG đi tới được nó — vòng "
+                 f"không khép, chạy tới đây là nhảy đi chỗ khác chứ không phải lặp.")
+
     # ---- Khối không bao giờ chạy tới ----
     for sid in kq["unreachable"]:
         _loi(ra, "warning", sid,
@@ -633,6 +818,10 @@ def clean_edges(edges, steps):
         for k in ("from_side", "to_side"):
             if e.get(k):
                 moi[k] = str(e[k])
+        # Số vòng của đường ↻: PHẢI giữ, vì chính nó phân biệt đường quay lại với dây
+        # thường. Mất nó là mở lại file thấy một vòng lặp biến thành cú nhảy ngang.
+        if "so_vong" in e:
+            moi["so_vong"] = e["so_vong"]
         ra.append(moi)
     return ra
 
@@ -641,9 +830,109 @@ def clean_edges(edges, steps):
 # Chuẩn hoá & tài liệu
 # ---------------------------------------------------------------------------
 
+#: Khoá tả CÁI NÚT TRÊN CANVAS, không tả việc khối ấy làm. Chuẩn hoá dựng lại khối từ
+#: một danh sách khoá cố định (cố ý — để file rác không lọt vào), nên mấy khoá này phải
+#: được chép tay sang, nếu không mở lại file là sơ đồ tự xếp khác đi.
+#:
+#:   id          định danh nút trên đồ thị
+#:   pos         chỗ người dùng đã kéo nút tới
+#:   mau         màu người dùng tự đặt để phân loại bằng mắt — bộ chạy KHÔNG đọc
+#:   ghim        số của khối này được giữ nguyên (xác nhận một vòng lặp cố ý)
+#:   hat_nhan    {id, ten, x, y} — khối nằm trong mảng sơ đồ nào. CŨNG chỉ là cách
+#:               nhìn: bộ chạy, đánh số, bảng Vấn đề đều không đọc. Ghi trên TỪNG
+#:               khối chứ không thành một danh sách riêng, nên lưu / mở / tự lưu /
+#:               hoàn tác đều tự mang theo, không phải thêm một cửa API nào.
+KHOA_CANVAS = ("pos", "mau", "ghim", "hat_nhan")
+
+
+def giu_khoa_canvas(nguon, dich):
+    """Chép mấy khoá "cách nhìn" từ khối gốc sang khối đã chuẩn hoá. Sửa tại chỗ."""
+    if nguon.get("id"):
+        dich["id"] = nguon["id"]
+    pos = nguon.get("pos")
+    if isinstance(pos, (list, tuple)) and len(pos) == 2:
+        try:
+            dich["pos"] = [float(pos[0]), float(pos[1])]
+        except (TypeError, ValueError):
+            pass
+    mau = nguon.get("mau")
+    if isinstance(mau, str) and mau.strip():
+        dich["mau"] = mau.strip()
+    if nguon.get("ghim") is True:
+        dich["ghim"] = True
+    hn = nguon.get("hat_nhan")
+    if isinstance(hn, dict) and str(hn.get("id") or "").strip():
+        tag = {"id": str(hn["id"]).strip(),
+               "ten": str(hn.get("ten") or "").strip() or "Hạt nhân"}
+        # Chỗ đứng của cái KHUNG trên sơ đồ chính: chỉ nhận số thật. Hỏng thì bỏ —
+        # giao diện tự lấy góc trên-trái các khối bên trong, khung không bay đi đâu.
+        for k in ("x", "y"):
+            v = hn.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                tag[k] = round(v)
+        dich["hat_nhan"] = tag
+    else:
+        dich.pop("hat_nhan", None)
+    return dich
+
+
+def chuan_hoa_khoi(s):
+    """Một khối về đúng hình dạng lưu được.
+
+    ⚠ CHƯA LỌC KHOÁ THEO LOẠI. Bộ khối giao dịch chưa thiết kế xong (D-12), nên khoá
+    riêng của từng loại hành động còn được giữ nguyên xi. Khi có từ điển khối thì chỗ
+    này đổi thành dựng lại từ một danh sách khoá cố định, đúng như Jenifer làm — và
+    đó mới là chỗ chặn file rác."""
+    if not isinstance(s, dict):
+        return None
+    kind = s.get("kind")
+    if kind == KIND_START:
+        ra = {"kind": KIND_START, "name": (s.get("name") or "").strip() or "Bắt đầu"}
+    elif kind == KIND_GROUP:
+        acts = [dict(a) for a in (s.get("actions") or []) if isinstance(a, dict)]
+        ra = {"kind": KIND_GROUP, "name": (s.get("name") or "").strip() or "Nhóm mới",
+              "actions": acts}
+    else:
+        ra = {k: v for k, v in s.items() if k not in KHOA_CANVAS}
+        ra["kind"] = KIND_ACTION
+        ra.pop("id", None)
+    giu_khoa_canvas(s, ra)
+    if not ra.get("id"):
+        ra["id"] = new_step_id()
+    return ra
+
+
+def normalize_process(data):
+    """Một tài liệu cỗ máy về đúng hình dạng lưu được, dù nó đến từ đâu.
+
+    Nhận cả file cũ (thiếu `edges` thì nối thành chuỗi thẳng) lẫn file sửa tay."""
+    d = data if isinstance(data, dict) else {}
+    steps = [x for x in (chuan_hoa_khoi(s) for s in (d.get("steps") or [])) if x]
+    ensure_step_ids(steps)
+    edges = d.get("edges")
+    edges = clean_edges(edges, steps) if edges is not None else default_edges(steps)
+    return {
+        "schema": SCHEMA,
+        "type": LOAI_TAI_LIEU,
+        "name": str(d.get("name") or "").strip() or "Cỗ máy mới",
+        "steps": steps,
+        "edges": edges,
+    }
+
 
 # ---------------------------------------------------------------------------
 # Template
 # ---------------------------------------------------------------------------
+
+#: Số hiệu định dạng file. Tăng khi hình dạng đổi tới mức file cũ phải di cư.
+SCHEMA = 1
+#: Một cỗ máy — sơ đồ PHẲNG duy nhất. Không chia năm trạm: cấu trúc do người chơi tự
+#: đặt bằng hạt nhân, không do app áp sẵn (xem `KHOA_CANVAS`).
+LOAI_TAI_LIEU = "co_may"
+
+
+def make_process_template(name, steps, edges=None):
+    """Đóng gói cả cỗ máy thành một tài liệu lưu được."""
+    return normalize_process({"name": name, "steps": steps, "edges": edges})
 
 
