@@ -3428,3 +3428,85 @@ MỌI cặp cổng đều băm ra `[]` giống nhau và bị báo *"hai nhánh t
 
 **Trạng thái:** vẽ → sinh → chạy đã thông. Chưa có: chạy LEAN *từ trong app* (hiện
 phải tự chạy tay), vòng lặp, chọn mã động, và lớp game.
+
+---
+
+## 31. ⭐ CHẠY LEAN TỪ TRONG APP, VÀ MÀN KẾT QUẢ (D-17)
+
+Đoạn cuối của vòng *vẽ → sinh → **chạy** → **đọc** → sửa*. Trước nó phải gõ tay ba
+bước; nay bấm một nút.
+
+### Cụm nút chính — ghim sát mép phải, tô sáng
+
+`Sinh mã · Chạy · Tối ưu · Chạy thật · Kết quả`, xếp đúng thứ tự việc như thanh của
+QuantConnect. Hai nút cuối cùng chưa có thì **bày ra mờ** kèm lý do, không giấu đi —
+giấu thì không ai biết còn thiếu gì.
+
+⚠ **Phải GHIM, không được đẩy bằng `margin-left: auto`.** Ribbon có bảy nhóm nên nó
+luôn dài hơn cửa sổ; đẩy chỉ ăn khi còn chỗ trống, nên cụm chính trôi hẳn ra ngoài
+màn hình. Nay ribbon chia hai vùng: trái tự cuộn, phải đứng im.
+
+### Bộ chạy — ba cái bẫy, cả ba đã cắn thật
+
+1. **ĐỪNG TIN MÃ THOÁT.** pythonnet ném *"GIL must always be released"* lúc tắt, SAU
+   khi kết quả ghi xong xuôi. Mã thoát khác 0 mà backtest thì hoàn hảo.
+   **Luật: đọc file, đừng đọc mã thoát.**
+2. **PHẢI GỘT SẠCH BIẾN MÔI TRƯỜNG CỦA VENV.** App chạy trong `.venv` (không có
+   pandas); LEAN nạp Python qua `PYTHONNET_PYDLL`, mà `VIRTUAL_ENV`/`PYTHONHOME`
+   còn sót thì nó trỏ vào venv rồi chết vì thiếu pandas — thông báo chẳng nhắc gì
+   tới venv.
+3. **`config.json` của LEAN có chú thích `//` và dấu phẩy thừa.** Gột phải biết đang
+   ở TRONG CHUỖI hay không: một giá trị `https://…` mà cắt từ `//` là mất nửa đường
+   dẫn.
+
+Chỗ đặt LEAN là **một cấu hình người dùng phải điền** — không đoán hộ, vì LEAN là
+một kho mấy trăm MB.
+
+### Màn Kết quả — dựng theo ảnh chụp, bằng mã của ta
+
+Chủ dự án đưa 11 ảnh chụp trang backtest thật (lưu ở `tai_lieu/backtest/`). **Mã
+giao diện của QuantConnect thì không chép** — đó là mã nguồn của họ, và chép cũng vô
+dụng: trang ấy là một ứng dụng React, HTML lấy về chỉ là hộp rỗng, biểu đồ do
+JavaScript của họ vẽ lúc chạy. Nên bố cục và từng khả năng thì dựng lại, bằng mã của
+ta, nền tối của ta.
+
+Và **không phải tính gì cả** — LEAN ghi sẵn mọi thứ:
+
+| Trên ảnh | Trong file LEAN |
+|---|---|
+| 8 ô số trên đầu | `runtimeStatistics` — đúng 8 mục, đúng tên ấy |
+| Select Chart — 8 biểu đồ | `charts` — đúng 8 cái, đúng tên ấy |
+| Đường vốn kiểu **nến** | `Equity` seriesType=2, điểm `[giây, mở, cao, thấp, đóng]` |
+| Tab Return cạnh Equity | `Return` seriesType=3 (cột) |
+| Treemap Assets Sales Volume | seriesType=7 |
+| Thống kê trượt 1/3/6/12 tháng | `rollingWindow` — 436 cửa sổ |
+| Server Statistics | `serverStatistics` |
+
+**CỐ Ý KHÔNG DỰNG,** và nói rõ chứ không giả vờ quên: **Research Guide** (đếm
+backtest còn lại — dịch vụ đám mây của họ) · **Share Results** (chia sẻ lên web của
+họ) · **Report** (bản báo cáo có logo và bố cục riêng của họ).
+
+### ⚠ Một chỗ CỐ Ý LÀM KHÁC bản web
+
+Bảng «Strategy Equity» có hai đại lượng khác thang hẳn nhau — vốn tính bằng ĐÔ, lợi
+suất tính bằng PHẦN TRĂM. Chồng cả hai lên một khung với **hai trục dọc** là trò nói
+dối bằng tỉ lệ: hai đường cắt nhau ở chỗ do người vẽ chọn thang, chứ không phải chỗ
+có thật. Nên **mỗi đơn vị một DẢI RIÊNG xếp chồng**, dùng chung trục ngang. Nhìn vào
+gần như y hệt (bản web cũng tách nến lên trên, cột lợi suất xuống dưới), mà không
+còn chỗ cho phép so sánh sai.
+
+### ⚠ Bớt điểm phải GỘP, không được nhảy cách
+
+Một lượt chạy nhịp PHÚT đẻ ra hàng trăm nghìn điểm mỗi đường. Nhảy cách (lấy 1 trong
+mỗi N) làm **mất đỉnh và đáy**: một cú sụt gọn trong vài nến biến mất khỏi biểu đồ mà
+người xem không hề biết. Nay gộp theo rổ — nến lấy mở-đầu/cao-nhất/thấp-nhất/đóng-cuối,
+đường giữ cả đỉnh lẫn đáy của rổ.
+
+### ⚠ Để trống «Mốc so sánh» KHÔNG phải là không có mốc
+
+`DefaultBrokerageModel.GetBenchmark` trả về **SPY**. Tức cỗ máy vàng bị đem so với cổ
+phiếu Mỹ, và không một dòng nào nói ra. Nay câu gợi ý nói thẳng, và biểu đồ ghi đúng
+tên mốc thật thay vì «Mốc so sánh» chung chung.
+
+**Trạng thái:** vẽ → sinh → chạy → đọc đã thông trọn vòng. Chưa có: Tối ưu, Chạy
+thật, vòng lặp trong mã sinh ra, chọn mã động, lớp game.

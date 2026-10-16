@@ -8,7 +8,8 @@
  * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
 import type {
-  Edge, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind, Strategy,
+  Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
+  Step, StepKind, Strategy,
   TuDienBatDau, TuDienHoi, TuDienLam,
 } from './types'
 
@@ -68,6 +69,12 @@ export const py = {
   /** Sơ đồ -> thuật toán LEAN Python. `ghi` true thì ghi luôn ra file. */
   sinh_ma: (ten: string, steps: Step[], edges: Edge[], ghi = false) =>
     goi<KetQuaSinh>('sinh_ma', ten, steps, edges, ghi),
+  /** LEAN đã trỏ đúng chỗ chưa — hỏi trước khi bấm Chạy. */
+  lean_san_sang: () => goi<LeanSanSang>('lean_san_sang'),
+  lean_dat_goc: (duong: string) => goi<LeanSanSang>('lean_dat_goc', duong),
+  /** Vẽ -> sinh -> chạy -> đọc, trong một lượt. */
+  chay_backtest: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<KetQuaChay>('chay_backtest', ten, steps, edges),
 
   // --- sơ đồ ---
   khoi_moi: (kind: StepKind, loai?: string) =>

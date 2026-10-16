@@ -217,6 +217,90 @@ export interface KetQuaSinh {
   duong?: string
 }
 
+/** Một ĐƯỜNG trong một bảng biểu đồ của LEAN.
+ *
+ *  `kieu` do Python dịch từ `seriesType` — web KHÔNG tự khai bảng mã số ấy.
+ *  `diem`: `[giây, giá trị]`, hoặc `[giây, mở, cao, thấp, đóng]` với nến. */
+export interface DuongBieuDo {
+  ten: string
+  kieu: 'duong' | 'cham' | 'nen' | 'cot' | 'co' | 'vung_chong' | 'tron'
+        | 'o_vuong' | 'nhiet'
+  don_vi: string
+  diem: number[][]
+}
+
+/** Một BẢNG biểu đồ — LEAN tự dựng tám cái, ta bày hết rồi cho bật tắt. */
+export interface BangBieuDoDL {
+  ten: string
+  duong: DuongBieuDo[]
+  /** Bày sẵn lúc mở màn Kết quả không. */
+  hien: boolean
+}
+
+/** Bảng Thống kê trượt: mỗi tháng một dòng, bốn cột cửa sổ 1/3/6/12 tháng. */
+export interface ThongKeCuon {
+  chi_tieu: string[]
+  dong: { ngay: string; cua: Record<string, Record<string, number>> }[]
+}
+
+/** Một dòng trong bảng Lệnh — chữ đã dịch sẵn ở Python, web không tự khai bảng mã số.
+ *  (`OrderStatus` của LEAN không có số 4 — đoán một bảng như thế là sai lặng.) */
+export interface DongLenh {
+  id: number | string
+  ma: string
+  luc: string
+  loai: string
+  so_luong: number
+  gia: number
+  trang_thai: string
+  /** false = sàn từ chối. */
+  hop_le: boolean
+  tag: string
+}
+
+export interface DongGiaoDich {
+  ma: string
+  vao_luc: string
+  gia_vao: number
+  ra_luc: string
+  gia_ra: number
+  so_luong: number
+  phi: number
+  lai_lo: number
+  thang: boolean
+}
+
+/** Kết quả một lượt backtest. Mọi con số do LEAN tính, app chỉ bày. */
+export interface KetQuaChay {
+  ok: boolean
+  loi: string
+  ten_lop?: string
+  thu_muc?: string
+  /** TÁM ô số trên đầu — LEAN dựng sẵn đúng tám mục, không phải ta chọn. */
+  o_so?: Record<string, string>
+  bieu_do?: BangBieuDoDL[]
+  thong_ke?: Record<string, string>
+  cuon?: ThongKeCuon
+  may_chu?: Record<string, string>
+  /** Mã LEAN đã sinh và vừa chạy — cho tab Mã. */
+  ma?: string
+  lenh?: DongLenh[]
+  giao_dich?: DongGiaoDich[]
+  nhat_ky?: string
+  /** Tên mốc so sánh thật — để trống thì LEAN tự lấy SPY. */
+  moc_ten?: string
+  van_de?: VanDe[]
+}
+
+/** LEAN đã trỏ đúng chỗ chưa. */
+export interface LeanSanSang {
+  ok: boolean
+  goc: string
+  launcher: string
+  dll: string
+  loi: string
+}
+
 /* ------------------------------ Khối BẮT ĐẦU -------------------------------- */
 
 /** Một dòng trong danh sách mã. Mỗi loại tài sản là một hàm `add_*` khác của LEAN. */

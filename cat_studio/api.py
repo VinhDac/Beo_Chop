@@ -20,6 +20,7 @@ import sys
 import time
 import traceback
 
+from . import chay_lean
 from . import core
 from . import sinh_ma
 from . import bat_dau
@@ -211,6 +212,43 @@ class Api(NenCuaSo):
         if ghi and kq["ma"]:
             kq["duong"] = luu_tru.ghi_ma(kq["ten_lop"], kq["ma"])
         return _ok(kq)
+
+    @_bat_loi
+    def lean_san_sang(self):
+        """LEAN đã trỏ đúng chỗ chưa — để màn Chạy nói rõ thiếu gì trước khi bấm."""
+        return _ok(chay_lean.san_sang())
+
+    @_bat_loi
+    def lean_dat_goc(self, duong):
+        """Trỏ chỗ đặt LEAN. Trả luôn trạng thái sau khi đặt."""
+        s = luu_tru.doc_cai_dat()
+        s[chay_lean.KHOA_LEAN] = str(duong or "").strip()
+        luu_tru.ghi_cai_dat(s)
+        return _ok(chay_lean.san_sang())
+
+    @_bat_loi
+    def chay_backtest(self, ten, steps, edges=None):
+        """Vẽ -> sinh -> CHẠY -> đọc, trong một lượt.
+
+        Sinh mã còn lỗi thì DỪNG LẠI: chạy một file sinh từ sơ đồ đã hỏng chỉ ra một
+        thông báo của LEAN khó hiểu hơn hẳn bảng Vấn đề."""
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        if not kq["ok"]:
+            return _ok({"ok": False, "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng "
+                                            "Vấn đề.", "van_de": kq["van_de"]})
+        r = chay_lean.chay(kq["ma"], kq["ten_lop"])
+        r["van_de"] = kq["van_de"]
+        # TÊN MỐC phải nói thật. LEAN KHÔNG ghi lại nó trong file kết quả, mà để trống
+        # thì nó lặng lẽ lấy SPY — biểu đồ ghi "Mốc so sánh" chung chung là giấu mất
+        # chuyện cỗ máy vàng đang bị đem so với cổ phiếu Mỹ.
+        bd = next((s for s in (steps or []) if core.is_start_step(s)), None)
+        m = str(core.o_bat_dau(bd, "moc_so_sanh") or "").strip().upper() if bd else ""
+        r["moc_ten"] = m or "SPY — LEAN tự chọn"
+        # Gửi kèm luôn MÃ ĐÃ SINH: tab Mã của màn Kết quả phải bày đúng file vừa chạy,
+        # chứ không phải sinh lại một bản khác rồi bảo là nó.
+        r["ma"] = kq["ma"]
+        r["ten_lop"] = kq["ten_lop"]
+        return _ok(r)
 
     @_bat_loi
     def tu_dien_bat_dau(self):

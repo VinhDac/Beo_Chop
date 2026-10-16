@@ -160,8 +160,12 @@ O_BAT_DAU = [
        chon=[(m, nhan) for m, nhan, _r, _c, _t in NHIP],
        goi_y="Bao lâu cỗ máy xem một lần."),
 
+    # ⚠ ĐỂ TRỐNG KHÔNG PHẢI LÀ "KHÔNG CÓ MỐC". `DefaultBrokerageModel.GetBenchmark`
+    # trả về **SPY** — tức cỗ máy vàng của bạn bị đem so với cổ phiếu Mỹ, và không
+    # một dòng nào nói ra. Nên câu gợi ý phải nói thẳng.
     _o("moc_so_sanh", "Mốc so sánh", O_CHU, "", "set_benchmark(ma)",
-       goi_y="Để trống = LEAN tự chọn. Đây là thứ quyết định thắng hay thua.",
+       goi_y="Để trống thì LEAN tự lấy SPY (cổ phiếu Mỹ). Gõ chính mã mình chạy để "
+             "so với «mua rồi ôm».",
        bat_buoc=False),
 
     _o("san", "Sàn", O_CHON, "DEFAULT", "set_brokerage_model(BrokerageName.san)",

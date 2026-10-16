@@ -27,3 +27,7 @@ dist/
 *.spec.bak
 # Shortcut/bản phát hành sinh ra tại máy — không vào repo.
 # (Bản .zip nằm trong dist/ nên đã bị dist/ ở trên nuốt rồi.)
+
+# Ảnh chụp giao diện QuantConnect — tham chiếu để dựng màn Kết quả (D-17).
+# Giữ ở máy thì được; đẩy lên kho là phát tán ảnh sản phẩm của họ.
+tai_lieu/backtest/

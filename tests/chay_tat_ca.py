@@ -19,6 +19,7 @@ BAI = [
     ("test_lam.py", "Từ điển HÀNH ĐỘNG — 8 loại việc, và đường ranh «không nhớ ticket»"),
     ("test_bat_dau.py", "Khối BẮT ĐẦU — nửa «thiết lập», và nó phải sống qua lưu/mở"),
     ("test_sinh_ma.py", "BỘ SINH MÃ — sơ đồ thành thuật toán LEAN Python chạy được"),
+    ("test_chay_lean.py", "BỘ CHẠY LEAN — đọc file chứ đừng đọc mã thoát, và gột sạch venv"),
     ("test_so_do_api.py", "Cửa sơ đồ — một cửa soát, ba tầng lưu, nhân bản không dính gốc"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),

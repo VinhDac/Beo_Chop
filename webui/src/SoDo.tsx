@@ -20,13 +20,14 @@ import HopDieuKien from './components/HopDieuKien'
 import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
 import HopBatDau from './components/HopBatDau'
 import HopSinhMa from './components/HopSinhMa'
+import HopKetQua from './components/HopKetQua'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  KetQuaSinh, TuDienBatDau, TuDienLam, VanDe,
+  KetQuaChay, KetQuaSinh, TuDienBatDau, TuDienLam, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -200,6 +201,10 @@ function SoDoTrong() {
   const [tuDienBD, setTuDienBD] = useState<TuDienBatDau | null>(null)
   /** Mã LEAN vừa sinh — null = chưa mở hộp. */
   const [maSinh, setMaSinh] = useState<KetQuaSinh | null>(null)
+  /** Kết quả lượt backtest vừa chạy — giữ lại để mở lại được sau khi đóng. */
+  const [ketQua, setKetQua] = useState<KetQuaChay | null>(null)
+  const [moKetQua, setMoKetQua] = useState(false)
+  const [dangChay, setDangChay] = useState(false)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -945,6 +950,39 @@ function SoDoTrong() {
     themNhom: () => void themKhoi('group'),
     themKhoiLe: () => void themKhoi('action'),
     themQuayVe: () => void themKhoi('action', 'quay_ve'),
+    chay: () => void (async () => {
+      // Hỏi trước xem LEAN đã trỏ đúng chỗ chưa: báo ngay tại đây dễ hiểu hơn hẳn
+      // để người dùng chờ một phút rồi nhận một dòng lỗi của tiến trình con.
+      const sb = await py.lean_san_sang()
+      if (!sb.ok || !sb.value?.ok) {
+        const d = await nhapChu({
+          tieu_de: 'Chưa chạy được LEAN',
+          loi: (sb.value?.loi ?? sb.error ?? '') + ' Dán đường dẫn thư mục LEAN:',
+          nhap: sb.value?.goc ?? '', nut_ok: 'Lưu',
+        })
+        if (!d?.trim()) return
+        const r2 = await py.lean_dat_goc(d.trim())
+        if (!r2.ok || !r2.value?.ok) {
+          await bao({ loi: r2.value?.loi ?? r2.error ?? 'vẫn chưa đúng' })
+          return
+        }
+      }
+      setDangChay(true)
+      try {
+        const r = await py.chay_backtest(ten || 'Co May', rfSangSteps(nodes),
+                                         rfSangEdges(edges))
+        if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không chạy được' }); return }
+        if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
+        setKetQua(r.value)
+        setMoKetQua(true)
+        ghi(`chạy ${r.value.ten_lop ?? ''}`)
+      } finally {
+        setDangChay(false)
+      }
+    })(),
+    moKetQua: () => setMoKetQua(true),
+    coKetQua: !!ketQua,
+    dangChay,
     sinhMa: () => void (async () => {
       const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
                                  rfSangEdges(edges), false)
@@ -1171,6 +1209,10 @@ function SoDoTrong() {
         }
         return null
       })()}
+      {moKetQua && ketQua && (
+        <HopKetQua kq={ketQua} onDong={() => setMoKetQua(false)}
+                   onChayLai={() => { setMoKetQua(false); viec.chay() }} />
+      )}
       {maSinh && (
         <HopSinhMa kq={maSinh} onDong={() => setMaSinh(null)}
                    onGhi={() => void (async () => {

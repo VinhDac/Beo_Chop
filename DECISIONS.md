@@ -506,3 +506,39 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   với `RSI > 70`. Cảnh báo sai thì người ta học cách bỏ qua nó.
 - **Trạng thái:** vẽ → sinh → chạy đã thông, 9/9 bài kiểm xanh. Chưa có: chạy LEAN
   *từ trong app* (hiện phải chạy tay), vòng lặp, chọn mã động, lớp game.
+
+## D-17 — Chạy LEAN từ trong app, và màn Kết quả
+
+- **Đoạn cuối của vòng** *vẽ → sinh → chạy → đọc → sửa*. Cụm nút chính
+  (`Sinh mã · Chạy · Tối ưu · Chạy thật · Kết quả`) **ghim sát mép phải, tô sáng**.
+  Hai nút chưa có thì bày ra mờ kèm lý do, không giấu — giấu thì không ai biết còn
+  thiếu gì.
+- **⚠ Cụm ấy phải GHIM, không được đẩy bằng `margin-left: auto`:** ribbon có bảy
+  nhóm nên luôn dài hơn cửa sổ, mà đẩy chỉ ăn khi còn chỗ trống — cụm chính trôi hẳn
+  ra ngoài màn. Nay ribbon chia hai vùng: trái tự cuộn, phải đứng im.
+- **Ba cái bẫy của bộ chạy, cả ba đã cắn thật:** đừng tin mã thoát (pythonnet ném
+  lỗi GIL lúc tắt, SAU khi kết quả ghi xong) · phải gột sạch biến môi trường của venv
+  (venv không có pandas, LEAN sẽ chết mà không nhắc gì tới venv) · `config.json` của
+  LEAN có chú thích `//` và dấu phẩy thừa, mà gột phải biết đang ở trong chuỗi hay
+  không.
+- **Chỗ đặt LEAN là cấu hình người dùng phải điền** — không đoán hộ.
+- **Màn Kết quả dựng theo 11 ảnh chụp chủ dự án đưa** (`tai_lieu/backtest/`). **Mã
+  giao diện của QuantConnect thì KHÔNG chép** — đó là mã nguồn của họ, và chép cũng
+  vô dụng: trang ấy là ứng dụng React, HTML lấy về chỉ là hộp rỗng. Bố cục và từng
+  khả năng thì dựng lại bằng mã của ta.
+- **Và không phải tính gì cả:** 8 ô số là `runtimeStatistics`, 8 biểu đồ là `charts`
+  (kèm `seriesType` nói rõ nến/cột/treemap), thống kê trượt là `rollingWindow`, thông
+  tin máy là `serverStatistics`. App chỉ bày ra.
+- **Cố ý KHÔNG dựng, nói rõ chứ không giả vờ quên:** Research Guide · Share Results ·
+  Report — cả ba là dịch vụ đám mây và tài liệu có thương hiệu của QuantConnect.
+- **⚠ Một chỗ cố ý làm KHÁC bản web:** bảng Strategy Equity có vốn tính bằng ĐÔ và
+  lợi suất tính bằng PHẦN TRĂM. Hai trục dọc trên một khung là nói dối bằng tỉ lệ —
+  hai đường cắt nhau ở chỗ do người vẽ chọn thang. Nên mỗi đơn vị một DẢI RIÊNG xếp
+  chồng, chung trục ngang. Nhìn gần như y hệt, mà không còn chỗ cho phép so sánh sai.
+- **⚠ Bớt điểm phải GỘP, không nhảy cách:** nhảy cách làm mất đỉnh và đáy — một cú
+  sụt gọn trong vài nến biến mất khỏi biểu đồ mà người xem không biết.
+- **⚠ Để trống «Mốc so sánh» KHÔNG phải là không có mốc:**
+  `DefaultBrokerageModel.GetBenchmark` trả về SPY, tức cỗ máy vàng bị đem so với cổ
+  phiếu Mỹ mà không một dòng nào nói ra. Nay gợi ý nói thẳng và biểu đồ ghi tên thật.
+- **Trạng thái:** vẽ → sinh → chạy → đọc đã thông trọn vòng, 10/10 bài kiểm xanh.
+  Chưa có: Tối ưu, Chạy thật, vòng lặp trong mã sinh ra, chọn mã động, lớp game.

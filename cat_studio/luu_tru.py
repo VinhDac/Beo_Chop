@@ -30,8 +30,13 @@ THU_MUC_NHAT_KY = "nhat_ky"
 #: Nơi đặt file .py do bộ sinh mã viết ra — để riêng, vì chúng là thứ SINH LẠI ĐƯỢC
 #: từ sơ đồ, không phải tài liệu người dùng.
 THU_MUC_MA = "ma_sinh"
+#: Kết quả backtest LEAN ghi ra — mỗi thuật toán một thư mục con.
+THU_MUC_KET_QUA = "ket_qua"
 
 CAI_DAT_MAC_DINH = {
+    # Thư mục gốc của bản LEAN đã build (chỗ có `Launcher/`). Để trống = chưa trỏ —
+    # KHÔNG đoán hộ, vì LEAN là một kho mấy trăm MB, nó nằm đâu là việc người dùng.
+    "lean_goc": "",
     "symbol": "XAUUSD",
     "accent": "#ffa657",
     "ui": {"panel_cao": 176, "panel_gap": False},
@@ -89,6 +94,10 @@ def thu_muc_nhat_ky():
 
 def thu_muc_ma():
     return _thu_muc(THU_MUC_MA)
+
+
+def thu_muc_ket_qua():
+    return _thu_muc(THU_MUC_KET_QUA)
 
 
 def ghi_ma(ten_lop, ma):

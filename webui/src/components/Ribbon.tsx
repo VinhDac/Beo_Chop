@@ -19,11 +19,14 @@ import IconNet from './Icon'
  *  `test_giao_dien` đọc đúng bảng này rồi đối chiếu với `app.css`. */
 const HIEN_TU = { ghiBao: 1460, hoanTac: 1090, strategy: 1250 }
 
-function Nhom({ ten, children, hienTu }: {
+function Nhom({ ten, children, hienTu, chinh }: {
   ten: string; children: ReactNode; hienTu?: number
+  /** Nhóm CHÍNH: đẩy sát mép phải và tô sáng. Đúng một nhóm được mang cờ này. */
+  chinh?: boolean
 }) {
   return (
-    <div className={'nhom-ribbon' + (hienTu ? ` hien-tu-${hienTu}` : '')}>
+    <div className={'nhom-ribbon' + (hienTu ? ` hien-tu-${hienTu}` : '')
+                    + (chinh ? ' chinh' : '')}>
       <div className="cac-nut">{children}</div>
       <div className="ten-nhom">{ten}</div>
     </div>
@@ -64,6 +67,14 @@ export interface ViecRibbon {
   taHatNhan: () => void
   /** Sinh thuật toán LEAN từ sơ đồ đang vẽ. */
   sinhMa: () => void
+  /** Sinh rồi chạy backtest luôn. */
+  chay: () => void
+  /** Mở lại kết quả lượt vừa chạy. */
+  moKetQua: () => void
+  /** Đã có kết quả để mở chưa. */
+  coKetQua: boolean
+  /** Đang chạy backtest — khoá nút lại. */
+  dangChay: boolean
   luu: () => void
   luuThanh: () => void
   mo: () => void
@@ -76,6 +87,11 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
 }) {
   return (
     <div className="ribbon">
+      {/* ⚠ HAI VÙNG, không phải một hàng. Nhóm phải được GHIM, không phải đẩy bằng
+          `margin-left: auto` — đẩy thì chỉ ăn khi CÒN CHỖ TRỐNG, mà ribbon này có bảy
+          nhóm nên nó luôn dài hơn cửa sổ: cụm chính bị trôi hẳn ra ngoài màn hình.
+          Nay phần trái tự cuộn, phần phải đứng im. */}
+      <div className="ribbon-cuon">
       <Nhom ten="Thêm khối">
         <Nut ten="Bắt đầu" icon="start" onClick={v.themBatDau} />
         <Nut ten="Nhóm" icon="group" onClick={v.themNhom}
@@ -134,11 +150,23 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
              title="Lưu thành một Strategy mới, giữ nguyên bản đang mở" />
       </Nhom>
 
-      {/* Sơ đồ thành thuật toán LEAN. Đứng riêng một nhóm vì nó là ĐẦU RA của cả việc
-          vẽ, không phải một thao tác sửa. */}
-      <Nhom ten="Chạy">
-        <Nut ten="Sinh mã" icon="chay" onClick={v.sinhMa}
+      {/* CỤM CHÍNH — đẩy SÁT MÉP PHẢI và tô sáng. Đây là ĐẦU RA của cả việc vẽ, không
+          phải một thao tác sửa, nên nó không được lẫn vào hàng nút sửa. Xếp theo đúng thứ
+          tự việc: sinh -> chạy -> tối ưu -> thật -> đọc, giống thanh của QuantConnect. */}
+      </div>
+
+      <Nhom ten="Cỗ máy" chinh>
+        <Nut ten="Sinh mã" icon="gear" onClick={v.sinhMa}
              title="Sơ đồ này thành thuật toán LEAN Python — xem trước rồi lưu ra file" />
+        <Nut ten={v.dangChay ? 'Đang chạy…' : 'Chạy'} icon="chay"
+             onClick={v.chay} tat={v.dangChay}
+             title="Sinh mã rồi chạy backtest bằng LEAN trên máy này" />
+        <Nut ten="Tối ưu" icon="branch" tat
+             title="Quét tham số — CHƯA CÓ. Cần mở ô số cho phép gõ tên tham số trước." />
+        <Nut ten="Chạy thật" icon="an-lenh" tat
+             title="Giao dịch bằng tiền thật — CHƯA CÓ. Cần tài khoản sàn." />
+        <Nut ten="Kết quả" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
+             title="Mở lại kết quả lượt chạy vừa rồi" />
       </Nhom>
     </div>
   )
