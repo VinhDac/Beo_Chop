@@ -48,9 +48,12 @@ export interface ViecRibbon {
   moi: () => void
 }
 
-export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }: {
+export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai, oTim }: {
   v: ViecRibbon; soChon: number; trongHatNhan: boolean
   coHoanTac: boolean; coLamLai: boolean
+  /** Ô tìm khối — dạt sang PHẢI, tách hẳn khỏi các nhóm nút: nó không "thêm" gì vào
+   *  sơ đồ, nó chỉ giúp nhìn. Trộn vào giữa các nhóm là người ta bấm nhầm. */
+  oTim?: ReactNode
 }) {
   return (
     <div className="ribbon">
@@ -85,6 +88,9 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
         <Nut ten="Mở" icon="folder" onClick={v.mo} />
         <Nut ten="Lưu" icon="save" onClick={v.luu} />
       </Nhom>
+
+      <div className="ribbon-day" />
+      {oTim}
     </div>
   )
 }

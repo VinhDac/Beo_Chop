@@ -9,12 +9,14 @@ import StepNode from './components/StepNode'
 import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
 import Ribbon, { type ViecRibbon } from './components/Ribbon'
+import OTimKhoi, { type LocTim } from './components/OTimKhoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, CoMay, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, VanDe,
 } from './types'
+import { khoiKhop } from './tim'
 import { useKhungCuaSo } from './useKhungCuaSo'
 
 const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan }
@@ -150,7 +152,7 @@ const idHatNhanMoi = () =>
 
 function SoDoTrong() {
   useKhungCuaSo(32)
-  const { fitView, getViewport, setViewport } = useReactFlow()
+  const { fitView, getViewport, setViewport, setCenter } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState<RfNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<RfEdge>([])
   const [ten, setTen] = useState('')
@@ -161,6 +163,10 @@ function SoDoTrong() {
   const [sanSang, setSanSang] = useState(false)
   /** Đang đứng TRONG hạt nhân nào; null = sơ đồ chính. */
   const [trongHN, setTrongHN] = useState<string | null>(null)
+  /** Ô tìm khối: chữ đang gõ, lọc nhanh đang bật, và đang đứng ở khối khớp thứ mấy. */
+  const [tim, setTim] = useState('')
+  const [locTim, setLocTim] = useState<string | null>(null)
+  const [dangO, setDangO] = useState(-1)
   const chong = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const chongLai = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const [coHoanTac, setCoHoanTac] = useState(false)
@@ -348,6 +354,74 @@ function SoDoTrong() {
     setNodes(ns => ns.map(n => (bo.has(n.id) ? ganTag(n, undefined) : n)))
   }, [dangChon, chup, setNodes])
 
+  /* --------------------------------------------------------- ô tìm khối
+     LỌC NHANH — hỏi theo DÂY thay vì theo chữ. Đây mới là cách soát một sơ đồ nghìn
+     khối: không đọc từng cái, mà hỏi "chỗ nào rẽ", "chỗ nào không ai tới". */
+  const dsLoc = useMemo(() => {
+    const ra = new Map<string, number>()
+    const vao = new Map<string, number>()
+    for (const e of edges) {
+      if (e.type === 'vong') continue
+      ra.set(e.source, (ra.get(e.source) ?? 0) + 1)
+      vao.set(e.target, (vao.get(e.target) ?? 0) + 1)
+    }
+    const quayVe = (n: RfNode) => (n.data as { step?: Step }).step?.type === 'quay_ve'
+    const ds: { ma: string; ten: string; goiY: string; khop: (n: RfNode) => boolean }[] = [
+      { ma: 'chia', ten: 'Chia nhánh', goiY: 'khối rẽ ra từ hai nhánh trở lên',
+        khop: n => (ra.get(n.id) ?? 0) >= 2 },
+      { ma: 'gop', ten: 'Gộp nhánh', goiY: 'khối có nhiều dây đổ vào',
+        khop: n => (vao.get(n.id) ?? 0) >= 2 },
+      { ma: 'cuoi', ten: 'Khối cuối', goiY: 'dòng chạy dừng ở đây',
+        khop: n => !ra.get(n.id) && !quayVe(n) },
+      { ma: 'khong-toi', ten: 'Không chạy tới', goiY: 'khối chưa có số',
+        khop: n => !thuTu[n.id] },
+    ]
+    return ds.map(({ khop, ...l }) =>
+      ({ ...l, ids: new Set(nodes.filter(khop).map(n => n.id)) }))
+  }, [nodes, edges, thuTu])
+
+  /** Id các khối khớp — khớp CHỮ, hay khớp lọc nhanh đang bật — xếp theo chỗ đứng trên
+   *  canvas: trên xuống dưới, trái sang phải, ĐÚNG THỨ TỰ MẮT ĐỌC sơ đồ. Enter đi lần
+   *  lượt theo thứ tự này, không theo thứ tự trong file. */
+  const khopTim = useMemo(() => {
+    const l = locTim ? dsLoc.find(x => x.ma === locTim) : undefined
+    if (!l && !tim.trim()) return []
+    return nodes
+      .filter(n => (l ? l.ids.has(n.id)
+                      : khoiKhop((n.data as { card: Card }).card, thuTu[n.id], tim)))
+      .sort((a, b) => (a.position.y - b.position.y) || (a.position.x - b.position.x))
+      .map(n => n.id)
+  }, [nodes, tim, locTim, dsLoc, thuTu])
+  const khopTimSet = useMemo(() => new Set(khopTim), [khopTim])
+
+  /** Chọn khối rồi KÉO MÀN TỚI NÓ, phóng lên mức đọc rõ (đang to hơn thì giữ). Sơ đồ
+   *  lớn thì đọc nhãn "[2A.1]" rồi tự đi tìm là không nổi. Khối nằm trong hạt nhân thì
+   *  tự bước vào hạt nhân ấy trước. */
+  const toiKhoi = useCallback((id: string) => {
+    const hn = thuocHN.get(id)
+    if (hn && hn !== trongHN) vaoHatNhan(hn)
+    else if (!hn && trongHN) raHatNhan()
+    setNodes(ns => ns.map(n => (n.selected === (n.id === id) ? n
+                                : { ...n, selected: n.id === id })))
+    setTimeout(() => {
+      const n = nodes.find(x => x.id === id)
+      if (!n) return
+      setCenter(n.position.x + rongCua(n) / 2, n.position.y + caoCua(n) / 2,
+                { zoom: Math.max(getViewport().zoom, ZOOM_DOC_RO), duration: 420 })
+    }, hn && hn !== trongHN ? 520 : 0)
+  }, [nodes, thuocHN, trongHN, vaoHatNhan, raHatNhan, setNodes, setCenter, getViewport])
+
+  /** Enter trong ô tìm: khối khớp KẾ TIẾP, vòng lại từ đầu khi hết. */
+  const toiKe = useCallback(() => {
+    if (!khopTim.length) return
+    const i = (dangO + 1) % khopTim.length
+    setDangO(i)
+    toiKhoi(khopTim[i])
+  }, [khopTim, dangO, toiKhoi])
+
+  // Đổi chữ tìm hay đổi lọc thì đếm lại từ đầu.
+  useEffect(() => { setDangO(-1) }, [tim, locTim])
+
   /* ------------------------------------- khối Quay về đang chọn */
   const vongDangXem = useMemo(() => {
     const n = dangChon.length === 1 ? dangChon[0] : null
@@ -406,25 +480,33 @@ function SoDoTrong() {
         id: 'hn:' + k.id, type: 'hatNhan', position: { x: k.kx, y: k.ky }, deletable: false,
         selected: k.khoi.every(id => theoId.get(id)!.selected),
         data: { ten: k.ten, so: k.khoi.length, ve,
-                thuTu: dau && cuoi && dau !== cuoi ? `${dau} → ${cuoi}` : dau },
+                thuTu: dau && cuoi && dau !== cuoi ? `${dau} → ${cuoi}` : dau,
+                // Bên trong có khối khớp ô tìm thì CẢ KHUNG sáng lên — không thì tìm
+                // thấy một khối đang nằm trong hạt nhân mà ngoài này không thấy gì.
+                timThay: k.khoi.some(id => khopTimSet.has(id)) },
       })
     }
     return ra
-  }, [trongHN, hatNhan, nodes, edges, thuTu])
+  }, [trongHN, hatNhan, nodes, edges, thuTu, khopTimSet])
 
   const nodesVe = useMemo(() => {
     const ds = nodes.filter(n => !biGiau(n.id)).map(n => {
       const st = (n.data as { step?: Step }).step
       const veNhan = st?.type === 'quay_ve' && st.ve ? (thuTu[st.ve] ?? '?') : undefined
       const trongVong = !!vongDangXem?.trong.has(n.id) && n.id !== vongDangXem.tu
+      const timThay = khopTimSet.has(n.id)
+      // Chỉ khối KHỚP mới nhận chữ để tô — khối khác khỏi phải dựng lại thẻ.
+      const chuTim = timThay ? tim : ''
       const d = n.data as Record<string, unknown>
-      if (d.thuTu === thuTu[n.id] && d.veNhan === veNhan && d.trongVong === trongVong) {
+      if (d.thuTu === thuTu[n.id] && d.veNhan === veNhan && d.trongVong === trongVong
+          && d.timThay === timThay && d.tim === chuTim) {
         return n       // `memo` của StepNode so bằng THAM CHIẾU — không đổi thì giữ nguyên
       }
-      return { ...n, data: { ...d, thuTu: thuTu[n.id], veNhan, trongVong } }
+      return { ...n, data: { ...d, thuTu: thuTu[n.id], veNhan, trongVong,
+                             timThay, tim: chuTim } }
     })
     return [...ds, ...nodesHatNhan]
-  }, [nodes, thuTu, vongDangXem, biGiau, nodesHatNhan])
+  }, [nodes, thuTu, vongDangXem, biGiau, nodesHatNhan, khopTimSet, tim])
 
   /** Dây đem đi vẽ. Ở sơ đồ chính, dây nối tới một khối BỊ GIẤU được cắm vào cái KHUNG
    *  đứng thay nó — nhìn vẫn thấy luồng chạy đi qua hạt nhân. Dây nằm gọn bên trong một
@@ -575,6 +657,18 @@ function SoDoTrong() {
     if (d.ok && d.value) await nap(d.value)
   }
 
+  /** Lọc nhanh kèm SỐ LƯỢNG — con số là thứ nói "sơ đồ này có 12 chỗ rẽ". */
+  const locHien: LocTim[] = useMemo(
+    () => dsLoc.map(({ ids, ...l }) => ({ ...l, so: ids.size })), [dsLoc])
+  /** Danh sách khối khớp bày trong ô tìm. Cắt ở 40: dài hơn thì cuộn mỏi tay, mà đã
+   *  tới mức ấy thì gõ thêm một chữ nhanh hơn. */
+  const goiYTim = useMemo(() => khopTim.slice(0, 40).map(id => {
+    const n = nodes.find(x => x.id === id)!
+    const hn = thuocHN.get(id)
+    return { id, nhan: thuTu[id] ?? '–', ten: (n.data as { card: Card }).card.title,
+             hn: hn ? hatNhan.get(hn)?.ten : undefined }
+  }), [khopTim, nodes, thuTu, thuocHN, hatNhan])
+
   const viec: ViecRibbon = {
     themBatDau: () => void themKhoi('start'),
     themNhom: () => void themKhoi('group'),
@@ -605,7 +699,14 @@ function SoDoTrong() {
     <div className="khung">
       <TitleBar tieuDe={ten || 'Cỗ máy mới'} menus={menus} />
       <Ribbon v={viec} soChon={dangChon.length} trongHatNhan={!!trongHN}
-              coHoanTac={coHoanTac} coLamLai={coLamLai} />
+              coHoanTac={coHoanTac} coLamLai={coLamLai}
+              oTim={
+                <OTimKhoi giaTri={tim} onDoi={setTim} soKhop={khopTim.length}
+                          dangO={dangO} onToi={toiKe}
+                          loc={locTim} dsLoc={locHien} onLoc={m => setLocTim(m)}
+                          goiY={goiYTim} onChon={id => { setDangO(khopTim.indexOf(id));
+                                                         toiKhoi(id) }} />
+              } />
       <div className="vung-canvas">
         {hnDangO && (
           <div className="thanh-hn">

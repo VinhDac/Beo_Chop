@@ -889,3 +889,75 @@ mark.tim-chu {
   box-shadow: 0 0 0 2px var(--warn), 5px 5px 0 -1px var(--surface),
               5px 5px 0 0 var(--border), var(--shadow-lg);
 }
+
+/* ---------------- Ô tìm khối ----------------
+   Dạt hẳn sang PHẢI ribbon: nó không "thêm" gì vào sơ đồ, nó chỉ giúp NHÌN. Trộn vào
+   giữa các nhóm nút là người ta bấm nhầm. */
+.ribbon-day { flex: 1 1 auto; min-width: 8px; }
+.ribbon .o-tim-khoi { align-self: center; margin-right: 10px; }
+/* Khối khớp ô tìm: viền vàng, thấy từ xa trên một sơ đồ nghìn khối. */
+.hop.tim-thay { box-shadow: 0 0 0 2px var(--warn), var(--shadow-lg); }
+/* Ô TÌM KHỐI — cùng dáng viên thuốc, cùng cao với công tắc bên trái nó. */
+.o-tim-khoi {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  color: var(--muted);
+}
+.o-tim-khoi:focus-within { border-color: var(--accent); }
+.o-tim-khoi input {
+  border: none; outline: none; background: none; color: var(--text);
+  font: 12px var(--font); padding: 4px 0; width: 150px;
+}
+.o-tim-khoi input::placeholder { color: var(--dim); }
+.o-tim-khoi .dem {
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Danh sách xổ của ô tìm: dùng chung `.goi-y-khoi` (xem dưới), rộng hơn cái ô. Lọc nhanh
+   nằm trên: tên, lời giải thích mờ, số khối khớp sát phải; khối khớp nằm dưới. */
+.o-tim-khoi { position: relative; }
+/* BUNG SANG TRÁI, không sang phải: ô tìm nằm sát mép phải ribbon, nên neo `left` là
+   danh sách chạy ra ngoài cửa sổ và mất nửa chữ. Bên Jenifer ô này nằm giữa thanh nên
+   không dính; ở đây thì dính ngay. */
+.o-tim-khoi .goi-y-khoi {
+  left: auto; right: 0; width: 380px; max-height: 340px; color: var(--text);
+}
+.goi-y-khoi .muc.loc { display: flex; align-items: baseline; gap: 8px; }
+.goi-y-khoi .muc .mo { color: var(--dim); font-size: 11.5px; }
+.goi-y-khoi .muc.loc .so {
+  margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.goi-y-khoi .muc.loc + .muc:not(.loc) { border-top: 1px solid var(--border); margin-top: 3px; }
+/* Lọc nhanh đang bật: một thẻ nằm trong ô, × để bỏ. */
+.chip-loc {
+  display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
+  padding: 1px 2px 1px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--text); font: 11.5px var(--font);
+}
+.chip-loc button {
+  border: none; background: none; color: var(--muted); cursor: pointer;
+  font: 13px/1 var(--font); padding: 0 4px;
+}
+.chip-loc button:hover { color: var(--text); }
+mark.tim-chu {
+  background: color-mix(in srgb, var(--warn) 45%, transparent);
+  color: inherit; border-radius: 2px;
+}
+/* Danh sách gợi ý thả xuống của ô chọn khối (`OChonKhoi`) và ô tìm khối. */
+.goi-y-khoi {
+  position: absolute; left: 0; right: 0; top: calc(100% + 3px); z-index: 20;
+  max-height: 220px; overflow: auto; padding: 3px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+}
+.goi-y-khoi .muc {
+  padding: 4px 8px; border-radius: 4px; cursor: pointer; font: 12.5px var(--font);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.goi-y-khoi .muc:hover, .goi-y-khoi .muc.sang { background: var(--raised-hover); }
+.goi-y-khoi .muc.trong { color: var(--dim); cursor: default; background: none; }
+.kd-ten .goi-y-khoi .muc { display: flex; align-items: center; }
