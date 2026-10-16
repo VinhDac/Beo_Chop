@@ -10,6 +10,9 @@ import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
 import Ribbon, { type ViecRibbon } from './components/Ribbon'
 import OTimKhoi, { type LocTim } from './components/OTimKhoi'
+import ContextMenu, { type MucPhai } from './components/ContextMenu'
+import BangPhimTat from './components/BangPhimTat'
+import HopDoiTen from './components/HopDoiTen'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
@@ -17,6 +20,7 @@ import type {
   Card, CoMay, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
+import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
 import { useKhungCuaSo } from './useKhungCuaSo'
 
 const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan }
@@ -31,6 +35,21 @@ const MUI_TEN = { type: MarkerType.ArrowClosed, width: 10, height: 10, color: '#
 /** Giữ Ctrl HOẶC Shift rồi bấm để chọn thêm khối. Shift cũng là phím quét-khung mặc
  *  định của React Flow, nên Shift+kéo trên nền vẫn quét chọn nhiều khối. */
 const PHIM_CHON_NHIEU = ['Control', 'Meta', 'Shift']
+
+/** Màu khối người dùng tự đặt. Tên tiếng Việt, màu lấy từ `theme.css` — đổi tông app
+ *  là màu khối đổi theo, không đóng đinh mã màu vào đây. Bộ chạy KHÔNG đọc màu. */
+const MAU_KHOI: [string, string][] = [
+  ['Đỏ', '--khoi-do'], ['Cam', '--khoi-cam'], ['Vàng', '--khoi-vang'],
+  ['Lục', '--khoi-luc'], ['Lam', '--khoi-lam'], ['Tím', '--khoi-tim'],
+]
+
+/** Phím tắt -> mã lệnh. Tra BẢNG theo đúng cụm đang bấm, không phải chuỗi `else if`. */
+const TRA_PHIM = bangTra()
+/** Nhãn phím của một lệnh, để hiện mờ bên phải menu chuột phải. */
+const phimCua = (ma: string) => {
+  const l = LENH.find(x => x.ma === ma)
+  return l?.phim[0] ? chuPhim(l.phim[0]) : undefined
+}
 
 const BUOC_X = 330
 /** Khổ một khối, dùng khi React Flow chưa đo xong. */
@@ -167,6 +186,12 @@ function SoDoTrong() {
   const [tim, setTim] = useState('')
   const [locTim, setLocTim] = useState<string | null>(null)
   const [dangO, setDangO] = useState(-1)
+  /** Menu chuột phải: bấm ở đâu, và bấm trúng cái gì. */
+  const [menuPhai, setMenuPhai] = useState<
+    { x: number; y: number; loai: 'nen' | 'khoi' | 'hatNhan'; id?: string } | null>(null)
+  const [moBangPhim, setMoBangPhim] = useState(false)
+  const [doiTen, setDoiTen] = useState<{ loai: 'khoi' | 'hatNhan'; id: string;
+                                         ten: string } | null>(null)
   const chong = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const chongLai = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const [coHoanTac, setCoHoanTac] = useState(false)
@@ -353,6 +378,34 @@ function SoDoTrong() {
     const bo = new Set(dangChon.map(n => n.id))
     setNodes(ns => ns.map(n => (bo.has(n.id) ? ganTag(n, undefined) : n)))
   }, [dangChon, chup, setNodes])
+
+  /** Đổi một khoá trên khối đang chọn (màu, ghim số…). */
+  const doiKhoa = useCallback((f: (s: Step) => Step) => {
+    if (!dangChon.length) return
+    chup()
+    const bo = new Set(dangChon.map(n => n.id))
+    setNodes(ns => ns.map(n => {
+      if (!bo.has(n.id)) return n
+      const d = n.data as { step: Step }
+      return { ...n, data: { ...d, step: f({ ...d.step }) } }
+    }))
+  }, [dangChon, chup, setNodes])
+
+  /** Ngắt hết dây dính tới khối đang chọn. */
+  const ngatNoi = useCallback(() => {
+    if (!dangChon.length) return
+    chup()
+    const bo = new Set(dangChon.map(n => n.id))
+    setEdges(es => es.filter(e => !bo.has(e.source) && !bo.has(e.target)))
+  }, [dangChon, chup, setEdges])
+
+  /** Nối khối đang chọn tới một khối khác — lối nối KHÔNG cần kéo chuột, dùng khi hai
+   *  khối ở xa nhau trên một sơ đồ lớn. */
+  const noiToi = useCallback((tu: string, toi: string) => {
+    chup()
+    setEdges(es => addEdge({ source: tu, target: toi, sourceHandle: 'right',
+                             targetHandle: 'left', markerEnd: MUI_TEN }, es))
+  }, [chup, setEdges])
 
   /* --------------------------------------------------------- ô tìm khối
      LỌC NHANH — hỏi theo DÂY thay vì theo chữ. Đây mới là cách soát một sơ đồ nghìn
@@ -635,6 +688,61 @@ function SoDoTrong() {
     await nap({ schema: 1, type: 'co_may', name: ten, steps: t.s, edges: t.e })
   }, [nodes, edges, ten, nap])
 
+  const coMayMoi = useCallback(() => {
+    chup(); setNodes([]); setEdges([]); setTen(''); setTrongHN(null)
+  }, [chup, setNodes, setEdges])
+
+  /* --------------------------------------------------------------- bàn phím
+     Tra BẢNG theo đúng cụm phím đang bấm. Bỏ qua khi con trỏ đang ở trong một ô nhập:
+     gõ Ctrl+A trong ô tìm phải là "chọn hết chữ", không phải "chọn hết khối". */
+  useEffect(() => {
+    const nghe = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null
+      const trongO = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'
+                             || t.isContentEditable)
+      const cum = cumPhim(ev)
+      if (!cum) return
+      const ma = TRA_PHIM.get(cum)
+      if (!ma) return
+      // Esc trong ô nhập là việc của ô ấy (xoá chữ tìm), không phải "ra khỏi hạt nhân".
+      if (trongO && !(cum === 'f2' || cum === 'ctrl+s')) return
+      const viec: Record<string, () => void> = {
+        'hoan-tac': () => void hoanTac(),
+        'lam-lai': () => void lamLai(),
+        'nhan-ban': () => void nhanBan(),
+        xoa,
+        'chon-het': () => setNodes(ns => ns.map(n => (biGiau(n.id) ? n
+                                                      : { ...n, selected: true }))),
+        'gom-hat-nhan': gomHatNhan,
+        'ta-hat-nhan': taHatNhan,
+        'ra-hat-nhan': () => { if (trongHN) raHatNhan() },
+        'doi-ten': () => {
+          const n = dangChon[0]
+          if (n) setDoiTen({ loai: 'khoi', id: n.id,
+                             ten: (n.data as { card: Card }).card.title })
+        },
+        'co-may-moi': coMayMoi,
+        'mo-co-may': () => void mo(),
+        luu: () => void luu(),
+        'o-tim': () => (document.querySelector('.o-tim-khoi input') as HTMLInputElement
+                        | null)?.focus(),
+        'bang-phim-tat': () => setMoBangPhim(m => !m),
+        'them-bat-dau': () => void themKhoi('start'),
+        'them-nhom': () => void themKhoi('group'),
+        'them-khoi-le': () => void themKhoi('action'),
+        'them-quay-ve': () => void themKhoi('action', 'quay_ve'),
+      }
+      const f = viec[ma]
+      if (!f) return
+      ev.preventDefault()
+      f()
+    }
+    window.addEventListener('keydown', nghe)
+    return () => window.removeEventListener('keydown', nghe)
+    // `luu` / `mo` là khai báo hàm nên được nâng lên đầu — gọi được từ đây.
+  }, [hoanTac, lamLai, nhanBan, xoa, gomHatNhan, taHatNhan, trongHN, raHatNhan,
+      dangChon, setNodes, biGiau, themKhoi, coMayMoi])
+
   /* ------------------------------------------------------------- bản nháp */
   useEffect(() => {
     if (!sanSang) return
@@ -657,6 +765,92 @@ function SoDoTrong() {
     if (d.ok && d.value) await nap(d.value)
   }
 
+  /* ------------------------------------------------------- menu chuột phải */
+  const mucMenu = useMemo<MucPhai[]>(() => {
+    if (!menuPhai) return []
+    const them = (kind: StepKind, loai?: string) => () => void themKhoi(kind, loai)
+
+    if (menuPhai.loai === 'nen') {
+      return [
+        { ten: 'Thêm khối Bắt đầu', icon: 'start', onClick: them('start') },
+        { ten: 'Thêm Nhóm', icon: 'group', onClick: them('group') },
+        { ten: 'Thêm Khối lẻ', icon: 'action', onClick: them('action') },
+        { ten: 'Thêm khối Quay về', icon: 'quay-ve',
+          onClick: them('action', 'quay_ve') },
+        { ngan: true },
+        { ten: 'Chọn hết', phim: phimCua('chon-het'),
+          onClick: () => setNodes(ns => ns.map(n => (biGiau(n.id) ? n
+                                                     : { ...n, selected: true }))) },
+      ]
+    }
+
+    if (menuPhai.loai === 'hatNhan') {
+      const k = hatNhan.get(menuPhai.id!.slice(3))
+      if (!k) return []
+      return [
+        { ten: 'Vào trong sửa', icon: 'frame', onClick: () => vaoHatNhan(k.id) },
+        { ten: 'Đổi tên hạt nhân…', icon: 'edit',
+          onClick: () => setDoiTen({ loai: 'hatNhan', id: k.id, ten: k.ten }) },
+        { ngan: true },
+        { ten: `Tách cả ${k.khoi.length} khối ra`, icon: 'unlink',
+          onClick: () => {
+            chup()
+            const bo = new Set(k.khoi)
+            setNodes(ns => ns.map(n => (bo.has(n.id) ? ganTag(n, undefined) : n)))
+          } },
+      ]
+    }
+
+    // --- menu của một KHỐI ---
+    const n = nodes.find(x => x.id === menuPhai.id)
+    if (!n) return []
+    const st = (n.data as { step: Step }).step
+    const so = dangChon.length || 1
+    const khac = nodes.filter(x => x.id !== n.id && !biGiau(x.id))
+    return [
+      { ten: 'Đổi tên…', icon: 'edit', phim: phimCua('doi-ten'),
+        onClick: () => setDoiTen({ loai: 'khoi', id: n.id,
+                                   ten: (n.data as { card: Card }).card.title }) },
+      { ten: 'Màu khối', icon: 've-mau', con: [
+        ...MAU_KHOI.map(([ten, bien]) => ({
+          ten, onClick: () => doiKhoa(s => ({ ...s, mau: `var(${bien})` })),
+        })),
+        { ngan: true },
+        { ten: 'Bỏ màu', onClick: () => doiKhoa(s => { delete s.mau; return s }) },
+      ] },
+      { ten: st.ghim ? 'Bỏ ghim số' : 'Ghim số',
+        icon: st.ghim ? 'bo-ghim' : 'ghim',
+        viSao: 'Ghim số = xác nhận đây là điểm quay lại cố ý; số của khối được giữ nguyên',
+        onClick: () => doiKhoa(s => (s.ghim ? (() => { delete s.ghim; return s })()
+                                            : { ...s, ghim: true })) },
+      ...(st.type === 'quay_ve' ? [{
+        ten: 'Quay về khối…', icon: 'quay-ve', con: khac.length ? khac.map(x => ({
+          ten: `${thuTu[x.id] ?? '–'} · ${(x.data as { card: Card }).card.title}`,
+          onClick: () => doiKhoa(s => ({ ...s, ve: x.id })),
+        })) : [{ ten: 'chưa có khối nào khác', tat: true }],
+      } as MucPhai] : []),
+      { ngan: true },
+      { ten: 'Nối tới…', icon: 'branch', con: khac.length ? khac.map(x => ({
+        ten: `${thuTu[x.id] ?? '–'} · ${(x.data as { card: Card }).card.title}`,
+        onClick: () => noiToi(n.id, x.id),
+      })) : [{ ten: 'chưa có khối nào khác', tat: true }] },
+      { ten: 'Ngắt hết kết nối', icon: 'unlink', onClick: ngatNoi },
+      { ngan: true },
+      { ten: `Gom ${so} khối thành Hạt nhân`, icon: 'frame',
+        phim: phimCua('gom-hat-nhan'), tat: dangChon.length < 2 || !!trongHN,
+        viSao: trongHN ? 'đang ở trong một hạt nhân rồi' : 'phải chọn từ hai khối trở lên',
+        onClick: gomHatNhan },
+      ...(st.hat_nhan ? [{ ten: 'Tách khỏi Hạt nhân', icon: 'unlink',
+                           phim: phimCua('ta-hat-nhan'), onClick: taHatNhan } as MucPhai]
+                      : []),
+      { ngan: true },
+      { ten: 'Nhân bản', icon: 'copy', phim: phimCua('nhan-ban'), onClick: nhanBan },
+      { ten: `Xoá ${so > 1 ? so + ' khối' : 'khối'}`, icon: 'trash',
+        phim: phimCua('xoa'), onClick: xoa },
+    ]
+  }, [menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN, biGiau, themKhoi, setNodes,
+      chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan, gomHatNhan, taHatNhan, nhanBan, xoa])
+
   /** Lọc nhanh kèm SỐ LƯỢNG — con số là thứ nói "sơ đồ này có 12 chỗ rẽ". */
   const locHien: LocTim[] = useMemo(
     () => dsLoc.map(({ ids, ...l }) => ({ ...l, so: ids.size })), [dsLoc])
@@ -678,7 +872,7 @@ function SoDoTrong() {
     gomHatNhan, taHatNhan,
     luu: () => void luu(),
     mo: () => void mo(),
-    moi: () => { chup(); setNodes([]); setEdges([]); setTen(''); setTrongHN(null) },
+    moi: coMayMoi,
   }
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
@@ -690,6 +884,7 @@ function SoDoTrong() {
         onClick: () => { void py.qc_khoa().then(r => setKhoa(r.ok && r.value ? r.value
           : { co: false, nguon: null, user_id: null, duong: '' })) } },
       { ten: 'Kho — app lưu file ở đâu…', icon: 'folder', onClick: () => setMoKho(true) },
+      { ten: 'Phím tắt…', icon: 'motSo', onClick: () => setMoBangPhim(true) },
       { ngan: true },
       { ten: 'Thoát', onClick: () => { void py.cua_so_dong() } },
     ] },
@@ -724,6 +919,27 @@ function SoDoTrong() {
           onNodeDoubleClick={(_, n) => {
             if (n.id.startsWith('hn:')) vaoHatNhan(n.id.slice(3))
           }}
+          onPaneContextMenu={ev => {
+            ev.preventDefault()
+            const e = ev as unknown as MouseEvent
+            setMenuPhai({ x: e.clientX, y: e.clientY, loai: 'nen' })
+          }}
+          onNodeContextMenu={(ev, n) => {
+            ev.preventDefault()
+            // Bấm phải vào khối CHƯA chọn thì chọn nó trước — không thì menu nói về
+            // một khối, mà Xoá lại ăn vào khối khác đang chọn từ trước.
+            if (!n.selected && !n.id.startsWith('hn:')) {
+              setNodes(ns => ns.map(x => ({ ...x, selected: x.id === n.id })))
+            }
+            setMenuPhai({ x: ev.clientX, y: ev.clientY, id: n.id,
+                          loai: n.id.startsWith('hn:') ? 'hatNhan' : 'khoi' })
+          }}
+          /* Quét khung xong, React Flow phủ một tấm lên các khối đã chọn (để kéo cả
+             cụm) — chuột phải trúng tấm ấy chứ không trúng khối. Mở đúng menu khối. */
+          onSelectionContextMenu={(ev, ds) => {
+            ev.preventDefault()
+            setMenuPhai({ x: ev.clientX, y: ev.clientY, id: ds[0]?.id, loai: 'khoi' })
+          }}
           nodeTypes={nodeTypes} edgeTypes={edgeTypes}
           /* Loose: mỗi cạnh hộp có cả source lẫn target, nối hướng nào cũng được. */
           connectionMode={ConnectionMode.Loose}
@@ -752,6 +968,32 @@ function SoDoTrong() {
         {vanDe.length > soLoi && <span>{vanDe.length - soLoi} cảnh báo</span>}
       </div>
 
+      {menuPhai && (
+        <ContextMenu x={menuPhai.x} y={menuPhai.y} muc={mucMenu}
+                     onDong={() => setMenuPhai(null)} />
+      )}
+      {moBangPhim && <BangPhimTat onDong={() => setMoBangPhim(false)} />}
+      {doiTen && (
+        <HopDoiTen tieuDe={doiTen.loai === 'khoi' ? 'Đổi tên khối' : 'Đổi tên hạt nhân'}
+                   giaTri={doiTen.ten} onHuy={() => setDoiTen(null)}
+                   onXong={v => {
+                     chup()
+                     if (doiTen.loai === 'khoi') {
+                       setNodes(ns => ns.map(n => {
+                         if (n.id !== doiTen.id) return n
+                         const d = n.data as { step: Step }
+                         return { ...n, data: { ...d, step: { ...d.step, name: v } } }
+                       }))
+                     } else {
+                       // Tên hạt nhân nằm trên TỪNG khối của nó — đổi hết một lượt.
+                       setNodes(ns => ns.map(n => {
+                         const t = tagCua(n)
+                         return t?.id === doiTen.id ? ganTag(n, { ...t, ten: v }) : n
+                       }))
+                     }
+                     setDoiTen(null)
+                   }} />
+      )}
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
       {khoa && <HopKhoa khoa={khoa} dong={() => setKhoa(null)} doi={setKhoa} />}
     </div>
