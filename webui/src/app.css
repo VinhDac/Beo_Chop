@@ -966,23 +966,11 @@ mark.tim-chu {
    Một hàng = một lệnh. Cột phím đứng TRƯỚC mấy cái nút vì đó là thứ người ta quét
    mắt tìm ("phím này đang của ai"), còn nút thì chỉ bấm sau khi đã tìm ra hàng. */
 .bang-phim { display: flex; flex-direction: column; gap: 14px; }
-.bang-phim .hang-tim { display: flex; align-items: center; gap: 12px; }
-.bang-phim .ghi-chu { color: var(--dim); font-size: 12px; }
 .bang-phim .nhom-phim { display: flex; flex-direction: column; }
 .bang-phim .ten-nhom {
   font: 600 11.5px/1.6 var(--font);
   color: var(--dim); text-transform: uppercase; letter-spacing: .6px;
   padding: 6px 2px; border-bottom: 1px solid var(--border-soft); margin-bottom: 2px;
-}
-.bang-phim .hang-phim {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 2px; border-radius: var(--radius);
-}
-.bang-phim .hang-phim:hover { background: var(--surface-2, rgba(255,255,255,.04)); }
-/* Hàng đang chờ bấm phím phải nhận ra được từ xa: người dùng vừa bấm "Đặt phím"
-   thì mắt họ đã rời khỏi cái nút ấy để nhìn xuống bàn phím. */
-.bang-phim .hang-phim.dang-cho {
-  background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent);
 }
 .bang-phim .ten-lenh { flex: 1; min-width: 0; }
 .bang-phim .phim-hien {
@@ -994,7 +982,6 @@ mark.tim-chu {
   padding: 1px 7px; border-radius: 5px;
   border: 1px solid var(--border); background: var(--surface);
 }
-.bang-phim .hang-phim .nut-nho { flex: 0 0 auto; }
 
 /* Một hàng lệnh trong bảng phím tắt. Cột phím dạt phải: mắt quét cột ấy để tìm
    "phím này đang của ai", nên nó phải thẳng hàng. */
