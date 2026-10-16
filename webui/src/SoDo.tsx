@@ -17,13 +17,14 @@ import HopDoiTen from './components/HopDoiTen'
 import BangDuoi, { type TabDuoi } from './components/BangDuoi'
 import KhoStrategy from './components/KhoStrategy'
 import HopDieuKien from './components/HopDieuKien'
+import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  VanDe,
+  TuDienLam, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -191,6 +192,8 @@ function SoDoTrong() {
   const [moKhoStrategy, setMoKhoStrategy] = useState(false)
   /** Từ điển XÁC NHẬN, hỏi Python một lần lúc mở app. */
   const [tuDien, setTuDien] = useState<TuDienHoi | null>(null)
+  /** Từ điển HÀNH ĐỘNG, hỏi Python một lần lúc mở app. */
+  const [tuDienLam, setTuDienLam] = useState<TuDienLam | null>(null)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -278,6 +281,8 @@ function SoDoTrong() {
     (async () => {
       const td = await py.tu_dien_hoi()
       if (td.ok && td.value) setTuDien(td.value)
+      const tl = await py.tu_dien_lam()
+      if (tl.ok && tl.value) setTuDienLam(tl.value)
       const r = await py.doc_ban_nhap()
       if (r.ok && r.value) await nap(r.value)
       setSanSang(true)
@@ -672,8 +677,9 @@ function SoDoTrong() {
                       data: { step, card }, selected: true }])
     // KHỐI HỎI mới là một cái vỏ rỗng — mở luôn hộp điều kiện, đừng bắt người dùng
     // đi tìm rồi bấm đúp. Chỉ muốn cái khối thôi thì Esc là xong.
-    if (tuDien?.loai.some(l => l.ma === step.type)) setDangSua(step.id)
-  }, [chup, nodes, setNodes, biGiau, tagDangO, ghi, tuDien])
+    if (tuDien?.loai.some(l => l.ma === step.type)
+        || laHanhDong(tuDienLam, step.type)) setDangSua(step.id)
+  }, [chup, nodes, setNodes, biGiau, tagDangO, ghi, tuDien, tuDienLam])
 
   const xoa = useCallback(() => {
     if (!dangChon.length) return
@@ -932,6 +938,10 @@ function SoDoTrong() {
     themKhoiLe: () => void themKhoi('action'),
     themQuayVe: () => void themKhoi('action', 'quay_ve'),
     themHoi: (loai: string) => void themKhoi('action', loai),
+    themLam: (loai: string) => void themKhoi('action', loai),
+    loaiLam: (tuDienLam?.loai ?? []).map(l => ({ ma: l.ma, nhan: l.nhan, icon: l.icon,
+                                                 mo_ta: l.mo_ta, nhom: l.nhom,
+                                                 lean: l.lean, tat: l.tat })),
     loaiHoi: (tuDien?.loai ?? []).map(l => ({ ma: l.ma, nhan: l.nhan, icon: l.icon,
                                               mo_ta: l.mo_ta, tat: l.tat })),
     xoa, nhanBan, hoanTac, lamLai,
@@ -1015,7 +1025,8 @@ function SoDoTrong() {
             if (n.id.startsWith('hn:')) { vaoHatNhan(n.id.slice(3)); return }
             // Bấm đúp một khối HỎI là mở hộp điều kiện của nó.
             const st = (n.data as { step?: Step }).step
-            if (st && tuDien?.loai.some(l => l.ma === st.type)) setDangSua(n.id)
+            if (st && (tuDien?.loai.some(l => l.ma === st.type)
+                       || laHanhDong(tuDienLam, st.type))) setDangSua(n.id)
           }}
           onPaneContextMenu={ev => {
             ev.preventDefault()
@@ -1117,20 +1128,29 @@ function SoDoTrong() {
                      setDoiTen(null)
                    }} />
       )}
-      {dangSua && tuDien && (() => {
+      {/* MỘT id đang sửa, HAI hộp thoại — loại của khối quyết mở cái nào. Không gom
+          thành một hộp "sửa khối" chung: một bên là N dòng điều kiện giống nhau, bên kia
+          là một bộ ô cố định — gỏi hai thứ đó vào một hộp thì cả hai đều dở. */}
+      {dangSua && (() => {
         const n = nodes.find(x => x.id === dangSua)
         if (!n) return null
-        return (
-          <HopDieuKien step={(n.data as { step: Step }).step} tuDien={tuDien}
-                       onDong={() => setDangSua(null)}
-                       onLuu={s => {
-                         chup()
-                         setNodes(ns => ns.map(x => (x.id === dangSua
-                           ? { ...x, data: { ...x.data, step: s } } : x)))
-                         ghi(`sửa ${s.name}`)
-                         setDangSua(null)
-                       }} />
-        )
+        const st = (n.data as { step: Step }).step
+        const luu = (s: Step) => {
+          chup()
+          setNodes(ns => ns.map(x => (x.id === dangSua
+            ? { ...x, data: { ...x.data, step: s } } : x)))
+          ghi(`sửa ${s.name}`)
+          setDangSua(null)
+        }
+        if (tuDien && tuDien.loai.some(l => l.ma === st.type)) {
+          return <HopDieuKien step={st} tuDien={tuDien} onLuu={luu}
+                              onDong={() => setDangSua(null)} />
+        }
+        if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
+          return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}
+                              onLuu={luu} onDong={() => setDangSua(null)} />
+        }
+        return null
       })()}
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
       {moKhoStrategy && (

@@ -3124,3 +3124,108 @@ KHÔNG hề vẽ ra — luật chết mang theo biến ma.
 
 **Trạng thái:** trình vẽ chạy thật. **Bộ khối vẫn chưa có** — `Nhóm` / `Khối lẻ` /
 `Quay về` còn trống ruột. Việc kế tiếp: nghĩ nội dung từng khối HỎI và LÀM.
+
+---
+
+## 28. ⭐ BỘ KHỐI: XÁC NHẬN và HÀNH ĐỘNG (D-14)
+
+Bản chất cỗ máy giao dịch, theo đúng lời chủ dự án: **so sánh, rồi ra quyết định**.
+Nên bộ khối chỉ có hai nửa — khối **HỎI** đọc thế giới và rẽ nhánh, khối **LÀM** đụng
+vào thị trường. Hai từ điển: `cat_studio/hoi.py` và `cat_studio/lam.py`.
+
+### Luật gốc, viết ở đầu cả hai file
+
+> Mỗi mục phải chỉ ra được **MỘT thứ có thật của LEAN**. Ô `lean` chính là lời khai ấy.
+> Không khai được thì không được có mặt.
+
+Đây là D-11 ("app chỉ là VỎ của QuantConnect") biến thành một phép kiểm chạy được:
+`test_hoi` và `test_lam` quét cả hai từ điển, thiếu một ô `lean` là trượt. Hộp thoại
+Hành động còn **bày thẳng hàm LEAN nó sẽ gọi** ra màn hình — để người chơi kiểm được
+lời hứa chứ không phải tin suông.
+
+### Đã bỏ, vì chúng bắt app tự tính
+
+`tỷ trọng hiện tại` (ta chia) · `số mã đang giữ` (ta đếm) · `số ngày đã giữ` (ta ghi
+sổ) · `số nến đã chạy` (LEAN không đếm) · phép `cắt lên` / `cắt xuống` (so hai nến là
+ta nhớ nến trước). `test_hoi` canh cả bốn cái tên ấy không được quay lại.
+
+### Phép so chỉ có SÁU — và vì sao thế là đủ
+
+`> < >= <= == !=`. Mọi phép "nhìn lại quá khứ" tan vào **chỉ báo** nhờ
+`IndicatorExtensions` của LEAN (`Plus/Minus/Times/Over/Of/MIN/MAX`) cộng
+`Delay/Maximum/Minimum`: "giá cao nhất 20 nến" là `MAX(20)`, không phải một phép so
+thứ bảy. Nhờ đó không có toán tử nào do ta nghĩ ra.
+
+### Năm loại HỎI, tám loại LÀM
+
+| HỎI | hỏi về |
+|---|---|
+| thị trường · vị thế · tài khoản · lịch | giá/chỉ báo · mã đang giữ · cả túi tiền · bây giờ là lúc nào |
+| doanh nghiệp | **tắt kèm lý do** — dữ liệu miễn phí chỉ có `fundamental/coarse` |
+
+| LÀM | hàm LEAN |
+|---|---|
+| Đặt tỷ trọng | `SetHoldings` |
+| Lệnh thị trường | `MarketOrder` |
+| Đóng | `Liquidate` |
+| Lệnh chờ | 7 hàm: `LimitOrder` / `StopMarketOrder` / `StopLimitOrder` / `TrailingStopOrder` / `LimitIfTouchedOrder` / `MarketOnOpenOrder` / `MarketOnCloseOrder` |
+| Huỷ lệnh chờ | `Transactions.CancelOpenOrders` |
+| Ghi chú | `Debug` / `Log` / `Error` / `Quit` |
+| Vẽ lên bảng | `Plot` |
+| Báo tin | `Notify.*` — **cảnh báo: backtest không gửi gì** |
+
+Chia nhỏ như vậy vì **chọn loại là quyết định ĐẦU TIÊN**, mà nó cũng quyết luôn hộp
+thoại bày ra cái gì: hộp Hỏi tài khoản không có ô mã, hộp Khớp-lúc-mở-cửa không có ô
+giá. Một khối "so sánh bất cứ gì" thì hộp thoại phải bày mọi ô cho mọi trường hợp.
+
+### ⚠ Đường ranh: ĐẶT thì được, SỬA thì không
+
+- ✅ **Đặt** lệnh, và **huỷ hết** lệnh chờ của một mã — `CancelOpenOrders(mã)` là MỘT
+  câu gọi, app không phải nhớ gì giữa hai nến.
+- ❌ **Sửa một lệnh cụ thể** (`ticket.UpdateStopPrice`) — phải giữ cái ticket qua nhiều
+  nến, tức sơ đồ sinh ra trạng thái, tức app lại có backend để mà gỡ lỗi.
+
+Muốn dời cắt lỗ thì: **huỷ hết → đặt lại.** Hai khối, không nhớ gì. `test_lam` quét cả
+từ điển tìm chữ `ticket` / `UpdateStop…` / `CancelOrder` và trượt nếu thấy.
+
+**Cố ý bỏ:** `ComboMarketOrder` / `ComboLimitOrder` / `ComboLegLimitOrder` /
+`ExerciseOption` — lệnh quyền chọn nhiều chân, cần cả một bộ chọn chuỗi quyền chọn.
+
+### Ô `tag` — lời hứa "vì sao" do chính đoạn code tự ghi
+
+LEAN nhận `tag` trên **mọi** hàm đặt lệnh, nên nó không phải sáng kiến của ta. Để
+trống thì bộ sinh mã điền số khối + điều kiện vừa khớp. `test_lam` canh `tag` có mặt ở
+đúng năm khối đụng tới lệnh và **vắng mặt** ở Ghi chú / Vẽ bảng / Báo tin — vì `Debug`,
+`Plot`, `Notify` của LEAN không nhận tham số ấy.
+
+### Soát ruột khối: chỉ bắt thứ hỏng LẶNG
+
+Cổng không điều kiện thì LUÔN khớp (mọi nhánh dưới nó không bao giờ được thử) · số
+lượng 0 (LEAN nhận rồi bỏ) · giá 0 (lệnh nằm trên sàn mãi không khớp) · tỷ trọng vượt
+100% (LEAN từ chối nếu tài khoản không cho đòn bẩy) · `Quit` (cỗ máy thôi chạy từ đó) ·
+đại lượng ĐÚNG/SAI đem vẽ `Plot` (Plot cần một con số). Lời khuyên kiểu "đòn bẩy thế
+là cao đấy" KHÔNG thuộc về đây.
+
+### Hai hộp thoại, không gộp
+
+Khối Hỏi là **N dòng điều kiện giống nhau** nối bằng VÀ (muốn HOẶC thì vẽ thành hai
+nhánh — ngữ pháp đã chốt ở D-13). Khối Làm là **một bộ ô cố định** do loại quyết định.
+Gộp hai hình dạng ấy vào một hộp thì cả hai đều dở.
+
+### ⚠ Ba chỗ hỏng LẶNG bắt được trong lúc làm
+
+1. **Ô của nhánh mới bày số 0 trong khi Python đọc ra 0.05.** Đổi loại lệnh sang Dừng
+   trượt thì ô "Khoảng trượt" chưa có giá trị; hộp thoại hiện `0`, còn `core.o_lam` rơi
+   về mặc định của từ điển — thẻ khối nói "trượt 5%", hộp thoại nói "trượt 0". Hai nơi
+   cùng ĐÚNG theo luật của riêng mình. Sửa: đổi ô cầm lái thì điền luôn mặc định cho
+   nhánh mới, và lúc lưu thì BỎ ô của nhánh không chọn.
+2. **`--font-mono` là biến CSS ma** — `test_giao_dien` bắt ngay trong lượt chạy đầu.
+3. **Lớp `hien-tu-*` cũng là lớp ma.** `Ribbon.tsx` sinh `hien-tu-1090` và
+   `hien-tu-1250` từ đầu mà `app.css` **chưa bao giờ có dòng nào** — hai nhóm "Hoàn
+   tác" và "Strategy" không hề ẩn ở cửa sổ hẹp, suốt từ D-13. Nay ngưỡng gom vào một
+   bảng `HIEN_TU` trong `Ribbon.tsx` và `test_giao_dien` đối chiếu bảng ấy với các lệnh
+   `@media` — kể cả ngưỡng phải đúng `số - 1`.
+
+**Trạng thái:** bộ khối đọc/ghi xong. **Bộ sinh mã chưa có** — sơ đồ chưa biến thành
+thuật toán LEAN Python. Việc kế tiếp: ô của khối Bắt đầu (nhịp chạy, chạy cho mã nào),
+rồi bộ sinh mã.

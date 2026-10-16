@@ -164,6 +164,46 @@ export interface TuDienHoi {
   loai: LoaiHoi[]
 }
 
+/* ----------------------------- Khối HÀNH ĐỘNG ------------------------------ */
+
+/** Một Ô của khối hành động. Khác khối Hỏi: ở đây không có "kho đại lượng dùng
+ *  chung" — mỗi loại việc khai bộ ô của riêng nó, vì mỗi hàm LEAN nhận tham số khác. */
+export interface OLam {
+  ten: string
+  nhan: string
+  kieu: 'so' | 'chu' | 'chon' | 'co_khong'
+  mac_dinh: unknown
+  don_vi: string
+  goi_y: string
+  /** Chỉ ô CHỌN: [mã, nhãn]. */
+  chon: [string, string][]
+  bat_buoc: boolean
+}
+
+/** Một loại việc. `lean` là lời khai: hàm có thật của LEAN đứng sau nó. */
+export interface LoaiLam {
+  ma: string
+  nhan: string
+  mo_ta: string
+  icon: string
+  /** Nhóm trên ribbon — Python quyết, web không tự chia. */
+  nhom: string
+  can_ma: boolean
+  lean: string
+  /** Chuỗi = loại này có cái bẫy, và đây là lời cảnh báo. `false` = dùng thẳng. */
+  tat: string | false
+  o: OLam[]
+  /** Ô THÊM theo lựa chọn của ô chọn đầu tiên (lệnh Giới hạn cần giá giới hạn, lệnh
+   *  Dừng cần giá kích hoạt). Khoá = mã lựa chọn. */
+  theo_loai: Record<string, { lean: string; o: OLam[] }>
+  /** Có khoá này tức khối cần một ĐẠI LƯỢNG, lấy từ nhóm Hỏi tên ở đây. */
+  dai_luong_tu?: string | null
+}
+
+export interface TuDienLam {
+  loai: LoaiLam[]
+}
+
 /* ------------------------------- Kho và khoá -------------------------------- */
 
 /** App lưu file ở đâu — `api.kho_danh_muc`. */

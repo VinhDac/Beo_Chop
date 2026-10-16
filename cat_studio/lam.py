@@ -1,0 +1,320 @@
+"""TỪ ĐIỂN KHỐI HÀNH ĐỘNG — những việc sơ đồ làm được với thị trường.
+
+Cùng luật với `hoi.py`: **mỗi khối phải chỉ ra được MỘT hàm có thật của LEAN** (ô
+`lean`). Không khai được thì không được có mặt. Mọi chữ ký ở đây đọc THẲNG từ
+`Algorithm/QCAlgorithm.Trading.cs`, `Common/Securities/SecurityTransactionManager.cs`,
+`Common/Notifications/NotificationManager.cs`.
+
+KHÁC `hoi.py` Ở HÌNH DẠNG: một khối Hỏi là N dòng điều kiện giống nhau; một khối Làm
+là một bộ Ô CỐ ĐỊNH do loại của nó quyết định. Nên ở đây không có "kho đại lượng dùng
+chung" — mỗi loại khai ô của riêng nó.
+
+MỘT ĐƯỜNG RANH ĐÃ VẠCH, và vạch có lý do:
+  ✅ ĐẶT lệnh chờ, và HUỶ HẾT lệnh chờ của một mã — `CancelOpenOrders(sym)` là một câu,
+     app không phải nhớ gì.
+  ❌ SỬA một lệnh cụ thể (`ticket.UpdateStopPrice`) — phải giữ cái ticket qua nhiều
+     nến, tức sơ đồ sinh ra trạng thái, tức app lại có backend để mà gỡ lỗi.
+  Muốn dời cắt lỗ thì: huỷ hết → đặt lại. Hai khối, không nhớ gì.
+
+CỐ Ý BỎ: `ComboMarketOrder` / `ComboLimitOrder` / `ComboLegLimitOrder` /
+`ExerciseOption` — lệnh quyền chọn nhiều chân, cần cả một bộ chọn chuỗi quyền chọn.
+Ghi lại để biết là bỏ có chủ ý, không phải quên.
+"""
+
+# ---------------------------------------------------------------------------
+# Kiểu của một ô
+# ---------------------------------------------------------------------------
+O_SO = "so"                  # một con số
+O_CHU = "chu"                # một dòng chữ
+O_CHON = "chon"              # một trong mấy lựa chọn
+O_CO_KHONG = "co_khong"      # ô tích
+
+#: Hai NHÓM trên ribbon. Tám nút một hàng thì thanh công cụ dài quá khổ cửa sổ, mà
+#: chúng cũng khác hẳn nhau: năm cái ĐỤNG VÀO thị trường, ba cái chỉ ghi ra ngoài.
+NHOM_LENH = "Lệnh"
+NHOM_GHI = "Ghi & báo"
+
+
+def _o(ten, nhan, kieu, mac_dinh, don_vi="", goi_y="", chon=(), bat_buoc=True):
+    return {"ten": ten, "nhan": nhan, "kieu": kieu, "mac_dinh": mac_dinh,
+            "don_vi": don_vi, "goi_y": goi_y, "chon": list(chon),
+            "bat_buoc": bat_buoc}
+
+
+#: Ô `tag` có mặt trên MỌI khối hành động — câu chữ đi theo lệnh sang LEAN.
+#: Để trống thì bộ sinh mã tự điền số khối + điều kiện vừa khớp. Đó là lời hứa D-11
+#: "chữ vì sao do chính đoạn code tự ghi", và nó miễn phí vì LEAN nhận sẵn tham số này.
+O_TAG = _o("tag", "Ghi chú đi kèm lệnh", O_CHU, "", "",
+           "Để trống = tự điền số khối và điều kiện vừa khớp.", bat_buoc=False)
+
+#: Số lượng ÂM = bán khống. LEAN nhận số âm ở mọi hàm đặt lệnh, không có hàm riêng.
+_O_SO_LUONG = _o("so_luong", "Số lượng", O_SO, 1, "đơn vị",
+                 "Số âm = bán khống.")
+
+
+# ---------------------------------------------------------------------------
+# ① ĐẶT TỶ TRỌNG — cách dùng nhiều nhất
+# ---------------------------------------------------------------------------
+# Khai "muốn giữ bao nhiêu phần danh mục", LEAN tự tính số lượng, tự tính phần chênh
+# so với đang giữ, tự gửi lệnh. Người chơi không phải nghĩ tới số cổ phiếu, lô tối
+# thiểu hay ký quỹ — đó là việc LEAN đã làm.
+#
+# ⚠ LƯU Ở DẠNG CỦA LEAN: 0.30 chứ không phải 30. Hộp thoại hiện % cho dễ đọc, nhưng
+# file ghi đúng con số LEAN nhận — để không ai phải nhớ "chỗ nào nhân 100".
+DAT_TY_TRONG = {
+    "nhan": "Đặt tỷ trọng",
+    "mo_ta": "cho mã này bao nhiêu phần vốn — lo cả vào, thêm, bớt, thoát",
+    "icon": "dat-co",
+    "nhom": NHOM_LENH,
+    "can_ma": True,
+    "lean": "SetHoldings(sym, ty_trong, ban_sach_truoc, tag=tag)",
+    "o": [
+        _o("ty_trong", "Tỷ trọng mục tiêu", O_SO, 0.3, "phần",
+           "0.3 = 30% danh mục. Số âm = bán khống. 0 = thoát sạch."),
+        _o("ban_sach_truoc", "Bán sạch mã khác trước", O_CO_KHONG, False, "",
+           "Bật thì mọi mã KHÁC bị bán sạch trước khi vào mã này.", bat_buoc=False),
+        O_TAG,
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# ② LỆNH THỊ TRƯỜNG — theo SỐ LƯỢNG, khớp ngay
+# ---------------------------------------------------------------------------
+LENH_THI_TRUONG = {
+    "nhan": "Lệnh thị trường",
+    "mo_ta": "mua/bán ngay theo số lượng, không theo tỷ trọng",
+    "icon": "vao-lenh",
+    "nhom": NHOM_LENH,
+    "can_ma": True,
+    "lean": "MarketOrder(sym, so_luong, tag=tag)",
+    "o": [_O_SO_LUONG, O_TAG],
+}
+
+# ---------------------------------------------------------------------------
+# ③ ĐÓNG
+# ---------------------------------------------------------------------------
+DONG = {
+    "nhan": "Đóng",
+    "mo_ta": "bán sạch mã này, hoặc sạch tất cả",
+    "icon": "minus",
+    "nhom": NHOM_LENH,
+    "can_ma": True,
+    "lean": "Liquidate(sym, tag=tag)  |  Liquidate(tag=tag)",
+    "o": [
+        _o("pham_vi", "Đóng cái gì", O_CHON, "ma_nay", "", "", [
+            ("ma_nay", "Chỉ mã này"),
+            ("tat_ca", "TẤT CẢ mã đang giữ"),
+        ]),
+        O_TAG,
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# ④ LỆNH CHỜ — nằm trên sàn, khớp sau
+# ---------------------------------------------------------------------------
+# Bảy loại, mỗi loại cần ô khác nhau — nên `loai_lenh` là ô CHỌN, và mỗi lựa chọn mang
+# theo ô riêng của nó (`o_them`). Cùng lối với chỉ báo trong `hoi.py`: chọn RSI thì ô
+# "Chu kỳ" mới hiện ra.
+LENH_CHO = {
+    "nhan": "Lệnh chờ",
+    "mo_ta": "đặt lệnh nằm trên sàn, khớp khi giá chạm điều kiện",
+    "icon": "an-lenh",
+    "nhom": NHOM_LENH,
+    "can_ma": True,
+    "lean": "LimitOrder / StopMarketOrder / StopLimitOrder / TrailingStopOrder / "
+            "LimitIfTouchedOrder / MarketOnOpenOrder / MarketOnCloseOrder",
+    "o": [
+        _o("loai_lenh", "Loại lệnh", O_CHON, "limit", "", "", [
+            ("limit", "Giới hạn (Limit)"),
+            ("stop", "Dừng (Stop Market)"),
+            ("stop_limit", "Dừng giới hạn (Stop Limit)"),
+            ("trailing", "Dừng trượt (Trailing Stop)"),
+            ("lit", "Chạm rồi giới hạn (Limit If Touched)"),
+            ("moo", "Khớp lúc MỞ cửa (Market On Open)"),
+            ("moc", "Khớp lúc ĐÓNG cửa (Market On Close)"),
+        ]),
+        _O_SO_LUONG,
+        O_TAG,
+    ],
+    #: Ô thêm theo từng loại lệnh, kèm đúng hàm LEAN của nó.
+    "theo_loai": {
+        "limit": {"lean": "LimitOrder(sym, so_luong, gia_gh, tag=tag)",
+                  "o": [_o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
+        "stop": {"lean": "StopMarketOrder(sym, so_luong, gia_kh, tag=tag)",
+                 "o": [_o("gia_kh", "Giá kích hoạt", O_SO, 0, "giá")]},
+        "stop_limit": {
+            "lean": "StopLimitOrder(sym, so_luong, gia_kh, gia_gh, tag=tag)",
+            "o": [_o("gia_kh", "Giá kích hoạt", O_SO, 0, "giá"),
+                  _o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
+        "trailing": {
+            "lean": "TrailingStopOrder(sym, so_luong, khoang_truot, truot_theo_pt, "
+                    "tag=tag)",
+            "o": [_o("khoang_truot", "Khoảng trượt", O_SO, 0.05, "",
+                     "Theo % thì 0.05 = 5%; theo tiền thì là số tiền."),
+                  _o("truot_theo_pt", "Trượt theo %", O_CO_KHONG, True, "",
+                     "Tắt = trượt theo số tiền tuyệt đối.", bat_buoc=False)]},
+        "lit": {"lean": "LimitIfTouchedOrder(sym, so_luong, gia_cham, gia_gh, tag=tag)",
+                "o": [_o("gia_cham", "Giá chạm", O_SO, 0, "giá"),
+                      _o("gia_gh", "Giá giới hạn", O_SO, 0, "giá")]},
+        "moo": {"lean": "MarketOnOpenOrder(sym, so_luong, tag=tag)", "o": []},
+        "moc": {"lean": "MarketOnCloseOrder(sym, so_luong, tag=tag)", "o": []},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# ⑤ HUỶ LỆNH CHỜ
+# ---------------------------------------------------------------------------
+# CHỈ có "huỷ hết của một mã". Huỷ ĐÚNG MỘT lệnh cần id của nó, tức app phải nhớ —
+# xem đường ranh ở đầu file.
+HUY_LENH_CHO = {
+    "nhan": "Huỷ lệnh chờ",
+    "mo_ta": "huỷ hết lệnh đang chờ của mã này",
+    "icon": "unlink",
+    "nhom": NHOM_LENH,
+    "can_ma": True,
+    "lean": "Transactions.CancelOpenOrders(sym, tag)",
+    "o": [O_TAG],
+}
+
+# ---------------------------------------------------------------------------
+# ⑥ GHI CHÚ — và DỪNG HẲN
+# ---------------------------------------------------------------------------
+GHI_CHU = {
+    "nhan": "Ghi chú",
+    "mo_ta": "viết một dòng vào nhật ký chạy, hoặc dừng hẳn cỗ máy",
+    "icon": "edit",
+    "nhom": NHOM_GHI,
+    "can_ma": False,
+    "lean": "Debug(cau) | Log(cau) | Error(cau) | Quit(cau)",
+    "o": [
+        _o("muc", "Mức", O_CHON, "debug", "", "", [
+            ("debug", "Debug — hiện ngay trong nhật ký"),
+            ("log", "Log — ghi vào file nhật ký"),
+            ("error", "Error — ghi như một lỗi"),
+            ("quit", "DỪNG HẲN — cỗ máy thôi chạy từ đây"),
+        ]),
+        # KHÔNG bắt buộc: để trống thì bộ sinh mã điền số khối + điều kiện vừa khớp,
+        # y như ô `tag`. Bắt gõ câu ở đây chỉ là bắt gõ lại thứ nó biết sẵn.
+        _o("cau", "Câu chữ", O_CHU, "", "",
+           "Viết thẳng, hoặc để trống cho bộ sinh mã tự điền.", bat_buoc=False),
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# ⑦ VẼ LÊN BẢNG — đường riêng trên chart kết quả
+# ---------------------------------------------------------------------------
+# `Plot` nhận một CON SỐ. Lấy số ấy từ đâu thì dùng lại đúng kho đại lượng của
+# `hoi.py` — không khai một kho thứ hai, vì hai kho thì sớm muộn lệch nhau.
+VE_BANG = {
+    "nhan": "Vẽ lên bảng",
+    "mo_ta": "thêm một đường vào chart kết quả",
+    "icon": "kieu-line",
+    "nhom": NHOM_GHI,
+    "can_ma": True,
+    "lean": "Plot(bang, ten_duong, gia_tri)",
+    "o": [
+        _o("bang", "Tên bảng", O_CHU, "Chỉ báo"),
+        # `ten_duong` chứ không phải `duong`: trong một vế đại lượng, `duong` đã có
+        # nghĩa khác (chọn đường nào của chỉ báo nhiều đường, như Bollinger).
+        _o("ten_duong", "Tên đường", O_CHU, "RSI"),
+    ],
+    #: Giá trị vẽ = một đại lượng, chọn bằng chính bộ chọn của khối Hỏi thị trường.
+    "dai_luong_tu": "hoi_thi_truong",
+}
+
+# ---------------------------------------------------------------------------
+# ⑧ BÁO TIN — chỉ có nghĩa khi chạy thật
+# ---------------------------------------------------------------------------
+BAO_TIN = {
+    "nhan": "Báo tin",
+    "mo_ta": "gửi tin ra ngoài — CHỈ chạy thật mới có tác dụng",
+    "icon": "up",
+    "nhom": NHOM_GHI,
+    "can_ma": False,
+    "lean": "Notify.Email | Notify.Sms | Notify.Telegram | Notify.Web",
+    "tat": "Backtest KHÔNG gửi gì — khối này chỉ có tác dụng khi chạy thật (paper "
+           "hoặc tiền thật). Vẽ ra thì chạy backtest sẽ lặng.",
+    "o": [
+        _o("kenh", "Gửi bằng", O_CHON, "telegram", "", "", [
+            ("email", "Email"),
+            ("sms", "SMS"),
+            ("telegram", "Telegram"),
+            ("web", "Gọi một địa chỉ web"),
+        ]),
+        _o("dich", "Gửi tới", O_CHU, "",
+           "", "Địa chỉ email / số điện thoại / id Telegram / địa chỉ web."),
+        _o("cau", "Nội dung", O_CHU, ""),
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# Bảng tra
+# ---------------------------------------------------------------------------
+LAM_DAT_TY_TRONG = "lam_dat_ty_trong"
+LAM_LENH_THI_TRUONG = "lam_lenh_thi_truong"
+LAM_DONG = "lam_dong"
+LAM_LENH_CHO = "lam_lenh_cho"
+LAM_HUY_LENH_CHO = "lam_huy_lenh_cho"
+LAM_GHI_CHU = "lam_ghi_chu"
+LAM_VE_BANG = "lam_ve_bang"
+LAM_BAO_TIN = "lam_bao_tin"
+
+LOAI_LAM = {
+    LAM_DAT_TY_TRONG: DAT_TY_TRONG,
+    LAM_LENH_THI_TRUONG: LENH_THI_TRUONG,
+    LAM_DONG: DONG,
+    LAM_LENH_CHO: LENH_CHO,
+    LAM_HUY_LENH_CHO: HUY_LENH_CHO,
+    LAM_GHI_CHU: GHI_CHU,
+    LAM_VE_BANG: VE_BANG,
+    LAM_BAO_TIN: BAO_TIN,
+}
+
+
+def la_loai_lam(t):
+    return t in LOAI_LAM
+
+
+def o_cua(loai, gia_tri=None):
+    """Mọi ô của một loại hành động, KỂ CẢ ô chỉ hiện theo lựa chọn.
+
+    `gia_tri` = giá trị hiện tại của khối; thiếu thì lấy lựa chọn mặc định."""
+    d = LOAI_LAM.get(loai)
+    if not d:
+        return []
+    ra = list(d["o"])
+    theo = d.get("theo_loai")
+    if theo:
+        o_chon = next((o for o in d["o"] if o["kieu"] == O_CHON), None)
+        if o_chon:
+            v = (gia_tri or {}).get(o_chon["ten"], o_chon["mac_dinh"])
+            ra = ra + list((theo.get(v) or {}).get("o", []))
+    return ra
+
+
+def ham_lean(loai, gia_tri=None):
+    """Đúng hàm LEAN khối này sẽ gọi — để hộp thoại nói thẳng ra cho người dùng thấy."""
+    d = LOAI_LAM.get(loai)
+    if not d:
+        return ""
+    theo = d.get("theo_loai")
+    if theo:
+        o_chon = next((o for o in d["o"] if o["kieu"] == O_CHON), None)
+        if o_chon:
+            v = (gia_tri or {}).get(o_chon["ten"], o_chon["mac_dinh"])
+            return (theo.get(v) or {}).get("lean", d["lean"])
+    return d["lean"]
+
+
+def tu_dien():
+    """Cả từ điển, dạng gửi được qua cầu nối."""
+    return {
+        "loai": [
+            {"ma": ma, "nhan": d["nhan"], "mo_ta": d["mo_ta"], "icon": d["icon"],
+             "can_ma": d["can_ma"], "lean": d["lean"], "tat": d.get("tat", False),
+             "nhom": d["nhom"],
+             "o": d["o"], "theo_loai": d.get("theo_loai", {}),
+             "dai_luong_tu": d.get("dai_luong_tu")}
+            for ma, d in LOAI_LAM.items()
+        ],
+    }

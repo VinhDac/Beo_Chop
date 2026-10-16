@@ -22,6 +22,7 @@ import traceback
 
 from . import core
 from . import hoi
+from . import lam
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -199,6 +200,14 @@ class Api(NenCuaSo):
         return _ok(hoi.tu_dien())
 
     @_bat_loi
+    def tu_dien_lam(self):
+        """Từ điển HÀNH ĐỘNG — tám loại việc, và các ô của từng loại.
+
+        Cùng lý do như `tu_dien_hoi`: giao diện hỏi Python chứ không tự khai danh
+        sách, để hộp thoại không bao giờ bày ra một ô mà lõi chẳng biết là gì."""
+        return _ok(lam.tu_dien())
+
+    @_bat_loi
     def khoi_moi(self, kind, loai=None):
         """Một khối mới + thẻ vẽ của nó."""
         if kind == core.KIND_GROUP:
@@ -209,6 +218,8 @@ class Api(NenCuaSo):
             st = core.make_quay_ve_step()
         elif hoi.la_loai_hoi(loai):
             st = core.make_hoi_step(loai)
+        elif lam.la_loai_lam(loai):
+            st = core.make_lam_step(loai)
         else:
             st = core.make_action_step({"type": loai or core.CHECK_COND})
         return _ok({"step": st, "card": core.the_buoc(st)})
@@ -228,6 +239,12 @@ class Api(NenCuaSo):
         van_de = core.validate_flow_graph(steps, edges)
         for s in steps:
             van_de.extend(core.soat_khoi_hoi(s))
+            van_de.extend(core.soat_khoi_lam(s))
+            # Hành động nằm trong một Nhóm cũng phải soát — khối Nhóm không có `type`
+            # của riêng nó, nên vòng trên không chạm tới ruột nó.
+            for a in core.hanh_dong_cua(s):
+                if a is not s:
+                    van_de.extend(core.soat_khoi_lam({**a, "id": s["id"]}))
         return _ok({
             "thu_tu": kq["order"],
             "entry": kq["entry"],

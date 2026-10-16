@@ -14,8 +14,12 @@ import type { DaiLuong, LoaiHoi, Step, TuDienHoi, VeDieuKien, DongDieuKien } fro
  *  chu kỳ. Đó là cả lý do chia năm loại thay vì một khối "so sánh bất cứ gì".
  */
 
-/** Một VẾ: chọn đại lượng (+ mã, tham số, đường), hoặc gõ một con số. */
-function Ve({ ve, loai, td, choSo, choMa, onDoi }: {
+/** Một VẾ: chọn đại lượng (+ mã, tham số, đường), hoặc gõ một con số.
+ *
+ *  XUẤT RA ngoài vì khối «Vẽ lên bảng» cũng cần đúng bộ chọn này — `Plot` của LEAN
+ *  nhận một con số, và con số ấy lấy từ cùng kho đại lượng. Hai bộ chọn thì sớm muộn
+ *  một bên bày ra thứ bên kia không có. */
+export function Ve({ ve, loai, td, choSo, choMa, onDoi }: {
   ve: VeDieuKien
   loai: LoaiHoi
   td: TuDienHoi

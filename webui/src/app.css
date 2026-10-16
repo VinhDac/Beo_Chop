@@ -1158,3 +1158,56 @@ mark.tim-chu {
 .o-ts > span { font-size: 9.5px; color: var(--dim); letter-spacing: .02em; }
 .dong-dk > .nut-nho { color: var(--dim); }
 .dong-dk > .nut-nho:hover { color: var(--err); background: var(--raised); }
+
+/* ==========================================================================
+   HỘP THOẠI KHỐI HÀNH ĐỘNG
+   ==========================================================================
+   MỘT HÀNG = MỘT Ô, nhãn bên trái cột cố định. Khác hộp Xác nhận (lưới 5 cột cho
+   những hàng GIỐNG nhau): ở đây mỗi hàng là một ô KHÁC loại — số, chữ, ô tích, ô
+   chọn — nên xếp chúng vào một lưới cứng chỉ làm mọi ô rộng bằng ô rộng nhất. */
+.hop-lam { display: flex; flex-direction: column; gap: 9px; }
+.hop-lam .mo-ta-loai {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--muted); font-size: 12px;
+}
+.hop-lam .o-hang {
+  display: flex; align-items: center; gap: 9px; font-size: 12.5px; min-width: 0;
+}
+.hop-lam .nhan-o { flex: 0 0 132px; color: var(--muted); }
+.hop-lam .o.day { flex: 1 1 auto; min-width: 0; }
+.hop-lam .o.so { flex: 0 0 96px; text-align: right; }
+.hop-lam .o-tich { flex: 0 0 auto; width: 15px; height: 15px; accent-color: var(--accent); }
+/* Số đọc thêm ("= 30%"): đứng SÁT ô số, vì nó nói về đúng con số vừa gõ. */
+.hop-lam .doc-them {
+  flex: 0 0 auto; font: 600 11.5px var(--font); color: var(--accent);
+}
+/* Gợi ý đẩy xuống cuối hàng và được phép co: nó là thứ bỏ đi được khi hẹp, ô thì không. */
+.hop-lam .goi-y-o {
+  flex: 1 1 auto; min-width: 0; text-align: right;
+  font-size: 10.5px; color: var(--dim); line-height: 1.35;
+}
+.hop-lam .ve-dk { flex: 1 1 auto; }
+/* Hộp NÓI THẲNG hàm LEAN nó sẽ gọi — xem đầu `HopHanhDong.tsx`: cả bộ khối dựng trên
+   lời hứa "mỗi khối là một thứ có thật của LEAN", và đây là chỗ kiểm được lời hứa. */
+.lean-khai {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 7px 9px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft);
+}
+.lean-khai > span { flex: 0 0 auto; font-size: 10.5px; color: var(--dim); }
+.lean-khai > code {
+  font: 11.5px/1.5 var(--font-mono); color: var(--text);
+  word-break: break-word; min-width: 0;
+}
+
+/* `hienTu` của Ribbon: nhóm ít dùng BIẾN MẤT khi cửa sổ hẹp, thay vì bóp mọi nút cho
+   vừa (nhóm co thì nhãn nút tràn ra và đè lên nút bên cạnh).
+   ⚠ Ba lớp này là một BẢNG TRA phải khớp với các số truyền vào `<Nhom hienTu={…}>` —
+   @media không nhận biến CSS, nên không có cách nào sinh chúng ra. Thêm một số mới ở
+   Ribbon.tsx thì phải thêm một dòng ở đây, và `test_giao_dien` canh đúng chuyện đó:
+   một lớp `hien-tu-*` dùng trong TSX mà không có ở đây thì chẳng ẩn gì cả — hỏng
+   LẶNG, build vẫn sạch. (Đã hỏng thật: 1090 và 1250 nằm trong TSX từ đầu mà CSS
+   không hề có.) */
+@media (max-width: 1089px) { .hien-tu-1090 { display: none; } }
+@media (max-width: 1249px) { .hien-tu-1250 { display: none; } }
+@media (max-width: 1459px) { .hien-tu-1460 { display: none; } }

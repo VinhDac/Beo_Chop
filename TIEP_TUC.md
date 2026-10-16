@@ -5,7 +5,7 @@
 
 ## 1. Đang ở đâu
 
-**Trình vẽ sơ đồ đã chạy thật. Bộ khối thì chưa có.**
+**Trình vẽ và BỘ KHỐI đã chạy thật. Bộ sinh mã thì chưa có.**
 
 Ba quyết định liền nhau:
 
@@ -16,6 +16,9 @@ Ba quyết định liền nhau:
 * **D-13 (16/10)** — **chép hạ tầng trình vẽ từ `Jenifer_Studio`**, bộ tự động hoá game
   của chính chủ dự án. Không phải tham khảo một thư viện đẹp: template `trial chaos 30`
   ở đó là một sơ đồ THẬT **1.170 khối · 1.468 dây · canvas 19.367×16.055**.
+* **D-14 (16/10)** — **bộ khối**: khối **HỎI** (5 loại, 68 đại lượng) và khối **LÀM**
+  (8 loại việc). Mỗi mục khai ra MỘT hàm có thật của LEAN trong ô `lean`, và bài kiểm
+  canh đúng chuyện đó.
 
 **Trạng thái thật:**
 
@@ -29,10 +32,13 @@ Ba quyết định liền nhau:
 | **Ô tìm** không dấu + bốn lọc hỏi theo dây | ✅ |
 | Menu chuột phải · phím tắt (F2) · bảng Vấn đề · Nhật ký | ✅ |
 | Lưu / mở / bản nháp / bản tự lưu / hoàn tác | ✅ |
-| **Nội dung khối** (hỏi gì, làm gì) | ❌ **chưa** — khối còn trống ruột |
+| **Khối HỎI** — 5 loại, hộp điều kiện, soát ruột | ✅ |
+| **Khối LÀM** — 8 loại, hộp ô theo loại, soát ruột | ✅ |
+| **Ô của khối Bắt đầu** (nhịp chạy, chạy cho mã nào) | ❌ **chưa** |
+| **Bộ sinh mã** — sơ đồ → thuật toán LEAN Python | ❌ **chưa** |
 | **Chạy một cỗ máy** | ❌ **chưa** — đường chạy chưa dựng |
 
-Bài kiểm: **5/5 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
+Bài kiểm: **7/7 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
 
 ## 2. Chạy ở máy local (Windows)
 
@@ -49,9 +55,25 @@ Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py
 > vẽ; cửa sổ bị che là trình duyệt bỏ nhịp ấy, và đọc DOM sẽ thấy đủ khối mà KHÔNG một
 > đường nối nào. Chụp ảnh một nhát rồi mới tin phép đo. (Chi tiết ở đầu `xem_thu.py`.)
 
-## 3. Việc kế tiếp — NỘI DUNG từng khối
+## 3. Việc kế tiếp — BỘ SINH MÃ
 
-Hình đã xong. Giờ tới ruột.
+Hình xong, ruột xong. Giờ tới chỗ biến sơ đồ thành một thuật toán LEAN chạy được.
+
+**Hai việc, theo thứ tự:**
+
+1. **Ô của khối Bắt đầu** — nhịp chạy (mỗi nến / mỗi ngày / theo `DateRules` ×
+   `TimeRules`) và chạy cho mã nào. Hiện khối Bắt đầu còn trống ruột, mà bộ sinh mã
+   không viết nổi `Initialize()` nếu thiếu hai thứ ấy.
+2. **Bộ sinh mã** — đi theo `flow_order`, mỗi khối HỎI thành một `if`, mỗi khối LÀM
+   thành đúng câu gọi đã khai trong ô `lean`. Ô `tag` để trống thì điền số khối +
+   điều kiện vừa khớp.
+
+> **Luật bắt buộc (vẫn nguyên):** mỗi khối phải ứng với một món **CÓ THẬT** của
+> QuantConnect. Cách kiểm nhanh: hỏi *"QC làm việc này bằng gì?"* — không trả lời được
+> bằng một dòng code QC thì khối đó đang là phép tính của riêng ta, và nó không được có.
+> Với bộ sinh mã, luật ấy thành: **nó chỉ được viết ra thứ đã khai trong ô `lean`.**
+
+### Lịch sử phần này (đã xong)
 
 > **Luật bắt buộc:** mỗi khối phải ứng với một món **CÓ THẬT** của QuantConnect — một
 > hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần (Universe Selection ·
@@ -63,25 +85,29 @@ Từ vựng chỉ có bốn thứ, và ba trong số đó đã dựng xong:
 
 | Jenifer | Cat_Studio | Xong chưa |
 |---|---|---|
-| **HỎI** (`xac_nhan_chu`, `xac_dinh_map`…) | **HỎI** — giá, chỉ báo, vị thế, tài khoản, giờ | ❌ chưa nghĩ |
-| **LÀM** (`left_click`, `key_press`…) | **LÀM** — vào lệnh, sửa lệnh, đóng, huỷ | ❌ chưa nghĩ |
+| **HỎI** (`xac_nhan_chu`, `xac_dinh_map`…) | **HỎI** — thị trường · vị thế · tài khoản · lịch · doanh nghiệp | ✅ `cat_studio/hoi.py` |
+| **LÀM** (`left_click`, `key_press`…) | **LÀM** — tỷ trọng · lệnh thị trường · đóng · lệnh chờ · huỷ · ghi chú · vẽ bảng · báo tin | ✅ `cat_studio/lam.py` |
 | **NHÓM** | **NHÓM** | ✅ |
 | **QUAY VỀ** | **QUAY VỀ** | ✅ |
+
+**⚠ Đường ranh đã vạch (D-14):** ĐẶT lệnh và HUỶ HẾT lệnh chờ của một mã thì được —
+mỗi cái là MỘT câu gọi. SỬA một lệnh cụ thể (`ticket.UpdateStopPrice`) thì KHÔNG: phải
+giữ ticket qua nhiều nến, tức app lại có backend để mà gỡ lỗi. Muốn dời cắt lỗ thì
+huỷ hết → đặt lại.
 
 Còn lại không phải từ vựng mà là **hình học**: N làn cạnh nhau, mỗi làn một cổng, nhánh
 thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
 
-**Hai chỗ sẽ phải sửa khi có từ điển khối:**
+**Một chỗ CÒN LẠI phải sửa:**
 
-* `core.mo_ta_hanh_dong` — hiện là bản TẠM (đọc `type` kèm mấy ô). Khi có từ điển thì
-  nó thành một BẢNG TRA, mỗi loại một câu viết tay.
-* `core.chuan_hoa_khoi` — hiện giữ nguyên xi khoá riêng của từng loại. Khi có từ điển
-  thì dựng lại từ một danh sách khoá cố định, đó mới là chỗ chặn file rác.
+* `core.chuan_hoa_khoi` — vẫn giữ nguyên xi khoá riêng của từng loại. Nay đã có đủ hai
+  từ điển, nên dựng lại được từ một danh sách khoá cố định — đó mới là chỗ chặn file
+  rác. (`core.mo_ta_hanh_dong` thì đã thành BẢNG TRA rồi, xong ở D-14.)
 
 ## 4. Những việc còn để lại (không gấp)
 
-* Hai phép kiểm CSS đang **ngủ** (`.menu-th-noi`, `.dong-dk`) — tự thức khi trình vẽ có
-  menu nổi hoặc hàng dạng lưới. Xem `tests/test_giao_dien.py`.
+* Một phép kiểm CSS còn **ngủ** (`.menu-th-noi`) — tự thức khi trình vẽ có menu nổi.
+  Xem `tests/test_giao_dien.py`. (`.dong-dk` đã thức từ D-13.)
 * Phím tắt chưa cho người dùng đặt lại (bảng F2 mới là bảng TRA). Jenifer có phần ấy.
 * `game.py` còn nguyên luật chơi nhưng chưa nối vào đâu.
 * File cỗ máy cũ trong `du_lieu\co_may\` app không đọc được nữa. Cố ý không tự xoá.
@@ -99,7 +125,8 @@ thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
    không dán code.
 4. Dữ liệu không được nhìn trước (point-in-time). Lõi không import giao diện hay mạng.
 5. Quyết định lớn ghi vào `DECISIONS.md`; mỗi phần xong ghi một mục trong
-   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13; phần sau tiếp từ §28).
+   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13 · §28 của D-14;
+   phần sau tiếp từ §29).
 6. Không tự đổi bộ công cụ đã chọn: Python + pywebview, React + @xyflow/react + Vite.
 7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa
    được bảo.

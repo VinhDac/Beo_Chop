@@ -75,6 +75,10 @@
   --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.5);
 
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Chợ đều — cho chứ là MÃ NGUỒN chứ không phải câu tiếng Việt, như chữ ký hàm
+     LEAN bày trong hộp Hành động: `SetHoldings(sym, ty_trong, …)`. Dấu ngoặc và
+     dấu phẩy phải thẳng cột mẫu mới đọc được là một lời gọi hàm. */
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
   --mono: Consolas, "Cascadia Mono", monospace;
 }
 

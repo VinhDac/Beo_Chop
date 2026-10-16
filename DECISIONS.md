@@ -392,3 +392,42 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   **Bộ khối vẫn chưa có**: khối hiện mới là `Nhóm` / `Khối lẻ` / `Quay về` trống ruột.
   Việc kế tiếp là nghĩ nội dung từng khối HỎI và LÀM, mỗi cái phải là một món có thật
   của QuantConnect.
+
+## D-14 — Bộ khối: XÁC NHẬN và HÀNH ĐỘNG
+
+- **Bản chất cỗ máy, theo lời chủ dự án:** *so sánh, rồi ra quyết định*. Nên bộ khối
+  chỉ có hai nửa: khối **HỎI** đọc thế giới và rẽ nhánh, khối **LÀM** đụng vào thị
+  trường. Hai từ điển: `cat_studio/hoi.py` (5 loại, 68 đại lượng) và
+  `cat_studio/lam.py` (8 loại việc).
+- **Luật gốc, và nó là một phép kiểm chạy được:** mỗi mục phải chỉ ra được MỘT thứ có
+  thật của LEAN — ô `lean` là lời khai ấy; không khai được thì không được có mặt.
+  `test_hoi` / `test_lam` quét cả hai từ điển và trượt nếu thiếu. Hộp thoại Hành động
+  còn **bày thẳng hàm LEAN nó sẽ gọi** ra màn hình, để lời hứa D-11 kiểm được chứ
+  không phải tin suông.
+- **Đã bỏ vì chúng bắt app tự tính:** `tỷ trọng hiện tại` (ta chia) · `số mã đang giữ`
+  (ta đếm) · `số ngày đã giữ` (ta ghi sổ) · `số nến đã chạy` (LEAN không đếm) · phép
+  `cắt lên` / `cắt xuống` (so hai nến là ta nhớ nến trước). Bốn cái tên ấy bị canh để
+  không quay lại.
+- **Phép so chỉ có SÁU** (`> < >= <= == !=`). Mọi phép "nhìn lại quá khứ" tan vào chỉ
+  báo nhờ `IndicatorExtensions` + `Delay/Maximum/Minimum` của LEAN: *"giá cao nhất 20
+  nến"* là `MAX(20)`, không phải một toán tử thứ bảy do ta nghĩ ra.
+- **⚠ Đường ranh ĐẶT / SỬA:** đặt lệnh và **huỷ hết** lệnh chờ của một mã thì được —
+  mỗi cái là MỘT câu gọi. **Sửa một lệnh cụ thể** (`ticket.UpdateStopPrice`) thì KHÔNG
+  — phải giữ ticket qua nhiều nến, tức sơ đồ sinh ra trạng thái, tức app lại có backend
+  để mà gỡ lỗi. Muốn dời cắt lỗ: **huỷ hết → đặt lại**, hai khối, không nhớ gì.
+- **Cố ý bỏ:** lệnh quyền chọn nhiều chân (`Combo*`, `ExerciseOption`) — cần cả một bộ
+  chọn chuỗi quyền chọn.
+- **Ô `tag` không phải sáng kiến của ta:** LEAN nhận nó trên mọi hàm đặt lệnh. Để trống
+  thì bộ sinh mã điền số khối + điều kiện vừa khớp — đó là lời hứa D-11 "chữ *vì sao*
+  do chính đoạn code tự ghi". Và nó VẮNG MẶT ở Ghi chú / Vẽ bảng / Báo tin, vì `Debug`,
+  `Plot`, `Notify` không nhận tham số ấy.
+- **Soát ruột khối chỉ bắt thứ hỏng LẶNG:** cổng không điều kiện (luôn khớp) · số lượng
+  0 · giá 0 · tỷ trọng vượt 100% · `Quit` · đại lượng ĐÚNG/SAI đem `Plot`. Lời khuyên
+  kiểu "đòn bẩy thế là cao đấy" không thuộc về đây.
+- **Bài kiểm lại làm đúng việc của nó:** bắt `--font-mono` là biến CSS ma ngay lượt
+  chạy đầu, và lần này bắt thêm một loại ma mới — **lớp `hien-tu-*`**. `Ribbon.tsx`
+  sinh `hien-tu-1090` / `hien-tu-1250` từ D-13 mà `app.css` chưa bao giờ có dòng nào:
+  hai nhóm ribbon không hề ẩn ở cửa sổ hẹp, không lỗi, không cảnh báo, build sạch.
+- **Trạng thái:** bộ khối đọc/ghi xong, 7/7 bài kiểm xanh. **Bộ sinh mã chưa có** — sơ
+  đồ chưa biến thành thuật toán LEAN Python. Việc kế tiếp: ô của khối Bắt đầu (nhịp
+  chạy, chạy cho mã nào), rồi bộ sinh mã.

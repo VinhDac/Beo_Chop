@@ -117,5 +117,40 @@ for lop in (r"\.o\.phep", r"\.o\.nho\.don-vi"):
     kiem(f"`{lop.replace(chr(92), '')}` không tự đặt width bằng px — phải vừa cột của nó",
          px is None, f"— đang là {px.group(0)}" if px else "")
 
+print("\n▸ Lệnh @media `hien-tu-*` phải có THẬT — lớp ma cũng hỏng LẶNG")
+# `<Nhom hienTu={1250}>` sinh ra lớp `hien-tu-1250`, và lớp ấy chỉ ẩn được nhóm nếu CSS
+# có một @media tương ứng. Thiếu thì KHÔNG LỖI, không cảnh báo, `tsc` sạch, build sạch —
+# nhóm cứ nằm đó, ribbon tràn ngang và nhãn các nút đè lên nhau ở cửa sổ hẹp.
+#
+# ⚠ ĐÃ HỎNG THẬT: `hien-tu-1090` và `hien-tu-1250` nằm trong `Ribbon.tsx` ngay từ đầu
+# mà `app.css` không hề có dòng nào — hai nhóm "Hoàn tác" và "Strategy" chưa bao giờ ẩn.
+# @media không nhận biến CSS nên không có cách nào sinh các lớp này ra: chúng là một
+# bảng tra viết tay, mà bảng tra viết tay thì phải có người canh.
+tsx = ""
+for goc, _thu_muc, tep in os.walk(CSS):
+    for f in tep:
+        if f.endswith((".tsx", ".ts")):
+            with io.open(os.path.join(goc, f), encoding="utf-8") as fh:
+                tsx += fh.read()
+kiem("Ribbon vẫn sinh lớp theo mẫu `hien-tu-${hienTu}`", "hien-tu-${hienTu}" in tsx)
+# Đọc BẢNG NGƯỠNG của Ribbon, không quét cả file: `hienTu={i === 0 ? undefined : 1460}`
+# thì một phép quét sẽ vừa bỏ sót 1460 vừa nhặt lấy số 0.
+bang = re.search(r"const HIEN_TU = \{([^}]*)\}", tsx)
+kiem("ngưỡng ẩn nhóm nằm trong MỘT bảng ở Ribbon.tsx", bang is not None)
+so_dung = set(re.findall(r":\s*(\d+)", bang.group(1) if bang else ""))
+so_khai = set(re.findall(r"\.hien-tu-(\d+)\s*\{", bo_chu_thich(app)))
+thieu = sorted(so_dung - so_khai, key=int)
+kiem("mọi số `hienTu` đều có @media đi kèm", not thieu,
+     f"— thiếu {thieu}" if thieu else f"({sorted(so_dung, key=int)})")
+thua = sorted(so_khai - so_dung, key=int)
+kiem("không có @media nào bỏ không", not thua, f"— dư {thua}" if thua else "")
+# Và ngưỡng phải là SỐ ĐÓ TRỪ 1: `max-width: 1250px` thì đúng ở 1250 nhóm vẫn ẩn, trong
+# khi `hienTu={1250}` nghĩa là "hiện TỪ 1250".
+for n in sorted(so_khai, key=int):
+    kh = re.search(r"@media \(max-width: (\d+)px\) \{ \.hien-tu-" + n + r"\b", app)
+    kiem(f"`hien-tu-{n}` ẩn đến đúng {int(n) - 1}px",
+         kh is not None and kh.group(1) == str(int(n) - 1),
+         f"— đang là {kh.group(1)}px" if kh else "— không đúng khuôn một dòng")
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

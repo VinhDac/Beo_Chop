@@ -11,6 +11,7 @@ import json
 import uuid
 
 from . import hoi
+from . import lam
 from . import luu_tru
 
 PHIEN_BAN = "0.2"
@@ -181,6 +182,153 @@ def make_hoi_step(loai, name=None):
             "name": name or d["nhan"], "dieu_kien": []}
 
 
+def make_lam_step(loai, name=None):
+    """Một khối HÀNH ĐỘNG của loại `loai`, mọi ô ĐÃ điền mặc định (`lam.LOAI_LAM`).
+
+    Điền sẵn chứ không để rỗng, khác khối Hỏi: khối vừa thả ra đã đọc được thành câu,
+    và bảng Vấn đề không nổi một tràng lỗi về thứ người chơi chưa kịp chạm tới."""
+    d = lam.LOAI_LAM.get(loai)
+    if not d:
+        raise ValueError(f"không có loại hành động {loai!r}")
+    st = {"kind": KIND_ACTION, "id": new_step_id(), "type": loai,
+          "name": name or d["nhan"]}
+    for o in lam.o_cua(loai):
+        st[o["ten"]] = o["mac_dinh"]
+    if d.get("dai_luong_tu"):
+        # Giá trị vẽ KHÔNG có mặc định: không có đại lượng nào đáng để đoán hộ.
+        st["gia_tri"] = {}
+    return st
+
+
+def o_lam(step, ten):
+    """Giá trị một ô của khối Làm, rơi về mặc định của từ điển nếu khối chưa có ô ấy.
+
+    Nhờ hàm này mà file cũ (lưu trước khi thêm một ô) mở ra vẫn đọc được, không phải
+    di cư gì."""
+    if isinstance(step, dict) and ten in step:
+        return step[ten]
+    for o in lam.o_cua((step or {}).get("type"), step):
+        if o["ten"] == ten:
+            return o["mac_dinh"]
+    return None
+
+
+def _chon_lam(loai, ten, step=None):
+    """Danh sách lựa chọn của một ô CHỌN -> [(mã, nhãn)]."""
+    for o in lam.o_cua(loai, step):
+        if o["ten"] == ten:
+            return o["chon"]
+    return []
+
+
+def _f(v):
+    """-> float, hay None nếu không phải số. Không ném, vì file có thể sửa tay."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _so_gon(n):
+    """Số -> chữ gọn, bỏ đuôi `.0`: "30%" đọc dễ hơn "30.0%"."""
+    f = _f(n)
+    if f is None:
+        return str(n)
+    return str(int(f)) if f.is_integer() else str(round(f, 6))
+
+
+def _pt(v):
+    """Phần (0.3) -> phần trăm đọc được ("30"). Làm tròn vì 0.3*100 ra 30.000000004."""
+    f = _f(v)
+    return "?" if f is None else _so_gon(round(f * 100, 6))
+
+
+def mo_ta_lam(step):
+    """Khối HÀNH ĐỘNG -> mấy dòng chữ trên thẻ. BẢNG TRA, mỗi loại một câu viết tay.
+
+    Cùng lý do như `mo_ta_dieu_kien`: giao diện KHÔNG tự ghép chữ này, vì nếu nó ghép
+    thì sớm muộn nó tả khác với thứ bộ sinh mã thật sự viết ra."""
+    t = (step or {}).get("type")
+    d = lam.LOAI_LAM.get(t)
+    if not d:
+        return ["?"]
+
+    def g(ten):
+        return o_lam(step, ten)
+
+    def nhan_chon(ten):
+        v = str(g(ten) or "")
+        return next((n for m, n in _chon_lam(t, ten, step) if m == v), v)
+
+    dong = []
+    if t == lam.LAM_DAT_TY_TRONG:
+        p = _f(g("ty_trong"))
+        if p is None:
+            dong.append("Đặt tỷ trọng ?")
+        elif p == 0:
+            dong.append("Đặt tỷ trọng 0% — thoát sạch mã này")
+        else:
+            dong.append(f"Đặt tỷ trọng {_pt(p)}%" + (" — bán khống" if p < 0 else ""))
+        if g("ban_sach_truoc") is True:
+            dong.append("bán sạch mọi mã KHÁC trước")
+
+    elif t == lam.LAM_LENH_THI_TRUONG:
+        q = _f(g("so_luong"))
+        dong.append("Lệnh thị trường ?" if q is None else
+                    f"{'Mua' if q >= 0 else 'Bán'} {_so_gon(abs(q))} đơn vị, khớp ngay")
+
+    elif t == lam.LAM_DONG:
+        dong.append("Đóng TẤT CẢ mã đang giữ" if g("pham_vi") == "tat_ca"
+                    else "Đóng mã này")
+
+    elif t == lam.LAM_LENH_CHO:
+        ll = str(g("loai_lenh") or "")
+        q = _f(g("so_luong")) or 0
+        # Nhãn loại lệnh có dạng "Giới hạn (Limit)" — trên thẻ lấy phần tiếng Việt.
+        cau = (f"{nhan_chon('loai_lenh').split(' (')[0]}: "
+               f"{'mua' if q >= 0 else 'bán'} {_so_gon(abs(q))}")
+        if ll == "limit":
+            cau += f" @ {_so_gon(g('gia_gh'))}"
+        elif ll == "stop":
+            cau += f", chạm {_so_gon(g('gia_kh'))}"
+        elif ll == "stop_limit":
+            cau += f", chạm {_so_gon(g('gia_kh'))} -> giới hạn {_so_gon(g('gia_gh'))}"
+        elif ll == "trailing":
+            cau += (f", trượt {_pt(g('khoang_truot'))}%"
+                    if g("truot_theo_pt") is not False
+                    else f", trượt {_so_gon(g('khoang_truot'))} tiền")
+        elif ll == "lit":
+            cau += f", chạm {_so_gon(g('gia_cham'))} -> giới hạn {_so_gon(g('gia_gh'))}"
+        dong.append(cau)
+
+    elif t == lam.LAM_HUY_LENH_CHO:
+        dong.append("Huỷ hết lệnh chờ của mã này")
+
+    elif t == lam.LAM_GHI_CHU:
+        ngan = nhan_chon("muc").split(" — ")[0]
+        cau = str(g("cau") or "").strip()
+        dong.append(f"{ngan}: «{cau}»" if cau else f"{ngan} — câu để bộ sinh mã điền")
+
+    elif t == lam.LAM_VE_BANG:
+        gt = step.get("gia_tri")
+        chu = (_ve_dieu_kien(gt, d["dai_luong_tu"])
+               if isinstance(gt, dict) and gt.get("ma_dl") else "chưa chọn đại lượng")
+        dong.append(f"Vẽ {chu}")
+        dong.append(f"bảng «{g('bang')}» · đường «{g('ten_duong')}»")
+
+    elif t == lam.LAM_BAO_TIN:
+        dich = str(g("dich") or "").strip()
+        dong.append(f"{nhan_chon('kenh')} -> {dich or '(chưa có nơi gửi)'}")
+        cau = str(g("cau") or "").strip()
+        if cau:
+            dong.append(f"«{cau}»")
+
+    tag = str(g("tag") or "").strip()
+    if tag:
+        dong.append(f"ghi chú lệnh: «{tag}»")
+    return dong or ["?"]
+
+
 def make_dieu_kien(ma_dl, phep=">", so=0.0, ma=None, tham_so=None, duong=None):
     """Một DÒNG điều kiện.
 
@@ -268,6 +416,9 @@ def mo_ta_hanh_dong(a):
     if hoi.la_loai_hoi(t):
         ds = a.get("dieu_kien") or []
         return ds and mo_ta_dieu_kien(ds[0], t) or "chưa có điều kiện nào"
+    # Hành động nằm TRONG một Nhóm chỉ được một dòng, nên nối bằng dấu chấm giữa.
+    if lam.la_loai_lam(t):
+        return " · ".join(mo_ta_lam(a))
     o = [f"{k}={v}" for k, v in a.items()
          if k not in ("type", "kind", "id", "name", "actions", "dieu_kien")
          + KHOA_CANVAS and v not in (None, "", [], {}, False)]
@@ -297,6 +448,13 @@ def the_buoc(step):
         dong = ([{"text": mo_ta_dieu_kien(dk, step["type"]), "type": step["type"]}
                  for dk in ds]
                 or [{"text": "chưa có điều kiện nào", "type": step["type"]}])
+    elif lam.la_loai_lam(step.get("type")):
+        d = lam.LOAI_LAM[step["type"]]
+        nhan = [d["nhan"]]
+        if d.get("tat"):
+            # Huy hiệu nói thẳng trên thẻ, không đợi người ta mở bảng Vấn đề.
+            nhan.append("chỉ chạy thật")
+        dong = [{"text": x, "type": step["type"]} for x in mo_ta_lam(step)]
     else:
         nhan = ["chạy 1 lần"]
         dong = [{"text": mo_ta_hanh_dong(step), "type": step.get("type")}]
@@ -947,6 +1105,38 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
     return ra
 
 
+def _soat_dai_luong(ra, sid, dau_cau, loai_hoi, ve):
+    """Soát MỘT vế đại lượng -> đại lượng ấy, hay None nếu nó không có thật.
+
+    `dau_cau` = phần đầu câu lỗi, để chỗ gọi tự đặt cảnh ("dòng 2:" hay tên khối).
+    MỘT bản dùng chung cho cả hai vế của khối Hỏi và ô "giá trị vẽ" của khối Vẽ lên
+    bảng — hai bản thì sớm muộn một bên nhận đúng cái bên kia chối."""
+    if not isinstance(ve, dict):
+        ve = {}
+    nhom = (hoi.LOAI_HOI.get(loai_hoi) or {}).get("nhan", loai_hoi)
+    ma_dl = ve.get("ma_dl")
+    if not ma_dl:
+        # Chưa chọn gì (khối vừa thả ra) khác với chọn một thứ không có thật (file sửa
+        # tay, hay đại lượng đã bỏ) — hai cảnh ấy nói hai câu khác nhau.
+        _loi(ra, "error", sid, f"{dau_cau}chưa chọn đại lượng nào.")
+        return None
+    dl = hoi.dai_luong(loai_hoi, ma_dl)
+    if not dl:
+        _loi(ra, "error", sid,
+             f'{dau_cau}không có đại lượng "{ma_dl}" trong nhóm {nhom}. Hãy chọn lại.')
+        return None
+    thieu = [ts["nhan"] for ts in dl["tham_so"]
+             if ts["ten"] not in (ve.get("tham_so") or {})]
+    if thieu:
+        _loi(ra, "error", sid,
+             f'{dau_cau}{dl["nhan"]} còn thiếu ô {", ".join(thieu)}.')
+    if dl.get("duong") and not ve.get("duong"):
+        _loi(ra, "error", sid,
+             f'{dau_cau}{dl["nhan"]} có nhiều đường — phải chọn một '
+             f'({", ".join(n for _m, n in dl["duong"])}).')
+    return dl
+
+
 def soat_khoi_hoi(step):
     """Soát RUỘT một khối Xác nhận. -> [{severity, step, index, message}]
 
@@ -985,22 +1175,7 @@ def soat_khoi_hoi(step):
                          f'"{ten}" dòng {i + 1}: vế trái phải là một đại lượng, '
                          f"không phải một con số.")
                 continue        # vế phải là số: hợp lệ
-            dl = hoi.dai_luong(t, ve["ma_dl"])
-            if not dl:
-                _loi(ra, "error", sid,
-                     f'"{ten}" dòng {i + 1}: không có đại lượng "{ve["ma_dl"]}" trong '
-                     f'nhóm {d["nhan"]}. Hãy chọn lại.')
-                continue
-            thieu = [ts["nhan"] for ts in dl["tham_so"]
-                     if ts["ten"] not in (ve.get("tham_so") or {})]
-            if thieu:
-                _loi(ra, "error", sid,
-                     f'"{ten}" dòng {i + 1}: {dl["nhan"]} còn thiếu ô '
-                     f"{', '.join(thieu)}.")
-            if dl.get("duong") and not ve.get("duong"):
-                _loi(ra, "error", sid,
-                     f'"{ten}" dòng {i + 1}: {dl["nhan"]} có nhiều đường — phải chọn '
-                     f"một ({', '.join(n for _m, n in dl['duong'])}).")
+            _soat_dai_luong(ra, sid, f'"{ten}" dòng {i + 1}: ', t, ve)
         # Đại lượng đúng/sai không so với số nào.
         dl_trai = hoi.dai_luong(t, (dk.get("trai") or {}).get("ma_dl"))
         phep = dk.get("phep")
@@ -1012,6 +1187,81 @@ def soat_khoi_hoi(step):
         elif dl_trai and phep not in [m for m, _n in hoi.PHEP_SO]:
             _loi(ra, "error", sid,
                  f'"{ten}" dòng {i + 1}: phép so "{phep}" không có.')
+    return ra
+
+
+def soat_khoi_lam(step):
+    """Soát RUỘT một khối Hành động. -> [{severity, step, index, message}]
+
+    CHỈ bắt mấy chỗ hỏng LẶNG: LEAN nhận lệnh rồi bỏ, hoặc bộ sinh mã không có gì mà
+    viết. Lời khuyên kiểu "đòn bẩy thế là cao đấy" là việc khác, để sau."""
+    ra = []
+    t = step.get("type")
+    if not lam.la_loai_lam(t):
+        return ra
+    sid = step.get("id")
+    ten = step_title(step)
+    d = lam.LOAI_LAM[t]
+
+    def g(k):
+        return o_lam(step, k)
+
+    if d.get("tat"):
+        _loi(ra, "warning", sid, f'"{ten}": {d["tat"]}')
+
+    o_hien = lam.o_cua(t, step)
+    # Ô BẮT BUỘC để trống -> bộ sinh mã không có gì mà viết vào chỗ ấy.
+    for o in o_hien:
+        if not o["bat_buoc"]:
+            continue
+        v = g(o["ten"])
+        if v is None or (isinstance(v, str) and not v.strip()):
+            _loi(ra, "error", sid, f'"{ten}": ô {o["nhan"]} còn trống.')
+
+    if t == lam.LAM_DAT_TY_TRONG:
+        p = _f(g("ty_trong"))
+        if p is None:
+            _loi(ra, "error", sid, f'"{ten}": tỷ trọng không phải một con số.')
+        elif abs(p) > 1:
+            _loi(ra, "warning", sid,
+                 f'"{ten}": tỷ trọng {_pt(p)}% vượt 100% — LEAN phải dùng đòn bẩy, và '
+                 f"nếu tài khoản không cho thì nó từ chối lệnh mà không báo gì.")
+
+    elif t in (lam.LAM_LENH_THI_TRUONG, lam.LAM_LENH_CHO):
+        q = _f(g("so_luong"))
+        if q is None:
+            _loi(ra, "error", sid, f'"{ten}": số lượng không phải một con số.')
+        elif q == 0:
+            _loi(ra, "error", sid,
+                 f'"{ten}": số lượng 0 — LEAN nhận rồi bỏ, sơ đồ chạy mà chẳng có '
+                 f"lệnh nào.")
+        if t == lam.LAM_LENH_CHO:
+            ll = str(g("loai_lenh") or "")
+            if ll not in d["theo_loai"]:
+                _loi(ra, "error", sid, f'"{ten}": không có loại lệnh "{ll}".')
+            # Giá 0 thì lệnh nằm đó không bao giờ khớp, mà cũng không ai báo.
+            for o in o_hien:
+                if o["ten"] not in ("gia_gh", "gia_kh", "gia_cham", "khoang_truot"):
+                    continue
+                v = _f(g(o["ten"]))
+                if v is None or v <= 0:
+                    _loi(ra, "error", sid,
+                         f'"{ten}": {o["nhan"]} phải lớn hơn 0 — bằng 0 thì lệnh nằm '
+                         f"trên sàn mà không bao giờ khớp.")
+
+    elif t == lam.LAM_GHI_CHU:
+        if g("muc") == "quit":
+            _loi(ra, "warning", sid,
+                 f'"{ten}" là DỪNG HẲN — chạm tới khối này là cỗ máy thôi chạy, mọi '
+                 f"nến sau đó không được xét nữa.")
+
+    elif t == lam.LAM_VE_BANG:
+        dl = _soat_dai_luong(ra, sid, f'"{ten}": ', d["dai_luong_tu"],
+                             step.get("gia_tri"))
+        if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
+            _loi(ra, "error", sid,
+                 f'"{ten}": {dl["nhan"]} chỉ trả ĐÚNG/SAI, mà Plot của LEAN cần một '
+                 f"con số.")
     return ra
 
 
