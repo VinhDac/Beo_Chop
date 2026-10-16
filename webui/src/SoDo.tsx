@@ -13,6 +13,7 @@ import OTimKhoi, { type LocTim } from './components/OTimKhoi'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
 import HopDoiTen from './components/HopDoiTen'
+import BangDuoi, { type TabDuoi } from './components/BangDuoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
@@ -192,6 +193,18 @@ function SoDoTrong() {
   const [moBangPhim, setMoBangPhim] = useState(false)
   const [doiTen, setDoiTen] = useState<{ loai: 'khoi' | 'hatNhan'; id: string;
                                          ten: string } | null>(null)
+  /** Bảng dưới: tab nào, cao bao nhiêu, đang gập không. Mở app ra là GẬP. */
+  const [tab, setTab] = useState('van-de')
+  const [panelCao, setPanelCao] = useState(176)
+  const [panelGap, setPanelGap] = useState(true)
+  /** NHẬT KÝ của app — việc vừa làm, không phải việc chạy trên QuantConnect.
+   *  Chưa có đường chạy (D-11), nên đây là nơi duy nhất nói "vừa xảy ra gì". */
+  const [nhatKy, setNhatKy] = useState<{ gio: string; chu: string }[]>([])
+  const ghi = useCallback((chu: string) => {
+    const gio = new Date().toLocaleTimeString('vi-VN', { hour12: false })
+    // Giữ 300 dòng gần nhất: dài hơn thì cuộn không ra gì mà ăn bộ nhớ.
+    setNhatKy(ds => [...ds, { gio, chu }].slice(-300))
+  }, [])
   const chong = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const chongLai = useRef<{ s: Step[]; e: Edge[] }[]>([])
   const [coHoanTac, setCoHoanTac] = useState(false)
@@ -367,9 +380,10 @@ function SoDoTrong() {
     chup()
     const tag: HatNhanTag = { id: idHatNhanMoi(), ten: `Hạt nhân ${hatNhan.size + 1}` }
     const bo = new Set(dangChon.map(n => n.id))
+    ghi(`gom ${bo.size} khối thành ${trongHN ? tagDangO?.ten : tag.ten}`)
     setNodes(ns => ns.map(n => (bo.has(n.id)
       ? { ...ganTag(n, trongHN ? tagDangO : tag), selected: false } : n)))
-  }, [dangChon, chup, hatNhan.size, setNodes, trongHN, tagDangO])
+  }, [dangChon, chup, hatNhan.size, setNodes, trongHN, tagDangO, ghi])
 
   /** TÁCH: khối đang chọn ra khỏi hạt nhân của chúng. */
   const taHatNhan = useCallback(() => {
@@ -628,6 +642,7 @@ function SoDoTrong() {
     if (!r.ok || !r.value) return
     chup()
     const { step, card } = r.value
+    ghi(`thêm ${card.title}`)
     // KHỐI MỚI rơi cạnh khối cuối ĐANG NHÌN THẤY, không rơi ra ngoài khung nhìn.
     const thay = nodes.filter(n => !biGiau(n.id))
     const cuoi = thay[thay.length - 1]
@@ -639,15 +654,16 @@ function SoDoTrong() {
     setNodes(ns => [...ns.map(n => ({ ...n, selected: false })),
                     { id: step.id, type: 'buoc', position: { x, y },
                       data: { step, card }, selected: true }])
-  }, [chup, nodes, setNodes, biGiau, tagDangO])
+  }, [chup, nodes, setNodes, biGiau, tagDangO, ghi])
 
   const xoa = useCallback(() => {
     if (!dangChon.length) return
     chup()
     const bo = new Set(dangChon.map(n => n.id))
+    ghi(`xoá ${bo.size} khối`)
     setNodes(ns => ns.filter(n => !bo.has(n.id)))
     setEdges(es => es.filter(e => !bo.has(e.source) && !bo.has(e.target)))
-  }, [chup, dangChon, setNodes, setEdges])
+  }, [chup, dangChon, setNodes, setEdges, ghi])
 
   const nhanBan = useCallback(async () => {
     if (!dangChon.length) return
@@ -876,6 +892,31 @@ function SoDoTrong() {
   }
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
+
+  /** BẢNG VẤN ĐỀ — bấm một dòng là KÉO MÀN TỚI đúng khối ấy. Không có cú nhảy đó thì
+   *  một sơ đồ nghìn khối chỉ báo "[2A.1] sai" rồi để người ta tự đi tìm. */
+  const tabs: TabDuoi[] = [
+    { ma: 'van-de', ten: 'Vấn đề', so: vanDe.length, nang: soLoi > 0,
+      noiDung: vanDe.length === 0
+        ? <div className="trong">không có vấn đề nào</div>
+        : <>{vanDe.map((v, i) => (
+            <div key={i} className={'dong-van-de' + (v.severity === 'warning'
+                                                     ? ' canh-bao' : '')}
+                 onClick={() => { if (v.step) toiKhoi(v.step) }}
+                 title={v.step ? 'Bấm để tới khối này' : undefined}>
+              <span className="muc">{v.severity === 'error' ? '✘' : '⚠'}</span>
+              <span>{v.message}</span>
+            </div>
+          ))}</> },
+    { ma: 'nhat-ky', ten: 'Nhật ký', so: nhatKy.length,
+      noiDung: nhatKy.length === 0
+        ? <div className="trong">chưa có gì</div>
+        : <div className="nhat-ky">{[...nhatKy].reverse().map((d, i) => (
+            <div key={i} className="dong-log">
+              <span className="gio">{d.gio}</span><span>{d.chu}</span>
+            </div>
+          ))}</div> },
+  ]
   const hnDangO = trongHN ? hatNhan.get(trongHN) : undefined
 
   const menus: NhomMenu[] = [
@@ -960,12 +1001,21 @@ function SoDoTrong() {
           </div>
         )}
       </div>
+      <BangDuoi tabs={tabs} tab={tab} onTab={setTab}
+                cao={panelCao} onCao={setPanelCao}
+                gap={panelGap} onGap={setPanelGap} />
       <div className="thanh-trang-thai">
         <span>{nodes.length} khối · {edges.length} dây</span>
         {hatNhan.size > 0 && <span>{hatNhan.size} hạt nhân</span>}
         <span className="day" />
-        {soLoi > 0 && <span className="loi">{soLoi} lỗi</span>}
-        {vanDe.length > soLoi && <span>{vanDe.length - soLoi} cảnh báo</span>}
+        {soLoi > 0 && (
+          <span className="loi nhay" onClick={() => { setTab('van-de'); setPanelGap(false) }}
+                title="Bấm để mở bảng Vấn đề">{soLoi} lỗi</span>
+        )}
+        {vanDe.length > soLoi && (
+          <span className="nhay" onClick={() => { setTab('van-de'); setPanelGap(false) }}
+                title="Bấm để mở bảng Vấn đề">{vanDe.length - soLoi} cảnh báo</span>
+        )}
       </div>
 
       {menuPhai && (

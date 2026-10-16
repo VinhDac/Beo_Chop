@@ -992,3 +992,84 @@ mark.tim-chu {
 .bang-phim .ten-lenh { flex: 1 1 auto; color: var(--text); }
 .bang-phim .phim-hien { display: flex; gap: 4px; flex: 0 0 auto; }
 .bang-phim .phim-hien .mo { color: var(--dim); font-size: 11.5px; font-style: italic; }
+
+/* ==========================================================================
+   BẢNG DƯỚI — Vấn đề và Nhật ký
+   ========================================================================== */
+/* Mod pool: nấc nguồn đang xem sáng lên như tab — khối chọn base và khối kết quả bên
+   Craft đồ, hai mục craft ra được. */
+.nut-nho.kb-nguon.chon { background: var(--raised); color: var(--text); }
+/* ---------------- Bảng dưới ---------------- */
+.bang-duoi {
+  flex: 0 0 auto;
+  position: relative;          /* cho thanh kéo bám mép trên */
+  /* chiều cao do React đặt (kéo được + nhớ lại giữa các lần chạy) */
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome);
+  border-top: 1px solid var(--border);
+}
+.bang-duoi.thu-gon { overflow: hidden; }
+/* Thanh kéo: mỏng nhưng vùng bấm dày hơn phần nhìn thấy — 1px thì không ai trúng. */
+.thanh-keo {
+  position: absolute; top: -3px; left: 0; right: 0; height: 7px;
+  cursor: ns-resize; z-index: 5;
+}
+.thanh-keo:hover { background: var(--accent); opacity: .35; }
+.hang-tab { user-select: none; }
+.nut-gap { font-size: 10px; padding: 4px 7px; }
+.hang-tab { display: flex; align-items: center; gap: 2px; padding: 0 6px; border-bottom: 1px solid var(--border-soft); }
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 7px 12px 6px;
+  font: 12px var(--font);
+  cursor: pointer;
+}
+.tab:hover { color: var(--text); }
+.tab.dang { color: var(--text); border-bottom-color: var(--accent); }
+.hang-tab .day { flex: 1; }
+.nut-nho {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; padding: 4px 8px; border-radius: 4px; font: 12px var(--font);
+}
+.nut-nho:hover { background: var(--raised); color: var(--text); }
+.noi-dung-tab { flex: 1; overflow: auto; padding: 6px 0; }
+.dong-van-de {
+  display: flex; gap: 8px; align-items: baseline;
+  padding: 3px 12px; cursor: pointer; font-size: 12.5px;
+}
+.dong-van-de:hover { background: var(--raised); }
+.dong-van-de .muc { flex: 0 0 auto; font-size: 11px; }
+.dong-van-de.loi .muc { color: var(--err); }
+.dong-van-de.canh-bao .muc { color: var(--warn); }
+.nhat-ky { font: 11.5px/1.6 var(--mono); padding: 4px 12px; white-space: pre-wrap; color: var(--muted); }
+/* ---------------- Nhật ký chạy ---------------- */
+.nhat-ky { padding: 4px 0; }
+.dong-log { padding: 0 12px; white-space: pre-wrap; word-break: break-word; }
+.dong-log .gio { color: var(--dim); margin-right: 10px; }
+.dong-log.t-ok   { color: var(--ok); }
+.dong-log.t-warn { color: var(--warn); }
+.dong-log.t-err  { color: var(--err); }
+.dong-log.t-dim  { color: var(--dim); }
+.dong-log.t-skip { color: var(--accent); }
+/* Dòng thuộc về một khối: chuột phải được (soi lần chạy đó lên sơ đồ). Đổi CON TRỎ
+   chứ không tô thêm màu — nhật ký đã dùng hết màu để phân loại nặng/nhẹ rồi. */
+.dong-log.co-khoi { cursor: context-menu; }
+.dong-van-de { cursor: pointer; }
+.lc-dau .nut-nho { padding: 1px 6px; font-size: 11px; }
+.bang-phim .hang-phim .nut-nho { flex: 0 0 auto; }
+
+/* Một dòng nhật ký: giờ mờ bên trái, việc bên phải. Dòng mới NẰM TRÊN — thứ vừa xảy
+   ra là thứ người ta tìm, không phải thứ xảy ra đầu tiên. */
+.dong-log { display: flex; gap: 10px; padding: 2px 2px; font-size: 12px; }
+.dong-log .gio {
+  flex: 0 0 auto; color: var(--dim); font: 11px var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+/* Số lỗi / cảnh báo ở thanh trạng thái bấm được — mở thẳng bảng Vấn đề. */
+.thanh-trang-thai .nhay { cursor: pointer; }
+.thanh-trang-thai .nhay:hover { color: var(--text); }
+.thanh-trang-thai .loi { color: var(--err); }
