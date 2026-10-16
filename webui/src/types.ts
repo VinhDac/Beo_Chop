@@ -97,7 +97,7 @@ export interface KetQuaSoat {
   edges: Edge[]
 }
 
-export interface CoMay {
+export interface Strategy {
   schema: number
   type: string
   name: string

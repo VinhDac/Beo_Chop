@@ -44,6 +44,7 @@ export interface ViecRibbon {
   gomHatNhan: () => void
   taHatNhan: () => void
   luu: () => void
+  luuThanh: () => void
   mo: () => void
   moi: () => void
 }
@@ -80,10 +81,13 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
         <Nut ten="Làm lại" icon="redo" onClick={v.lamLai} tat={!coLamLai} />
       </Nhom>
 
-      <Nhom ten="Cỗ máy" hienTu={1250}>
+      <Nhom ten="Strategy" hienTu={1250}>
         <Nut ten="Mới" icon="file" onClick={v.moi} />
-        <Nut ten="Mở" icon="folder" onClick={v.mo} />
+        <Nut ten="Kho" icon="folder" onClick={v.mo}
+             title="Kho Strategy — mở, đổi tên, nhân bản, xoá" />
         <Nut ten="Lưu" icon="save" onClick={v.luu} />
+        <Nut ten="Lưu thành…" icon="copy" onClick={v.luuThanh}
+             title="Lưu thành một Strategy mới, giữ nguyên bản đang mở" />
       </Nhom>
     </div>
   )

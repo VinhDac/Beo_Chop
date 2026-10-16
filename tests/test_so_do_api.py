@@ -4,7 +4,7 @@ Giao diện gọi `soat` sau MỖI thay đổi rồi vẽ lại cái nhận về
 tự, không tự ghép chữ trên thẻ, không tự soát luật nào. Bài này canh đúng lời hứa ấy,
 cộng ba chỗ việc-đang-dở có thể bốc hơi:
 
-  · bản nháp  — việc dở của cửa sổ, kể cả cỗ máy CHƯA TỪNG lưu
+  · bản nháp  — việc dở của cửa sổ, kể cả Strategy CHƯA TỪNG lưu
   · bản tự lưu — chỉ đẻ ra khi nội dung THẬT SỰ khác bản trên đĩa
   · lưu thật  — xong là bản tự lưu phải biến mất, không để hai bản cạnh nhau
 
@@ -91,30 +91,30 @@ kiem("chép mỗi khối Quay về → đích để TRỐNG", n2["steps"][0]["ve
      "— bản dán không được nhảy về chỗ của bản gốc")
 
 # ================= 3. Ba tầng lưu =================
-print("\n▸ Bản nháp — việc dở của cỗ máy CHƯA TỪNG lưu")
+print("\n▸ Bản nháp — việc dở của Strategy CHƯA TỪNG lưu")
 val(A.luu_ban_nhap("", steps, edges))
 d = val(A.doc_ban_nhap())
 kiem("đọc lại được", d and len(d["steps"]) == 3)
-kiem("không đẻ ra file cỗ máy nào", luu_tru.liet_ke_co_may() == [])
+kiem("không đẻ ra file Strategy nào", luu_tru.liet_ke_strategy() == [])
 
 print("\n▸ Lưu thật")
-val(A.luu_co_may("máy thử", steps, edges))
-kiem("có trong kho", "máy thử" in luu_tru.liet_ke_co_may())
-mo = val(A.mo_co_may("máy thử"))
+val(A.luu_strategy("máy thử", steps, edges))
+kiem("có trong kho", "máy thử" in luu_tru.liet_ke_strategy())
+mo = val(A.mo_strategy("máy thử"))
 kiem("mở lại đủ khối", len(mo["steps"]) == 3)
 kiem("mở lại đủ dây", len(mo["edges"]) == 2)
 
 print("\n▸ Bản tự lưu chỉ đẻ ra khi nội dung THẬT SỰ khác")
-kiem("không sửa gì → không đẻ file", val(A.tu_luu_co_may("máy thử", steps, edges)) is None)
+kiem("không sửa gì → không đẻ file", val(A.tu_luu_strategy("máy thử", steps, edges)) is None)
 steps[1]["actions"].append({"type": "dat_sl"})
-tl = val(A.tu_luu_co_may("máy thử", steps, edges))
+tl = val(A.tu_luu_strategy("máy thử", steps, edges))
 kiem("sửa rồi → có bản tự lưu", tl and tl["ten"] == "máy thử (tự lưu)")
-kiem("nằm cạnh bản gốc", "máy thử (tự lưu)" in luu_tru.liet_ke_co_may())
+kiem("nằm cạnh bản gốc", "máy thử (tự lưu)" in luu_tru.liet_ke_strategy())
 
 print("\n▸ Lưu thật xong thì bản tự lưu phải BIẾN MẤT")
-val(A.luu_co_may("máy thử", steps, edges))
-kiem("bản tự lưu đã xoá", "máy thử (tự lưu)" not in luu_tru.liet_ke_co_may())
-kiem("bản gốc còn nguyên", "máy thử" in luu_tru.liet_ke_co_may())
+val(A.luu_strategy("máy thử", steps, edges))
+kiem("bản tự lưu đã xoá", "máy thử (tự lưu)" not in luu_tru.liet_ke_strategy())
+kiem("bản gốc còn nguyên", "máy thử" in luu_tru.liet_ke_strategy())
 
 print("\n▸ Tên bản tự lưu không chồng đuôi")
 kiem("đã là bản tự lưu thì giữ nguyên",
@@ -125,11 +125,55 @@ kiem("lần về tên gốc", luu_tru.ten_goc_cua("x (tự lưu)") == "x")
 print("\n▸ pos / màu / hạt nhân sống sót qua lưu → mở")
 steps[1].update({"pos": [7.5, -2], "mau": "#ffa657",
                  "hat_nhan": {"id": "hn1", "ten": "Vòng 1", "x": 3, "y": 4}})
-val(A.luu_co_may("máy hn", steps, edges))
-g2 = val(A.mo_co_may("máy hn"))["steps"][1]
+val(A.luu_strategy("máy hn", steps, edges))
+g2 = val(A.mo_strategy("máy hn"))["steps"][1]
 kiem("pos còn", g2.get("pos") == [7.5, -2.0])
 kiem("màu còn", g2.get("mau") == "#ffa657")
 kiem("hạt nhân còn", (g2.get("hat_nhan") or {}).get("ten") == "Vòng 1")
+
+# ================= 5. Kho Strategy =================
+print("\n▸ Kho nói ra dòng nào là BẢN TỰ LƯU")
+val(A.luu_strategy("máy kho", steps, edges))
+steps[1]["actions"].append({"type": "them"})
+val(A.tu_luu_strategy("máy kho", steps, edges))
+ds = val(A.ds_strategy())
+kiem("mỗi dòng có nhãn tuLuu", all("tuLuu" in m for m in ds))
+kiem("bản gốc không phải tự lưu",
+     any(m["ten"] == "máy kho" and not m["tuLuu"] for m in ds))
+kiem("bản tự lưu có nhãn",
+     any(m["ten"] == "máy kho (tự lưu)" and m["tuLuu"] for m in ds),
+     "— lẫn vào bản gốc là mở nhầm, lưu nhầm")
+
+print("\n▸ Đổi tên")
+r = A.doi_ten_strategy("máy kho", "máy mới")
+kiem("đổi được", r["ok"] and r["value"]["ten"] == "máy mới")
+ten_ds = [m["ten"] for m in val(A.ds_strategy())]
+kiem("tên cũ biến mất", "máy kho" not in ten_ds)
+kiem("tên mới có mặt", "máy mới" in ten_ds)
+kiem("bản tự lưu của tên CŨ bị dọn theo", "máy kho (tự lưu)" not in ten_ds,
+     "— không để lại file mồ côi mang tên một Strategy không còn")
+kiem("nội dung còn nguyên", len(val(A.mo_strategy("máy mới"))["steps"]) == 3)
+
+print("\n▸ Không được ĐÈ bản đã có")
+val(A.luu_strategy("máy B", steps, edges))
+r = A.doi_ten_strategy("máy B", "máy mới")
+kiem("đổi sang tên đã có → lỗi, không đè", not r["ok"])
+kiem("câu lỗi nói rõ phải chọn tên khác", "chọn tên khác" in (r.get("error") or ""))
+kiem("bản cũ vẫn còn", "máy B" in [m["ten"] for m in val(A.ds_strategy())])
+
+print("\n▸ Nhân bản — id phải MỚI")
+r = val(A.nhan_ban_strategy("máy mới", "máy chép"))
+kiem("chép được", r["ten"] == "máy chép")
+goc = val(A.mo_strategy("máy mới"))
+chep = val(A.mo_strategy("máy chép"))
+kiem("đủ khối", len(chep["steps"]) == len(goc["steps"]))
+id_goc = {s["id"] for s in goc["steps"]}
+id_chep = {s["id"] for s in chep["steps"]}
+kiem("KHÔNG trùng id nào với bản gốc", not (id_goc & id_chep),
+     "— trùng id thì dán khối bản này sang bản kia là một cái biến mất khỏi sơ đồ")
+kiem("dây chép theo", len(chep["edges"]) == len(goc["edges"]))
+r = A.nhan_ban_strategy("máy mới", "máy chép")
+kiem("nhân bản trùng tên → lỗi, không đè", not r["ok"])
 
 shutil.rmtree(TAM, ignore_errors=True)
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")

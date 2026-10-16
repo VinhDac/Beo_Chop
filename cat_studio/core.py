@@ -1007,7 +1007,7 @@ def normalize_process(data):
     return {
         "schema": SCHEMA,
         "type": LOAI_TAI_LIEU,
-        "name": str(d.get("name") or "").strip() or "Cỗ máy mới",
+        "name": str(d.get("name") or "").strip() or "Strategy mới",
         "steps": steps,
         "edges": edges,
     }
@@ -1019,13 +1019,17 @@ def normalize_process(data):
 
 #: Số hiệu định dạng file. Tăng khi hình dạng đổi tới mức file cũ phải di cư.
 SCHEMA = 1
-#: Một cỗ máy — sơ đồ PHẲNG duy nhất. Không chia năm trạm: cấu trúc do người chơi tự
-#: đặt bằng hạt nhân, không do app áp sẵn (xem `KHOA_CANVAS`).
-LOAI_TAI_LIEU = "co_may"
+#: Một STRATEGY — sơ đồ PHẲNG duy nhất. Không chia năm trạm: cấu trúc do người chơi
+#: tự đặt bằng hạt nhân, không do app áp sẵn (xem `KHOA_CANVAS`).
+#:
+#: Gọi là «Strategy» chứ không «Process» (tên bên Jenifer) và cũng không «cỗ máy»: thứ
+#: người dùng lưu ra ở đây là một CHIẾN LƯỢC giao dịch, và đó cũng là từ QuantConnect
+#: dùng cho đúng vật ấy.
+LOAI_TAI_LIEU = "strategy"
 
 
 def make_process_template(name, steps, edges=None):
-    """Đóng gói cả cỗ máy thành một tài liệu lưu được."""
+    """Đóng gói cả Strategy thành một tài liệu lưu được."""
     return normalize_process({"name": name, "steps": steps, "edges": edges})
 
 

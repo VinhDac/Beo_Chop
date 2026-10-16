@@ -15,11 +15,13 @@ import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
 import HopDoiTen from './components/HopDoiTen'
 import BangDuoi, { type TabDuoi } from './components/BangDuoi'
+import KhoStrategy from './components/KhoStrategy'
+import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
-  Card, CoMay, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, VanDe,
+  Card, Strategy, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -183,6 +185,8 @@ function SoDoTrong() {
   const [thuTu, setThuTu] = useState<Record<string, string>>({})
   const [vanDe, setVanDe] = useState<VanDe[]>([])
   const [moKho, setMoKho] = useState(false)
+  /** Kho Strategy — hộp chọn file đã lưu. */
+  const [moKhoStrategy, setMoKhoStrategy] = useState(false)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
   const [sanSang, setSanSang] = useState(false)
   /** Đang đứng TRONG hạt nhân nào; null = sơ đồ chính. */
@@ -253,7 +257,7 @@ function SoDoTrong() {
     return () => { huy = true; clearTimeout(t) }
   }, [nodes, edges, sanSang, setNodes])
 
-  const nap = useCallback(async (doc: CoMay) => {
+  const nap = useCallback(async (doc: Strategy) => {
     const r = await py.soat(doc.steps, doc.edges)
     const the = r.ok && r.value ? r.value.the : {}
     const { nodes: ns, edges: es } = docSangRf(doc.steps, doc.edges, the)
@@ -261,7 +265,7 @@ function SoDoTrong() {
     setEdges(es)
     setTen(doc.name)
     setTrongHN(null)
-    void py.set_title(doc.name || 'Cỗ máy mới')
+    void py.set_title(doc.name || 'Strategy mới')
   }, [setNodes, setEdges])
 
   useEffect(() => {
@@ -373,7 +377,7 @@ function SoDoTrong() {
     if (vp) setViewport(vp, { duration: 300 })
   }, [doiChoDung, setViewport])
 
-  // Hạt nhân đang đứng trong không còn (xoá hết khối của nó, mở cỗ máy khác…) thì tự ra.
+  // Hạt nhân đang đứng trong không còn (xoá hết khối của nó, mở Strategy khác…) thì tự ra.
   useEffect(() => {
     if (trongHN && !hatNhan.has(trongHN)) raHatNhan()
   }, [trongHN, hatNhan, raHatNhan])
@@ -696,7 +700,7 @@ function SoDoTrong() {
     chongLai.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
     setCoLamLai(true)
     setCoHoanTac(chong.current.length > 0)
-    await nap({ schema: 1, type: 'co_may', name: ten, steps: t.s, edges: t.e })
+    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s, edges: t.e })
   }, [nodes, edges, ten, nap])
 
   const lamLai = useCallback(async () => {
@@ -705,10 +709,10 @@ function SoDoTrong() {
     chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
     setCoHoanTac(true)
     setCoLamLai(chongLai.current.length > 0)
-    await nap({ schema: 1, type: 'co_may', name: ten, steps: t.s, edges: t.e })
+    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s, edges: t.e })
   }, [nodes, edges, ten, nap])
 
-  const coMayMoi = useCallback(() => {
+  const strategyMoi = useCallback(() => {
     chup(); setNodes([]); setEdges([]); setTen(''); setTrongHN(null)
   }, [chup, setNodes, setEdges])
 
@@ -741,8 +745,8 @@ function SoDoTrong() {
           if (n) setDoiTen({ loai: 'khoi', id: n.id,
                              ten: (n.data as { card: Card }).card.title })
         },
-        'co-may-moi': coMayMoi,
-        'mo-co-may': () => void mo(),
+        'strategy-moi': strategyMoi,
+        'mo-strategy': () => void mo(),
         luu: () => void luu(),
         'o-tim': () => (document.querySelector('.o-tim-khoi input') as HTMLInputElement
                         | null)?.focus(),
@@ -761,7 +765,7 @@ function SoDoTrong() {
     return () => window.removeEventListener('keydown', nghe)
     // `luu` / `mo` là khai báo hàm nên được nâng lên đầu — gọi được từ đây.
   }, [hoanTac, lamLai, nhanBan, xoa, gomHatNhan, taHatNhan, trongHN, raHatNhan,
-      dangChon, setNodes, biGiau, themKhoi, coMayMoi])
+      dangChon, setNodes, biGiau, themKhoi, strategyMoi])
 
   /* ------------------------------------------------------------- bản nháp */
   useEffect(() => {
@@ -773,16 +777,44 @@ function SoDoTrong() {
   }, [nodes, edges, ten, sanSang])
 
   async function luu() {
-    const t = ten || 'Cỗ máy mới'
-    const r = await py.luu_co_may(t, rfSangSteps(nodes), rfSangEdges(edges))
-    if (r.ok && r.value) { setTen(r.value.ten); void py.set_title(r.value.ten) }
+    // CHƯA CÓ TÊN thì hỏi, đừng tự đặt "Strategy mới": người dùng bấm Lưu xong đi tìm
+    // trong kho sẽ thấy một đống bản tên y hệt nhau.
+    let t = ten
+    if (!t) {
+      const v = await nhapChu({ tieu_de: 'Lưu Strategy', loi: 'Đặt tên:',
+                                nhap: 'Strategy mới', nut_ok: 'Lưu' })
+      if (!v?.trim()) return
+      t = v.trim()
+    }
+    const r = await py.luu_strategy(t, rfSangSteps(nodes), rfSangEdges(edges))
+    if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không lưu được' }); return }
+    setTen(r.value.ten)
+    void py.set_title(r.value.ten)
+    ghi(`lưu ${r.value.ten}`)
   }
 
-  async function mo() {
-    const r = await py.ds_co_may()
-    if (!r.ok || !r.value?.length) return
-    const d = await py.mo_co_may(r.value[0])
-    if (d.ok && d.value) await nap(d.value)
+  /** Mở kho. Trước đây nút này lặng lẽ mở BẢN ĐẦU TIÊN trong danh sách — đúng kiểu
+   *  "bấm một nút rồi nhận về một thứ mình không chọn". */
+  function mo() { setMoKhoStrategy(true) }
+
+  async function moTen(t: string) {
+    const d = await py.mo_strategy(t)
+    if (d.ok && d.value) { await nap(d.value); ghi(`mở ${t}`) }
+    else ghi(`không mở được ${t}: ${d.error}`)
+    setMoKhoStrategy(false)
+  }
+
+  /** Lưu thành một Strategy MỚI, giữ nguyên bản đang mở. */
+  async function luuThanh() {
+    const v = await nhapChu({ tieu_de: 'Lưu thành Strategy mới', loi: 'Tên:',
+                              nhap: ten ? `${ten} (bản sao)` : 'Strategy mới',
+                              nut_ok: 'Lưu' })
+    if (!v?.trim()) return
+    const r = await py.luu_strategy(v.trim(), rfSangSteps(nodes), rfSangEdges(edges))
+    if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không lưu được' }); return }
+    setTen(r.value.ten)
+    void py.set_title(r.value.ten)
+    ghi(`lưu thành ${r.value.ten}`)
   }
 
   /* ------------------------------------------------------- menu chuột phải */
@@ -891,8 +923,9 @@ function SoDoTrong() {
     xoa, nhanBan, hoanTac, lamLai,
     gomHatNhan, taHatNhan,
     luu: () => void luu(),
-    mo: () => void mo(),
-    moi: coMayMoi,
+    luuThanh: () => void luuThanh(),
+    mo,
+    moi: strategyMoi,
   }
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length
@@ -937,7 +970,7 @@ function SoDoTrong() {
 
   return (
     <div className="khung">
-      <TitleBar tieuDe={ten || 'Cỗ máy mới'} menus={menus} />
+      <TitleBar tieuDe={ten || 'Strategy mới'} menus={menus} />
       <Ribbon v={viec} soChon={dangChon.length} trongHatNhan={!!trongHN}
               coHoanTac={coHoanTac} coLamLai={coLamLai} />
       <div className="vung-canvas">
@@ -1068,7 +1101,38 @@ function SoDoTrong() {
                    }} />
       )}
       {moKho && <KhoDialog onDong={() => setMoKho(false)} />}
+      {moKhoStrategy && (
+        <KhoStrategy
+          dangMo={ten}
+          lay={async () => {
+            const r = await py.ds_strategy()
+            return r.ok && r.value ? r.value : []
+          }}
+          onMo={t => void moTen(t)}
+          onDong={() => setMoKhoStrategy(false)}
+          onDoiTen={async (cu, moi) => {
+            const r = await py.doi_ten_strategy(cu, moi)
+            if (!r.ok) { await bao({ loi: r.error ?? 'không đổi tên được' }); return }
+            // Đang mở chính bản vừa đổi tên thì thanh tiêu đề phải theo.
+            if (ten === cu) { setTen(moi); void py.set_title(moi) }
+            ghi(`đổi tên ${cu} → ${moi}`)
+          }}
+          onNhanBan={async (t, tMoi) => {
+            const r = await py.nhan_ban_strategy(t, tMoi)
+            if (!r.ok) { await bao({ loi: r.error ?? 'không nhân bản được' }); return }
+            ghi(`nhân bản ${t} → ${tMoi}`)
+          }}
+          onXoa={async t => {
+            const r = await py.xoa_strategy(t)
+            if (!r.ok) { await bao({ loi: r.error ?? 'không xoá được' }); return }
+            if (ten === t) { setTen(''); void py.set_title('Strategy mới') }
+            ghi(`xoá ${t}`)
+          }} />
+      )}
       {khoa && <HopKhoa khoa={khoa} dong={() => setKhoa(null)} doi={setKhoa} />}
+      {/* CUỐI CÙNG trong cây: mọi `.lop-phu` đều z-index 50, nên thứ tự DOM quyết định
+          cái nào nằm trên. Đặt sớm hơn là hộp hỏi chui xuống dưới chính hộp vừa gọi nó. */}
+      <HopHoi />
     </div>
   )
 }

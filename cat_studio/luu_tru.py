@@ -19,11 +19,13 @@ import sys
 
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
-#: Cỗ máy người chơi lưu. Thư mục này KHÔNG biết gì về hình dạng bên trong file — nó
+#: STRATEGY người chơi lưu. Thư mục này KHÔNG biết gì về hình dạng bên trong file — nó
 #: chỉ ghi/đọc JSON — nên nó sống sót qua D-12 (xoá bộ khối cũ) mà không phải sửa gì.
 #: ⚠ File cũ còn nằm đây vẫn mở được bằng tay, nhưng app KHÔNG đọc được nữa: chúng viết
 #: bằng bộ khối đã xoá. Cố ý không tự xoá — đó là công người chơi bỏ ra.
-THU_MUC_CO_MAY = "co_may"
+THU_MUC_STRATEGY = "strategy"
+#: Tên thư mục đời trước. `di_cu` chép sang tên mới, KHÔNG xoá bản cũ.
+THU_MUC_CU = "co_may"
 THU_MUC_NHAT_KY = "nhat_ky"
 
 CAI_DAT_MAC_DINH = {
@@ -74,8 +76,8 @@ def _thu_muc(ten):
     return d
 
 
-def thu_muc_co_may():
-    return _thu_muc(THU_MUC_CO_MAY)
+def thu_muc_strategy():
+    return _thu_muc(THU_MUC_STRATEGY)
 
 
 def thu_muc_nhat_ky():
@@ -150,38 +152,38 @@ def _ten_an_toan(ten):
 
 
 # ---------------------------------------------------------------------------
-# Cỗ máy
+# Strategy
 # ---------------------------------------------------------------------------
 # Ghi/đọc JSON thuần: `_ten_an_toan` (bẫy tên thiết bị Windows — CON, PRN, NUL…) và lối
 # ghi nguyên tử. Không hàm nào ở đây mở file ra xem bên trong, nên bộ khối mới dùng lại
 # được nguyên xi.
 
 
-def duong_dan_co_may(ten):
-    return os.path.join(thu_muc_co_may(), _ten_an_toan(ten) + ".json")
+def duong_dan_strategy(ten):
+    return os.path.join(thu_muc_strategy(), _ten_an_toan(ten) + ".json")
 
 
-def liet_ke_co_may():
+def liet_ke_strategy():
     try:
-        return sorted(f[:-5] for f in os.listdir(thu_muc_co_may())
+        return sorted(f[:-5] for f in os.listdir(thu_muc_strategy())
                       if f.endswith(".json"))
     except Exception:
         return []
 
 
-def ghi_co_may(ten, doc):
-    p = duong_dan_co_may(ten)
+def ghi_strategy(ten, doc):
+    p = duong_dan_strategy(ten)
     ghi_json_nguyen_tu(p, doc)
     return p
 
 
-def doc_co_may(ten):
-    with open(duong_dan_co_may(ten), encoding="utf-8") as f:
+def doc_strategy(ten):
+    with open(duong_dan_strategy(ten), encoding="utf-8") as f:
         return json.load(f)
 
 
-def xoa_co_may(ten):
-    p = duong_dan_co_may(ten)
+def xoa_strategy(ten):
+    p = duong_dan_strategy(ten)
     if os.path.exists(p):
         os.remove(p)
         return True
@@ -267,12 +269,24 @@ def di_cu():
         except Exception:
             pass
 
-    cu_tpl = os.path.join(app, "templates", "strategy")
-    if os.path.isdir(cu_tpl):
+    # ⚠ BA nguồn đời trước, cả ba chép sang `du_lieu/strategy/`:
+    #     templates/strategy/   bản tkinter, nằm ngoài `du_lieu/`
+    #     du_lieu/chien_luoc/   kho chiến lược cũ (gỡ ở D-12)
+    #     du_lieu/co_may/       bản trước khi tài liệu đổi tên thành Strategy
+    #
+    # Chỗ này từng GÃY: nó gọi `thu_muc_chien_luoc()` — một hàm đã bị xoá cùng kho
+    # chiến lược cũ ở D-12. Máy nào còn thư mục ấy là app NỔ ngay lúc khởi động
+    # (`app_web.py` gọi `di_cu` trước khi mở cửa sổ), mà máy đang phát triển thì không
+    # có nó nên chẳng ai thấy.
+    for cu_tpl in (os.path.join(app, "templates", "strategy"),
+                   os.path.join(goc(), "chien_luoc"),
+                   os.path.join(goc(), THU_MUC_CU)):
+        if not os.path.isdir(cu_tpl):
+            continue
         for f in os.listdir(cu_tpl):
             if not f.endswith(".json"):
                 continue
-            dich = os.path.join(thu_muc_chien_luoc(), f)
+            dich = os.path.join(thu_muc_strategy(), f)
             if os.path.exists(dich):
                 continue
             try:
@@ -280,7 +294,7 @@ def di_cu():
                     noi_dung = g.read()
                 with open(dich, "w", encoding="utf-8") as g:
                     g.write(noi_dung)
-                da.append(f"chien_luoc/{f}")
+                da.append(f"strategy/{f}")
             except Exception:
                 pass
     return da
@@ -302,9 +316,9 @@ def tom_tat():
     return {
         "goc": goc(),
         "muc": [
-            {"ten": "Cỗ máy", "duong_dan": thu_muc_co_may(),
-             "so_luong": len(liet_ke_co_may()),
-             "danh_sach": liet_ke_co_may()},
+            {"ten": "Strategy", "duong_dan": thu_muc_strategy(),
+             "so_luong": len(liet_ke_strategy()),
+             "danh_sach": liet_ke_strategy()},
             {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],

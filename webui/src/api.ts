@@ -7,7 +7,7 @@
  * Bản trước tách `pyQC` riêng và bản xem thử tự định tuyến mọi tên `qc_*` sang lớp kia
  * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
-import type { CoMay, Edge, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind } from './types'
+import type { Strategy, Edge, KetQuaSoat, KhoDanhMuc, KhoaQC, Reply, Step, StepKind } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -66,16 +66,20 @@ export const py = {
           the: KetQuaSoat['the'] }>('nhan_ban', steps, edges, giuHatNhan),
 
   // --- lưu / mở ---
-  ds_co_may: () => goi<string[]>('ds_co_may'),
-  luu_co_may: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<{ ten: string; duong: string }>('luu_co_may', ten, steps, edges),
-  mo_co_may: (ten: string) => goi<CoMay>('mo_co_may', ten),
-  xoa_co_may: (ten: string) => goi<boolean>('xoa_co_may', ten),
-  tu_luu_co_may: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<{ ten: string; duong: string } | null>('tu_luu_co_may', ten, steps, edges),
+  ds_strategy: () => goi<{ ten: string; tuLuu: boolean }[]>('ds_strategy'),
+  doi_ten_strategy: (cu: string, moi: string) =>
+    goi<{ ten: string }>('doi_ten_strategy', cu, moi),
+  nhan_ban_strategy: (ten: string, tenMoi: string) =>
+    goi<{ ten: string }>('nhan_ban_strategy', ten, tenMoi),
+  luu_strategy: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<{ ten: string; duong: string }>('luu_strategy', ten, steps, edges),
+  mo_strategy: (ten: string) => goi<Strategy>('mo_strategy', ten),
+  xoa_strategy: (ten: string) => goi<boolean>('xoa_strategy', ten),
+  tu_luu_strategy: (ten: string, steps: Step[], edges: Edge[]) =>
+    goi<{ ten: string; duong: string } | null>('tu_luu_strategy', ten, steps, edges),
   luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[]) =>
     goi<string>('luu_ban_nhap', ten, steps, edges),
-  doc_ban_nhap: () => goi<CoMay | null>('doc_ban_nhap'),
+  doc_ban_nhap: () => goi<Strategy | null>('doc_ban_nhap'),
   xoa_ban_nhap: () => goi<boolean>('xoa_ban_nhap'),
 
   // --- khoá QuantConnect. Mọi lỗi từ đây đã là một câu tiếng Việt. ---

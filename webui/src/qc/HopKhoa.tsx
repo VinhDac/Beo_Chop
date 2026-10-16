@@ -59,7 +59,7 @@ export default function HopKhoa({ khoa, dong, doi }: {
            </>}>
       <div className="mc-hop-khoa">
         <p>
-          App gửi cỗ máy lên QuantConnect bằng <b>API</b> — cần gói <b>Researcher</b> trở lên
+          App gửi Strategy lên QuantConnect bằng <b>API</b> — cần gói <b>Researcher</b> trở lên
           (gói Free không có API). Lấy <b>User ID</b> và <b>API token</b> ở trang tài khoản QC,
           mục API.
         </p>

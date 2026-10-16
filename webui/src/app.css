@@ -1085,3 +1085,36 @@ mark.tim-chu {
 }
 .nut-zoom:hover { background: var(--raised); border-color: var(--border); color: var(--text); }
 .nut-zoom:active { background: var(--raised-hover); }
+
+/* ==========================================================================
+   KHO STRATEGY  +  hộp hỏi của app
+   ========================================================================== */
+/* Danh sách chọn: một dòng một bản, bấm để chọn, bấm đúp để mở. */
+.danh-sach {
+  display: flex; flex-direction: column;
+  max-height: 340px; min-height: 180px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--field); padding: 3px;
+}
+.danh-sach .muc {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 9px; border-radius: 4px; cursor: pointer; font-size: 12.5px;
+}
+.danh-sach .muc:hover { background: var(--raised); }
+.danh-sach .muc.chon { background: var(--accent-soft); }
+/* Dòng trạng thái (đang đọc / chưa có gì): không bấm được, chữ mềm. */
+.danh-sach .muc.mo {
+  color: var(--dim); cursor: default; font-style: italic; line-height: 1.5;
+  padding: 10px 9px;
+}
+.danh-sach .muc.mo:hover { background: none; }
+.danh-sach .muc .ten { flex: 1 1 auto; }
+/* Hàng tab trong hộp kho: dùng lại dáng tab của bảng dưới, thêm ô lọc dạt phải. */
+.hop-thoai .hang-tab { margin-bottom: 8px; gap: 2px; align-items: center; }
+.hop-thoai .hang-tab .day { flex: 1; }
+
+.hoi-loi { font-size: 13px; line-height: 1.5; }
+.hoi-chi-tiet {
+  margin-top: 8px; max-height: 220px; overflow: auto;
+  color: var(--muted); font-size: 12px; line-height: 1.55; white-space: pre-wrap;
+}

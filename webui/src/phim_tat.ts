@@ -17,7 +17,7 @@ export type Nhom = 'khoi' | 'sua' | 'file'
 export const TEN_NHOM: Record<Nhom, string> = {
   khoi: 'Thêm khối',
   sua: 'Sửa sơ đồ',
-  file: 'Cỗ máy · Cửa sổ',
+  file: 'Strategy · Cửa sổ',
 }
 
 export interface Lenh {
@@ -50,10 +50,10 @@ export const LENH: Lenh[] = [
   { ma: 'ngat-noi', nhan: 'Ngắt hết kết nối', nhom: 'sua', phim: [] },
   { ma: 'ra-hat-nhan', nhan: 'Ra khỏi hạt nhân', nhom: 'sua', phim: ['escape'] },
 
-  // --- cỗ máy, cửa sổ ---
-  { ma: 'co-may-moi', nhan: 'Cỗ máy mới', nhom: 'file', phim: ['ctrl+n'] },
-  { ma: 'mo-co-may', nhan: 'Mở cỗ máy…', nhom: 'file', phim: ['ctrl+o'] },
-  { ma: 'luu', nhan: 'Lưu cỗ máy', nhom: 'file', phim: ['ctrl+s'] },
+  // --- Strategy, cửa sổ ---
+  { ma: 'strategy-moi', nhan: 'Strategy mới', nhom: 'file', phim: ['ctrl+n'] },
+  { ma: 'mo-strategy', nhan: 'Mở Strategy…', nhom: 'file', phim: ['ctrl+o'] },
+  { ma: 'luu', nhan: 'Lưu Strategy', nhom: 'file', phim: ['ctrl+s'] },
   { ma: 'o-tim', nhan: 'Nhảy vào ô tìm khối', nhom: 'file', phim: ['ctrl+f'] },
   { ma: 'bang-phim-tat', nhan: 'Bảng phím tắt (bảng này)', nhom: 'file', phim: ['f2'] },
 ]

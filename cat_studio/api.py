@@ -227,43 +227,88 @@ class Api(NenCuaSo):
         return _ok({"steps": moi, "edges": day, "map": bang,
                     "the": {s["id"]: core.the_buoc(s) for s in moi}})
 
-    # ---------------------------------------------------------- lưu / mở cỗ máy
+    # -------------------------------------------------------- lưu / mở Strategy
     @_bat_loi
-    def ds_co_may(self):
-        return _ok(luu_tru.liet_ke_co_may())
+    def ds_strategy(self):
+        """Kho có những gì, và dòng nào là BẢN TỰ LƯU.
+
+        Python nói ra, không để giao diện tự đoán theo đuôi tên: quy ước đặt tên bản
+        tự lưu là của `luu_tru`, mà hai nơi cùng biết một quy ước thì sớm muộn lệch."""
+        return _ok([{"ten": t, "tuLuu": luu_tru.la_tu_luu(t)}
+                    for t in luu_tru.liet_ke_strategy()])
 
     @_bat_loi
-    def luu_co_may(self, ten, steps, edges=None):
+    def doi_ten_strategy(self, cu, moi):
+        """Đổi tên một Strategy. Tên mới trùng cái đã có thì KHÔNG đè — báo lỗi.
+
+        Đổi tên là thao tác không hoàn tác được ở mức file, nên thà bắt chọn tên khác
+        còn hơn lặng lẽ nuốt mất một bản."""
+        cu = (cu or "").strip()
+        moi = (moi or "").strip()
+        if not moi:
+            return _loi("Tên mới không được để trống.")
+        if moi == cu:
+            return _ok({"ten": cu})
+        if moi in luu_tru.liet_ke_strategy():
+            return _loi(f'Đã có Strategy tên "{moi}". Hãy chọn tên khác.')
+        doc = core.normalize_process(luu_tru.doc_strategy(cu))
+        doc["name"] = moi
+        luu_tru.ghi_strategy(moi, doc)
+        luu_tru.xoa_strategy(cu)
+        # Bản tự lưu của tên CŨ không còn chủ — xoá theo, không để lại một file mồ côi
+        # mang tên một Strategy không còn tồn tại.
+        luu_tru.xoa_strategy(luu_tru.ten_tu_luu(cu))
+        return _ok({"ten": moi})
+
+    @_bat_loi
+    def nhan_ban_strategy(self, ten, ten_moi):
+        """Chép một Strategy sang tên khác. Không đè bản đã có."""
+        ten_moi = (ten_moi or "").strip()
+        if not ten_moi:
+            return _loi("Tên bản sao không được để trống.")
+        if ten_moi in luu_tru.liet_ke_strategy():
+            return _loi(f'Đã có Strategy tên "{ten_moi}". Hãy chọn tên khác.')
+        doc = core.normalize_process(luu_tru.doc_strategy(ten))
+        doc["name"] = ten_moi
+        # Cấp id MỚI cho mọi khối: hai bản dùng chung id thì dán khối của bản này sang
+        # bản kia là trùng id, và `validate_flow_graph` báo "khối biến mất khỏi sơ đồ".
+        moi, day, _ = core.clone_steps(doc["steps"], doc["edges"], giu_hat_nhan=True)
+        doc["steps"], doc["edges"] = moi, day
+        luu_tru.ghi_strategy(ten_moi, doc)
+        return _ok({"ten": ten_moi})
+
+    @_bat_loi
+    def luu_strategy(self, ten, steps, edges=None):
         doc = core.make_process_template(ten, steps, edges)
-        p = luu_tru.ghi_co_may(doc["name"], doc)
+        p = luu_tru.ghi_strategy(doc["name"], doc)
         # Lưu thật xong thì bản tự lưu hết việc — việc dở đã thành việc lưu.
-        luu_tru.xoa_co_may(luu_tru.ten_tu_luu(doc["name"]))
+        luu_tru.xoa_strategy(luu_tru.ten_tu_luu(doc["name"]))
         return _ok({"ten": doc["name"], "duong": p})
 
     @_bat_loi
-    def mo_co_may(self, ten):
-        return _ok(core.normalize_process(luu_tru.doc_co_may(ten)))
+    def mo_strategy(self, ten):
+        return _ok(core.normalize_process(luu_tru.doc_strategy(ten)))
 
     @_bat_loi
-    def xoa_co_may(self, ten):
-        return _ok(luu_tru.xoa_co_may(ten))
+    def xoa_strategy(self, ten):
+        return _ok(luu_tru.xoa_strategy(ten))
 
     @_bat_loi
-    def tu_luu_co_may(self, ten, steps, edges=None):
-        """Bản tự lưu nằm cạnh cỗ máy gốc. CHỈ đẻ ra khi nội dung thật sự khác bản trên
+    def tu_luu_strategy(self, ten, steps, edges=None):
+        """Bản tự lưu nằm cạnh Strategy gốc. CHỈ đẻ ra khi nội dung thật sự khác bản trên
         đĩa — mở ra xem mà không sửa gì thì không đẻ ra file nào."""
         ten = luu_tru.ten_goc_cua(ten)
         if not ten:
             return _ok(None)          # chưa lưu lần nào: bản nháp lo, không phải chỗ này
         doc = core.make_process_template(ten, steps, edges)
         try:
-            cu = core.normalize_process(luu_tru.doc_co_may(ten))
+            cu = core.normalize_process(luu_tru.doc_strategy(ten))
             if cu["steps"] == doc["steps"] and cu["edges"] == doc["edges"]:
                 return _ok(None)
         except Exception:
             pass
         doc["name"] = luu_tru.ten_tu_luu(ten)
-        return _ok({"ten": doc["name"], "duong": luu_tru.ghi_co_may(doc["name"], doc)})
+        return _ok({"ten": doc["name"], "duong": luu_tru.ghi_strategy(doc["name"], doc)})
 
     # ------------------------------------------------------------- bản nháp
     @_bat_loi
