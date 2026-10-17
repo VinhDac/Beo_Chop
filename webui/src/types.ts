@@ -139,7 +139,8 @@ export interface DaiLuong {
 /** Một VẾ của dòng điều kiện: một đại lượng, hoặc một con số. */
 export interface VeDieuKien {
   ma_dl?: string
-  /** Để trống = mã đang xét. Gõ mã khác là ra so sánh chéo mã. */
+  /** Rỗng = mã đang xét. Chọn mã khác là ra so sánh chéo mã — CHỌN, không gõ:
+   *  danh sách lấy từ khối Bắt đầu (xem `ChonMa.tsx`). */
   ma?: string
   tham_so?: Record<string, number>
   duong?: string

@@ -59,8 +59,12 @@ _O_SO_LUONG = _o("so_luong", "Số lượng", O_SO, 1, "đơn vị",
 #:
 #: Thiếu ô này thì không viết nổi `set_holdings(QQQ, 0.40)` — tức không diễn đạt
 #: được bất cứ chiến thuật chia danh mục nào.
+#: ⚠ Giao diện bày ô này là Ô CHỌN, danh sách lấy từ khối Bắt đầu — không cho gõ.
+#: Nên câu gợi ý đừng nói "để trống" như một việc người dùng tự làm: lúc chạy cho cả
+#: rổ thì «mã đang xét» KHÔNG CÓ TRONG DANH SÁCH, chứ không phải có mà bị cấm.
 O_MA = _o("ma", "Mã", O_CHU, "", "",
-          "Để trống = mã đang xét. Bắt buộc khi khối Bắt đầu chạy cho CẢ RỔ.",
+          "Chọn trong mấy mã khối Bắt đầu đã khai. «Mã đang xét» chỉ có khi khối "
+          "Bắt đầu chạy TỪNG MÃ một.",
           bat_buoc=False)
 
 
