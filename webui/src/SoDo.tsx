@@ -217,6 +217,26 @@ function SoDoTrong() {
     || !!tuDien?.loai.some(l => l.ma === st.type)
     || (!!tuDien && laHanhDong(tuDienLam, st.type))
   ), [tuDien, tuDienLam, tuDienBD])
+
+  /** VÌ SAO khối này chưa sửa được — nói rõ THIẾU GÌ, không nói chung chung.
+   *
+   *  ⚠ Bản trước ghi mỗi câu "Khối này chưa có hộp sửa" cho mọi trường hợp. Lúc một
+   *  từ điển không nạp được thì mục menu vẫn mờ đúng câu ấy, và nhìn y như "khối này
+   *  vốn không sửa được" — hai chuyện khác hẳn nhau, mà người dùng không có cách nào
+   *  phân biệt. Đã mất một lượt hỏi đi hỏi lại vì câu chữ ấy. */
+  const viSaoKhongSua = useCallback((st?: Step) => {
+    if (!st) return 'Không đọc được khối này'
+    const thieu = (ten: string) =>
+      `Chưa nạp được từ điển ${ten} — mở lại app một lần. Còn lỗi thì xem Nhật ký.`
+    if (st.kind === 'start') return tuDienBD ? '' : thieu('BẮT ĐẦU')
+    if (st.kind === 'group') {
+      return tuDienLam && tuDien ? '' : thieu(tuDienLam ? 'XÁC NHẬN' : 'HÀNH ĐỘNG')
+    }
+    if (st.type === 'quay_ve') return 'Khối Quay về chưa có hộp sửa — dùng Nối tới…'
+    if (!tuDien) return thieu('XÁC NHẬN')
+    if (!tuDienLam) return thieu('HÀNH ĐỘNG')
+    return `Khối loại "${st.type ?? '?'}" chưa có hộp sửa`
+  }, [tuDien, tuDienLam, tuDienBD])
   /** Kết quả lượt backtest vừa chạy — giữ lại để mở lại được sau khi đóng. */
   const [ketQua, setKetQua] = useState<KetQuaChay | null>(null)
   const [moKetQua, setMoKetQua] = useState(false)
@@ -315,12 +335,23 @@ function SoDoTrong() {
 
   useEffect(() => {
     (async () => {
+      // ⚠ TỪ ĐIỂN HỎNG THÌ BÁO, không im lặng. Thiếu một từ điển thì cả một họ
+      // khối mất hộp sửa — bấm đúp không ra gì, menu mờ đi — mà chẳng có dòng nào
+      // nói vì sao. Đúng kiểu hỏng LẶNG dự án này săn từ đầu.
+      const hong: string[] = []
       const td = await py.tu_dien_hoi()
       if (td.ok && td.value) setTuDien(td.value)
+      else hong.push(`XÁC NHẬN (${td.error ?? '?'})`)
       const tl = await py.tu_dien_lam()
       if (tl.ok && tl.value) setTuDienLam(tl.value)
+      else hong.push(`HÀNH ĐỘNG (${tl.error ?? '?'})`)
       const tb = await py.tu_dien_bat_dau()
       if (tb.ok && tb.value) setTuDienBD(tb.value)
+      else hong.push(`BẮT ĐẦU (${tb.error ?? '?'})`)
+      if (hong.length) {
+        await bao({ loi: `Không nạp được từ điển: ${hong.join(' · ')}. Mấy họ khối `
+                         + `tương ứng sẽ không mở hộp sửa được.` })
+      }
       const r = await py.doc_ban_nhap()
       if (r.ok && r.value) await nap(r.value)
       setSanSang(true)
@@ -918,7 +949,7 @@ function SoDoTrong() {
       // Mở hộp sửa — đường thứ HAI vào ruột khối. Bấm đúp là nhanh hơn, nhưng trượt
       // ra nền một cái là không ra gì, nên phải có một lối KHÔNG cần trúng đích.
       { ten: 'Sửa khối…', icon: 'gear', tat: !coHopSua(st),
-        viSao: 'Khối này chưa có hộp sửa',
+        viSao: viSaoKhongSua(st),
         onClick: () => setDangSua(n.id) },
       { ngan: true },
       { ten: 'Đổi tên…', icon: 'edit', phim: phimCua('doi-ten'),
@@ -961,8 +992,9 @@ function SoDoTrong() {
       { ten: `Xoá ${so > 1 ? so + ' khối' : 'khối'}`, icon: 'trash',
         phim: phimCua('xoa'), onClick: xoa },
     ]
-  }, [coHopSua, menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN, biGiau, themKhoi, setNodes,
-      chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan, gomHatNhan, taHatNhan, nhanBan, xoa])
+  }, [coHopSua, viSaoKhongSua, menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN,
+      biGiau, themKhoi, setNodes, chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan,
+      gomHatNhan, taHatNhan, nhanBan, xoa])
 
   /** Lọc nhanh kèm SỐ LƯỢNG — con số là thứ nói "sơ đồ này có 12 chỗ rẽ". */
   const locHien: LocTim[] = useMemo(
