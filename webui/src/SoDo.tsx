@@ -35,7 +35,6 @@ import type {
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
-import { useKhungCuaSo } from './useKhungCuaSo'
 
 const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan }
 
@@ -184,7 +183,7 @@ const idHatNhanMoi = () =>
 /* ------------------------------------- App ------------------------------------- */
 
 function SoDoTrong() {
-  useKhungCuaSo(32)
+  // (bộ bắt kéo cửa sổ nay nằm trong chính `TitleBar` — xem chú thích ở đó)
   const { fitView, getViewport, setViewport, setCenter, zoomIn, zoomOut } = useReactFlow()
   /** Mức phóng hiện tại — đọc thẳng từ kho của React Flow nên con số không bao giờ
    *  trôi khỏi thứ đang hiện trên màn. */

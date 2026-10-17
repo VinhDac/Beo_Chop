@@ -268,7 +268,15 @@ class Api(NenCuaSo):
         # Vá khung ở LUỒNG RIÊNG: `_va_khung` thử lại trong bốn giây, mà cú gọi này
         # đi qua cầu nối nên chặn ở đây là đóng băng giao diện ngần ấy lâu.
         # `phu._va_khung` chứ không `self._va_khung`: mỗi cửa sổ vá KHUNG CỦA MÌNH.
-        threading.Thread(target=phu._va_khung, args=(tieu_de,), daemon=True).start()
+        def va_va_bao():
+            # VÁ HỤT THÌ NÓI. Không vá được là cửa sổ ấy không kéo, không giãn, không
+            # Aero Snap — mà nhìn vào thì y hệt một cửa sổ bình thường. Im lặng ở đây
+            # là để người dùng ngồi thử đi thử lại một dải tiêu đề đã chết.
+            if not phu._va_khung(tieu_de):
+                print(f"[cửa sổ kết quả] KHÔNG vá được khung «{tieu_de}» — "
+                      f"cửa sổ này sẽ không kéo/giãn được", file=sys.stderr)
+
+        threading.Thread(target=va_va_bao, daemon=True).start()
         return _ok({"id": ma_id, "moi": True})
 
     @_bat_loi

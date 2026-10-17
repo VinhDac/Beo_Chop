@@ -215,13 +215,28 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
+api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
+print("\n▸ ⭐ Thanh tiêu đề tự vẽ và BỘ BẮT KÉO là MỘT thứ")
+# ⚠ ĐÃ HỎNG THẬT. `useKhungCuaSo` chỉ được gọi trong `SoDo` — cửa sổ CHÍNH. Cửa sổ
+# Kết quả riêng dựng `TitleBar` y hệt nhưng không ai lắp bộ kéo cho nó, nên dải tiêu
+# đề của nó CHẾT: không kéo, không giãn, không Aero Snap. Không lỗi, không cảnh báo.
+# Để hai thứ ở hai nơi là để lại một luật phải nhớ — và cửa sổ thứ ba sẽ quên y như
+# cửa sổ thứ hai đã quên.
+tb_ = bo_chu_thich_ts(doc("components/TitleBar.tsx"))
+kiem("`TitleBar` tự lắp `useKhungCuaSo`", "useKhungCuaSo(" in tb_)
+kiem("và KHÔNG chỗ nào khác gọi nó nữa",
+     not any("useKhungCuaSo(" in bo_chu_thich_ts(doc(f))
+             for f in ("SoDo.tsx", "TrangKetQua.tsx")),
+     "— gọi hai nơi là hai listener, mỗi cú bấm gửi hai lần")
+kiem("vá khung hụt thì NÓI, không im", "KHÔNG vá được khung" in api_py,
+     "— cửa sổ chết mà nhìn y hệt cửa sổ thường")
+
 print("\n▸ Menu thanh tiêu đề — đường LUÔN CÓ, khác ribbon (ribbon ẩn bớt khi hẹp)")
 # ⚠ Trước đây chỉ MỘT nhóm «Cat Studio» với bốn mục, không mục nào hiện phím tắt và
 # không mục nào mờ được. Hậu quả: ở cửa sổ 1020px (sàn của app) ribbon ẩn mất nhóm
 # Sửa, Hoàn tác và Strategy — lúc ấy Hoàn tác, Nhân bản, Xoá, Lưu KHÔNG còn chỗ nào
 # bấm được. Jenifer_Studio có File/Edit/View/Help đúng vì lẽ ấy.
-sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
-api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
 nhom_menu = re.findall(r"\{ ten: '(\w+)', muc: \[", sodo)
 kiem("có bốn nhóm menu", len(nhom_menu) == 4, f"— {nhom_menu}")
 # Phím tắt hiện cạnh mục là cách DUY NHẤT người dùng học được chúng.
@@ -246,7 +261,6 @@ print("\n▸ ⚠ MỖI CỬA SỔ MỘT js_api — dùng chung là bốn lỗi c
 # `_proc_cu`, nên vá cửa sổ thứ hai là đè mất WndProc gốc của cửa sổ thứ nhất —
 # pywebview dọn một cửa sổ hai lần và ném thẳng một hộp thoại .NET vào mặt người dùng
 # («Unhandled exception … 'child_fa351807'»). Tái hiện được, và bản vá thì sạch.
-api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
 kiem("có lớp js_api riêng cho cửa sổ kết quả", "class ApiKetQua(NenCuaSo)" in api_py)
 # ⚠ Tìm DẠNG GỌI `js_api=self,` chứ không tìm chuỗi trần: `js_api=self` còn nằm trong
 # chính mấy câu chú thích KỂ VỀ lỗi này, và một phép kiểm bắt nhầm lời kể của mình
@@ -346,7 +360,6 @@ for ma, cum in (("gom-nhom", "ctrl+g"), ("ra-nhom", "ctrl+shift+g")):
 for ma in ("gom-hat-nhan", "ta-hat-nhan"):
     kiem(f"`{ma}` không giữ cụm nào",
          re.search(r"ma: '" + ma + r"'[^}]*phim: \[\]", pt) is not None)
-sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
 kiem("hai lệnh có nối vào bảng phím",
      "'gom-nhom': gomNhom" in sodo and "'ra-nhom': raNhom" in sodo)
 kiem("lõi gom/tách ở Python, không ở giao diện",

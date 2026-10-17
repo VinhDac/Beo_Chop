@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { py } from '../api'
 import ContextMenu, { type MucPhai } from './ContextMenu'
+import { useKhungCuaSo } from '../useKhungCuaSo'
 
 export interface NhomMenu { ten: string; muc: MucPhai[] }
+
+/** Bề dày dải tiêu đề, px — phải khớp `height` của `.thanh-tieu-de` trong app.css. */
+const CAO = 32
 
 /** Thanh tiêu đề tự vẽ.
  *
@@ -22,6 +26,18 @@ export default function TitleBar({ tieuDe, menus, them }: {
    *  Windows coi dải đó là caption và cú bấm hoá ra kéo cửa sổ. */
   them?: React.ReactNode
 }) {
+  /* ⭐ BỘ BẮT KÉO LẮP NGAY TẠI ĐÂY, không để chỗ gọi tự nhớ.
+   *
+   *  ⚠ ĐÃ HỎNG THẬT. `useKhungCuaSo` trước đây chỉ được gọi trong `SoDo` — cửa sổ
+   *  CHÍNH. Cửa sổ Kết quả riêng dựng `TitleBar` y hệt nhưng không ai lắp bộ kéo
+   *  cho nó, nên thanh tiêu đề của nó là một DẢI CHẾT: không kéo, không giãn, không
+   *  Aero Snap. Không lỗi, không cảnh báo — chỉ là bấm vào thì chẳng có gì xảy ra.
+   *
+   *  Thanh tiêu đề tự vẽ và bộ bắt kéo là MỘT thứ: có cái này thì phải có cái kia.
+   *  Để chúng ở hai nơi là để lại một luật phải nhớ, mà luật phải nhớ thì cửa sổ
+   *  thứ ba sẽ quên y như cửa sổ thứ hai đã quên. */
+  useKhungCuaSo(CAO)
+
   const [mo, setMo] = useState<{ i: number; x: number; y: number } | null>(null)
   const [phongTo, setPhongTo] = useState(false)
   const thanh = useRef<HTMLDivElement>(null)
