@@ -664,6 +664,26 @@ function SoDoTrong() {
     if (!r.ok) await bao({ loi: r.error ?? 'không dừng được' })
   })(), [bao])
 
+  /** "Màu khác…" — mở bảng màu của trình duyệt.
+   *
+   *  ⚠ Ô CHỌN MÀU NẰM SẴN TRONG TRANG, không nằm trong menu. Menu đóng ngay khi bấm,
+   *  còn bảng màu thì vẫn mở — ô nằm trong menu là bị gỡ theo menu, chọn xong không
+   *  còn ai nhận màu. Chỉ DỜI ô tới chỗ vừa bấm phải để bảng bung ra ngay đó.
+   *  (Bẫy này Jenifer_Studio đã dính và đã ghi lại.)
+   *
+   *  Tô khi bảng ĐÓNG (`change`), không tô theo từng nhích kéo (`input`): một lần
+   *  chọn là MỘT bước hoàn tác, không phải ba chục bước. */
+  const oMau = useRef<HTMLInputElement>(null)
+  const moBangMau = useCallback((x: number, y: number) => {
+    const o = oMau.current
+    if (!o) return
+    o.style.left = `${x}px`
+    o.style.top = `${y}px`
+    o.onchange = () => doiKhoa(s => ({ ...s, mau: o.value }))
+    o.click()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   /** Đổi một khoá trên khối đang chọn (màu, ghim số…). */
   const doiKhoa = useCallback((f: (s: Step) => Step) => {
     if (!dangChon.length) return
@@ -1131,6 +1151,19 @@ function SoDoTrong() {
     const st = (n.data as { step: Step }).step
     const so = dangChon.length || 1
     const khac = nodes.filter(x => x.id !== n.id && !biGiau(x.id))
+    /* Sáu màu sẵn + mấy màu TỰ CHỌN đang có trên sơ đồ. Màu tự chọn tính thẳng từ
+       các khối, không cất riêng ở đâu — không còn khối nào mang nó thì chấm tự mất,
+       khỏi phải dọn một cái bảng nào. */
+    const mauTuChon = [...new Set(nodes
+      .map(x => (x.data as { step?: Step }).step?.mau)
+      .filter((m): m is string => !!m && !m.startsWith('var(')))]
+    const bangMau: [string, string][] = [
+      ...MAU_KHOI.map(([ten, bien]) => [ten, `var(${bien})`] as [string, string]),
+      ...mauTuChon.map(m => [m, m] as [string, string]),
+    ]
+    const mauDangDat = st.mau
+    const coMau = (dangChon.length ? dangChon : [n])
+      .some(x => !!(x.data as { step?: Step }).step?.mau)
     return [
       // Mở hộp sửa — đường thứ HAI vào ruột khối. Bấm đúp là nhanh hơn, nhưng trượt
       // ra nền một cái là không ra gì, nên phải có một lối KHÔNG cần trúng đích.
@@ -1141,12 +1174,25 @@ function SoDoTrong() {
       { ten: 'Đổi tên…', icon: 'edit', phim: phimCua('doi-ten'),
         onClick: () => setDoiTen({ loai: 'khoi', id: n.id,
                                    ten: (n.data as { card: Card }).card.title }) },
+      /* MÀU KHỐI — chép lối Jenifer_Studio.
+       *
+       *  Mỗi mục có CHẤM MÀU: tên «Lục», «Lam» thì phải bấm thử mới biết nó ra màu
+       *  gì, mà bấm thử là một bước hoàn tác. Màu đang dùng mang dấu ✓.
+       *
+       *  Sáu màu sẵn, rồi tới mấy MÀU TỰ CHỌN đang có trên sơ đồ — lần sau bấm một
+       *  nhát, khỏi pha lại. Danh sách ấy tính thẳng từ các khối, không cất riêng ở
+       *  đâu: không còn khối nào mang màu ấy thì chấm tự mất. */
       { ten: 'Màu khối', icon: 've-mau', con: [
-        ...MAU_KHOI.map(([ten, bien]) => ({
-          ten, onClick: () => doiKhoa(s => ({ ...s, mau: `var(${bien})` })),
+        ...bangMau.map(([ten, mau]) => ({
+          ten, mau, dang: dangChon.length === 1 && mauDangDat === mau,
+          onClick: () => doiKhoa(s => ({ ...s, mau })),
         })),
+        { ten: 'Màu khác…', icon: 've-mau',
+          onClick: () => moBangMau(menuPhai?.x ?? 0, menuPhai?.y ?? 0) },
         { ngan: true },
-        { ten: 'Bỏ màu', onClick: () => doiKhoa(s => { delete s.mau; return s }) },
+        { ten: 'Bỏ màu', icon: 'trash', tat: !coMau,
+          viSao: 'mấy khối này chưa đặt màu nào',
+          onClick: () => doiKhoa(s => { delete s.mau; return s }) },
       ] },
       { ten: st.ghim ? 'Bỏ ghim số' : 'Ghim số',
         icon: st.ghim ? 'bo-ghim' : 'ghim',
@@ -1508,6 +1554,8 @@ function SoDoTrong() {
         <span className="so">{Math.round(mucZoom * 100)}%</span>
       </div>
 
+      {/* Ô chọn màu của trình duyệt — xem `moBangMau`. Nằm ngoài menu CỐ Ý. */}
+      <input ref={oMau} type="color" className="o-mau-an" tabIndex={-1} />
       {menuPhai && (
         <ContextMenu x={menuPhai.x} y={menuPhai.y} muc={mucMenu}
                      onDong={() => setMenuPhai(null)} />

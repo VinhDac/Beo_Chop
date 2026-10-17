@@ -57,10 +57,20 @@
      · Kiểm tra ĐK -> lam, một CÂU HỎI.
      · Mua/Bán -> xanh/đỏ (`--ok`/`--err`), kèm ▲/▼ để không phải chỉ dựa vào màu.
      · Sửa lệnh -> tím, không đụng warn/accent đã có nghĩa khác. */
-  /* BA loại khối, ba màu (D-10): Bắt đầu xám `--action` (điểm neo, không phải hành
-     động) · Hỏi lam (một CÂU HỎI) · Làm tím (thứ duy nhất đổi kết quả của một trạm). */
-  --khoi-hoi: #6cb6ff;
-  --khoi-lam: #b892f0;
+  /* MÀU NGƯỜI DÙNG TỰ ĐẶT cho một khối (menu chuột phải ▸ Màu khối). Chỉ để phân
+     loại bằng mắt trên một sơ đồ dài — bộ sinh mã và bộ chạy KHÔNG đọc.
+     Khai ở đây chứ không đóng đinh mã màu vào TSX: đổi tông app là màu khối đổi theo.
+     ⚠ Năm trong sáu biến này TRƯỚC ĐÂY KHÔNG TỒN TẠI, mà `SoDo.tsx` vẫn trỏ vào —
+     chọn "Đỏ" là gán `var(--khoi-do)` rỗng, không màu nào hiện ra. Phép kiểm "biến
+     CSS ma" hồi đó chỉ quét file .css nên không thấy: chúng được gọi từ TSX.
+     Chỗ này từng là `--khoi-hoi`/`--khoi-lam` với chú thích "ba loại khối, ba màu" —
+     đồ đời trước, màu loại khối nay nằm ở `--dim`/`--group`/`--action` (`StepNode`). */
+  --khoi-do: #e05a5a;
+  --khoi-cam: #e08a3c;
+  --khoi-vang: #d9b23a;
+  --khoi-luc: #52b788;
+  --khoi-lam: #4a9eda;
+  --khoi-tim: #9b7ae0;
 
   /* Ghim số ⟲ — dùng cho cả huy hiệu khối đã ghim lẫn đường nối quay lại.
      MỘT màu cho cả hai là cố ý: nhìn một cái là nối được "đường này quay về đâu". */

@@ -58,10 +58,33 @@ def bo_chu_thich(s):
     return re.sub(r"/\*.*?\*/", " ", s, flags=re.S)
 
 
+def bo_chu_thich_ts(s):
+    """Bỏ `/* … */` và `// …` — nhắc tên một hàm trong chú thích KHÔNG phải là gọi nó.
+
+    `(?<!:)` để `https://…` trong chuỗi không bị cắt mất phần sau."""
+    return re.sub(r"(?<!:)//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", s, flags=re.S))
+
 print("\n▸ Mọi `var(--x)` phải có một `--x:` ở đâu đó")
 theme, app = doc("theme.css"), doc("app.css")
 khai = set(re.findall(r"(--[a-z0-9-]+)\s*:", bo_chu_thich(theme + app)))
+# ⚠ QUÉT CẢ TSX, không chỉ .css. `var(--khoi-do)` … `var(--khoi-tim)` được gọi từ
+# `SoDo.tsx` (bảng `MAU_KHOI`), và NĂM trong sáu biến ấy không hề tồn tại — chọn màu
+# khối là gán một biến rỗng, chẳng màu nào hiện ra. Phép kiểm này đứng ngay đây suốt
+# thời gian ấy mà không thấy, vì nó chỉ đọc hai file .css.
+tsx_all = ""
+for _goc, _tm, _tep in os.walk(CSS):
+    for _f in _tep:
+        if _f.endswith((".tsx", ".ts")):
+            with io.open(os.path.join(_goc, _f), encoding="utf-8") as _fh:
+                tsx_all += _fh.read()
+# ⚠ VÀ PHẢI BẮT CẢ TÊN BIẾN VIẾT RỜI, không chỉ dạng `var(--x)`. `MAU_KHOI` của
+# `SoDo.tsx` giữ tên trần (`'--khoi-do'`) rồi mới ghép `var(${bien})` lúc chạy — nên
+# chuỗi `var(--khoi-do)` KHÔNG HỀ CÓ trong mã nguồn. Bản đầu của phép kiểm này quét
+# thêm TSX mà vẫn mù đúng chỗ ấy: xoá hẳn `--khoi-do` khỏi theme.css nó vẫn báo xanh.
+tsx_sach = bo_chu_thich_ts(tsx_all)
 dung_bien = set(re.findall(r"var\((--[a-z0-9-]+)", bo_chu_thich(app + theme)))
+dung_bien |= set(re.findall(r"var\((--[a-z0-9-]+)", tsx_sach))
+dung_bien |= set(re.findall(r"['\"`](--[a-z0-9-]+)['\"`]", tsx_sach))
 ma = sorted(dung_bien - khai - DAT_LUC_CHAY)
 kiem("không còn biến ma nào", not ma, f"— {ma}" if ma else f"({len(dung_bien)} biến)")
 
@@ -163,11 +186,6 @@ print("\n▸ Cửa trong `api.ts` phải có người dùng  (hàng rào không 
 # Không ai cần thì xoá đi, còn hơn để nằm đó trông như đã có người canh.
 
 
-def bo_chu_thich_ts(s):
-    """Bỏ `/* … */` và `// …` — nhắc tên một hàm trong chú thích KHÔNG phải là gọi nó.
-
-    `(?<!:)` để `https://…` trong chuỗi không bị cắt mất phần sau."""
-    return re.sub(r"(?<!:)//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", s, flags=re.S))
 
 
 ngoai = ""
@@ -268,6 +286,23 @@ kiem("và KHÔNG chỗ nào khác gọi nó nữa",
      "— gọi hai nơi là hai listener, mỗi cú bấm gửi hai lần")
 kiem("vá khung hụt thì NÓI, không im", "KHÔNG vá được khung" in api_py,
      "— cửa sổ chết mà nhìn y hệt cửa sổ thường")
+
+print("\n▸ Màu khối — chấm màu, dấu màu đang dùng, và ô chọn nằm NGOÀI menu")
+cm = bo_chu_thich_ts(doc("components/ContextMenu.tsx"))
+kiem("mục menu có chấm màu", "cham-mau" in cm and "m.mau" in cm,
+     "— tên «Lục», «Lam» thì phải bấm thử mới biết ra màu gì, mà bấm thử là một "
+     "bước hoàn tác")
+kiem("và dấu ✓ cho màu đang dùng", "m.dang" in cm and "dang-muc" in cm)
+kiem("menu dựng từ bảng màu, kèm màu tự chọn đang có trên sơ đồ",
+     "bangMau" in sodo and "mauTuChon" in sodo)
+# ⚠ BẪY JENIFER ĐÃ GHI: menu đóng ngay khi bấm, còn bảng màu thì vẫn mở — ô nằm
+# TRONG menu là bị gỡ theo menu, chọn xong không còn ai nhận màu.
+kiem("ô chọn màu nằm NGOÀI menu",
+     re.search(r"o-mau-an[\s\S]{0,260}<ContextMenu", sodo) is not None)
+kiem("và tô khi bảng ĐÓNG, không theo từng nhích kéo",
+     "o.onchange" in sodo and "o.oninput" not in sodo,
+     "— một lần chọn là MỘT bước hoàn tác, không phải ba chục")
+kiem("«Bỏ màu» mờ kèm lý do khi chưa có màu", "tat: !coMau" in sodo)
 
 print("\n▸ ⚙ ở GÓC TRÁI DƯỚI — chỗ quen thuộc cho cài đặt (VSCode cũng vậy)")
 # ⚠ Chú thích cỡ chữ trong `app.css` đã tính chỗ cho nút này từ lâu — «nút ⚙ 24→26»

@@ -233,6 +233,21 @@ input, textarea { user-select: text; }
 }
 .thanh-trang-thai .day { flex: 1; }
 /* Nút ⚙ ở đầu thanh: cùng cỡ với nút zoom cuối thanh, để hai đầu hàng cân nhau. */
+/* Ô chọn màu gốc của trình duyệt: VÔ HÌNH nhưng vẫn phải nằm trong trang và đúng
+   chỗ bấm — bảng màu của Windows bung ra NGAY TẠI ô này. `display: none` thì bảng
+   không mở được, nên phải giấu bằng kích thước 0 và `opacity`. */
+.o-mau-an {
+  position: fixed; width: 0; height: 0; padding: 0; border: 0;
+  opacity: 0; pointer-events: none; z-index: 70;
+}
+
+/* Chấm màu trong menu chuột phải — đứng đúng chỗ icon, nên hàng không lệch. */
+.cham-mau {
+  width: 11px; height: 11px; border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, .22);
+}
+.dang-muc { margin-left: 6px; color: var(--accent); font-size: 11px; }
+
 .nut-tt {
   display: flex; align-items: center; justify-content: center;
   width: 26px; height: 24px; flex: 0 0 auto; padding: 0;
