@@ -269,6 +269,16 @@ kiem("và KHÔNG chỗ nào khác gọi nó nữa",
 kiem("vá khung hụt thì NÓI, không im", "KHÔNG vá được khung" in api_py,
      "— cửa sổ chết mà nhìn y hệt cửa sổ thường")
 
+print("\n▸ ⚙ ở GÓC TRÁI DƯỚI — chỗ quen thuộc cho cài đặt (VSCode cũng vậy)")
+# ⚠ Chú thích cỡ chữ trong `app.css` đã tính chỗ cho nút này từ lâu — «nút ⚙ 24→26»
+# — mà nút thì chưa bao giờ có. Lại một hàng rào không ai gác.
+kiem("thanh trạng thái có nút ⚙",
+     re.search(r'className="nut-tt"[\s\S]{0,200}setMoCaiDat\(true\)', sodo) is not None)
+kiem("và nó đứng ĐẦU hàng, trước mấy con số",
+     re.search(r'thanh-trang-thai"[\s\S]{0,500}?nut-tt[\s\S]{0,260}?\{nodes\.length\}', sodo)
+     is not None)
+kiem("có luật CSS cho nó", ".nut-tt {" in bo_chu_thich(app))
+
 print("\n▸ Menu thanh tiêu đề — đường LUÔN CÓ, khác ribbon (ribbon ẩn bớt khi hẹp)")
 # ⚠ Trước đây chỉ MỘT nhóm «Cat Studio» với bốn mục, không mục nào hiện phím tắt và
 # không mục nào mờ được. Hậu quả: ở cửa sổ 1020px (sàn của app) ribbon ẩn mất nhóm

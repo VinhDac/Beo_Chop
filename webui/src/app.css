@@ -232,6 +232,17 @@ input, textarea { user-select: text; }
   color: var(--muted);
 }
 .thanh-trang-thai .day { flex: 1; }
+/* Nút ⚙ ở đầu thanh: cùng cỡ với nút zoom cuối thanh, để hai đầu hàng cân nhau. */
+.nut-tt {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 24px; flex: 0 0 auto; padding: 0;
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+}
+.nut-tt:hover { background: var(--raised); border-color: var(--border); color: var(--text); }
+.nut-tt:active { background: var(--raised-hover); }
+/* `gap: 13px` của hàng là cho mấy cụm CHỮ; nút sát mép trái hơn thì cân hơn. */
+.thanh-trang-thai > .nut-tt:first-child { margin-right: -4px; }
 
 /* ============================ Hộp thoại ============================ */
 .lop-phu {

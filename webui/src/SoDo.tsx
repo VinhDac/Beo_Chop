@@ -23,6 +23,7 @@ import HopSinhMa from './components/HopSinhMa'
 import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
 import HopTienDo from './components/HopTienDo'
+import Icon from './components/Icon'
 import HopCaiDat from './components/HopCaiDat'
 import HopKhoLuot from './components/HopKhoLuot'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
@@ -1470,6 +1471,13 @@ function SoDoTrong() {
                 cao={panelCao} onCao={setPanelCao}
                 gap={panelGap} onGap={setPanelGap} />
       <div className="thanh-trang-thai">
+        {/* ⚙ GÓC TRÁI DƯỚI CÙNG — chỗ quen thuộc cho cài đặt (VSCode cũng vậy), và
+            nó là thứ của CẢ APP nên không thuộc về ribbon, nơi mọi nút đều nói về
+            sơ đồ đang vẽ. Chép chỗ đặt của Jenifer_Studio.
+            (Chú thích cỡ chữ ngay trong `app.css` đã tính chỗ cho nút này từ lâu —
+            «nút ⚙ 24→26» — mà nút thì chưa bao giờ có.) */}
+        <button className="nut-tt" title="Cài đặt app (Ctrl+,)"
+                onClick={() => setMoCaiDat(true)}><Icon name="gear" size={15} /></button>
         <span>{nodes.length} khối · {edges.length} dây</span>
         {hatNhan.size > 0 && <span>{hatNhan.size} hạt nhân</span>}
         <span className="day" />
