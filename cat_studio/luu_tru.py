@@ -17,6 +17,8 @@ import os
 import re
 import sys
 
+from . import cai_dat
+
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
 #: STRATEGY người chơi lưu. Thư mục này KHÔNG biết gì về hình dạng bên trong file — nó
@@ -33,14 +35,19 @@ THU_MUC_MA = "ma_sinh"
 #: Kết quả backtest LEAN ghi ra — mỗi thuật toán một thư mục con.
 THU_MUC_KET_QUA = "ket_qua"
 
-CAI_DAT_MAC_DINH = {
-    # Thư mục gốc của bản LEAN đã build (chỗ có `Launcher/`). Để trống = chưa trỏ —
-    # KHÔNG đoán hộ, vì LEAN là một kho mấy trăm MB, nó nằm đâu là việc người dùng.
-    "lean_goc": "",
-    "symbol": "XAUUSD",
-    "accent": "#ffa657",
-    "ui": {"panel_cao": 176, "panel_gap": False},
-}
+#: ⚠ DỰNG TỪ `cai_dat.NHOM`, không gõ tay lần thứ hai. `doc_cai_dat` dưới đây CHỈ
+#: GIỮ khoá có trong bảng này, nên một cài đặt khai ở `cai_dat.py` mà quên thêm vào
+#: đây sẽ ghi xuống file rồi BIẾN MẤT ở lần đọc kế tiếp — không lỗi, không cảnh báo,
+#: cái núm trong hộp Cài đặt cứ nhảy về mặc định. (Đã dính đúng thế lúc dựng hộp.)
+#:
+#: Thư mục gốc LEAN để TRỐNG là cố ý: không đoán hộ, vì LEAN là một kho mấy trăm MB,
+#: nó nằm đâu là việc của người dùng.
+CAI_DAT_MAC_DINH = dict(cai_dat.mac_dinh(), **{
+    # ⚠ ĐÃ BỎ `symbol`, `accent`, `ui.panel_cao`, `ui.panel_gap` — bốn khoá còn sót
+    # từ bản tkinter mà KHÔNG MỘT DÒNG nào trong `cat_studio/` lẫn `webui/src/` đọc
+    # tới. File cũ còn mang chúng thì vô hại, chỉ là không ai dựng lại nữa. Mặc định
+    # chết nằm trong file cài đặt là thứ dẫn người đọc sau này đi tìm chỗ dùng nó.
+})
 
 
 #: Thư mục GỐC DỰ ÁN khi chạy từ mã nguồn — LÊN MỘT BẬC từ file này.

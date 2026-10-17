@@ -20,6 +20,7 @@ import sys
 import time
 import traceback
 
+from . import cai_dat
 from . import chay_lean
 from . import core
 from . import sinh_ma
@@ -225,6 +226,28 @@ class Api(NenCuaSo):
         s[chay_lean.KHOA_LEAN] = str(duong or "").strip()
         luu_tru.ghi_cai_dat(s)
         return _ok(chay_lean.san_sang())
+
+    @_bat_loi
+    def cai_dat_tu_dien(self):
+        """Từ điển CÀI ĐẶT — hộp Cài đặt hỏi, không tự khai danh sách ô."""
+        return _ok(cai_dat.tu_dien())
+
+    @_bat_loi
+    def cai_dat_doc(self):
+        """Giá trị đang lưu, đã rơi về mặc định cho ô thiếu."""
+        return _ok(cai_dat.doc(luu_tru.doc_cai_dat()))
+
+    @_bat_loi
+    def cai_dat_ghi(self, gia_tri):
+        """Lưu cài đặt. Trả về giá trị ĐÃ ĐỌC LẠI, không phải thứ vừa gửi lên —
+        ô gõ bậy đã rơi về mặc định ở `cai_dat.doc`, và giao diện phải thấy điều đó.
+
+        Trả kèm trạng thái LEAN: đổi thư mục xong thì câu trả lời «đã đúng chưa»
+        phải tới ngay, không bắt người dùng bấm Chạy rồi mới biết."""
+        s = luu_tru.doc_cai_dat()
+        s.update(cai_dat.doc(gia_tri or {}))
+        luu_tru.ghi_cai_dat(s)
+        return _ok({"gia_tri": cai_dat.doc(s), "lean": chay_lean.san_sang()})
 
     @_bat_loi
     def chay_backtest(self, ten, steps, edges=None):

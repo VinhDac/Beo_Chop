@@ -70,10 +70,14 @@ export function Hang({ o, gt, onDoi, children }: {
       ))}
       {/* Tỷ trọng lưu ĐÚNG DẠNG LEAN NHẬN (0.3), nên bày thêm "= 30%" ngay cạnh — một
           dòng ĐỌC, không phải một phép đổi giấu trong giao diện. */}
-      {o.don_vi === 'phần' && (
+      {o.don_vi === 'phần' ? (
         <span className="doc-them">= {Math.round(Number(gt ?? 0) * 1000) / 10}%</span>
-      )}
-      {o.don_vi === '$' && <span className="doc-them">$</span>}
+      // Mọi đơn vị KHÁC hiện nguyên văn. Trước đây chỉ `$` được viết riêng một dòng,
+      // nên ô nào khai "phút", "lần", "ngày"… là đơn vị ấy biến mất — từ điển nói mà
+      // giao diện không nghe.
+      ) : o.don_vi ? (
+        <span className="doc-them">{o.don_vi}</span>
+      ) : null}
       {o.goi_y && <span className="goi-y-o">{o.goi_y}</span>}
     </label>
   )

@@ -23,6 +23,7 @@ import HopSinhMa from './components/HopSinhMa'
 import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
 import HopTienDo from './components/HopTienDo'
+import HopCaiDat from './components/HopCaiDat'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
@@ -243,6 +244,7 @@ function SoDoTrong() {
   const [dangChay, setDangChay] = useState(false)
   /** Tiến độ lượt backtest đang chạy — null = không hiện hộp. */
   const [tienDo, setTienDo] = useState<TienDoChay | null>(null)
+  const [moCaiDat, setMoCaiDat] = useState(false)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -1010,6 +1012,7 @@ function SoDoTrong() {
                              ten: (n.data as { card: Card }).card.title })
         },
         'dung-backtest': dungChay,
+        'cai-dat': () => setMoCaiDat(true),
         'strategy-moi': strategyMoi,
         'mo-strategy': () => void mo(),
         luu: () => void luu(),
@@ -1248,6 +1251,7 @@ function SoDoTrong() {
       })(), 500)
     })(),
     dung: dungChay,
+    caiDat: () => setMoCaiDat(true),
     moKetQua: () => setMoKetQua(true),
     coKetQua: !!ketQua,
     dangChay,
@@ -1485,6 +1489,7 @@ function SoDoTrong() {
         }
         return null
       })()}
+      {moCaiDat && <HopCaiDat onDong={() => setMoCaiDat(false)} />}
       {tienDo && (
         <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
       )}

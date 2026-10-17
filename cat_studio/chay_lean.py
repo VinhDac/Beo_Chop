@@ -30,14 +30,24 @@ import sysconfig
 import threading
 import time
 
+from . import cai_dat
 from . import luu_tru
 
 #: Tên cấu hình: thư mục gốc của bản LEAN đã build (chỗ có `Launcher/`).
-KHOA_LEAN = "lean_goc"
+KHOA_LEAN = cai_dat.KHOA_LEAN
 
-#: Trần thời gian một lượt backtest. Quá thì giết — thà báo "chạy lâu quá" còn hơn
-#: treo cả app vô thời hạn.
+#: Trần thời gian một lượt backtest, MẶC ĐỊNH. Quá thì giết — thà báo "chạy lâu quá"
+#: còn hơn treo cả app vô thời hạn.
+#:
+#: ⚠ Người dùng chỉnh được ở hộp Cài đặt; `_han_gio()` dưới đây mới là con số thật.
+#: Đừng đọc thẳng hằng số này — đặt 60 phút trong Cài đặt mà vẫn bị giết ở phút 15
+#: thì cái núm ấy là núm giả.
 HAN_GIO = 900
+
+
+def _han_gio():
+    """Hạn giờ một lượt chạy (giây), lấy từ Cài đặt."""
+    return cai_dat.han_gio_giay(luu_tru.doc_cai_dat())
 
 
 #: GIAI ĐOẠN — đọc từ dòng TRACE của LEAN.
@@ -511,7 +521,8 @@ def chay(ma, ten_lop):
     if bo:
         p.kill()
 
-    het = time.time() + HAN_GIO
+    han = _han_gio()
+    het = time.time() + han
     try:
         for d in p.stdout:
             dong.append(d)
@@ -519,7 +530,7 @@ def chay(ma, ten_lop):
             if time.time() > het:
                 p.kill()
                 return {"ok": False,
-                        "loi": f"LEAN chạy quá {HAN_GIO // 60} phút nên bị dừng. "
+                        "loi": f"LEAN chạy quá {han // 60} phút nên bị dừng. "
                                f"Thử rút ngắn khoảng ngày hoặc đổi nhịp thưa hơn."}
     finally:
         try:

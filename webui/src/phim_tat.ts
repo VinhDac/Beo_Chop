@@ -68,6 +68,7 @@ export const LENH: Lenh[] = [
      người ta muốn nó thôi NGAY, không phải đi tìm cái nút. */
   { ma: 'dung-backtest', nhan: 'Dừng backtest đang chạy', nhom: 'file', phim: ['f6'] },
   { ma: 'o-tim', nhan: 'Nhảy vào ô tìm khối', nhom: 'file', phim: ['ctrl+f'] },
+  { ma: 'cai-dat', nhan: 'Cài đặt app', nhom: 'file', phim: ['ctrl+,'] },
   { ma: 'bang-phim-tat', nhan: 'Bảng phím tắt (bảng này)', nhom: 'file', phim: ['f2'] },
 ]
 

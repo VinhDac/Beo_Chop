@@ -97,6 +97,8 @@ export interface ViecRibbon {
   /** Đang chạy backtest — khoá nút lại. */
   dangChay: boolean
   luu: () => void
+  /** Mở hộp Cài đặt app (Ctrl+,). */
+  caiDat: () => void
   luuThanh: () => void
   mo: () => void
   moi: () => void
@@ -174,6 +176,8 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
         <Nut ten="Mới" icon="file" onClick={v.moi} title="Ctrl+N" />
         <Nut ten="Kho" icon="folder" onClick={v.mo}
              title="Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)" />
+        <Nut ten="Cài đặt" icon="gear" onClick={v.caiDat}
+             title="Cài đặt app — thư mục LEAN, hạn giờ chạy (Ctrl+,)" />
         <NutMenu ten="Lưu" icon="save" title="Ctrl+S"
                  muc={[{ nhan: 'Lưu', phu: 'Ctrl+S — ghi đè bản đang mở',
                          icon: 'save', chay: v.luu },

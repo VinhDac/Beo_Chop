@@ -22,6 +22,7 @@ BAI = [
     ("test_chay_lean.py", "BỘ CHẠY LEAN — đọc file chứ đừng đọc mã thoát, và gột sạch venv"),
     ("test_so_do_api.py", "Cửa sơ đồ — một cửa soát, ba tầng lưu, nhân bản không dính gốc"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
+    ("test_cai_dat.py", "Cài đặt app — cái núm phải NỐI VÀO ĐÂU ĐÓ, không phải núm giả"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
 ]
 

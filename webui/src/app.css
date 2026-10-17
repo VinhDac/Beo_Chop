@@ -1374,6 +1374,28 @@ mark.tim-chu {
 .dong-ma > .nut-nho { color: var(--dim); flex: 0 0 auto; }
 .dong-ma > .nut-nho:hover { color: var(--err); background: var(--raised); }
 .ds-ma > .nut { align-self: flex-start; }
+
+/* ---------------- Hộp Cài đặt ---------------- */
+.cd-nhom { display: flex; flex-direction: column; gap: 2px; }
+.cd-dau {
+  font: 600 10px var(--font); color: var(--accent);
+  letter-spacing: .03em; text-transform: uppercase; margin-bottom: 4px;
+}
+/* Gợi ý của Cài đặt là CÂU GIẢI THÍCH, không phải một mẩu chú — cho nó xuống dòng
+   riêng, thẳng cột với ô. Để nguyên kiểu "nép bên phải" như hộp khối thì nó tranh
+   chỗ với ô (`flex: 1 1 auto` cả hai) và đường dẫn LEAN dài là hai bên cùng nát. */
+.cd-nhom .o-hang { flex-wrap: wrap; align-items: center; }
+.cd-nhom .nhan-o { flex: 0 0 180px; }
+.cd-nhom .goi-y-o {
+  flex: 1 0 100%; text-align: left; padding-left: 189px; margin-top: 1px;
+}
+.cd-nhom .o-hang + .o-hang { margin-top: 8px; }
+.cd-chu {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 11.5px; line-height: 1.5; color: var(--dim);
+}
+.cd-chu > svg { flex: 0 0 auto; margin-top: 2px; }
+.cd-chu code { font: 11px var(--font-mono); color: var(--muted); }
 .khoang-ngay { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
 .khoang-ngay .o { flex: 0 0 auto; }
 .khoang-ngay .mui { color: var(--dim); }
