@@ -14,10 +14,13 @@ import type { Step, TuDienHoi, TuDienLam } from '../types'
  *  và cái mã — còn câu mô tả đầy đủ thì để nguyên trên thẻ khối ngoài canvas, nơi
  *  Python dựng nó. Giao diện ghép chữ lấy là sớm muộn nó tả khác thứ lõi thật sự hiểu.
  */
-export default function HopNhom({ step, tuDienLam, tuDienHoi, onLuu, onDong }: {
+export default function HopNhom({ step, tuDienLam, tuDienHoi, dsMa, coMaDangXet,
+                                 onLuu, onDong }: {
   step: Step
   tuDienLam: TuDienLam
   tuDienHoi: TuDienHoi
+  dsMa: string[]
+  coMaDangXet: boolean
   onLuu: (s: Step) => void
   onDong: () => void
 }) {
@@ -57,7 +60,7 @@ export default function HopNhom({ step, tuDienLam, tuDienHoi, onLuu, onDong }: {
         a[o.ten] = o.mac_dinh
       }
     }
-    if (l.dai_luong_tu) a.gia_tri = {}
+    if (l.co_dai_luong) a.gia_tri = {}
     setDs(x => [...x, a])
     setSua(ds.length)
   }
@@ -127,7 +130,8 @@ export default function HopNhom({ step, tuDienLam, tuDienHoi, onLuu, onDong }: {
           với một khối Làm đứng riêng là cùng một thứ, nên không dựng hộp thứ hai. */}
       {sua !== null && ds[sua] && (
         <HopHanhDong step={ds[sua] as unknown as Step} tuDien={tuDienLam}
-                     tuDienHoi={tuDienHoi} onDong={() => setSua(null)}
+                     tuDienHoi={tuDienHoi} dsMa={dsMa} coMaDangXet={coMaDangXet}
+                     onDong={() => setSua(null)}
                      onLuu={s => {
                        doi(sua, s as unknown as Record<string, unknown>)
                        setSua(null)

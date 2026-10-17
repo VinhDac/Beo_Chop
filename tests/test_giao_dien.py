@@ -187,5 +187,33 @@ kiem("`cho_cau_noi` được chờ trước khi hỏi từ điển",
      re.search(r"await cho_cau_noi\(.*?\)[\s\S]{0,900}?await py\.tu_dien_hoi\(",
                bo_chu_thich_ts(doc("SoDo.tsx"))) is not None)
 
+print("\n▸ ⭐ Bảng chọn phải bày CẢ kho — nửa còn lại của lời hứa «với tới được tất cả»")
+# `test_hoi` chốt đầu Python: `tu_dien()["kho"]` chứa đủ 68 đại lượng. Chốt ấy chỉ có
+# giá nếu giao diện thật sự BÀY mảng đó ra. Nối hai đầu thì không còn khe nào cho một
+# đại lượng khai trong `hoi.py` mà người chơi không tìm thấy.
+#
+# ⚠ ĐÃ HỎNG THẬT, và hỏng LẶNG đúng kiểu: bản trước mỗi khối chỉ đọc họ của CHÍNH nó
+# (`loai.nhom[*].dai_luong`), nên 33 trong 68 đại lượng không cách nào vào được một
+# dòng điều kiện. Không lỗi, không cảnh báo — chúng chỉ đơn giản không có ở đó.
+chon = doc("components/ChonDaiLuong.tsx")
+kiem("bảng chọn đọc `td.kho`", "td.kho" in chon)
+cu = [m for m in ("loai.nhom", "nhom[0].dai_luong", "dai_luong_tu")
+      if m in bo_chu_thich_ts(tsx)]
+kiem("không chỗ nào còn đi theo đường cũ của HỌ", not cu, f"— còn {cu}")
+# Lọc CỨNG chỉ được một luật: vế phải không nhận đại lượng ĐÚNG/SAI. Lọc theo HỌ thì
+# là dựng lại bức tường.
+kiem("chỉ lọc theo KIỂU, không lọc theo họ",
+     "d.kieu === 'co_khong'" in chon and ".ho ===" not in chon)
+
+print("\n▸ Ô mã là ô CHỌN — không cho gõ một mã khối Bắt đầu chưa khai")
+for ten in ("HopDieuKien.tsx", "HopHanhDong.tsx"):
+    kiem(f"`{ten}` dùng ChonMa", "ChonMa" in doc(f"components/{ten}"))
+go_tay = [t for t in ("HopDieuKien.tsx", "HopHanhDong.tsx")
+          if 'className="o ma"' in doc(f"components/{t}")]
+kiem("không còn ô gõ mã nào", not go_tay, f"— {go_tay}")
+kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
+     "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
+     "— một nguồn duy nhất")
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

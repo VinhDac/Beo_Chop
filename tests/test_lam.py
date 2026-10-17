@@ -100,9 +100,13 @@ kiem("`tag` không bắt buộc", not lam.O_TAG["bat_buoc"],
      "— để trống thì bộ sinh mã điền số khối + điều kiện vừa khớp")
 
 print("\n▸ Giá trị vẽ dùng lại ĐÚNG kho đại lượng của khối Hỏi")
-kiem("Vẽ lên bảng trỏ về nhóm Hỏi thị trường",
-     lam.VE_BANG["dai_luong_tu"] == hoi.HOI_THI_TRUONG,
-     "— hai kho thì sớm muộn lệch nhau")
+# ⚠ Dòng cũ chốt `dai_luong_tu == HOI_THI_TRUONG`: vẽ được RSI mà KHÔNG vẽ được
+# «Tổng giá trị danh mục» — thứ ai cũng muốn nhìn. Nay chỉ còn một kho, nên ô này
+# chỉ khai "có chọn đại lượng", không khai chọn trong họ nào.
+kiem("Vẽ lên bảng có ô chọn đại lượng", lam.VE_BANG["co_dai_luong"] is True)
+kiem("và nó với tới CẢ kho, không riêng một họ",
+     len({d["ho"] for d in hoi.KHO}) == 5 and len(hoi.KHO) == 68,
+     f"— {len(hoi.KHO)} đại lượng")
 
 # ================= 2. Tám loại =================
 print("\n▸ Tám loại hành động")
@@ -244,9 +248,15 @@ print("\n▸ Vẽ lên bảng mà chưa chọn đại lượng → bộ sinh mã
 v0 = core.make_lam_step(lam.LAM_VE_BANG)
 kiem("khối mới → lỗi, và nói đúng là CHƯA CHỌN",
      any("chưa chọn đại lượng" in m for m in loi(v0)), f"— {loi(v0)}")
+# ⚠ ĐỔI LUẬT: trước đây đại lượng của HỌ khác bị chối thẳng. Nay chỉ còn một kho,
+# nên `dang_giu` được nhận — và bị chối vì LÝ DO THẬT: nó trả ĐÚNG/SAI, mà `Plot`
+# của LEAN cần một con số. Lý do đúng thì người đọc còn biết phải làm gì.
 v0["gia_tri"] = {"ma_dl": "dang_giu"}
-kiem("đại lượng của nhóm KHÁC → lỗi", any("không có đại lượng" in m for m in loi(v0)),
-     "— `dang_giu` thuộc nhóm Vị thế")
+kiem("đại lượng ĐÚNG/SAI → lỗi, và nói đúng vì sao",
+     any("ĐÚNG/SAI" in m for m in loi(v0)), f"— {loi(v0)}")
+v0["gia_tri"] = {"ma_dl": "tong_gia_tri"}
+kiem("vẽ «Tổng giá trị danh mục» → KHÔNG còn lỗi", not loi(v0),
+     "— họ Tài khoản, trước đây không vẽ được")
 v0["gia_tri"] = {"ma_dl": "bb", "tham_so": {"n": 20, "k": 2}}
 kiem("chỉ báo nhiều đường chưa chọn đường → lỗi",
      any("nhiều đường" in m for m in loi(v0)))

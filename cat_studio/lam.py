@@ -246,8 +246,10 @@ VE_BANG = {
         # nghĩa khác (chọn đường nào của chỉ báo nhiều đường, như Bollinger).
         _o("ten_duong", "Tên đường", O_CHU, "RSI"),
     ],
-    #: Giá trị vẽ = một đại lượng, chọn bằng chính bộ chọn của khối Hỏi thị trường.
-    "dai_luong_tu": "hoi_thi_truong",
+    #: Giá trị vẽ = một đại lượng bất kỳ trong kho, chọn bằng chính bảng chọn của
+    #: khối Hỏi. Trước đây khoá cứng vào họ "hỏi thị trường", nên vẽ được RSI mà
+    #: không vẽ được «Tổng giá trị danh mục» — thứ ai cũng muốn nhìn.
+    "co_dai_luong": True,
 }
 
 # ---------------------------------------------------------------------------
@@ -351,7 +353,7 @@ def tu_dien():
              "can_ma": d["can_ma"], "lean": d["lean"], "tat": d.get("tat", False),
              "nhom": d["nhom"],
              "o": d["o"], "theo_loai": d.get("theo_loai", {}),
-             "dai_luong_tu": d.get("dai_luong_tu")}
+             "co_dai_luong": d.get("co_dai_luong", False)}
             for ma, d in LOAI_LAM.items()
         ],
     }

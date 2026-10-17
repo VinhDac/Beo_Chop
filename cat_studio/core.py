@@ -228,7 +228,7 @@ def make_lam_step(loai, name=None):
           "name": name or d["nhan"]}
     for o in lam.o_cua(loai):
         st[o["ten"]] = o["mac_dinh"]
-    if d.get("dai_luong_tu"):
+    if d.get("co_dai_luong"):
         # Giá trị vẽ KHÔNG có mặc định: không có đại lượng nào đáng để đoán hộ.
         st["gia_tri"] = {}
     return st
@@ -377,7 +377,7 @@ def mo_ta_lam(step):
 
     elif t == lam.LAM_VE_BANG:
         gt = step.get("gia_tri")
-        chu = (_ve_dieu_kien(gt, d["dai_luong_tu"])
+        chu = (_ve_dieu_kien(gt)
                if isinstance(gt, dict) and gt.get("ma_dl") else "chưa chọn đại lượng")
         dong.append(f"Vẽ {chu}")
         dong.append(f"bảng «{g('bang')}» · đường «{g('ten_duong')}»")
@@ -437,7 +437,7 @@ def make_quay_ve_step(ve=None, so_vong=None, name=None):
 # mấy hàm này, không chép lại.
 
 
-def _ve_dieu_kien(ve, loai):
+def _ve_dieu_kien(ve):
     """Một VẾ của dòng điều kiện -> chữ. Dùng cho cả vế trái lẫn vế phải."""
     if not isinstance(ve, dict):
         return "?"
@@ -445,7 +445,7 @@ def _ve_dieu_kien(ve, loai):
         n = ve["so"]
         # Số nguyên thì đừng in ".0" — "RSI < 30" đọc dễ hơn "RSI < 30.0".
         return str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
-    dl = hoi.dai_luong(loai, ve.get("ma_dl"))
+    dl = hoi.dai_luong(ve.get("ma_dl"))
     if not dl:
         return str(ve.get("ma_dl") or "?")
     chu = dl["nhan"]
@@ -462,17 +462,17 @@ def _ve_dieu_kien(ve, loai):
     return ngan
 
 
-def mo_ta_dieu_kien(dk, loai):
+def mo_ta_dieu_kien(dk):
     """Một DÒNG điều kiện -> một dòng chữ trên thẻ khối."""
     if not isinstance(dk, dict):
         return "?"
-    trai = _ve_dieu_kien(dk.get("trai"), loai)
+    trai = _ve_dieu_kien(dk.get("trai"))
     phep = str(dk.get("phep") or ">")
-    dl = hoi.dai_luong(loai, (dk.get("trai") or {}).get("ma_dl"))
+    dl = hoi.dai_luong((dk.get("trai") or {}).get("ma_dl"))
     # Đại lượng ĐÚNG/SAI không so với số nào — "Đang giữ mã này là SAI".
     if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
         return f"{trai} {'là SAI' if phep == 'khong' else 'là ĐÚNG'}"
-    return f"{trai} {phep} {_ve_dieu_kien(dk.get('phai'), loai)}"
+    return f"{trai} {phep} {_ve_dieu_kien(dk.get('phai'))}"
 
 
 def mo_ta_hanh_dong(a):
@@ -488,7 +488,7 @@ def mo_ta_hanh_dong(a):
         return f"Quay về ({n} vòng)" if n else "Quay về"
     if hoi.la_loai_hoi(t):
         ds = a.get("dieu_kien") or []
-        return ds and mo_ta_dieu_kien(ds[0], t) or "chưa có điều kiện nào"
+        return ds and mo_ta_dieu_kien(ds[0]) or "chưa có điều kiện nào"
     # Hành động nằm TRONG một Nhóm chỉ được một dòng, nên nối bằng dấu chấm giữa.
     if lam.la_loai_lam(t):
         return " · ".join(mo_ta_lam(a))
@@ -521,7 +521,7 @@ def the_buoc(step):
         nhan = [hoi.LOAI_HOI[step["type"]]["nhan"]]
         if len(ds) > 1:
             nhan.append(f"{len(ds)} điều kiện · VÀ")
-        dong = ([{"text": mo_ta_dieu_kien(dk, step["type"]), "type": step["type"]}
+        dong = ([{"text": mo_ta_dieu_kien(dk), "type": step["type"]}
                  for dk in ds]
                 or [{"text": "chưa có điều kiện nào", "type": step["type"]}])
     elif lam.la_loai_lam(step.get("type")):
@@ -1186,7 +1186,7 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
     return ra
 
 
-def _soat_dai_luong(ra, sid, dau_cau, loai_hoi, ve):
+def _soat_dai_luong(ra, sid, dau_cau, ve):
     """Soát MỘT vế đại lượng -> đại lượng ấy, hay None nếu nó không có thật.
 
     `dau_cau` = phần đầu câu lỗi, để chỗ gọi tự đặt cảnh ("dòng 2:" hay tên khối).
@@ -1194,17 +1194,16 @@ def _soat_dai_luong(ra, sid, dau_cau, loai_hoi, ve):
     bảng — hai bản thì sớm muộn một bên nhận đúng cái bên kia chối."""
     if not isinstance(ve, dict):
         ve = {}
-    nhom = (hoi.LOAI_HOI.get(loai_hoi) or {}).get("nhan", loai_hoi)
     ma_dl = ve.get("ma_dl")
     if not ma_dl:
         # Chưa chọn gì (khối vừa thả ra) khác với chọn một thứ không có thật (file sửa
         # tay, hay đại lượng đã bỏ) — hai cảnh ấy nói hai câu khác nhau.
         _loi(ra, "error", sid, f"{dau_cau}chưa chọn đại lượng nào.")
         return None
-    dl = hoi.dai_luong(loai_hoi, ma_dl)
+    dl = hoi.dai_luong(ma_dl)
     if not dl:
         _loi(ra, "error", sid,
-             f'{dau_cau}không có đại lượng "{ma_dl}" trong nhóm {nhom}. Hãy chọn lại.')
+             f'{dau_cau}không có đại lượng "{ma_dl}" trong kho. Hãy chọn lại.')
         return None
     thieu = [ts["nhan"] for ts in dl["tham_so"]
              if ts["ten"] not in (ve.get("tham_so") or {})]
@@ -1245,7 +1244,15 @@ def soat_khoi_hoi(step):
         if not isinstance(dk, dict):
             _loi(ra, "error", sid, f'"{ten}" có dòng điều kiện {i + 1} hỏng.')
             continue
-        for ten_ve, ve in (("trái", dk.get("trai")), ("phải", dk.get("phai"))):
+        # ⚠ Đại lượng ĐÚNG/SAI thì KHÔNG CÓ vế phải — không phải "có mà bỏ trống".
+        # Phải biết điều ấy TRƯỚC khi soát từng vế, không thì «Đang giữ mã này» bị
+        # đòi một vế phải mà giao diện cố tình không bày ra: người dùng nhìn thấy
+        # một lỗi về thứ họ không có cách nào điền.
+        _t = hoi.dai_luong((dk.get("trai") or {}).get("ma_dl"))
+        co_ve_phai = not (_t and _t["kieu"] == hoi.KIEU_CO_KHONG)
+        ve_can_soat = (("trái", dk.get("trai")), ("phải", dk.get("phai"))) \
+            if co_ve_phai else (("trái", dk.get("trai")),)
+        for ten_ve, ve in ve_can_soat:
             if not isinstance(ve, dict):
                 _loi(ra, "error", sid,
                      f'"{ten}" dòng {i + 1}: vế {ten_ve} để trống.')
@@ -1256,9 +1263,9 @@ def soat_khoi_hoi(step):
                          f'"{ten}" dòng {i + 1}: vế trái phải là một đại lượng, '
                          f"không phải một con số.")
                 continue        # vế phải là số: hợp lệ
-            _soat_dai_luong(ra, sid, f'"{ten}" dòng {i + 1}: ', t, ve)
+            _soat_dai_luong(ra, sid, f'"{ten}" dòng {i + 1}: ', ve)
         # Đại lượng đúng/sai không so với số nào.
-        dl_trai = hoi.dai_luong(t, (dk.get("trai") or {}).get("ma_dl"))
+        dl_trai = hoi.dai_luong((dk.get("trai") or {}).get("ma_dl"))
         phep = dk.get("phep")
         if dl_trai and dl_trai["kieu"] == hoi.KIEU_CO_KHONG:
             if phep not in [m for m, _n in hoi.PHEP_CO_KHONG]:
@@ -1381,11 +1388,14 @@ def soat_ca_ro(steps):
     for s in (steps or []):
         if not hoi.la_loai_hoi(s.get("type")):
             continue
-        if not hoi.LOAI_HOI[s["type"]]["can_ma"]:
-            continue
         for i, dk in enumerate(s.get("dieu_kien") or []):
             for ve in ((dk or {}).get("trai"), (dk or {}).get("phai")):
                 if not isinstance(ve, dict) or "ma_dl" not in ve:
+                    continue
+                # Hỏi TỪNG đại lượng chứ không hỏi cả họ: «Giờ» chạy cho cả rổ vẫn
+                # là một con số duy nhất, bắt nó gõ tên mã là bắt vô lý.
+                dl = hoi.dai_luong(ve.get("ma_dl"))
+                if not dl or not dl["can_ma"]:
                     continue
                 if not str(ve.get("ma") or "").strip():
                     _loi(ra, "error", s.get("id"),
@@ -1460,8 +1470,7 @@ def soat_khoi_lam(step):
                  f"nến sau đó không được xét nữa.")
 
     elif t == lam.LAM_VE_BANG:
-        dl = _soat_dai_luong(ra, sid, f'"{ten}": ', d["dai_luong_tu"],
-                             step.get("gia_tri"))
+        dl = _soat_dai_luong(ra, sid, f'"{ten}": ', step.get("gia_tri"))
         if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
             _loi(ra, "error", sid,
                  f'"{ten}": {dl["nhan"]} chỉ trả ĐÚNG/SAI, mà Plot của LEAN cần một '

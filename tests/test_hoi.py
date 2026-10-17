@@ -39,16 +39,15 @@ def loi(step, sev="error"):
 
 # ================= 1. Luật gốc: không bịa =================
 print("\n▸ MỌI đại lượng phải khai được thứ của LEAN đứng sau nó")
-thieu = [f"{loai}/{dl['ma']}" for (loai, _m), dl in hoi.BANG_DAI_LUONG.items()
-         if not str(dl.get("lean") or "").strip()]
+thieu = [dl["ma"] for dl in hoi.KHO if not str(dl.get("lean") or "").strip()]
 kiem("không đại lượng nào thiếu ô `lean`", not thieu, f"— {thieu}" if thieu else
-     f"({len(hoi.BANG_DAI_LUONG)} đại lượng)")
+     f"({len(hoi.KHO)} đại lượng)")
 
 print("\n▸ Mấy thứ ĐÃ BỎ vì chúng bắt app tự tính — không được quay lại")
 # `ty_trong_hien_tai` = giá trị giữ ÷ tổng danh mục (ta chia), `so_ma_dang_giu` (ta
 # đếm), `so_ngay_da_giu` (ta ghi sổ), `so_nen_da_chay` (LEAN không đếm).
 for ma in ("ty_trong_hien_tai", "so_ma_dang_giu", "so_ngay_da_giu", "so_nen_da_chay"):
-    co = any(m == ma for _loai, m in hoi.BANG_DAI_LUONG)
+    co = ma in hoi.BANG_DAI_LUONG
     kiem(f"`{ma}` không có mặt", not co)
 
 print("\n▸ Phép so chỉ có SÁU — mọi phép «nhìn lại» là chỉ báo, không phải phép")
@@ -57,19 +56,29 @@ kiem("đúng sáu phép", len(hoi.PHEP_SO) == 6,
 for cam in ("cat_len", "cat_xuong", "tang", "giam"):
     kiem(f"không có phép `{cam}`", cam not in [m for m, _ in hoi.PHEP_SO])
 kiem("nhìn lại quá khứ bằng CHỈ BÁO của LEAN",
-     all(hoi.dai_luong("hoi_thi_truong", m) for m in ("max", "min", "delay")),
+     all(hoi.dai_luong(m) for m in ("max", "min", "delay")),
      "— MAX · MIN · Delay")
 
 # ================= 2. Năm loại =================
 print("\n▸ Năm loại câu hỏi")
 kiem("đủ năm", len(hoi.LOAI_HOI) == 5, f"— {list(hoi.LOAI_HOI)}")
-kiem("chỉ THỊ TRƯỜNG và DOANH NGHIỆP cho so chéo mã",
-     {k for k, v in hoi.LOAI_HOI.items() if v["hai_ve_ma"]}
-     == {hoi.HOI_THI_TRUONG, hoi.HOI_DOANH_NGHIEP})
-kiem("TÀI KHOẢN và LỊCH không có ô mã",
-     not hoi.LOAI_HOI[hoi.HOI_TAI_KHOAN]["can_ma"]
-     and not hoi.LOAI_HOI[hoi.HOI_LICH]["can_ma"],
-     "— chúng hỏi về toàn bộ, không về một mã")
+# ⚠ ĐÃ ĐỔI LUẬT, và hai dòng kiểm cũ ở đây từng khoá chặt luật cũ: "chỉ THỊ TRƯỜNG
+# và DOANH NGHIỆP cho so chéo mã" và "TÀI KHOẢN với LỊCH không có ô mã". Cả hai đều
+# là cờ `can_ma`/`hai_ve_ma` viết tay cho CẢ HỌ, mà một cờ cho cả họ thì luôn chỉ là
+# xấp xỉ — xem phép kiểm ngay dưới, nó bắt được «Phiên đang mở» nằm trong họ khai
+# "không cần mã" trong khi đoạn code của nó là `self.is_market_open(sym)`.
+print("\n▸ «Cần mã» suy từ ô `lean`, không phải cờ viết tay")
+lech = [d["ma"] for d in hoi.KHO
+        if d["can_ma"] != ("sym" in d["lean"] or "sym" in d["lean_dk"])]
+kiem("mọi đại lượng khai `can_ma` đúng với đoạn code của nó", not lech, f"— {lech}")
+kiem("«Phiên đang mở» CẦN mã", hoi.dai_luong("phien_mo")["can_ma"],
+     "— `self.is_market_open(sym)`; họ «Hỏi lịch» từng khai là không cần")
+kiem("«Giờ» KHÔNG cần mã", not hoi.dai_luong("gio")["can_ma"])
+kiem("«Giá trị N nến TRƯỚC» cần mã", hoi.dai_luong("delay")["can_ma"],
+     "— `sym` nằm ở dòng đăng ký chứ không ở biểu thức")
+kiem("họ không còn giữ cờ `can_ma`/`hai_ve_ma` nào",
+     not any(k in d for d in hoi.LOAI_HOI.values() for k in ("can_ma", "hai_ve_ma")),
+     "— bức tường nằm ở chính mấy cờ ấy")
 kiem("DOANH NGHIỆP bị tắt kèm LÝ DO",
      isinstance(hoi.LOAI_HOI[hoi.HOI_DOANH_NGHIEP]["tat"], str),
      "— dữ liệu miễn phí chỉ có coarse")
@@ -161,8 +170,31 @@ print("\n▸ Từ điển gửi được qua cầu nối")
 import json  # noqa: E402
 td = hoi.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("đủ năm loại", len(td["loai"]) == 5)
-kiem("mỗi loại có nhóm đại lượng", all(l["nhom"] for l in td["loai"]))
+kiem("đủ năm họ", len(td["loai"]) == 5)
+
+# ⚠ LỜI HỨA "với tới được TẤT CẢ". Cái bẫy ở đây không phải quên khai một đại lượng —
+# mà khai rồi, nó nằm trong `hoi.py`, bài kiểm nào cũng xanh, nhưng bảng chọn không
+# bao giờ bày nó ra, nên với người chơi nó KHÔNG TỒN TẠI. Bản trước đúng như thế: 33
+# đại lượng của bốn họ kia không cách nào vào được một dòng điều kiện của họ này.
+#
+# Nên chốt bằng một cửa DUY NHẤT: `kho`. Bảng chọn bày đúng mảng này (xem
+# `test_giao_dien`), nên mọi thứ khai trong từ điển đều tới được tay người dùng.
+print("\n▸ ⭐ MỌI đại lượng phải với tới được — không cái nào kẹt lại trong file")
+tat_ca = {dl["ma"] for d in hoi.LOAI_HOI.values()
+          for _t, ds in d["nhom"] for dl in ds}
+trong_kho = {d["ma"] for d in td["kho"]}
+ket = sorted(tat_ca - trong_kho)
+kiem("kho gửi đi đủ CẢ từ điển", not ket,
+     f"— kẹt lại: {ket}" if ket else f"({len(trong_kho)} đại lượng)")
+kiem("không cái nào thừa ra ngoài từ điển", not (trong_kho - tat_ca))
+thieu_cho = [d["ma"] for d in td["kho"] if not d.get("ho") or not d.get("nhom")]
+kiem("cái nào cũng biết chỗ nó đứng trong bảng chọn", not thieu_cho, f"— {thieu_cho}")
+la = [d["ho"] for d in td["kho"] if d["ho"] not in {l["ma"] for l in td["loai"]}]
+kiem("không cái nào trỏ về một họ không có mặt", not la, f"— {la}")
+thieu_dv = [d["ma"] for d in td["kho"]
+            if d["kieu"] == hoi.KIEU_SO and not d["don_vi"]]
+kiem("đại lượng SỐ nào cũng khai đơn vị", not thieu_dv,
+     f"— {thieu_dv}" if thieu_dv else "— để bảng chọn xếp «cùng đơn vị» lên trước")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

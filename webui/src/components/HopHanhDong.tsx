@@ -3,6 +3,7 @@ import Modal from './Modal'
 import Icon from './Icon'
 import { Ve } from './HopDieuKien'
 import { Hang, KhaiLean } from './ORuot'
+import ChonMa from './ChonMa'
 import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../types'
 
 /** HỘP THOẠI KHỐI HÀNH ĐỘNG — nơi người chơi khai một việc sẽ làm với thị trường.
@@ -18,11 +19,15 @@ import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../t
  *  ấy, chứ không phải tin suông.
  */
 
-export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: {
+export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet,
+                                     onLuu, onDong }: {
   step: Step
   tuDien: TuDienLam
   /** Cần cả từ điển Hỏi: ô «giá trị vẽ» dùng lại ĐÚNG kho đại lượng của khối Hỏi. */
   tuDienHoi: TuDienHoi
+  /** Mã khối Bắt đầu đang khai — ô «Mã» chọn trong đây, không cho gõ tay. */
+  dsMa: string[]
+  coMaDangXet: boolean
   onLuu: (s: Step) => void
   onDong: () => void
 }) {
@@ -33,9 +38,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: 
   const [gt, setGt] = useState<Record<string, unknown>>(() => ({ ...step }))
   const doi = (k: string, v: unknown) => setGt(x => ({ ...x, [k]: v }))
 
-  const loaiDL = loai?.dai_luong_tu
-    ? tuDienHoi.loai.find(l => l.ma === loai.dai_luong_tu)
-    : undefined
+  const coDL = !!loai?.co_dai_luong
 
   useEffect(() => {
     setGt(x => {
@@ -51,8 +54,8 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: 
       }
       // Khối cần một đại lượng mà chưa có thì cho sẵn cái đầu bảng: hộp mở ra với một
       // ô trống trơn thì lưu xuống là lỗi ngay, mà người chơi chẳng biết mình bỏ sót gì.
-      if (loaiDL && !(ra.gia_tri as VeDieuKien | undefined)?.ma_dl) {
-        const d = loaiDL.nhom[0].dai_luong[0]
+      if (coDL && !(ra.gia_tri as VeDieuKien | undefined)?.ma_dl) {
+        const d = tuDienHoi.kho[0]
         const ts: Record<string, number> = {}
         for (const t of d.tham_so) ts[t.ten] = t.mac_dinh
         ra.gia_tri = {
@@ -128,14 +131,23 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, onLuu, onDong }: 
 
         {dsO.map(o => (
           <Hang key={o.ten} o={o} gt={gt[o.ten]}
-                onDoi={v => (o === oLai ? doiLai(String(v)) : doi(o.ten, v))} />
+                onDoi={v => (o === oLai ? doiLai(String(v)) : doi(o.ten, v))}>
+            {/* Ô «Mã» là ô CHỌN, không phải ô gõ. Gõ tay thì gõ sai, mà cái sai ấy
+                chỉ lộ ra lúc bấm Build — bộ sinh mã báo «khối Bắt đầu chưa khai mã
+                ấy». Luật đã có sẵn trong lõi; chỗ này thôi bày cửa đi sai ra. */}
+            {o.ten === 'ma'
+              ? <ChonMa ds={dsMa} giaTri={String(gt.ma ?? '')}
+                        coMaDangXet={coMaDangXet}
+                        onDoi={m => doi('ma', m)} />
+              : undefined}
+          </Hang>
         ))}
 
-        {loaiDL && (
+        {coDL && (
           <label className="o-hang">
             <span className="nhan-o">Giá trị vẽ</span>
-            <Ve ve={(gt.gia_tri as VeDieuKien) ?? {}} loai={loaiDL} td={tuDienHoi}
-                choSo={false} choMa={loai.can_ma}
+            <Ve ve={(gt.gia_tri as VeDieuKien) ?? {}} td={tuDienHoi} dsMa={dsMa}
+                coMaDangXet={coMaDangXet} choSo={false}
                 onDoi={v => doi('gia_tri', v)} />
           </label>
         )}

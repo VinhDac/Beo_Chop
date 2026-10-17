@@ -1138,26 +1138,140 @@ mark.tim-chu {
   padding: 7px 9px; border-radius: var(--radius-sm);
   background: var(--raised); border: 1px solid var(--border-soft);
 }
+/* BA Ô, và chỉ ba. Cột giữa RỘNG CỐ ĐỊNH đủ cho sáu dấu `> < ≥ ≤ = ≠` hoặc hai nút
+   ĐÚNG/SAI; hai cột vế chia đều phần còn lại. Nhờ cột cố định mà dòng không bao giờ
+   tràn — bản trước rải mọi ô của một vế ra hàng ngang, MACD so MACD là 15 ô. */
 .dong-dk {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 150px minmax(0, 1fr) 26px;
+  grid-template-columns: 30px minmax(0, 1fr) 162px minmax(0, 1fr) 26px;
   align-items: center; gap: 8px;
 }
 .dong-dk .va {
   font: 600 11px var(--font); color: var(--accent); text-align: right;
 }
-.ve-dk { display: flex; align-items: center; gap: 5px; min-width: 0; }
-.ve-dk.mo { color: var(--dim); justify-content: center; }
-.ve-dk .o { min-width: 0; }
-.ve-dk .o.dl { flex: 1 1 auto; }
-.ve-dk .o.ma { flex: 0 0 62px; text-transform: uppercase; }
-.ve-dk .o.so { flex: 0 0 68px; text-align: right; }
-.ve-dk .o.nho { flex: 0 0 98px; font-size: 11.5px; }
-/* Ô tham số: nhãn nhỏ nằm TRÊN ô, để "Chu kỳ 14" đọc được mà không ăn chiều ngang. */
-.o-ts { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; }
-.o-ts > span { font-size: 9.5px; color: var(--dim); letter-spacing: .02em; }
+.ve-dk { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ve-dk.mo { color: var(--dim); justify-content: center; font-size: 11.5px; }
+
+/* MẶT CỦA MỘT VẾ — một cái nút mang nhãn, không phải một hàng điều khiển. */
+.nut-ve {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 5px;
+  text-align: left; cursor: pointer;
+}
+.nut-ve:hover { border-color: var(--raised-hover); background: var(--raised); }
+.ve-ten { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ve-so { flex: 1 1 auto; text-align: right; font-variant-numeric: tabular-nums; }
+.ve-trong { flex: 1 1 auto; color: var(--dim); }
+.ve-ma {
+  flex: 0 0 auto; font: 600 10.5px var(--font); letter-spacing: .02em;
+  color: var(--accent); background: var(--accent-soft);
+  padding: 1px 5px; border-radius: 3px;
+}
+.ve-ts { flex: 0 0 auto; font-size: 11px; color: var(--dim); }
+/* Bánh răng CHỈ mọc khi có gì để chỉnh — không có mã, không tham số thì không có
+   nút, và cái vắng mặt ấy tự nói "ở đây không còn gì bên trong". */
+.nut-rang { flex: 0 0 auto; color: var(--dim); }
+.nut-rang:hover { color: var(--accent); background: var(--raised); }
+
+/* Sáu DẤU liền nhau thay cho một dropdown sáu dòng chữ. */
+.cum-phep {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; background: var(--field);
+}
+.cum-phep.ck { grid-template-columns: repeat(2, 1fr); }
+.cum-phep > button {
+  padding: 5px 0; border: 0; background: transparent;
+  color: var(--muted); font: 13px var(--font); cursor: pointer;
+}
+.cum-phep.ck > button { font-size: 11px; }
+.cum-phep > button:hover { background: var(--raised); color: var(--text); }
+.cum-phep > button.dang { background: var(--accent); color: #2a1500; }
 .dong-dk > .nut-nho { color: var(--dim); }
 .dong-dk > .nut-nho:hover { color: var(--err); background: var(--raised); }
+
+/* Ô chọn mã — nguồn là khối Bắt đầu, nên không có ô gõ nào ở đây. */
+.chon-ma { flex: 1 1 auto; min-width: 0; }
+.chon-ma.rong { color: var(--warn); font-size: 11px; }
+
+/* ==========================================================================
+   BẢNG NỔI  (bảng chọn đại lượng · bảng bánh răng)
+   ==========================================================================
+   `fixed` chứ không `absolute`: thân hộp thoại có `overflow: auto`, một tấm
+   `absolute` trong đó bị cắt ở mép và cuộn theo nội dung. Xem `BangNoi.tsx`. */
+.bang-noi {
+  position: fixed; z-index: 60;
+  display: flex; flex-direction: column;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.bn-tim {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 9px; border-bottom: 1px solid var(--border-soft);
+  color: var(--dim);
+}
+.bn-tim > input {
+  flex: 1; min-width: 0; border: 0; background: transparent;
+  color: var(--text); font: 12.5px var(--font); outline: none;
+}
+.bn-so {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-bottom: 1px solid var(--border-soft);
+  font-size: 11.5px; color: var(--muted);
+}
+.bn-so > span { flex: 1; }
+.bn-so .o.so { flex: 0 0 86px; text-align: right; }
+.bn-ds { flex: 1; overflow: auto; padding: 4px; }
+.bn-rong { padding: 14px 10px; color: var(--dim); font-size: 11.5px; text-align: center; }
+/* Chân bảng NÓI THẲNG hàm LEAN của mục đang rê — cùng lời hứa như `.lean-khai`. */
+.bn-lean {
+  padding: 6px 9px; border-top: 1px solid var(--border-soft);
+  font: 10.5px var(--font-mono); color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.dl-tang {
+  padding: 6px 7px 3px; font: 600 10px var(--font);
+  color: var(--accent); letter-spacing: .03em; text-transform: uppercase;
+}
+.dl-tang.mo { color: var(--dim); }
+.dl-gap {
+  display: block; width: 100%; text-align: left;
+  padding: 6px 7px; border: 0; background: transparent; cursor: pointer;
+  font: 600 10px var(--font); color: var(--dim);
+  letter-spacing: .03em; text-transform: uppercase;
+}
+.dl-gap:hover { color: var(--text); }
+.dl-nhom {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 7px 2px; font-size: 10.5px; color: var(--dim);
+}
+.dl-muc {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 5px 7px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text);
+  font: 12.5px var(--font); text-align: left; cursor: pointer;
+}
+.dl-muc:hover { background: var(--raised-hover); }
+.dl-muc.dang { background: var(--accent-soft); color: var(--accent); }
+/* Họ cần MUA dữ liệu: bày MỜ kèm lý do đọc được TRƯỚC khi bấm — giấu đi thì người
+   chơi không bao giờ biết nó có, bày rồi bấm mới báo lỗi thì đúng thứ phải tránh. */
+.dl-muc.tat { color: var(--dim); cursor: not-allowed; }
+.dl-muc.tat:hover { background: transparent; }
+.dl-ten { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-dv { flex: 0 0 auto; font-size: 10.5px; color: var(--dim); }
+
+.bn-chinh { display: flex; flex-direction: column; }
+.bn-hang {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 9px; font-size: 12px;
+}
+.bn-hang > span { flex: 0 0 96px; color: var(--muted); }
+.bn-hang .o { flex: 1; min-width: 0; }
+.bn-hang .o.so { text-align: right; }
 
 /* ==========================================================================
    HỘP THOẠI KHỐI HÀNH ĐỘNG

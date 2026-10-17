@@ -380,6 +380,23 @@ function SoDoTrong() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /* -------------------------------------------------------------- mã của sơ đồ
+     KHỐI BẮT ĐẦU LÀ NGUỒN DUY NHẤT. Mọi ô chọn mã trong mọi hộp thoại đọc từ đây,
+     nên khai thêm một mã ở Bắt đầu là cả sơ đồ có ngay — và không hộp nào bày ra
+     được một mã mà `sinh_ma` sẽ chối. Trước đây mấy ô ấy cho gõ chữ tự do, nên sai
+     chính tả một cái là tới lúc bấm Build mới biết.
+
+     `ca_danh_muc` = chạy MỘT LƯỢT cho cả rổ, lúc ấy không có «mã đang xét» nào —
+     nên ô chọn cũng đừng bày lựa chọn ấy ra (`soat_ca_ro` bên Python bắt cùng luật). */
+  const khoiBatDau = useMemo(
+    () => nodes.map(n => (n.data as { step: Step }).step).find(s => s.kind === 'start'),
+    [nodes])
+  const dsMa = useMemo(() => {
+    const ds = (khoiBatDau?.ma as { ma?: string }[] | undefined) ?? []
+    return ds.map(x => String(x?.ma ?? '').trim()).filter(Boolean)
+  }, [khoiBatDau])
+  const coMaDangXet = (khoiBatDau?.chay_cho as string | undefined) !== 'ca_danh_muc'
+
   /* ------------------------------------------------------------ hạt nhân
      Dựng THẲNG từ khoá trên từng khối, không cất riêng ở đâu: xoá hết khối của nó là
      nó tự mất, không phải dọn bảng nào. */
@@ -1294,11 +1311,13 @@ function SoDoTrong() {
           setDangSua(null)
         }
         if (tuDien && tuDien.loai.some(l => l.ma === st.type)) {
-          return <HopDieuKien step={st} tuDien={tuDien} onLuu={luu}
+          return <HopDieuKien step={st} tuDien={tuDien} dsMa={dsMa}
+                              coMaDangXet={coMaDangXet} onLuu={luu}
                               onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'group' && tuDienLam && tuDien) {
           return <HopNhom step={st} tuDienLam={tuDienLam} tuDienHoi={tuDien}
+                          dsMa={dsMa} coMaDangXet={coMaDangXet}
                           onLuu={luu} onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'start' && tuDienBD) {
@@ -1307,6 +1326,7 @@ function SoDoTrong() {
         }
         if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
           return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}
+                              dsMa={dsMa} coMaDangXet={coMaDangXet}
                               onLuu={luu} onDong={() => setDangSua(null)} />
         }
         return null

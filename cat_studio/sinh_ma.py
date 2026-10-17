@@ -154,13 +154,13 @@ def _sym_py(nc, ve, sid):
     return f"self._ten[{m!r}]"
 
 
-def _ve_py(nc, ve, loai, sid):
+def _ve_py(nc, ve, sid):
     """Một VẾ của điều kiện -> biểu thức Python."""
     if not isinstance(ve, dict):
         return "0"
     if "ma_dl" not in ve:
         return _lit(ve.get("so", 0))
-    dl = hoi.dai_luong(loai, ve["ma_dl"])
+    dl = hoi.dai_luong(ve["ma_dl"])
     if not dl:
         nc.loi(sid, f'Không có đại lượng "{ve["ma_dl"]}".')
         return "0"
@@ -176,23 +176,22 @@ def _ve_py(nc, ve, loai, sid):
 
 def _dieu_kien_py(nc, step):
     """Khối HỎI -> (biểu thức Python, chữ mô tả để điền vào `tag`)."""
-    loai = step["type"]
     ds = step.get("dieu_kien") or []
     if not ds:
         # Cổng rỗng LUÔN khớp — `soat_khoi_hoi` đã cảnh báo, ở đây sinh đúng như thế.
         return "True", "không điều kiện"
     ve = []
     for dk in ds:
-        trai = _ve_py(nc, dk.get("trai"), loai, step["id"])
+        trai = _ve_py(nc, dk.get("trai"), step["id"])
         phep = dk.get("phep")
-        dl = hoi.dai_luong(loai, (dk.get("trai") or {}).get("ma_dl"))
+        dl = hoi.dai_luong((dk.get("trai") or {}).get("ma_dl"))
         if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
             ve.append(f"not ({trai})" if phep == "khong" else f"({trai})")
         else:
-            ve.append(f"({trai} {phep} {_ve_py(nc, dk.get('phai'), loai, step['id'])})")
+            ve.append(f"({trai} {phep} {_ve_py(nc, dk.get('phai'), step['id'])})")
     # Chữ mô tả phải nói CẢ cổng, không phải mỗi dòng đầu: một cổng hai điều kiện mà
     # `tag` chỉ ghi một dòng thì đọc nhật ký lệnh sẽ tưởng nó khớp vì lý do khác.
-    return " and ".join(ve), " và ".join(core.mo_ta_dieu_kien(dk, loai) for dk in ds)
+    return " and ".join(ve), " và ".join(core.mo_ta_dieu_kien(dk) for dk in ds)
 
 
 # ---------------------------------------------------------------------------
@@ -220,7 +219,7 @@ def _lam_py(nc, a, sid, mach):
     if t == lam.LAM_GHI_CHU and not str(core.o_lam(a, "cau") or "").strip():
         gt["cau"] = _lit(_chu_tag(nc, sid, mach))
     if t == lam.LAM_VE_BANG:
-        gt["gia_tri"] = _ve_py(nc, a.get("gia_tri"), d["dai_luong_tu"], sid)
+        gt["gia_tri"] = _ve_py(nc, a.get("gia_tri"), sid)
     try:
         return [mau.format(**gt)]
     except KeyError as e:

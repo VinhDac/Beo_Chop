@@ -123,10 +123,17 @@ export interface DaiLuong {
   nhan: string
   lean: string
   kieu: 'so' | 'co_khong'
+  /** Đơn vị — bảng chọn xếp «cùng đơn vị» lên trước nhờ ô này. Luôn có với `kieu` số. */
   don_vi: string
   tham_so: ThamSo[]
   /** Chỉ báo trả NHIỀU đường (MACD, Bollinger…): [mã, nhãn]. */
   duong?: [string, string][]
+  /** Cần CHỌN MÃ không — Python suy thẳng từ ô `lean`, không phải cờ viết tay. */
+  can_ma: boolean
+  /** Họ nó thuộc về (`hoi_thi_truong`…) — để lấy icon và câu cảnh báo dữ liệu. */
+  ho: string
+  /** Tên mục trong bảng chọn: «Giá», «Chỉ báo», «Vị thế»… */
+  nhom: string
 }
 
 /** Một VẾ của dòng điều kiện: một đại lượng, hoặc một con số. */
@@ -145,23 +152,25 @@ export interface DongDieuKien {
   phai: VeDieuKien
 }
 
+/** Một HỌ câu hỏi. KHÔNG còn là tường ngăn: hai vế của một dòng rút từ cùng MỘT
+ *  kho (`TuDienHoi.kho`), nên `Giá hiện tại > Giá vốn trung bình` vẽ được. Họ chỉ
+ *  còn làm đầu mục trong bảng chọn, và cho khối cái icon + cảnh báo dữ liệu. */
 export interface LoaiHoi {
   ma: string
   nhan: string
   mo_ta: string
   icon: string
-  can_ma: boolean
-  /** Vế phải có ô chọn mã riêng không — chỉ loại nào cho so chéo mã. */
-  hai_ve_ma: boolean
-  /** Chuỗi = loại này chưa chạy được, và đây là lý do. `false` = dùng được. */
+  /** Chuỗi = họ này chưa chạy được, và đây là lý do. `false` = dùng được. */
   tat: string | false
-  nhom: { ten: string; dai_luong: DaiLuong[] }[]
 }
 
 export interface TuDienHoi {
   phep_so: { ma: string; nhan: string }[]
   phep_co_khong: { ma: string; nhan: string }[]
   loai: LoaiHoi[]
+  /** CẢ 68 đại lượng, một mảng phẳng. Bảng chọn bày đúng mảng này — nên không có
+   *  cách nào một đại lượng khai trong `hoi.py` mà người dùng với không tới. */
+  kho: DaiLuong[]
 }
 
 /* ----------------------------- Khối HÀNH ĐỘNG ------------------------------ */
@@ -198,8 +207,8 @@ export interface LoaiLam {
   /** Ô THÊM theo lựa chọn của ô chọn đầu tiên (lệnh Giới hạn cần giá giới hạn, lệnh
    *  Dừng cần giá kích hoạt). Khoá = mã lựa chọn. */
   theo_loai: Record<string, { lean: string; o: OLam[] }>
-  /** Có khoá này tức khối cần một ĐẠI LƯỢNG, lấy từ nhóm Hỏi tên ở đây. */
-  dai_luong_tu?: string | null
+  /** Khối này có ô chọn ĐẠI LƯỢNG không (chọn trong CẢ kho, không riêng một họ). */
+  co_dai_luong?: boolean
 }
 
 export interface TuDienLam {

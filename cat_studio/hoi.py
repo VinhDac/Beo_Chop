@@ -46,6 +46,19 @@ KIEU_SO = "so"
 KIEU_CO_KHONG = "co_khong"
 
 
+def _can_ma(lean, lean_dk):
+    """Đại lượng này có cần CHỌN MÃ không — SUY THẲNG từ đoạn code của nó.
+
+    ⚠ KHÔNG phải một cờ viết tay cho cả họ. Bản trước để `can_ma` ở mức HỌ khối, và
+    một cờ cho cả họ thì luôn chỉ là xấp xỉ: «Hỏi lịch» khai `can_ma=False` trong khi
+    «Phiên đang mở» là `self.is_market_open(sym)` — nó CẦN mã, mà hộp thoại không cho
+    chọn. Suy từ `lean` thì đúng từng cái, và tự đúng khi thêm đại lượng mới.
+
+    Phải xét cả `lean_dk`: `Delay(n)` không có `sym` trong biểu thức, nhưng dòng đăng
+    ký của nó thì có — nó vẫn gắn vào một mã."""
+    return "sym" in lean or "sym" in lean_dk
+
+
 def _s(ma, nhan, lean, don_vi="", tham_so=(), lean_dk=""):
     """Một đại lượng trả về SỐ.
 
@@ -53,16 +66,22 @@ def _s(ma, nhan, lean, don_vi="", tham_so=(), lean_dk=""):
     mã viết ra đúng chuỗi này (thay `sym` và tên tham số). Nhờ vậy không còn chỗ nào
     cho một bộ chuyển đổi sai âm thầm — lời khai và đoạn code là MỘT.
 
+    `don_vi` KHÔNG phải chú thích cho vui: giao diện xếp vế phải theo nó ("cùng đơn vị
+    «giá»" lên trước). Bỏ trống là đại lượng ấy không so được với ai — nên bắt buộc,
+    và `test_hoi` canh.
+
     `lean_dk` = dòng ĐĂNG KÝ phải viết thêm, cho chỉ báo nào dựng xong còn phải nối
     vào dữ liệu (xem `delay`). `{bien}` = tên biến chỉ báo, `{res}` = độ phân giải."""
     return {"ma": ma, "nhan": nhan, "lean": lean, "kieu": KIEU_SO,
-            "don_vi": don_vi, "tham_so": list(tham_so), "lean_dk": lean_dk}
+            "don_vi": don_vi, "tham_so": list(tham_so), "lean_dk": lean_dk,
+            "can_ma": _can_ma(lean, lean_dk)}
 
 
 def _ck(ma, nhan, lean):
     """Một đại lượng trả về ĐÚNG/SAI."""
     return {"ma": ma, "nhan": nhan, "lean": lean, "kieu": KIEU_CO_KHONG,
-            "don_vi": "", "tham_so": [], "lean_dk": ""}
+            "don_vi": "", "tham_so": [], "lean_dk": "",
+            "can_ma": _can_ma(lean, "")}
 
 
 def _ts(ten, nhan, mac_dinh, nho_nhat=1, lon_nhat=5000):
@@ -104,7 +123,7 @@ CHI_BAO = [
        [_ts("n", "Chu kỳ", 14)]),
     _s("adx", "ADX — độ mạnh xu hướng", "self.adx(sym, n)", "0–100",
        [_ts("n", "Chu kỳ", 14)]),
-    _s("cci", "CCI", "self.cci(sym, n)", "", [_ts("n", "Chu kỳ", 20)]),
+    _s("cci", "CCI", "self.cci(sym, n)", "±100", [_ts("n", "Chu kỳ", 20)]),
     _s("mfi", "MFI — dòng tiền", "self.mfi(sym, n)", "0–100", [_ts("n", "Chu kỳ", 14)]),
     _s("wilr", "Williams %R", "self.wilr(sym, n)", "-100–0", [_ts("n", "Chu kỳ", 14)]),
     _s("mom", "Momentum", "self.mom(sym, n)", "giá", [_ts("n", "Chu kỳ", 10)]),
@@ -120,14 +139,14 @@ CHI_BAO = [
     # ⚠ `Delay` KHÔNG phải hàm của QCAlgorithm — grep `QCAlgorithm.Indicators.cs` ra
     # 0 chữ ký. Nó là một LỚP chỉ báo: dựng tay rồi ĐĂNG KÝ vào mã, đúng như
     # `DisplacedMovingAverageRibbon.py` của QuantConnect làm. Nên nó cần `lean_dk`.
-    _s("delay", "Giá trị N nến TRƯỚC", "Delay(n)", "",
+    _s("delay", "Giá trị N nến TRƯỚC", "Delay(n)", "giá",
        [_ts("n", "Lùi mấy nến", 1, 1, 500)],
        lean_dk="self.register_indicator(sym, {bien}, {res})"),
 ]
 
 #: Chỉ báo NHIỀU ĐƯỜNG — khai riêng vì giao diện phải bắt chọn đường.
 CHI_BAO_NHIEU_DUONG = [
-    {**_s("macd", "MACD", "self.macd(sym, nhanh, cham, tin_hieu)", "",
+    {**_s("macd", "MACD", "self.macd(sym, nhanh, cham, tin_hieu)", "giá",
           [_ts("nhanh", "Chu kỳ nhanh", 12), _ts("cham", "Chu kỳ chậm", 26),
            _ts("tin_hieu", "Chu kỳ tín hiệu", 9)]),
      "duong": [("fast", "Đường nhanh"), ("slow", "Đường chậm"),
@@ -230,11 +249,18 @@ DOANH_NGHIEP = [
 ]
 
 # ---------------------------------------------------------------------------
-# NĂM LOẠI KHỐI
+# NĂM HỌ — và chúng KHÔNG còn là tường ngăn
 # ---------------------------------------------------------------------------
-#   can_ma      hộp thoại có ô chọn MÃ không
-#   hai_ve_ma   vế phải có ô chọn mã RIÊNG không (chỉ ① — để so chéo mã)
-#   tat         loại chưa chạy được với dữ liệu miễn phí: bày mờ, nói rõ vì sao
+# Trước: hai vế của một dòng chỉ rút được trong CÙNG một họ. Nên `Giá hiện tại >
+# Giá vốn trung bình` — câu cắt lỗ cơ bản nhất — không vẽ được, chỉ vì một bên là
+# thị trường còn một bên là vị thế. LEAN không có rào ấy: cả hai chỉ là biểu thức
+# Python trên cùng một `sym`.
+#
+# Nay cả 68 đại lượng nằm trong MỘT kho (`tu_dien()["kho"]`); năm họ dưới đây còn
+# đúng hai việc: làm đầu mục trong bảng chọn, và cho khối cái icon + cảnh báo dữ
+# liệu. Ô chọn mã thì hỏi TỪNG đại lượng (`can_ma`), không hỏi họ nữa.
+#
+#   tat         họ chưa chạy được với dữ liệu miễn phí: bày mờ, nói rõ vì sao
 HOI_THI_TRUONG = "hoi_thi_truong"
 HOI_VI_THE = "hoi_vi_the"
 HOI_TAI_KHOAN = "hoi_tai_khoan"
@@ -246,7 +272,7 @@ LOAI_HOI = {
         "nhan": "Hỏi thị trường",
         "mo_ta": "giá và chỉ báo — thế giới ngoài kia đang thế nào",
         "icon": "kieu-nen",
-        "can_ma": True, "hai_ve_ma": True, "tat": False,
+        "tat": False,
         "nhom": [("Giá", GIA), ("Chỉ báo", CHI_BAO),
                  ("Chỉ báo nhiều đường", CHI_BAO_NHIEU_DUONG),
                  ("Trạng thái mã", TRANG_THAI_MA)],
@@ -255,28 +281,27 @@ LOAI_HOI = {
         "nhan": "Hỏi vị thế",
         "mo_ta": "mã này tôi đang giữ ra sao",
         "icon": "vao-lenh",
-        "can_ma": True, "hai_ve_ma": False, "tat": False,
+        "tat": False,
         "nhom": [("Vị thế", VI_THE)],
     },
     HOI_TAI_KHOAN: {
         "nhan": "Hỏi tài khoản",
         "mo_ta": "cả túi tiền tôi ra sao",
         "icon": "dat-co",
-        "can_ma": False, "hai_ve_ma": False, "tat": False,
+        "tat": False,
         "nhom": [("Tài khoản", TAI_KHOAN)],
     },
     HOI_LICH: {
         "nhan": "Hỏi lịch",
         "mo_ta": "bây giờ là lúc nào",
         "icon": "delay",
-        "can_ma": False, "hai_ve_ma": False, "tat": False,
+        "tat": False,
         "nhom": [("Thời gian", LICH)],
     },
     HOI_DOANH_NGHIEP: {
         "nhan": "Hỏi doanh nghiệp",
         "mo_ta": "công ty này tốt không — CẦN MUA dữ liệu cơ bản",
         "icon": "motSo",
-        "can_ma": True, "hai_ve_ma": True,
         "tat": "Bộ dữ liệu miễn phí chỉ có fundamental/coarse. Mấy trường này cần bộ "
                "fine của QuantConnect, phải mua — vẽ ra thì chạy không ra số.",
         "nhom": [("Định giá", DOANH_NGHIEP)],
@@ -292,18 +317,33 @@ def _bang():
     """{(loại, mã đại lượng): đại lượng} — dựng một lần, tra nhanh."""
     ra = {}
     for loai, d in LOAI_HOI.items():
-        for _ten_nhom, ds in d["nhom"]:
+        for ten_nhom, ds in d["nhom"]:
             for dl in ds:
-                ra[(loai, dl["ma"])] = dl
+                # Đóng dấu HỌ và NHÓM lên từng đại lượng. Trước đây chỉ cái khoá
+                # `(loại, mã)` giữ thông tin ấy, nên rút một đại lượng ra khỏi bảng
+                # là mất luôn chỗ nó thuộc về — mà bảng chọn thì cần biết để xếp mục.
+                dl["ho"] = loai
+                dl["nhom"] = ten_nhom
+                ra[dl["ma"]] = dl
     return ra
 
 
+#: Cả 68 đại lượng trong MỘT kho, tra thẳng bằng mã.
+#:
+#: ⚠ Khoá là MÃ, không phải `(họ, mã)`. 68 mã đều khác nhau — đã đếm, và `test_hoi`
+#: canh để nó còn đúng khi thêm đại lượng mới. Khoá ghép đôi chính là bức tường cũ:
+#: nó bắt mọi chỗ tra phải biết trước câu hỏi thuộc họ nào, mà cái biết ấy thì không
+#: có thật khi hai vế của một dòng ở hai họ khác nhau.
 BANG_DAI_LUONG = _bang()
 
+#: Thứ tự bày trong bảng chọn — giữ đúng thứ tự khai, không sắp lại theo bảng chữ cái.
+KHO = [BANG_DAI_LUONG[m] for m in
+       [dl["ma"] for d in LOAI_HOI.values() for _t, ds in d["nhom"] for dl in ds]]
 
-def dai_luong(loai, ma):
-    """Một đại lượng, hay None nếu loại/mã không có trong từ điển."""
-    return BANG_DAI_LUONG.get((loai, ma))
+
+def dai_luong(ma):
+    """Một đại lượng, hay None nếu mã không có trong kho."""
+    return BANG_DAI_LUONG.get(ma)
 
 
 def la_loai_hoi(t):
@@ -324,14 +364,18 @@ def la_chi_bao(ma):
 
 
 def tu_dien():
-    """Cả từ điển, dạng gửi được qua cầu nối cho giao diện."""
+    """Cả từ điển, dạng gửi được qua cầu nối cho giao diện.
+
+    `kho` là MỘT mảng phẳng đủ 68 đại lượng — bảng chọn bày đúng mảng này, nên không
+    có cách nào một đại lượng khai ở đây mà người dùng với không tới. `loai` chỉ còn
+    là thông tin HỌ: nhãn, icon, và câu cảnh báo dữ liệu."""
     return {
         "phep_so": [{"ma": m, "nhan": n} for m, n in PHEP_SO],
         "phep_co_khong": [{"ma": m, "nhan": n} for m, n in PHEP_CO_KHONG],
         "loai": [
             {"ma": loai, "nhan": d["nhan"], "mo_ta": d["mo_ta"], "icon": d["icon"],
-             "can_ma": d["can_ma"], "hai_ve_ma": d["hai_ve_ma"], "tat": d["tat"],
-             "nhom": [{"ten": ten, "dai_luong": ds} for ten, ds in d["nhom"]]}
+             "tat": d["tat"]}
             for loai, d in LOAI_HOI.items()
         ],
+        "kho": KHO,
     }
