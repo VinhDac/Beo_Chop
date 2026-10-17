@@ -290,6 +290,9 @@ function SoDoTrong() {
      MỘT CỬA DUY NHẤT, gọi sau MỖI thay đổi. Giao diện không tự tính số thứ tự, không
      tự ghép chữ trên thẻ, không tự soát luật nào. */
   const van = useRef('')
+  /** Hẹn giờ và SỐ LƯỢT của phép soát — xem chú thích trong hiệu ứng soát. */
+  const henSoat = useRef<number | undefined>(undefined)
+  const luotSoat = useRef(0)
   useEffect(() => {
     if (!sanSang) return
     const s = rfSangSteps(nodes)
@@ -299,10 +302,25 @@ function SoDoTrong() {
     const dau = JSON.stringify([s.map(({ pos: _p, hat_nhan: _h, ...x }) => x), e])
     if (dau === van.current) return
     van.current = dau
-    let huy = false
-    const t = setTimeout(async () => {
+    /* ⚠ KHÔNG dọn bằng hàm trả về của effect, và đây là một cuộc đua ĐÃ CẮN THẬT.
+     *
+     * Bản trước `return () => { huy = true; clearTimeout(t) }`. React chạy hàm dọn ấy
+     * TRƯỚC MỖI LẦN effect chạy lại — kể cả lần chạy lại không đổi gì. Nên chỉ cần
+     * một lượt vẽ lại bất kỳ rơi vào 60ms đang chờ (lượt tự lưu vừa trả lời, một dòng
+     * nhật ký mới…) là: dọn huỷ mất lượt soát đang hẹn, rồi effect thấy vân tay y
+     * nguyên nên thoát sớm — KHÔNG hẹn lại. Lượt soát biến mất không dấu vết.
+     *
+     * Hậu quả im lặng: khối vừa dựng mang số "–" mãi, bảng Vấn đề đứng ở lượt cũ.
+     * Bắt được lúc thử Ctrl+G: Nhóm mới gom xong không có số, mà thêm đại một khối
+     * rồi Ctrl+Z là số hiện ra đủ — tức mô hình vẫn đúng, chỉ lượt soát bị nuốt.
+     *
+     * Nay giữ hẹn trong `ref` và chỉ huỷ khi thật sự có lượt mới; kết quả cũ bị bỏ
+     * bằng số lượt, không bằng cờ của một closure đã chết. */
+    const toi = ++luotSoat.current
+    clearTimeout(henSoat.current)
+    henSoat.current = window.setTimeout(async () => {
       const r = await py.soat(s, e)
-      if (huy || !r.ok || !r.value) return
+      if (toi !== luotSoat.current || !r.ok || !r.value) return
       const kq: KetQuaSoat = r.value
       setThuTu(kq.thu_tu)
       setVanDe(kq.van_de)
@@ -312,8 +330,10 @@ function SoDoTrong() {
           ? { ...n, data: { ...n.data, card: c } } : n
       }))
     }, 60)
-    return () => { huy = true; clearTimeout(t) }
   }, [nodes, edges, sanSang, setNodes])
+
+  // Đóng cửa sổ giữa lúc đang hẹn thì bỏ hẹn — chỉ ở đây mới đúng là "dọn".
+  useEffect(() => () => clearTimeout(henSoat.current), [])
 
   const nap = useCallback(async (doc: Strategy) => {
     const r = await py.soat(doc.steps, doc.edges)
@@ -520,6 +540,109 @@ function SoDoTrong() {
     const bo = new Set(dangChon.map(n => n.id))
     setNodes(ns => ns.map(n => (bo.has(n.id) ? ganTag(n, undefined) : n)))
   }, [dangChon, chup, setNodes])
+
+  /** Ctrl+G — GOM mấy khối Hành động đang chọn thành MỘT Nhóm.
+   *
+   *  Thứ tự hành động trong Nhóm lấy theo SỐ THỨ TỰ đang hiện trên canvas, không
+   *  theo thứ tự bấm chuột: nhìn thấy "4, 5, 6" trên màn thì Nhóm phải xếp đúng thế.
+   *  Khối chưa nối vào đâu (chưa có số) xuống cuối, giữ nguyên thứ tự tương đối.
+   *
+   *  Lõi ở Python (`core.gom_nhom`): "một khối khác một hành động ở chỗ nào" là
+   *  kiến thức của lõi, và hai nơi cùng quyết một thứ là hai nơi để trôi khỏi nhau. */
+  const gomNhom = useCallback(() => void (async () => {
+    if (!dangChon.length) { await bao({ loi: 'Chọn vài khối Hành động rồi bấm Ctrl+G.' }); return }
+    const xep = [...dangChon].sort((a, b) =>
+      (thuTu[a.id] ?? 'zzz').localeCompare(thuTu[b.id] ?? 'zzz', undefined, { numeric: true }))
+    const r = await py.gom_nhom(xep.map(n => (n.data as { step: Step }).step))
+    if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'Không gom được.' }); return }
+    const { step, card } = r.value
+    chup()
+    const bo = new Set(xep.map(n => n.id))
+    // Nhóm nằm ĐÚNG CHỖ khối đầu tiên: mắt đang nhìn ở đó, đừng bắt đi tìm.
+    const p = { x: Math.round(xep[0].position.x), y: Math.round(xep[0].position.y) }
+    step.pos = [p.x, p.y]
+    // Gom NGAY TRONG một hạt nhân thì Nhóm mới vẫn thuộc hạt nhân ấy.
+    const t0 = (xep[0].data as { step: Step }).step.hat_nhan
+    if (t0 && xep.every(n => (n.data as { step: Step }).step.hat_nhan?.id === t0.id)) {
+      step.hat_nhan = t0
+    }
+    setNodes(ds => [...ds.filter(k => !bo.has(k.id)).map(k => ({ ...k, selected: false })),
+                    { id: step.id, type: 'buoc', position: p,
+                      data: { step, card }, selected: true }])
+    // DÂY NỐI: cái đi VÀO mấy khối ấy nay vào Nhóm, cái đi RA nay ra từ Nhóm, còn dây
+    // NẰM GIỮA chúng thì biến mất — chúng đã thành hành động nối tiếp bên trong Nhóm,
+    // mà trong Nhóm thì không có đường nối nào cả.
+    setEdges(es => {
+      const ra: typeof es = []
+      const da = new Set<string>()
+      for (const k of es) {
+        const vao = bo.has(k.target)
+        const roi = bo.has(k.source)
+        if (vao && roi) continue
+        if (!vao && !roi) { ra.push(k); continue }
+        const khoa = `${roi ? step.id : k.source}->${vao ? step.id : k.target}`
+        if (da.has(khoa)) continue        // nhiều dây dồn về một thì chỉ giữ một
+        da.add(khoa)
+        ra.push({ ...k, id: `${khoa}:${ra.length}`,
+                  source: roi ? step.id : k.source, target: vao ? step.id : k.target })
+      }
+      return ra
+    })
+    ghi(`gom ${xep.length} khối thành "${step.name}"`)
+  })(), [dangChon, thuTu, chup, setNodes, setEdges, ghi, bao])
+
+  /** Ctrl+Shift+G — TÁCH Nhóm đang chọn trở lại từng khối Hành động. Ngược `gomNhom`. */
+  const raNhom = useCallback(() => void (async () => {
+    const nhom = dangChon.filter(n => (n.data as { step: Step }).step.kind === 'group')
+    if (!nhom.length) { await bao({ loi: 'Chọn một khối Nhóm rồi bấm Ctrl+Shift+G.' }); return }
+    const them: RfNode[] = []
+    const noi: { dau: string; cuoi: string; cu: string }[] = []
+    for (const n of nhom) {
+      const st = (n.data as { step: Step }).step
+      const r = await py.ra_nhom(st)
+      if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'Không tách được.' }); return }
+      const { steps, the } = r.value
+      steps.forEach((s, i) => {
+        // Xếp XUỐNG DƯỚI chứ không xếp ngang: chúng nối tiếp nhau, mà cột dọc thì
+        // không đè lên khối nào đang nằm bên phải.
+        const p = { x: Math.round(n.position.x), y: Math.round(n.position.y) + i * 150 }
+        s.pos = [p.x, p.y]
+        if (st.hat_nhan) s.hat_nhan = st.hat_nhan   // tách trong hạt nhân thì ở lại đó
+        them.push({ id: s.id, type: 'buoc', position: p,
+                    data: { step: s, card: the[i] }, selected: true })
+      })
+      if (steps.length) {
+        noi.push({ cu: n.id, dau: steps[0].id, cuoi: steps[steps.length - 1].id })
+      }
+    }
+    if (!them.length) return
+    chup()
+    const bo = new Set(nhom.map(n => n.id))
+    setNodes(ds => [...ds.filter(k => !bo.has(k.id)).map(k => ({ ...k, selected: false })),
+                    ...them])
+    setEdges(es => {
+      const ra: typeof es = []
+      // Mấy khối vừa tách phải NỐI TIẾP NHAU, không thì sơ đồ đổi nghĩa: trong Nhóm
+      // chúng chạy lần lượt, ra ngoài mà không có dây thì chỉ cái đầu tiên chạy.
+      const idThem = them.map(k => k.id)
+      for (let i = 0; i + 1 < idThem.length; i++) {
+        if (noi.some(x => x.cuoi === idThem[i])) continue   // hết một Nhóm thì ngắt
+        ra.push({ id: `${idThem[i]}->${idThem[i + 1]}`, source: idThem[i],
+                  target: idThem[i + 1], sourceHandle: 'right', targetHandle: 'left',
+                  markerEnd: MUI_TEN })
+      }
+      // Dây CŨ của Nhóm: vào thì vào khối ĐẦU, ra thì ra từ khối CUỐI.
+      for (const k of es) {
+        const v = noi.find(x => x.cu === k.target)
+        const r2 = noi.find(x => x.cu === k.source)
+        if (!v && !r2) { ra.push(k); continue }
+        ra.push({ ...k, id: `${k.id}:ra`, source: r2 ? r2.cuoi : k.source,
+                  target: v ? v.dau : k.target })
+      }
+      return ra
+    })
+    ghi(`tách ${nhom.length > 1 ? nhom.length + ' Nhóm' : 'Nhóm'} thành ${them.length} khối`)
+  })(), [dangChon, chup, setNodes, setEdges, ghi, bao])
 
   /** Đổi một khoá trên khối đang chọn (màu, ghim số…). */
   const doiKhoa = useCallback((f: (s: Step) => Step) => {
@@ -861,6 +984,8 @@ function SoDoTrong() {
         xoa,
         'chon-het': () => setNodes(ns => ns.map(n => (biGiau(n.id) ? n
                                                       : { ...n, selected: true }))),
+        'gom-nhom': gomNhom,
+        'ra-nhom': raNhom,
         'gom-hat-nhan': gomHatNhan,
         'ta-hat-nhan': taHatNhan,
         'ra-hat-nhan': () => { if (trongHN) raHatNhan() },
@@ -888,7 +1013,8 @@ function SoDoTrong() {
     window.addEventListener('keydown', nghe)
     return () => window.removeEventListener('keydown', nghe)
     // `luu` / `mo` là khai báo hàm nên được nâng lên đầu — gọi được từ đây.
-  }, [hoanTac, lamLai, nhanBan, xoa, gomHatNhan, taHatNhan, trongHN, raHatNhan,
+  }, [hoanTac, lamLai, nhanBan, xoa, gomNhom, raNhom, gomHatNhan, taHatNhan,
+      trongHN, raHatNhan,
       dangChon, setNodes, biGiau, themKhoi, strategyMoi])
 
   /* ------------------------------------------------------------- bản nháp */
@@ -1018,6 +1144,13 @@ function SoDoTrong() {
       })) : [{ ten: 'chưa có khối nào khác', tat: true }] },
       { ten: 'Ngắt hết kết nối', icon: 'unlink', onClick: ngatNoi },
       { ngan: true },
+      { ten: `Gom ${so} khối thành Nhóm`, icon: 'group',
+        phim: phimCua('gom-nhom'), tat: !dangChon.length,
+        viSao: 'phải chọn ít nhất một khối Hành động',
+        onClick: gomNhom },
+      ...(st.kind === 'group' ? [{ ten: 'Tách Nhóm', icon: 'group',
+                                   phim: phimCua('ra-nhom'), onClick: raNhom } as MucPhai]
+                              : []),
       { ten: `Gom ${so} khối thành Hạt nhân`, icon: 'frame',
         phim: phimCua('gom-hat-nhan'), tat: dangChon.length < 2 || !!trongHN,
         viSao: trongHN ? 'đang ở trong một hạt nhân rồi' : 'phải chọn từ hai khối trở lên',
@@ -1032,7 +1165,7 @@ function SoDoTrong() {
     ]
   }, [coHopSua, viSaoKhongSua, menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN,
       biGiau, themKhoi, setNodes, chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan,
-      gomHatNhan, taHatNhan, nhanBan, xoa])
+      gomNhom, raNhom, gomHatNhan, taHatNhan, nhanBan, xoa])
 
   /** Lọc nhanh kèm SỐ LƯỢNG — con số là thứ nói "sơ đồ này có 12 chỗ rẽ". */
   const locHien: LocTim[] = useMemo(

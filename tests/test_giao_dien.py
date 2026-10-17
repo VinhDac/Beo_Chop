@@ -215,5 +215,33 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ Ctrl+G là của NHÓM, không phải của Hạt nhân  (như Jenifer_Studio)")
+pt = doc("phim_tat.ts")
+for ma, cum in (("gom-nhom", "ctrl+g"), ("ra-nhom", "ctrl+shift+g")):
+    kiem(f"`{ma}` giữ {cum}",
+         re.search(r"ma: '" + ma + r"'[^}]*phim: \['" + re.escape(cum) + r"'\]", pt)
+         is not None)
+# Hạt nhân chỉ là CÁCH NHÌN; cụm phím quen tay phải thuộc về việc đổi sơ đồ thật.
+for ma in ("gom-hat-nhan", "ta-hat-nhan"):
+    kiem(f"`{ma}` không giữ cụm nào",
+         re.search(r"ma: '" + ma + r"'[^}]*phim: \[\]", pt) is not None)
+sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
+kiem("hai lệnh có nối vào bảng phím",
+     "'gom-nhom': gomNhom" in sodo and "'ra-nhom': raNhom" in sodo)
+kiem("lõi gom/tách ở Python, không ở giao diện",
+     "py.gom_nhom(" in sodo and "py.ra_nhom(" in sodo,
+     "— «một khối khác một hành động ở chỗ nào» là kiến thức của lõi")
+
+print("\n▸ ⚠ Lượt soát KHÔNG được tự huỷ mình  (cuộc đua đã cắn thật)")
+# React chạy hàm dọn của effect TRƯỚC MỖI lần effect chạy lại, kể cả lần không đổi gì.
+# Dọn bằng `clearTimeout` ngay trong effect soát thì một lượt vẽ lại bất kỳ rơi vào
+# 60ms đang chờ sẽ nuốt mất lượt soát: khối mới mang số "–" mãi, bảng Vấn đề đứng ở
+# lượt cũ, mà không có lỗi nào. Giữ hẹn trong ref, bỏ kết quả cũ bằng SỐ LƯỢT.
+kiem("hẹn soát giữ trong ref", "henSoat" in sodo and "luotSoat" in sodo)
+kiem("không còn cờ `huy` của closure đã chết", "let huy = false" not in sodo)
+kiem("hiệu ứng soát không tự dọn hẹn của mình",
+     re.search(r"py\.soat\([\s\S]{0,900}?return \(\) => \{[^}]*clearTimeout", sodo)
+     is None)
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

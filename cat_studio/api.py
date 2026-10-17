@@ -297,6 +297,22 @@ class Api(NenCuaSo):
         return _ok({"step": st, "card": core.the_buoc(st)})
 
     @_bat_loi
+    def gom_nhom(self, steps, ten=None):
+        """Mấy khối Hành động đang chọn -> MỘT Nhóm (Ctrl+G)."""
+        nhom, loi = core.gom_nhom(steps, ten)
+        if loi:
+            return _loi(loi)
+        return _ok({"step": nhom, "card": core.the_buoc(nhom)})
+
+    @_bat_loi
+    def ra_nhom(self, step):
+        """Một Nhóm -> từng khối Hành động (Ctrl+Shift+G)."""
+        ds, loi = core.ra_nhom(step)
+        if loi:
+            return _loi(loi)
+        return _ok({"steps": ds, "the": [core.the_buoc(s) for s in ds]})
+
+    @_bat_loi
     def soat(self, steps, edges=None):
         """Tất cả những gì giao diện cần để vẽ lại sơ đồ sau một thay đổi.
 

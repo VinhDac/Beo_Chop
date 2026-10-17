@@ -146,5 +146,41 @@ kiem("clean_edges giữ so_vong",
      any(e.get("so_vong") == 3 for e in d3["edges"]),
      "— mất nó là vòng lặp thành cú nhảy ngang")
 
+print("\n▸ Gom thành Nhóm (Ctrl+G) và Tách Nhóm (Ctrl+Shift+G)")
+from cat_studio import hoi, lam  # noqa: E402
+
+def _hd(ma, phan):
+    s = core.make_lam_step(lam.LAM_DAT_TY_TRONG)
+    s["ma"], s["ty_trong"], s["pos"] = ma, phan, [10, 20]
+    return s
+
+g, loi = core.gom_nhom([_hd("QQQ", 0.4), _hd("XLE", 0.35)])
+kiem("gom được hai khối Hành động", not loi and core.is_group_step(g), f"— {loi}")
+kiem("tên gợi sẵn là mấy mã nó đụng tới", g["name"] == "QQQ · XLE", f'— "{g["name"]}"')
+# ⚠ Khối trong Nhóm KHÔNG được mang `kind`/`id`/`pos`: chúng là khoá của một KHỐI
+# trên canvas. Sót lại thì file phình ra những id chết, và tách ra là hai khối cùng id.
+thua = [k for a in g["actions"] for k in ("kind", "id", "pos", "hat_nhan") if k in a]
+kiem("hành động trong Nhóm không còn khoá của khối", not thua, f"— còn {thua}")
+
+ds, loi = core.ra_nhom(g)
+kiem("tách lại ra đúng hai khối", not loi and len(ds) == 2, f"— {loi}")
+kiem("mỗi khối tách ra có id RIÊNG",
+     len({s["id"] for s in ds}) == 2 and all(s["kind"] == core.KIND_ACTION for s in ds))
+kiem("gom rồi tách không mất gì",
+     [(s["ma"], s["ty_trong"]) for s in ds] == [("QQQ", 0.4), ("XLE", 0.35)])
+
+# ⚠ LỌC THEO `type`, KHÔNG THEO `kind`. Khối Hỏi và Quay về cũng mang
+# `kind = "action"` — chặn bằng `kind` là lọt cả hai, và một cổng rẽ nhánh nằm trong
+# `actions` thì bộ sinh mã duyệt qua mà không sinh ra gì. Đã hụt thật ở bản đầu.
+for ten, st in (("Xác nhận", core.make_hoi_step(hoi.HOI_THI_TRUONG)),
+                ("Quay về", core.make_quay_ve_step()),
+                ("Nhóm", core.make_group_step()),
+                ("Bắt đầu", core.make_start_step())):
+    _g, _l = core.gom_nhom([_hd("QQQ", 0.4), st])
+    kiem(f"chối khối {ten}", _g is None and "HÀNH ĐỘNG" in _l, f"— {_l or 'KHÔNG CHỐI'}")
+kiem("chối Nhóm rỗng", core.ra_nhom(core.make_group_step())[1] != "")
+kiem("chối tách một khối không phải Nhóm",
+     core.ra_nhom(_hd("QQQ", 0.4))[1] != "")
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

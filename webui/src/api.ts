@@ -96,6 +96,12 @@ export const py = {
     goi<{ step: Step; card: KetQuaSoat['the'][string] }>('khoi_moi', kind, loai),
   /** MỘT cửa soát duy nhất — gọi sau MỖI thay đổi, rồi vẽ lại cái nhận về. */
   soat: (steps: Step[], edges: Edge[]) => goi<KetQuaSoat>('soat', steps, edges),
+  /** Ctrl+G — mấy khối Hành động thành MỘT Nhóm. Lõi ở Python, không ở đây. */
+  gom_nhom: (steps: Step[], ten?: string) =>
+    goi<{ step: Step; card: KetQuaSoat['the'][string] }>('gom_nhom', steps, ten),
+  /** Ctrl+Shift+G — một Nhóm thành từng khối Hành động. Ngược `gom_nhom`. */
+  ra_nhom: (step: Step) =>
+    goi<{ steps: Step[]; the: KetQuaSoat['the'][string][] }>('ra_nhom', step),
   nhan_ban: (steps: Step[], edges: Edge[], giuHatNhan = false) =>
     goi<{ steps: Step[]; edges: Edge[]; map: Record<string, string>;
           the: KetQuaSoat['the'] }>('nhan_ban', steps, edges, giuHatNhan),

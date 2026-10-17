@@ -207,6 +207,70 @@ def make_action_step(action):
     return st
 
 
+#: Mấy khoá chỉ có nghĩa với một KHỐI trên canvas, không có nghĩa với một hành động
+#: nằm trong Nhóm: `kind`/`id` do `make_action_step` gắn, `pos`/`hat_nhan`/`mau` do
+#: giao diện gắn. Gom thì gỡ đúng mấy khoá này, tách thì cấp lại.
+_KHOA_CUA_KHOI = ("kind", "id", "pos", "hat_nhan", "mau")
+
+
+def gom_nhom(steps, ten=None):
+    """Gộp nhiều KHỐI HÀNH ĐỘNG thành MỘT Nhóm. -> (nhóm, lỗi)
+
+    BÓC KHỐI THÀNH HÀNH ĐỘNG Ở ĐÂY, không để giao diện tự làm. "Một khối khác một
+    hành động ở chỗ nào" là kiến thức của `core`, và hai nơi cùng quyết một thứ là
+    hai nơi để trôi khỏi nhau.
+
+    `name` thì GIỮ: nó là chữ người dùng đặt, nhờ vậy gom rồi tách lại không mất tên.
+
+    CHỈ GOM KHỐI HÀNH ĐỘNG. Nhét một khối Hỏi vào `actions` thì bộ sinh mã duyệt nó
+    như một hành động — mà một cổng rẽ nhánh không phải hành động, nên nó sẽ lặng lẽ
+    không sinh ra gì. Chặn ở đây, nói rõ vì sao.
+
+    ⚠ LỌC THEO `type`, KHÔNG THEO `kind`. Khối Hỏi và khối Quay về cũng mang
+    `kind = "action"` — `kind` chỉ nói "đây là một khối thường trên canvas", còn thứ
+    phân biệt việc với câu hỏi là `type`. Bản đầu của hàm này lọc theo `kind` nên nó
+    nhận cả khối Xác nhận vào Nhóm; bắt được lúc chạy thử."""
+    ds = [s for s in (steps or []) if isinstance(s, dict)]
+    if not ds:
+        return None, "Chưa chọn khối nào để gom."
+    la = [s for s in ds if not lam.la_loai_lam(s.get("type"))]
+    if la:
+        return None, ("Chỉ gom được khối HÀNH ĐỘNG. Bỏ chọn khối Bắt đầu, Xác nhận, "
+                      "Quay về và Nhóm — chúng không phải một việc để xếp vào hàng.")
+    nhom = make_group_step(ten or ten_nhom_tu(ds))
+    for s in ds:
+        nhom["actions"].append({k: v for k, v in s.items()
+                                if k not in _KHOA_CUA_KHOI})
+    return nhom, ""
+
+
+def ten_nhom_tu(ds):
+    """Tên gợi sẵn cho Nhóm vừa gom: mấy MÃ nó đụng tới, như thẻ khối vẫn hiện.
+
+    "Nhóm mới" thì phải mở ra mới biết bên trong có gì; "QQQ · XLE · GLD" thì nhìn
+    một cái là biết — và đó đúng là chữ `the_buoc` đã dựng cho Nhóm từ trước."""
+    ma = []
+    for s in ds:
+        m = str((s or {}).get("ma") or "").strip()
+        if m and m not in ma:
+            ma.append(m)
+    return " · ".join(ma) if ma else "Nhóm mới"
+
+
+def ra_nhom(step):
+    """Tách một Nhóm thành từng KHỐI HÀNH ĐỘNG. Ngược đúng `gom_nhom`. -> (ds, lỗi)
+
+    Cấp id MỚI ở đây: định dạng id là kiến thức của `new_step_id`, và một hành động
+    nằm trong Nhóm thì chưa bao giờ có id của riêng nó."""
+    if not is_group_step(step):
+        return [], "Chỉ tách được khối Nhóm."
+    ds = [make_action_step({k: v for k, v in a.items() if k != "id"})
+          for a in hanh_dong_cua(step) if isinstance(a, dict)]
+    if not ds:
+        return [], "Nhóm này chưa có hành động nào để tách."
+    return ds, ""
+
+
 def make_hoi_step(loai, name=None):
     """Một khối XÁC NHẬN rỗng của loại `loai` (xem `hoi.LOAI_HOI`)."""
     d = hoi.LOAI_HOI.get(loai)

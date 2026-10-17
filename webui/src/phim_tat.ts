@@ -44,8 +44,17 @@ export const LENH: Lenh[] = [
   { ma: 'xoa', nhan: 'Xoá khối', nhom: 'sua', phim: ['delete'] },
   { ma: 'doi-ten', nhan: 'Đổi tên khối', nhom: 'sua', phim: ['f3'] },
   { ma: 'chon-het', nhan: 'Chọn hết', nhom: 'sua', phim: ['ctrl+a'] },
-  { ma: 'gom-hat-nhan', nhan: 'Gom thành Hạt nhân', nhom: 'sua', phim: ['ctrl+g'] },
-  { ma: 'ta-hat-nhan', nhan: 'Tách khỏi Hạt nhân', nhom: 'sua', phim: ['ctrl+shift+g'] },
+  /* ⚠ Ctrl+G LÀ CỦA NHÓM, không phải của Hạt nhân — đúng như Jenifer_Studio.
+     Hai thứ nghe giống nhau mà khác hẳn: Nhóm là một KHỐI THẬT, gộp mấy hành động
+     thành một chuỗi chạy liền; Hạt nhân chỉ là CÁCH NHÌN, vẽ một khung quanh mấy
+     khối chứ sơ đồ không đổi gì. Cụm phím quen tay nhất phải thuộc về việc đổi sơ
+     đồ thật. Bản trước gắn ngược, mà Cat_Studio lại chưa hề có lệnh gom thành Nhóm:
+     dựng một Nhóm là phải thả hộp rỗng rồi thêm từng hành động trong hộp thoại.
+     Hạt nhân vẫn đủ đường: ribbon và menu chuột phải. */
+  { ma: 'gom-nhom', nhan: 'Gom thành Nhóm', nhom: 'sua', phim: ['ctrl+g'] },
+  { ma: 'ra-nhom', nhan: 'Tách Nhóm', nhom: 'sua', phim: ['ctrl+shift+g'] },
+  { ma: 'gom-hat-nhan', nhan: 'Gom thành Hạt nhân', nhom: 'sua', phim: [] },
+  { ma: 'ta-hat-nhan', nhan: 'Tách khỏi Hạt nhân', nhom: 'sua', phim: [] },
   { ma: 'ghim-so', nhan: 'Ghim số của khối', nhom: 'sua', phim: [] },
   { ma: 'ngat-noi', nhan: 'Ngắt hết kết nối', nhom: 'sua', phim: [] },
   { ma: 'ra-hat-nhan', nhan: 'Ra khỏi hạt nhân', nhom: 'sua', phim: ['escape'] },
