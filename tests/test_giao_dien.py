@@ -152,5 +152,40 @@ for n in sorted(so_khai, key=int):
          kh is not None and kh.group(1) == str(int(n) - 1),
          f"— đang là {kh.group(1)}px" if kh else "— không đúng khuôn một dòng")
 
+print("\n▸ Cửa trong `api.ts` phải có người dùng  (hàng rào không ai đứng gác)")
+# ⚠ ĐÃ HỎNG THẬT. `cho_cau_noi` — hàm chờ cầu nối pywebview — được viết ra kèm nguyên
+# một đoạn chú thích giải thích cái bẫy nó canh ("pywebview tạo sẵn `api: {}` RỖNG mà
+# TRUTHY"), rồi KHÔNG CHỖ NÀO GỌI. Thành ra `SoDo` hỏi Python ngay khung hình đầu tiên:
+# cả ba từ điển trượt, mọi khối mất hộp sửa, bản nháp không mở lên — và suốt mấy lượt
+# chạy không ai biết vì sao. `tsc` sạch: TypeScript không coi một export thừa là lỗi.
+#
+# Luật: cửa nào trong `api.ts` cũng phải có ít nhất một chỗ NGOÀI `api.ts` gọi tới.
+# Không ai cần thì xoá đi, còn hơn để nằm đó trông như đã có người canh.
+
+
+def bo_chu_thich_ts(s):
+    """Bỏ `/* … */` và `// …` — nhắc tên một hàm trong chú thích KHÔNG phải là gọi nó.
+
+    `(?<!:)` để `https://…` trong chuỗi không bị cắt mất phần sau."""
+    return re.sub(r"(?<!:)//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", s, flags=re.S))
+
+
+ngoai = ""
+for goc, _thu_muc, tep in os.walk(CSS):
+    for f in tep:
+        if f.endswith((".tsx", ".ts")) and f != "api.ts":
+            with io.open(os.path.join(goc, f), encoding="utf-8") as fh:
+                ngoai += fh.read()
+ngoai = bo_chu_thich_ts(ngoai)
+cua = sorted({a or b for a, b in re.findall(
+    r"export (?:async )?function (\w+)|export const (\w+)", doc("api.ts"))})
+chet = [c for c in cua if not re.search(r"\b" + re.escape(c) + r"\b", ngoai)]
+kiem("không cửa nào bỏ không", not chet,
+     f"— {chet} khai ra mà không ai gọi" if chet else f"({len(cua)} cửa: {cua})")
+# Chốt riêng cho ca đã hỏng: nó phải được gọi ở ĐÚNG chỗ khởi động, không phải đâu đó.
+kiem("`cho_cau_noi` được chờ trước khi hỏi từ điển",
+     re.search(r"await cho_cau_noi\(.*?\)[\s\S]{0,900}?await py\.tu_dien_hoi\(",
+               bo_chu_thich_ts(doc("SoDo.tsx"))) is not None)
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

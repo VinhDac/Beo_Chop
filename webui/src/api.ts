@@ -46,7 +46,19 @@ export function cho_cau_noi(ham = 'ping', timeout = 10000): Promise<void> {
 async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
   const api = window.pywebview?.api
   if (!api || typeof api[ten] !== 'function') {
-    return { ok: false, error: `api.py không có hàm "${ten}"` }
+    /* ⚠ HAI CHUYỆN KHÁC HẲN NHAU, ĐỪNG GỘP MỘT CÂU.
+     *
+     * Cửa không tồn tại là lỗi lập trình, phải sửa `api.py`. Còn cầu nối chưa dựng
+     * xong là gọi quá sớm, phải chờ `cho_cau_noi` — sửa chỗ GỌI, không phải `api.py`.
+     * Bản trước báo cùng một câu «api.py không có hàm …» cho cả hai, nên lần sập thật
+     * đã dẫn thẳng đi soi `api.py`, nơi ba cái hàm ấy vẫn nằm nguyên đủ.
+     *
+     * Phân biệt bằng SỐ CỬA: pywebview dựng `api = {}` rỗng rồi mới đổ hàm vào, nên
+     * rỗng tức là chưa xong. */
+    const soCua = api ? Object.keys(api).length : 0
+    return { ok: false, error: soCua === 0
+      ? `gọi "${ten}" lúc cầu nối Python chưa dựng xong`
+      : `api.py không có hàm "${ten}"` }
   }
   try {
     return (await api[ten](...args)) as Reply<T>

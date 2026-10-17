@@ -5,7 +5,7 @@ import {
   useStore,
   type Connection, type Edge as RfEdge, type Node as RfNode, type Viewport,
 } from '@xyflow/react'
-import { py } from './api'
+import { cho_cau_noi, py } from './api'
 import StepNode from './components/StepNode'
 import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
@@ -335,6 +335,27 @@ function SoDoTrong() {
 
   useEffect(() => {
     (async () => {
+      /* ⚠ CHỜ CẦU NỐI XONG RỒI MỚI HỎI PYTHON.
+       *
+       * pywebview dựng sẵn `window.pywebview.api = {}` — RỖNG nhưng TRUTHY — ngay
+       * khung hình đầu tiên, rồi mới đổ hàm vào sau. Hỏi sớm một nhịp là cả ba từ
+       * điển cùng trượt, «api.py không có hàm tu_dien_hoi», và suốt lượt chạy ấy
+       * mọi khối mất hộp sửa. Bản nháp cũng không mở lên được.
+       *
+       * `cho_cau_noi` viết ra chính vì chuyện này — nhưng KHÔNG CHỖ NÀO GỌI nó, nên
+       * cái bẫy nó canh vẫn sập. Một hàng rào không ai đứng gác thì không phải hàng
+       * rào. `test_giao_dien` nay bắt cửa chết trong `api.ts` để khỏi lặp lại.
+       *
+       * Chờ rộng tay 30 giây: máy chậm, lần chạy đầu sau khi build, LEAN đang bận —
+       * thà đợi thêm còn hơn báo hỏng oan rồi tự què cả app. */
+      try {
+        await cho_cau_noi('ping', 30000)
+      } catch {
+        await bao({ loi: 'Không kết nối được tới Python sau 30 giây. Đóng hẳn app '
+                         + 'rồi mở lại; còn lỗi thì xem Nhật ký.' })
+        setSanSang(true)
+        return
+      }
       // ⚠ TỪ ĐIỂN HỎNG THÌ BÁO, không im lặng. Thiếu một từ điển thì cả một họ
       // khối mất hộp sửa — bấm đúp không ra gì, menu mờ đi — mà chẳng có dòng nào
       // nói vì sao. Đúng kiểu hỏng LẶNG dự án này săn từ đầu.

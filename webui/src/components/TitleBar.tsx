@@ -49,8 +49,11 @@ export default function TitleBar({ tieuDe, menus, them }: {
      * cần thiết vì chữ trên dải đổi thì bề rộng đổi) — nhưng so trước rồi mới gửi. */
     const van = vung.map(v => v.join('-')).join(',') + '|' + cao
     if (van === daGui.current) return
-    daGui.current = van
-    py.vung_khong_keo(vung, cao)
+    /* ⚠ CHỈ NHỚ KHI GỬI ĐƯỢC. Lúc khởi động, cầu nối pywebview chưa có hàm nào thì
+     * lời gọi này trượt — mà nếu đã kịp nhớ `van` thì mọi lần sau đều bị chặn vì
+     * "có đổi gì đâu". Vùng kéo không bao giờ tới được Python, và thanh tiêu đề
+     * không kéo được nữa cho tới khi đổi cỡ cửa sổ. */
+    void py.vung_khong_keo(vung, cao).then(r => { if (r.ok) daGui.current = van })
   }, [])
 
   useEffect(() => {
