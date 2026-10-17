@@ -87,6 +87,32 @@ CO_SAN_MIEN_PHI = {
     "equity": ("SPY", "AAPL", "IBM", "GOOG", "QQQ", "BAC", "AIG", "EEM", "USO"),
 }
 
+#: Rổ ETF có dữ liệu CẤU THÀNH trong bộ miễn phí, và dữ liệu ấy rơi vào NGÀY NÀO.
+#: Đếm từ `Data/equity/usa/universes/etf/` trên đĩa.
+#:
+#: ⚠ VÌ SAO PHẢI KHAI CẢ NGÀY. Rổ ETF chỉ "có dữ liệu" đúng mấy ngày ấy; backtest
+#: không trùm qua ngày nào trong đó thì LEAN chọn ra RỖNG — chạy xong, không lỗi,
+#: không cảnh báo, KHÔNG MỘT LỆNH NÀO. Đã dính thật: chọn QQQ cho 2020 ra 0 lệnh,
+#: vì rổ QQQ miễn phí chỉ có đúng một ngày 30/03/2011. Cùng họ với nhãn «không có
+#: dữ liệu» của ô mã — nói TRƯỚC, đừng để người ta chạy xong rồi ngồi đoán.
+RO_ETF_CO_SAN = {
+    "SPY": ("2020-11-30", "2020-12-01"),
+    "QQQ": ("2011-03-30",),
+    "GDVD": ("2020-12-10",),
+}
+
+
+def ro_etf_trum_khoang(ma_etf, tu, den):
+    """Khoảng backtest có trùm qua ngày nào có dữ liệu rổ của ETF này không.
+
+    -> (có hay không, mấy ngày có dữ liệu). ETF lạ thì trả (None, ()) — không biết
+    chứ không phải không có, vì người dùng có thể tự tải dữ liệu rổ về."""
+    ngay = RO_ETF_CO_SAN.get(str(ma_etf or "").strip().upper())
+    if ngay is None:
+        return None, ()
+    tu, den = str(tu or ""), str(den or "")
+    return any(tu <= n <= den for n in ngay), ngay
+
 
 # ---------------------------------------------------------------------------
 # Nhịp chạy — ĐỘ PHÂN GIẢI dữ liệu và KHI NÀO sơ đồ chạy, gộp làm một
@@ -304,8 +330,9 @@ LOC_TRONG_SO = (
 RO = (
     ("etf", "Các mã trong một ETF", "ETFConstituentsUniverseSelectionModel",
      (_o_ro("ma_etf", "Mã ETF", O_CHU, "SPY",
-            goi_y="Rổ là các mã CẤU THÀNH ETF này. Bộ dữ liệu miễn phí có rổ của "
-                  "SPY (tháng 12/2020) và QQQ."),
+            goi_y="Rổ là các mã CẤU THÀNH ETF này. Bộ miễn phí CHỈ có SPY "
+                  "(30/11–01/12/2020) và QQQ (30/03/2011) — khoảng backtest phải "
+                  "trùm qua đúng mấy ngày ấy, không thì rổ rỗng."),
       # «Lấy mấy mã» CẦN một hàm lọc, nên nó không chỉ là một con số — xem
       # `LOC_TRONG_SO` ngay trên.
       _o_ro("lay", "Lấy mấy mã", O_SO, 8, don_vi="mã", nguyen=True,

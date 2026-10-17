@@ -440,5 +440,25 @@ kiem("cả dict rổ còn nguyên", _mo["ma"] == {"ro": "etf", "ma_etf": "QQQ", 
 kiem("ô con không rò ra thành khoá của khối",
      "lay" not in _mo and "ma_etf" not in _mo)
 
+print("\n▸ ⚠ Rổ ETF không có dữ liệu trong khoảng → nói TRƯỚC, đừng để chạy rồi đoán")
+# ĐÃ DÍNH THẬT. Rổ ETF miễn phí chỉ có đúng mấy NGÀY lẻ (`Data/equity/usa/universes/
+# etf/`): SPY hai ngày cuối 2020, QQQ MỘT ngày năm 2011. Backtest không trùm qua
+# ngày nào trong đó thì LEAN chọn ra rỗng — chạy xong, không lỗi, không cảnh báo,
+# KHÔNG MỘT LỆNH NÀO. Chọn QQQ cho 2020 ra đúng 0 lệnh; đổi sang SPY đúng khoảng
+# thì ra 37 lệnh trên FB · GOOGL · GOOG · AAPL, mã do LEAN tự chọn.
+kiem("QQQ chỉ có dữ liệu rổ năm 2011",
+     bat_dau.ro_etf_trum_khoang("QQQ", "2020-01-01", "2021-03-01")[0] is False)
+kiem("SPY trùm được khoảng cuối 2020",
+     bat_dau.ro_etf_trum_khoang("SPY", "2020-11-25", "2021-02-01")[0] is True)
+kiem("ETF lạ thì KHÔNG BIẾT, không phải không có",
+     bat_dau.ro_etf_trum_khoang("ARKK", "2020-01-01", "2021-01-01")[0] is None,
+     "— người dùng có thể tự tải dữ liệu rổ về")
+_bdr = core.make_start_step()
+_bdr["ma"] = {"ro": "etf", "ma_etf": "QQQ", "lay": 8}
+_bdr["khoang"] = {"tu": "2020-01-01", "den": "2021-03-01"}
+kiem("và `soat` cảnh báo TRƯỚC khi bấm Backtest",
+     any(v["severity"] == "warning" and "rỗng" in v["message"]
+         for v in core.soat_day_chuyen([_bdr])))
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

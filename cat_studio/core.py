@@ -1527,6 +1527,19 @@ def soat_day_chuyen(steps):
              "mục: model chia vốn cân lại theo tỷ trọng của nó, nên lệnh đặt tay bị "
              "gỡ ngay nhịp sau. Chọn MỘT lối.")
 
+    # RỔ ETF phải có dữ liệu RƠI VÀO khoảng backtest, không thì rổ chọn ra rỗng và
+    # cả lượt chạy lặng — chạy xong, không lỗi, không một lệnh nào. Đã dính thật.
+    ro = bat_dau.ro_cua(bd.get("ma"))
+    if ro and ro[0] == "etf":
+        k = bd.get("khoang") or {}
+        co, ngay = bat_dau.ro_etf_trum_khoang(
+            (bd.get("ma") or {}).get("ma_etf"), k.get("tu"), k.get("den"))
+        if co is False:
+            _loi(ra, "warning", bd.get("id"),
+                 f'Bộ dữ liệu miễn phí chỉ có rổ của ETF này vào {", ".join(ngay)} — '
+                 f'khoảng backtest đang chọn KHÔNG trùm qua ngày nào trong đó, nên rổ '
+                 f'sẽ rỗng và backtest chạy xong sẽ không có lệnh nào.')
+
     # Hai trạm sau cũng cần dây: không có chia vốn thì chúng không bao giờ được gọi.
     for ten_o, nhan in (("phong_rui_ro", "Phòng rủi ro"), ("dat_lenh", "Đặt lệnh")):
         if str(o_bat_dau(bd, ten_o) or "").strip() and not chia:
