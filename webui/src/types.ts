@@ -292,6 +292,21 @@ export interface KetQuaChay {
   van_de?: VanDe[]
 }
 
+/** Lượt backtest đang tới đâu.
+ *
+ *  ⚠ KHÔNG CÓ PHẦN TRĂM, và đó là cố ý: LEAN không in tiến độ ra màn hình. Bịa một
+ *  con số còn tệ hơn không có — nó hứa một cái mốc mà không ai giữ được. */
+export interface TienDoChay {
+  dang_chay: boolean
+  xong: boolean
+  giay: number
+  giai_doan: string
+  dong_cuoi: string
+  so_dong: number
+  /** Chỉ có khi `xong`. */
+  ket_qua?: KetQuaChay
+}
+
 /** LEAN đã trỏ đúng chỗ chưa. */
 export interface LeanSanSang {
   ok: boolean

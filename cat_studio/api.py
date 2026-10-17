@@ -228,7 +228,11 @@ class Api(NenCuaSo):
 
     @_bat_loi
     def chay_backtest(self, ten, steps, edges=None):
-        """Vẽ -> sinh -> CHẠY -> đọc, trong một lượt.
+        """Vẽ -> sinh -> KHỞdI ĐỘNG backtest, rồi trả về NGAY.
+
+        KHÔNG chờ chạy xong: một lượt mất từ chục giây tới vài phút, mà cầu nối chặn
+        thì giao diện không hỏi được tiến độ — nó chỉ ngồi im cho tới lúc xong, và
+        người dùng tưởng app treo. Giao diện gọi cửa này rồi hỏi `tien_do_backtest`.
 
         Sinh mã còn lỗi thì DỪNG LẠI: chạy một file sinh từ sơ đồ đã hỏng chỉ ra một
         thông báo của LEAN khó hiểu hơn hẳn bảng Vấn đề."""
@@ -236,19 +240,29 @@ class Api(NenCuaSo):
         if not kq["ok"]:
             return _ok({"ok": False, "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng "
                                             "Vấn đề.", "van_de": kq["van_de"]})
-        r = chay_lean.chay(kq["ma"], kq["ten_lop"])
-        r["van_de"] = kq["van_de"]
         # TÊN MỐC phải nói thật. LEAN KHÔNG ghi lại nó trong file kết quả, mà để trống
         # thì nó lặng lẽ lấy SPY — biểu đồ ghi "Mốc so sánh" chung chung là giấu mất
         # chuyện cỗ máy vàng đang bị đem so với cổ phiếu Mỹ.
         bd = next((s for s in (steps or []) if core.is_start_step(s)), None)
         m = str(core.o_bat_dau(bd, "moc_so_sanh") or "").strip().upper() if bd else ""
-        r["moc_ten"] = m or "SPY — LEAN tự chọn"
-        # Gửi kèm luôn MÃ ĐÃ SINH: tab Mã của màn Kết quả phải bày đúng file vừa chạy,
-        # chứ không phải sinh lại một bản khác rồi bảo là nó.
-        r["ma"] = kq["ma"]
-        r["ten_lop"] = kq["ten_lop"]
-        return _ok(r)
+        # Những thứ chỉ LÚC SINH mới biết, giữ lại để gắn vào kết quả lúc xong.
+        self._kem = {"van_de": kq["van_de"], "ma": kq["ma"],
+                     "ten_lop": kq["ten_lop"],
+                     "moc_ten": m or "SPY — LEAN tự chọn"}
+        return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
+
+    @_bat_loi
+    def tien_do_backtest(self):
+        """Lượt chạy đang tới đâu — giao diện hỏi mỗi nửa giây.
+
+        ⚠ KHÔNG CÓ PHẦN TRĂM, và đó là cố ý: LEAN không in tiến độ ra màn hình
+        (`BacktestProgressMonitor` chỉ đẩy số ấy vào gói gửi lên đám mây). Bịa một con
+        số còn tệ hơn không có — nó hứa một cái mốc mà không ai giữ được."""
+        t = chay_lean.trang_thai()
+        kq = t.pop("kq", None)
+        if t["xong"] and isinstance(kq, dict):
+            t["ket_qua"] = {**kq, **getattr(self, "_kem", {})} if kq.get("ok") else kq
+        return _ok(t)
 
     @_bat_loi
     def tu_dien_bat_dau(self):

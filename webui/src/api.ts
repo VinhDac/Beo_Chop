@@ -10,7 +10,7 @@
 import type {
   Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
   Step, StepKind, Strategy,
-  TuDienBatDau, TuDienHoi, TuDienLam,
+  TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -72,9 +72,12 @@ export const py = {
   /** LEAN đã trỏ đúng chỗ chưa — hỏi trước khi bấm Chạy. */
   lean_san_sang: () => goi<LeanSanSang>('lean_san_sang'),
   lean_dat_goc: (duong: string) => goi<LeanSanSang>('lean_dat_goc', duong),
-  /** Vẽ -> sinh -> chạy -> đọc, trong một lượt. */
+  /** Vẽ -> sinh -> KHỎI ĐỘNG backtest. Trả về NGAY, chưa phải kết quả. */
   chay_backtest: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<KetQuaChay>('chay_backtest', ten, steps, edges),
+    goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
+      'chay_backtest', ten, steps, edges),
+  /** Lượt chạy đang tới đâu — hỏi mỗi nửa giây. */
+  tien_do_backtest: () => goi<TienDoChay>('tien_do_backtest'),
 
   // --- sơ đồ ---
   khoi_moi: (kind: StepKind, loai?: string) =>

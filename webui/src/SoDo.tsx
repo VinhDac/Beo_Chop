@@ -22,13 +22,14 @@ import HopBatDau from './components/HopBatDau'
 import HopSinhMa from './components/HopSinhMa'
 import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
+import HopTienDo from './components/HopTienDo'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  KetQuaChay, KetQuaSinh, TuDienBatDau, TuDienLam, VanDe,
+  KetQuaChay, KetQuaSinh, TienDoChay, TuDienBatDau, TuDienLam, VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -220,6 +221,8 @@ function SoDoTrong() {
   const [ketQua, setKetQua] = useState<KetQuaChay | null>(null)
   const [moKetQua, setMoKetQua] = useState(false)
   const [dangChay, setDangChay] = useState(false)
+  /** Tiến độ lượt backtest đang chạy — null = không hiện hộp. */
+  const [tienDo, setTienDo] = useState<TienDoChay | null>(null)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -995,18 +998,31 @@ function SoDoTrong() {
           return
         }
       }
+      const r = await py.chay_backtest(ten || 'Co May', rfSangSteps(nodes),
+                                       rfSangEdges(edges))
+      if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không chạy được' }); return }
+      if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
+
+      // Backtest chạy ở LUỒNG RIÊNG bên Python, nên ở đây chỉ HỎI mỗi nửa giây.
+      // Chặn thật thì cửa sổ đứng im không vẽ gì, và người dùng tưởng app treo.
       setDangChay(true)
-      try {
-        const r = await py.chay_backtest(ten || 'Co May', rfSangSteps(nodes),
-                                         rfSangEdges(edges))
-        if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không chạy được' }); return }
-        if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
-        setKetQua(r.value)
-        setMoKetQua(true)
-        ghi(`chạy ${r.value.ten_lop ?? ''}`)
-      } finally {
+      setTienDo({ dang_chay: true, xong: false, giay: 0, giai_doan: '',
+                  dong_cuoi: '', so_dong: 0 })
+      const nhip = window.setInterval(() => void (async () => {
+        const t = await py.tien_do_backtest()
+        if (!t.ok || !t.value) return
+        setTienDo(t.value)
+        if (!t.value.xong) return
+        window.clearInterval(nhip)
         setDangChay(false)
-      }
+        setTienDo(null)
+        const kq = t.value.ket_qua
+        if (!kq) { await bao({ loi: 'chạy xong mà không có kết quả' }); return }
+        if (!kq.ok) { await bao({ loi: kq.loi }); return }
+        setKetQua(kq)
+        setMoKetQua(true)
+        ghi(`backtest ${kq.ten_lop ?? ''}`)
+      })(), 500)
     })(),
     moKetQua: () => setMoKetQua(true),
     coKetQua: !!ketQua,
@@ -1242,6 +1258,9 @@ function SoDoTrong() {
         }
         return null
       })()}
+      {tienDo && (
+        <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} />
+      )}
       {moKetQua && ketQua && (
         <HopKetQua kq={ketQua} onDong={() => setMoKetQua(false)}
                    onChayLai={() => { setMoKetQua(false); viec.chay() }} />

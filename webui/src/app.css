@@ -1435,3 +1435,41 @@ mark.tim-chu {
 .dong-hd .nut-nho { padding: 1px 6px; font-size: 11px; }
 .dong-hd .nut-nho.bo { color: var(--dim); }
 .dong-hd .nut-nho.bo:hover { color: var(--err); background: var(--raised-hover); }
+
+/* ==========================================================================
+   HỘP TIẾN ĐỘ BACKTEST
+   ==========================================================================
+   ⚠ KHÔNG có thanh phần trăm. LEAN không in tiến độ ra màn hình, nên con số nào ở
+   đây cũng là bịa — mà thanh chạy tới 90% rồi đứng im hai phút còn tệ hơn không có
+   thanh nào. Thay vào đó: thanh chạy qua lại (nói "còn sống"), giai đoạn thật, thời
+   gian trôi, và dòng LEAN vừa in. */
+.hop-td { display: flex; flex-direction: column; gap: 10px; }
+.td-dau { display: flex; align-items: baseline; gap: 8px; }
+.td-dau > b { font-size: 14px; color: var(--accent); }
+.td-dau .day { flex: 1; }
+.td-giay { font: 12px var(--font-mono); color: var(--muted); }
+.td-thanh {
+  height: 4px; border-radius: 2px; overflow: hidden;
+  background: var(--raised);
+}
+.td-thanh > i {
+  display: block; width: 34%; height: 100%; border-radius: 2px;
+  background: var(--accent);
+  animation: td-chay 1.25s ease-in-out infinite;
+}
+@keyframes td-chay {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+/* Các bước xếp ngang: đã qua thì mờ, đang làm thì sáng, chưa tới thì rất mờ. */
+.td-buoc { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
+.td-buoc > span { color: var(--dim); opacity: .45; }
+.td-buoc > span.qua { opacity: 1; color: var(--muted); }
+.td-buoc > span.dang { opacity: 1; color: var(--accent); font-weight: 600; }
+.td-dong {
+  padding: 7px 9px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft);
+  font: 10.5px/1.5 var(--font-mono); color: var(--muted);
+  word-break: break-all; min-height: 30px;
+}
+.td-chan { font-size: 10.5px; color: var(--dim); }

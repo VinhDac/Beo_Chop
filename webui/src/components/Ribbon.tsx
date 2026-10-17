@@ -155,18 +155,21 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
           tự việc: sinh -> chạy -> tối ưu -> thật -> đọc, giống thanh của QuantConnect. */}
       </div>
 
+      {/* TÊN TIẾNG ANH, cố ý: đây là thuật ngữ chuẩn của nghề — Build, Backtest,
+          Optimize, Live — và là đúng chữ người trong nghề đọc trên bất cứ nền nào
+          khác. Dịch ra tiếng Việt thì phải học lại khi sang QuantConnect. Nghĩa tiếng
+          Việt nằm ở chú giải khi rê chuột. */}
       <Nhom ten="Cỗ máy" chinh>
-        <Nut ten="Sinh mã" icon="gear" onClick={v.sinhMa}
-             title="Sơ đồ này thành thuật toán LEAN Python — xem trước rồi lưu ra file" />
-        <Nut ten={v.dangChay ? 'Đang chạy…' : 'Chạy'} icon="chay"
-             onClick={v.chay} tat={v.dangChay}
-             title="Sinh mã rồi chạy backtest bằng LEAN trên máy này" />
-        <Nut ten="Tối ưu" icon="branch" tat
-             title="Quét tham số — CHƯA CÓ. Cần mở ô số cho phép gõ tên tham số trước." />
-        <Nut ten="Chạy thật" icon="an-lenh" tat
-             title="Giao dịch bằng tiền thật — CHƯA CÓ. Cần tài khoản sàn." />
-        <Nut ten="Kết quả" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
-             title="Mở lại kết quả lượt chạy vừa rồi" />
+        <Nut ten="Build" icon="gear" onClick={v.sinhMa}
+             title="Build — sơ đồ này thành thuật toán LEAN Python, xem trước rồi lưu ra file" />
+        <Nut ten="Backtest" icon="chay" onClick={v.chay} tat={v.dangChay}
+             title="Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này" />
+        <Nut ten="Optimize" icon="branch" tat
+             title="Optimize — quét tham số tìm bộ tốt nhất. CHƯA CÓ: cần mở ô số cho gõ tên tham số trước." />
+        <Nut ten="Live" icon="an-lenh" tat
+             title="Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn." />
+        <Nut ten="Results" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
+             title="Results — mở lại kết quả lượt backtest vừa rồi" />
       </Nhom>
     </div>
   )

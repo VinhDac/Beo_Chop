@@ -27,6 +27,8 @@ import re
 import subprocess
 import sys
 import sysconfig
+import threading
+import time
 
 from . import luu_tru
 
@@ -36,6 +38,78 @@ KHOA_LEAN = "lean_goc"
 #: Trần thời gian một lượt backtest. Quá thì giết — thà báo "chạy lâu quá" còn hơn
 #: treo cả app vô thời hạn.
 HAN_GIO = 900
+
+
+#: GIAI ĐOẠN — đọc từ dòng TRACE của LEAN.
+#:
+#: ⚠ LEAN **không in phần trăm** ra màn hình: `BacktestProgressMonitor` chỉ đẩy số ấy
+#: vào gói kết quả gửi lên đám mây. Nên ở đây KHÔNG bịa một con số tiến độ — chỉ nói
+#: đang ở giai đoạn nào và đã chạy bao lâu. Thanh tiến độ giả còn tệ hơn không có:
+#: nó hứa một cái mốc mà không ai giữ được.
+#: ⚠ MỐC PHẢI ĐỦ DÀI. Hai lần đầu tôi lấy tên lớp trống không và cả hai đều bắn sớm:
+#: `AlgorithmManager` khớp luôn dòng `CreateTokenBucket` — dòng TRACE thứ BA, lúc LEAN
+#: còn chưa nạp Python; `BacktestingResultHandler` thì xuất hiện TRƯỚC `AlgorithmManager
+#: .Run`. Hậu quả: hộp báo "Chạy backtest" trong khi LEAN mới đang khởi động.
+#: Thứ tự thật, đọc từ nhật ký một lượt chạy:
+#:   Engine.Main · JobQueue.NextJob · AlgorithmManager.CreateTokenBucket · Engine.Run ·
+#:   PythonInitializer · AlgorithmPythonWrapper · LocalObjectStore ·
+#:   HistoryProviderManager · BaseSetupHandler.Setup · BacktestingResultHandler ·
+#:   AlgorithmManager.Run · … · DataMonitor.GenerateReport · BacktestingResultHandler.Exit
+GIAI_DOAN = (
+    ("BacktestingResultHandler.Exit", "Dựng kết quả"),
+    ("DataMonitor.GenerateReport", "Dựng kết quả"),
+    ("AlgorithmManager.Run", "Chạy backtest"),
+    ("BaseSetupHandler.Setup", "Chuẩn bị thuật toán"),
+    ("HistoryProviderManager", "Chuẩn bị thuật toán"),
+    ("LocalObjectStore", "Chuẩn bị thuật toán"),
+    ("AlgorithmPythonWrapper", "Nạp thuật toán Python"),
+    ("PythonInitializer", "Khởi động Python"),
+    ("JobQueue", "Khởi động LEAN"),
+    ("Engine.Main", "Khởi động LEAN"),
+)
+
+#: Trạng thái lượt chạy ĐANG diễn ra. Một lượt một lúc — chạy hai backtest song song
+#: thì chúng ghi đè `config.json` của nhau trong cùng thư mục LEAN.
+_KHOA = threading.Lock()
+#: `gd_i` = chỉ số giai đoạn trong `GIAI_DOAN` (bảng xếp từ MUỘN tới SỚM), dùng để
+#: giai đoạn KHÔNG BAO GIỜ ĐI LÙI. Đã lùi thật: dòng lỗi GIL lúc tắt có chữ
+#: `PythonInitializer`, nên sau khi báo "Dựng kết quả" nó nhảy về "Khởi động Python"
+#: — người xem tưởng backtest chạy lại từ đầu.
+_TRANG_THAI = {"dang_chay": False, "xong": False, "bat_dau": 0.0,
+               "giai_doan": "", "gd_i": 99, "dong_cuoi": "", "so_dong": 0,
+               "kq": None}
+
+
+def _dat(**kw):
+    with _KHOA:
+        _TRANG_THAI.update(kw)
+
+
+def trang_thai():
+    """Ảnh chụp trạng thái lượt chạy -> giao diện hỏi mỗi nửa giây."""
+    with _KHOA:
+        t = dict(_TRANG_THAI)
+    t["giay"] = round(time.time() - t["bat_dau"], 1) if t["bat_dau"] else 0
+    return t
+
+
+def _doc_dan(ten_luong, dong):
+    """Một dòng LEAN vừa in -> cập nhật giai đoạn. Gọi từ luồng đọc."""
+    s = dong.strip()
+    if not s:
+        return
+    for i, (khoa, nhan) in enumerate(GIAI_DOAN):
+        if khoa in s:
+            with _KHOA:
+                # Bảng xếp từ MUỘN tới SỚM, nên chỉ số NHỎ hơn = giai đoạn MUỘN hơn.
+                if i <= _TRANG_THAI["gd_i"]:
+                    _TRANG_THAI["giai_doan"] = nhan
+                    _TRANG_THAI["gd_i"] = i
+            break
+    with _KHOA:
+        _TRANG_THAI["so_dong"] += 1
+        # Cắt phần dấu thời gian dài ngoằng ở đầu, giữ phần người đọc hiểu được.
+        _TRANG_THAI["dong_cuoi"] = re.sub(r"^\S+\s+TRACE::\s*", "", s)[:160]
 
 
 def _duong_launcher(goc):
@@ -370,16 +444,35 @@ def chay(ma, ten_lop):
         json.dump(cfg, f, indent=2)
 
     moi_truong, _dll = _moi_truong()
+    # ĐỌC TỪNG DÒNG thay vì chờ xong rồi mới đọc một thể: có đọc thì mới nói được
+    # «đang nạp thuật toán Python» hay «đang chạy backtest», và người dùng mới biết
+    # cái cửa sổ im lìm kia còn sống.
+    dong = []
     try:
-        r = subprocess.run([sb["launcher"]], cwd=thu_muc_exe, env=moi_truong,
-                           capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=HAN_GIO)
-        man_hinh = (r.stdout or "") + (r.stderr or "")
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "loi": f"LEAN chạy quá {HAN_GIO // 60} phút nên bị dừng. "
-                                    f"Thử rút ngắn khoảng ngày hoặc đổi nhịp thưa hơn."}
+        p = subprocess.Popen([sb["launcher"]], cwd=thu_muc_exe, env=moi_truong,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             text=True, encoding="utf-8", errors="replace",
+                             bufsize=1)
     except OSError as e:
         return {"ok": False, "loi": f"Không chạy được LEAN: {e}"}
+
+    het = time.time() + HAN_GIO
+    try:
+        for d in p.stdout:
+            dong.append(d)
+            _doc_dan(ten_lop, d)
+            if time.time() > het:
+                p.kill()
+                return {"ok": False,
+                        "loi": f"LEAN chạy quá {HAN_GIO // 60} phút nên bị dừng. "
+                               f"Thử rút ngắn khoảng ngày hoặc đổi nhịp thưa hơn."}
+    finally:
+        try:
+            p.stdout.close()
+            p.wait(timeout=20)
+        except Exception:
+            p.kill()
+    man_hinh = "".join(dong)
 
     d, nk = _doc_ket_qua(ra_thu_muc, ten_lop)
     if d is None:
@@ -388,3 +481,32 @@ def chay(ma, ten_lop):
                 "nhat_ky": man_hinh[-20000:]}
     return {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
             **_gon(d, nk or man_hinh)}
+
+
+def bat_dau_chay(ma, ten_lop):
+    """Khởi động một lượt backtest trong LUỒNG RIÊNG rồi trả về NGAY.
+
+    Vì sao không chạy thẳng trong cú gọi cầu nối: một lượt backtest mất từ chục giây
+    tới vài phút, mà cầu nối chặn thì giao diện không hỏi được tiến độ — nó chỉ ngồi
+    im cho tới lúc xong. Nay giao diện gọi hàm này, rồi hỏi `trang_thai()` mỗi nửa
+    giây cho tới khi `xong`.
+
+    -> {ok, loi} — mới là "đã khởi động được chưa", chưa phải kết quả backtest."""
+    with _KHOA:
+        if _TRANG_THAI["dang_chay"]:
+            return {"ok": False, "loi": "Đang có một lượt chạy rồi — chờ nó xong đã."}
+        _TRANG_THAI.update({"dang_chay": True, "xong": False, "bat_dau": time.time(),
+                            "giai_doan": "Khởi động LEAN", "gd_i": 99,
+                            "dong_cuoi": "", "so_dong": 0, "kq": None})
+
+    def chay_nen():
+        try:
+            kq = chay(ma, ten_lop)
+        except Exception as e:                      # noqa: BLE001
+            # Luồng nền mà ném thì KHÔNG ai thấy: không có chỗ nào bắt, và giao diện
+            # sẽ hỏi tiến độ mãi mãi. Nên gói lại thành một kết quả hỏng tử tế.
+            kq = {"ok": False, "loi": f"{type(e).__name__}: {e}"}
+        _dat(dang_chay=False, xong=True, kq=kq)
+
+    threading.Thread(target=chay_nen, daemon=True).start()
+    return {"ok": True, "loi": ""}
