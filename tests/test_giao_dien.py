@@ -215,6 +215,30 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ Menu thanh tiêu đề — đường LUÔN CÓ, khác ribbon (ribbon ẩn bớt khi hẹp)")
+# ⚠ Trước đây chỉ MỘT nhóm «Cat Studio» với bốn mục, không mục nào hiện phím tắt và
+# không mục nào mờ được. Hậu quả: ở cửa sổ 1020px (sàn của app) ribbon ẩn mất nhóm
+# Sửa, Hoàn tác và Strategy — lúc ấy Hoàn tác, Nhân bản, Xoá, Lưu KHÔNG còn chỗ nào
+# bấm được. Jenifer_Studio có File/Edit/View/Help đúng vì lẽ ấy.
+sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
+api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
+nhom_menu = re.findall(r"\{ ten: '(\w+)', muc: \[", sodo)
+kiem("có bốn nhóm menu", len(nhom_menu) == 4, f"— {nhom_menu}")
+# Phím tắt hiện cạnh mục là cách DUY NHẤT người dùng học được chúng.
+kiem("mục menu có hiện phím tắt", sodo.count("phim: phimCua(") >= 10,
+     f"— {sodo.count('phim: phimCua(')} mục")
+# Mờ mà không nói vì sao là thứ bực nhất trong một cái menu.
+mo = re.findall(r"tat: [^,\n]+,\s*\n?\s*viSao:", sodo)
+kiem("mục nào mờ cũng kèm lý do", len(mo) >= 6, f"— {len(mo)} mục")
+kiem("có cửa mở thư mục dữ liệu", "mo_thu_muc" in sodo and "mo_thu_muc" in api_py,
+     "— thả một Strategy ai gửi vào, hay chép file kết quả cho người khác")
+# Jenifer có `truocKhiDong`; Cat_Studio CỐ Ý không — xem chú thích trong TitleBar.
+# (bỏ chú thích trước khi tìm: chính câu GIẢI THÍCH vì sao không có nó lại nhắc tên
+#  nó, và một phép kiểm bắt nhầm lời kể của mình thì đỏ mãi mà chẳng có gì sai)
+tb = bo_chu_thich_ts(doc("components/TitleBar.tsx"))
+kiem("không thêm prop `truocKhiDong` không ai dùng", "truocKhiDong" not in tb,
+     "— app tự lưu bản nháp 1,2s/lần nên ✕ không mất gì; hỏi là nhát bấm thừa")
+
 print("\n▸ ⚠ MỖI CỬA SỔ MỘT js_api — dùng chung là bốn lỗi cùng lúc")
 # Docstring `NenCuaSo` kể ba, và cả ba đã xảy ra thật: ✕ của cửa sổ thứ hai đóng CỬA
 # SỔ CHÍNH; kéo thanh tiêu đề của nó kéo nhầm cửa sổ; hai cửa sổ ghi đè vùng-cấm của

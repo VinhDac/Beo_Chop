@@ -16,6 +16,8 @@ Hai luật của file này:
 import functools
 import inspect
 import json
+import os
+import subprocess
 import sys
 import threading
 import time
@@ -628,6 +630,33 @@ class Api(NenCuaSo):
             qc_api.QC(*qc_api.doc_khoa()).kiem_khoa()
         except qc_api.LoiQC as e:
             return _loi(str(e))
+        return _ok(True)
+
+    @_bat_loi
+    def mo_thu_muc(self, loai="goc"):
+        """Mở một thư mục dữ liệu bằng Explorer của Windows.
+
+        VÌ SAO CÓ CỬA NÀY: app ghi Strategy, mã sinh ra, kết quả backtest và nhật ký
+        vào `du_lieu/`, mà người dùng thì không có đường nào tới đó ngoài việc tự đi
+        tìm xem app nằm ở ổ nào. Chép một file kết quả cho người khác xem, hay thả
+        một Strategy ai gửi vào — hai việc rất thường, và cả hai đang phải làm vòng.
+
+        ⚠ CHỈ MỞ MẤY THƯ MỤC KHAI SẴN. `loai` tới từ giao diện; ghép thẳng vào đường
+        dẫn là mở bất cứ chỗ nào trên máy."""
+        bang = {
+            "goc": luu_tru.goc,
+            "strategy": luu_tru.thu_muc_strategy,
+            "ma": luu_tru.thu_muc_ma,
+            "ket_qua": luu_tru.thu_muc_ket_qua,
+        }
+        f = bang.get(str(loai or "goc"))
+        if not f:
+            return _loi(f'Không có thư mục "{loai}".')
+        d = f()
+        if not os.path.isdir(d):
+            return _loi(f"Chưa có thư mục {d}.")
+        # `explorer.exe` trả mã thoát 1 KỂ CẢ KHI MỞ ĐƯỢC — đừng đọc mã thoát của nó.
+        subprocess.Popen(["explorer.exe", os.path.normpath(d)])
         return _ok(True)
 
     @_bat_loi

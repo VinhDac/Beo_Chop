@@ -1312,15 +1312,80 @@ function SoDoTrong() {
   ]
   const hnDangO = trongHN ? hatNhan.get(trongHN) : undefined
 
+  /* MENU TRÊN THANH TIÊU ĐỀ — bốn nhóm, theo lối Jenifer_Studio.
+   *
+   *  ⚠ Trước đây chỉ có MỘT nhóm «Cat Studio» với bốn mục, không mục nào hiện phím
+   *  tắt và không mục nào mờ đi được. Hậu quả: mọi việc chỉ có một đường duy nhất là
+   *  ribbon — mà ribbon ẩn bớt nhóm khi cửa sổ hẹp, nên ở cửa sổ 1020px thì Hoàn tác,
+   *  Nhân bản, Xoá, Lưu không còn chỗ nào bấm được nữa. Menu là đường LUÔN CÓ.
+   *
+   *  Mỗi mục kèm `phim` (nhãn thôi — phím thật do chỗ nghe bàn phím lo) vì đó là cách
+   *  duy nhất người dùng HỌC được phím tắt, và kèm `viSao` khi mờ: mờ mà không nói vì
+   *  sao là thứ bực nhất trong một cái menu. */
   const menus: NhomMenu[] = [
-    { ten: 'Cat Studio', muc: [
+    { ten: 'File', muc: [
+      { ten: 'Strategy mới', icon: 'file', phim: phimCua('strategy-moi'),
+        onClick: strategyMoi },
+      { ten: 'Kho Strategy…', icon: 'folder', phim: phimCua('mo-strategy'),
+        onClick: () => setMoKho(true) },
+      { ngan: true },
+      { ten: 'Lưu', icon: 'save', phim: phimCua('luu'), onClick: () => void luu() },
+      { ten: 'Lưu thành…', icon: 'copy', onClick: () => void luuThanh() },
+      { ngan: true },
+      // Thả một Strategy ai gửi vào, hay chép một file kết quả cho người khác xem —
+      // hai việc rất thường, mà trước đây phải tự đi tìm app nằm ở ổ nào.
+      { ten: 'Mở thư mục', icon: 'folder', con: ([
+        ['Strategy', 'strategy'], ['Mã sinh ra', 'ma'],
+        ['Kết quả backtest', 'ket_qua'], ['Tất cả dữ liệu', 'goc'],
+      ] as [string, string][]).map(([ten, loai]) => ({
+        ten, onClick: () => void py.mo_thu_muc(loai).then(r => {
+          if (!r.ok) void bao({ loi: r.error ?? 'không mở được thư mục' })
+        }),
+      })) },
+      { ngan: true },
+      { ten: 'Cài đặt…', icon: 'gear', phim: phimCua('cai-dat'),
+        onClick: () => setMoCaiDat(true) },
+      { ten: 'Thoát', onClick: () => { void py.cua_so_dong() } },
+    ] },
+    { ten: 'Sửa', muc: [
+      { ten: 'Hoàn tác', icon: 'undo', phim: phimCua('hoan-tac'), tat: !coHoanTac,
+        viSao: 'chưa có gì để hoàn tác', onClick: () => void hoanTac() },
+      { ten: 'Làm lại', icon: 'redo', phim: phimCua('lam-lai'), tat: !coLamLai,
+        viSao: 'chưa hoàn tác gì', onClick: () => void lamLai() },
+      { ngan: true },
+      { ten: 'Nhân bản', icon: 'copy', phim: phimCua('nhan-ban'), tat: !dangChon.length,
+        viSao: 'chưa chọn khối nào', onClick: () => void nhanBan() },
+      { ten: 'Xoá', icon: 'trash', phim: phimCua('xoa'), tat: !dangChon.length,
+        viSao: 'chưa chọn khối nào', onClick: xoa },
+      { ngan: true },
+      { ten: 'Gom thành Nhóm', icon: 'group', phim: phimCua('gom-nhom'),
+        tat: !dangChon.length, viSao: 'chưa chọn khối Hành động nào',
+        onClick: gomNhom },
+      { ten: 'Tách Nhóm', icon: 'group', phim: phimCua('ra-nhom'),
+        tat: !dangChon.some(n => (n.data as { step: Step }).step.kind === 'group'),
+        viSao: 'chưa chọn khối Nhóm nào', onClick: raNhom },
+      { ngan: true },
+      { ten: 'Chọn hết', phim: phimCua('chon-het'), tat: !nodes.length,
+        viSao: 'canvas đang trống',
+        onClick: () => setNodes(ns => ns.map(n => (biGiau(n.id) ? n
+                                                   : { ...n, selected: true }))) },
+    ] },
+    { ten: 'Xem', muc: [
+      { ten: 'Kho lượt backtest…', icon: 'chay', onClick: () => setMoKhoLuot(true) },
+      { ten: 'Tìm khối', icon: 'tim', phim: phimCua('o-tim'),
+        onClick: () => document.querySelector<HTMLInputElement>('.o-tim-khoi input')
+          ?.focus() },
+      { ngan: true },
+      { ten: 'Bảng phím tắt…', icon: 'motSo', phim: phimCua('bang-phim-tat'),
+        onClick: () => setMoBangPhim(true) },
+    ] },
+    { ten: 'Giúp', muc: [
       { ten: 'Khoá QuantConnect…', icon: 'gear',
         onClick: () => { void py.qc_khoa().then(r => setKhoa(r.ok && r.value ? r.value
           : { co: false, nguon: null, user_id: null, duong: '' })) } },
-      { ten: 'Kho — app lưu file ở đâu…', icon: 'folder', onClick: () => setMoKho(true) },
-      { ten: 'Phím tắt…', icon: 'motSo', onClick: () => setMoBangPhim(true) },
       { ngan: true },
-      { ten: 'Thoát', onClick: () => { void py.cua_so_dong() } },
+      { ten: 'Cat Studio — vẽ chiến thuật, chạy bằng LEAN', tat: true,
+        viSao: 'chỉ để xem, không bấm được' },
     ] },
   ]
 

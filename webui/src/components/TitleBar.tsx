@@ -103,6 +103,11 @@ export default function TitleBar({ tieuDe, menus, them }: {
               </svg>
             )}
           </button>
+          {/* ⚠ KHÔNG hỏi trước khi đóng, và đó là một QUYẾT ĐỊNH chứ không phải
+              thiếu sót. Jenifer có `truocKhiDong` vì cửa sổ của nó có chữ gõ tay
+              chưa lưu. Cat_Studio thì tự lưu bản nháp mỗi 1,2 giây (`luu_ban_nhap`)
+              và mở lại là nạp đúng bản ấy — ✕ không làm mất gì, nên một câu hỏi ở
+              đây chỉ là một nhát bấm thừa mỗi lần đóng app. */}
           <button className="nut-cs dong" title="Đóng"
                   onClick={() => py.cua_so_dong()}>
             <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor">

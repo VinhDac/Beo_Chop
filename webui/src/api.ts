@@ -146,6 +146,8 @@ export const py = {
   qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
   qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
   qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
+  /** Mở một thư mục dữ liệu bằng Explorer. Chỉ mấy thư mục Python khai sẵn. */
+  mo_thu_muc: (loai: string) => goi<boolean>('mo_thu_muc', loai),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
