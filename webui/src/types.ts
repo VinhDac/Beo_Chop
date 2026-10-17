@@ -288,6 +288,9 @@ export interface KetQuaChay {
   loi: string
   ten_lop?: string
   thu_muc?: string
+  /** `<tên lớp>/<mã lượt>` — khoá mở lại lượt này trong một cửa sổ riêng. */
+  id?: string
+  ma_luot?: string
   /** TÁM ô số trên đầu — LEAN dựng sẵn đúng tám mục, không phải ta chọn. */
   o_so?: Record<string, string>
   bieu_do?: BangBieuDoDL[]
@@ -319,6 +322,20 @@ export interface TienDoChay {
   da_dung: boolean
   /** Chỉ có khi `xong`. */
   ket_qua?: KetQuaChay
+}
+
+/** Một lượt backtest đã lưu — thẻ tóm tắt trong Kho lượt chạy.
+ *
+ *  `so` là mấy con số lấy THẲNG từ `statistics` của LEAN, giữ nguyên tên tiếng Anh
+ *  của nó: đổi tên ở đây là tự đẻ một bảng tra thứ hai phải trông coi. */
+export interface TheLuotChay {
+  /** `<tên lớp>/<mã lượt>` — cũng là khoá mở cửa sổ. */
+  id: string
+  ten_lop: string
+  /** `20261017-131737`. */
+  ma_luot: string
+  luc: number
+  so: Record<string, string>
 }
 
 /** LEAN đã trỏ đúng chỗ chưa. */

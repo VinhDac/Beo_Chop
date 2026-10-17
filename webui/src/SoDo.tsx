@@ -24,6 +24,7 @@ import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
 import HopTienDo from './components/HopTienDo'
 import HopCaiDat from './components/HopCaiDat'
+import HopKhoLuot from './components/HopKhoLuot'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
@@ -245,6 +246,8 @@ function SoDoTrong() {
   /** Tiến độ lượt backtest đang chạy — null = không hiện hộp. */
   const [tienDo, setTienDo] = useState<TienDoChay | null>(null)
   const [moCaiDat, setMoCaiDat] = useState(false)
+  /** Kho LƯỢT BACKTEST — khác `moKho` phía trên, cái ấy là kho Strategy. */
+  const [moKhoLuot, setMoKhoLuot] = useState(false)
   /** Id khối đang mở hộp thoại điều kiện. */
   const [dangSua, setDangSua] = useState<string | null>(null)
   const [khoa, setKhoa] = useState<KhoaQC | null>(null)
@@ -1246,14 +1249,19 @@ function SoDoTrong() {
         if (!kq) { await bao({ loi: 'chạy xong mà không có kết quả' }); return }
         if (!kq.ok) { await bao({ loi: kq.loi }); return }
         setKetQua(kq)
-        setMoKetQua(true)
         ghi(`backtest ${kq.ten_lop ?? ''}`)
+        // MỘT CỬA SỔ RIÊNG cho lượt vừa chạy, không phải một hộp thoại đè lên sơ đồ:
+        // chạy lần nữa là có cái thứ hai, xếp cạnh nhau mà so. Tắt được ở Cài đặt.
+        const cd = await py.cai_dat_doc()
+        if (cd.ok && cd.value?.mo_ket_qua === false) return
+        if (kq.id) await py.mo_cua_so_ket_qua(kq.id)
+        else setMoKetQua(true)
       })(), 500)
     })(),
     dung: dungChay,
     caiDat: () => setMoCaiDat(true),
-    moKetQua: () => setMoKetQua(true),
-    coKetQua: !!ketQua,
+    moKetQua: () => setMoKhoLuot(true),
+    coKetQua: true,   // kho lượt chạy luôn mở được, kể cả lượt của hôm trước
     dangChay,
     sinhMa: () => void (async () => {
       const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
@@ -1490,6 +1498,7 @@ function SoDoTrong() {
         return null
       })()}
       {moCaiDat && <HopCaiDat onDong={() => setMoCaiDat(false)} />}
+      {moKhoLuot && <HopKhoLuot onDong={() => setMoKhoLuot(false)} />}
       {tienDo && (
         <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
       )}

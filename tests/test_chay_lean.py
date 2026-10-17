@@ -230,6 +230,38 @@ kiem("và stdin của tiến trình con là rỗng",
      "stdin=subprocess.DEVNULL" in nguon,
      "— khoá thứ hai: `Console.Read()` trả -1 ngay, không phụ thuộc file config")
 
+print("\n▸ ⭐ Mỗi lượt chạy một THƯ MỤC RIÊNG — lượt trước không bị xoá")
+# ⚠ Bản trước ghi đè thẳng lên `ket_qua/<tên lớp>/` rồi XOÁ SẠCH file cũ trước mỗi
+# lượt. Lý do hồi ấy đúng (còn file cũ thì lượt hỏng vẫn đọc ra số của lượt trước),
+# nhưng cách chữa làm mất luôn LỊCH SỬ — mà so hai phiên bản của một chiến thuật
+# chính là việc người ta mở app lên để làm.
+kiem("`chay()` đặt tên thư mục theo lúc chạy",
+     'ma_luot = time.strftime("%Y%m%d-%H%M%S")' in nguon
+     and "luu_tru.thu_muc_ket_qua(), ten_lop, ma_luot" in nguon)
+kiem("và KHÔNG còn dọn thư mục trước khi chạy",
+     "for f in os.listdir(ra_thu_muc)" not in nguon,
+     "— đó là dòng đã ăn mất lịch sử")
+
+print("\n▸ Mã lượt đi qua cầu nối nên phải CHẶN ĐƯỜNG THOÁT")
+# `ma_id` do giao diện gửi lên. Ghép thẳng vào đường dẫn là mở một lối ra khỏi
+# `du_lieu/` — `"../../.."` đọc được bất cứ thư mục nào trên máy.
+B = chr(92)
+for xau in ("../../x", ".." + B + ".." + B + "y", "a/b/c", "", "a", "./x",
+            "a/../../b", "a/b" + B + "c"):
+    kiem(f"chối {xau!r}", chay_lean._thu_muc_luot(xau) is None)
+kiem("mã có thật thì nhận", chay_lean._thu_muc_luot("khong/cothat") is None,
+     "— và thư mục không tồn tại cũng là None, không ném")
+
+print("\n▸ Kho lượt chạy đọc THẺ, không mở file kết quả")
+kiem("có hằng tên thẻ", chay_lean.TEN_THE.endswith(".json"))
+kiem("thẻ chỉ mang mấy con số cần", len(chay_lean.CHI_TIEU_THE) <= 8,
+     f"— {len(chay_lean.CHI_TIEU_THE)} chỉ tiêu; một file kết quả LEAN nặng vài MB")
+ds = chay_lean.ds_luot_chay()
+kiem("danh sách xếp MỚI NHẤT TRƯỚC",
+     [t["ma_luot"] for t in ds] == sorted((t["ma_luot"] for t in ds), reverse=True),
+     f"— {len(ds)} lượt")
+kiem("lượt nào cũng có id ghép được", all("/" in t["id"] for t in ds))
+
 print("\n▸ Dừng được giữa chừng")
 kiem("`dung()` lúc rỗi nói không có gì để dừng",
      chay_lean.dung()["ok"] is False)

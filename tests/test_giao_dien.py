@@ -215,6 +215,25 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ Cửa sổ kết quả riêng: MỘT bundle, hai vai — không dựng trang thứ hai")
+# Mỗi lượt backtest mở ra một cửa sổ thật để xếp cạnh nhau mà so. Cửa sổ ấy nạp
+# CHÍNH trang này với `?kq=<mã lượt>`. Dựng một trang HTML thứ hai thì sớm muộn một
+# bên có thứ bên kia không, và cái lệch ấy chỉ lộ ra ở màn ít người mở nhất.
+mt = bo_chu_thich_ts(doc("main.tsx"))
+kiem("`main.tsx` chọn vai theo `?kq=`",
+     "URLSearchParams" in mt and "'kq'" in mt and "TrangKetQua" in mt)
+import glob as _glob  # noqa: E402
+html = [os.path.basename(p) for p in _glob.glob(os.path.join(GOC, "webui", "*.html"))]
+kiem("chỉ có MỘT trang html", html == ["index.html"], f"— {html}")
+# Ruột màn Kết quả phải DÙNG CHUNG cho hộp thoại và cửa sổ riêng.
+kq = doc("components/HopKetQua.tsx")
+kiem("ruột tách ra dùng chung", "export function RuotKetQua" in kq)
+kiem("và cả hai vỏ đều gọi nó",
+     kq.count("<RuotKetQua") == 1 and "RuotKetQua" in doc("TrangKetQua.tsx"),
+     "— hai bản chép tay thì sớm muộn một bên có tab mà bên kia không")
+kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("TrangKetQua.tsx"),
+     "— cửa sổ frameless như cửa sổ chính")
+
 print("\n▸ Hộp Bắt đầu KHÔNG được khai lại thứ Python đã khai")
 bd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
 # ⚠ ĐÃ HỎNG THẬT, ba cái một lúc. Hộp thoại dựng lại object cho mấy ô THÊM của nhịp:

@@ -47,11 +47,12 @@ function so(n: unknown, le = 2) {
     : String(n ?? '')
 }
 
-export default function HopKetQua({ kq, onDong, onChayLai }: {
-  kq: KetQuaChay
-  onDong: () => void
-  onChayLai: () => void
-}) {
+/** RUỘT màn Kết quả — mọi thứ TRỪ cái vỏ.
+ *
+ *  Tách ra vì nay có HAI vỏ: hộp thoại trong cửa sổ chính, và một CỬA SỔ RIÊNG cho
+ *  mỗi lượt chạy (`TrangKetQua`) — để xếp hai phiên bản cạnh nhau mà so. Hai bản
+ *  chép tay thì sớm muộn một bên có tab mà bên kia không. */
+export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
   const [tab, setTab] = useState<'tong_quan' | 'lenh' | 'giao_dich' | 'nhat_ky' | 'ma'>(
     'tong_quan')
   const [hien, setHien] = useState<Record<string, boolean>>(() =>
@@ -74,15 +75,7 @@ export default function HopKetQua({ kq, onDong, onChayLai }: {
   const coCuon = !!cuon?.dong?.length
 
   return (
-    <Modal title={`Kết quả — ${kq.ten_lop ?? ''}`} width={1180} onClose={onDong}
-           footer={<>
-             <span className="day" />
-             <button className="nut" onClick={onDong}>Đóng</button>
-             <button className="nut chinh" onClick={onChayLai}>
-               <Icon name="chay" /> Chạy lại
-             </button>
-           </>}>
-      <div className="man-kq">
+    <div className="man-kq">
         {/* ⚠ Mọi lệnh bị từ chối mà backtest vẫn báo đủ thống kê — bẫy đã gặp thật
             (sàn không nhận lệnh «khớp lúc đóng cửa»). Nói ngay trên đầu. */}
         {hong > 0 && (
@@ -260,8 +253,26 @@ export default function HopKetQua({ kq, onDong, onChayLai }: {
 
           {/* Tab Mã bày ĐÚNG file vừa chạy, không sinh lại một bản khác rồi bảo là nó. */}
           {tab === 'ma' && <pre className="ma-lean">{kq.ma || '(trống)'}</pre>}
-        </div>
       </div>
+    </div>
+  )
+}
+
+export default function HopKetQua({ kq, onDong, onChayLai }: {
+  kq: KetQuaChay
+  onDong: () => void
+  onChayLai: () => void
+}) {
+  return (
+    <Modal title={`Kết quả — ${kq.ten_lop ?? ''}`} width={1180} onClose={onDong}
+           footer={<>
+             <span className="day" />
+             <button className="nut" onClick={onDong}>Đóng</button>
+             <button className="nut chinh" onClick={onChayLai}>
+               <Icon name="chay" /> Chạy lại
+             </button>
+           </>}>
+      <RuotKetQua kq={kq} />
     </Modal>
   )
 }

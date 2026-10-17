@@ -448,6 +448,96 @@ def _gon(d, nk):
     }
 
 
+#: Thẻ tóm tắt một lượt chạy, ghi cạnh kết quả. Kho lượt chạy đọc THẺ chứ không mở
+#: từng file kết quả: một file LEAN nặng vài MB, mà kho chỉ cần năm con số.
+TEN_THE = "_the.json"
+
+#: Mấy con số bày trên thẻ. Lấy từ `statistics` của LEAN, tên y nguyên của nó — đổi
+#: tên ở đây là tự đẻ một bảng tra thứ hai phải trông coi.
+CHI_TIEU_THE = ("Net Profit", "Compounding Annual Return", "Drawdown",
+                "Sharpe Ratio", "Total Orders", "Win Rate")
+
+
+def _ghi_the(thu_muc, kq):
+    """Ghi thẻ tóm tắt. Hỏng thì THÔI — mất thẻ chỉ làm kho thiếu một dòng, không
+    được phép làm hỏng cả lượt chạy vừa xong."""
+    tk = kq.get("thong_ke") or {}
+    the = {"id": kq.get("id"), "ten_lop": kq.get("ten_lop"),
+           "ma_luot": kq.get("ma_luot"), "luc": time.time(),
+           "so": {k: tk[k] for k in CHI_TIEU_THE if k in tk}}
+    try:
+        luu_tru.ghi_json_nguyen_tu(os.path.join(thu_muc, TEN_THE), the)
+    except Exception:                               # noqa: BLE001
+        pass
+
+
+def ds_luot_chay():
+    """Mọi lượt backtest đã lưu, MỚI NHẤT TRƯỚC. -> [{id, ten_lop, ma_luot, luc, so}]
+
+    Đọc thẻ, không mở file kết quả: kho có thể có hàng trăm lượt, mà mỗi file kết quả
+    của LEAN nặng vài MB."""
+    goc = luu_tru.thu_muc_ket_qua()
+    ra = []
+    for ten_lop in sorted(os.listdir(goc)) if os.path.isdir(goc) else []:
+        d1 = os.path.join(goc, ten_lop)
+        if not os.path.isdir(d1):
+            continue
+        for ma_luot in os.listdir(d1):
+            p = os.path.join(d1, ma_luot, TEN_THE)
+            if not os.path.isfile(p):
+                continue
+            try:
+                with open(p, encoding="utf-8") as f:
+                    the = json.load(f)
+            except (OSError, ValueError):
+                continue
+            the.setdefault("id", f"{ten_lop}/{ma_luot}")
+            ra.append(the)
+    ra.sort(key=lambda t: str(t.get("ma_luot") or ""), reverse=True)
+    return ra
+
+
+def _thu_muc_luot(ma_id):
+    """`<tên lớp>/<mã lượt>` -> đường dẫn thật, hay None nếu mã bịa.
+
+    ⚠ KHÔNG ghép chuỗi thẳng vào đường dẫn. `"../../.."` trong `ma_id` là một lối
+    thoát ra khỏi `du_lieu/`, và cái id ấy đi qua cầu nối từ giao diện."""
+    phan = str(ma_id or "").replace("\\", "/").split("/")
+    if len(phan) != 2 or not all(phan) or any(p in (".", "..") for p in phan):
+        return None
+    if any(c in p for p in phan for c in r'\/:*?"<>|'):
+        return None
+    d = os.path.join(luu_tru.thu_muc_ket_qua(), phan[0], phan[1])
+    return d if os.path.isdir(d) else None
+
+
+def doc_luot_chay(ma_id):
+    """Mở lại một lượt đã lưu. -> {ok, loi, ...phần màn Kết quả cần}"""
+    d = _thu_muc_luot(ma_id)
+    if not d:
+        return {"ok": False, "loi": f'Không có lượt chạy "{ma_id}".'}
+    ten_lop = os.path.basename(os.path.dirname(d))
+    dl, nk = _doc_ket_qua(d, ten_lop)
+    if dl is None:
+        return {"ok": False, "loi": "Lượt chạy này không có file kết quả."}
+    return {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": d,
+            "ma_luot": os.path.basename(d), "id": f"{ten_lop}/{os.path.basename(d)}",
+            **_gon(dl, nk)}
+
+
+def xoa_luot_chay(ma_id):
+    """Xoá hẳn một lượt đã lưu. -> {ok, loi}"""
+    d = _thu_muc_luot(ma_id)
+    if not d:
+        return {"ok": False, "loi": f'Không có lượt chạy "{ma_id}".'}
+    import shutil
+    try:
+        shutil.rmtree(d)
+    except OSError as e:
+        return {"ok": False, "loi": f"Không xoá được: {e}"}
+    return {"ok": True, "loi": ""}
+
+
 def chay(ma, ten_lop):
     """Chạy một thuật toán đã sinh. -> {ok, loi, ...phần màn Kết quả cần}
 
@@ -457,15 +547,17 @@ def chay(ma, ten_lop):
         return {"ok": False, "loi": sb["loi"]}
 
     duong_ma = luu_tru.ghi_ma(ten_lop, ma)
-    ra_thu_muc = os.path.join(luu_tru.thu_muc_ket_qua(), ten_lop)
+    # MỖI LƯỢT CHẠY MỘT THƯ MỤC RIÊNG, đặt tên theo lúc chạy.
+    #
+    # ⚠ Bản trước ghi đè thẳng lên `ket_qua/<tên lớp>/` rồi XOÁ SẠCH file cũ trước mỗi
+    # lượt. Lý do hồi ấy đúng: còn file cũ thì một lượt chạy hỏng vẫn đọc ra số của
+    # lượt trước, và không ai biết mình đang nhìn kết quả của lần nào. Nhưng cách chữa
+    # thì quá tay — nó làm mất luôn LỊCH SỬ, mà so hai phiên bản của một chiến thuật
+    # chính là việc người ta mở app lên để làm.
+    #   Nay mỗi lượt một thư mục, nên không có gì để lẫn: thư mục rỗng = lượt ấy hỏng.
+    ma_luot = time.strftime("%Y%m%d-%H%M%S")
+    ra_thu_muc = os.path.join(luu_tru.thu_muc_ket_qua(), ten_lop, ma_luot)
     os.makedirs(ra_thu_muc, exist_ok=True)
-    # Dọn kết quả cũ: còn file cũ thì một lượt chạy HỎNG vẫn đọc ra số của lượt trước,
-    # và không ai biết mình đang nhìn kết quả của lần nào.
-    for f in os.listdir(ra_thu_muc):
-        try:
-            os.remove(os.path.join(ra_thu_muc, f))
-        except OSError:
-            pass
 
     thu_muc_exe = os.path.dirname(sb["launcher"])
     goc_cfg = os.path.join(sb["goc"], "Launcher", "config.json")
@@ -549,8 +641,11 @@ def chay(ma, ten_lop):
         # Không có file kết quả mới là hỏng thật. Lúc ấy màn hình mới đáng đọc.
         return {"ok": False, "loi": "LEAN chạy xong mà không ghi ra kết quả.",
                 "nhat_ky": man_hinh[-20000:]}
-    return {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
-            **_gon(d, nk or man_hinh)}
+    kq = {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
+          "ma_luot": ma_luot, "id": f"{ten_lop}/{ma_luot}",
+          **_gon(d, nk or man_hinh)}
+    _ghi_the(ra_thu_muc, kq)
+    return kq
 
 
 def bat_dau_chay(ma, ten_lop):

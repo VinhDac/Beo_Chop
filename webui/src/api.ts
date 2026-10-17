@@ -10,7 +10,7 @@
 import type {
   Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
   OLam, Step, StepKind, Strategy,
-  TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
+  TheLuotChay, TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -94,6 +94,14 @@ export const py = {
   cai_dat_doc: () => goi<Record<string, unknown>>('cai_dat_doc'),
   cai_dat_ghi: (gt: Record<string, unknown>) =>
     goi<{ gia_tri: Record<string, unknown>; lean: LeanSanSang }>('cai_dat_ghi', gt),
+
+  // --- kho lượt backtest. Mỗi lượt một thư mục, không ghi đè lượt trước. ---
+  /** Mở MỘT CỬA SỔ RIÊNG cho một lượt — để xếp cạnh nhau mà so hai phiên bản. */
+  mo_cua_so_ket_qua: (id: string) =>
+    goi<{ id: string; moi: boolean }>('mo_cua_so_ket_qua', id),
+  ds_luot_chay: () => goi<TheLuotChay[]>('ds_luot_chay'),
+  doc_luot_chay: (id: string) => goi<KetQuaChay>('doc_luot_chay', id),
+  xoa_luot_chay: (id: string) => goi<boolean>('xoa_luot_chay', id),
 
   /** DỪNG lượt đang chạy — giết thẳng tiến trình LEAN. */
   dung_backtest: () => goi<boolean>('dung_backtest'),
