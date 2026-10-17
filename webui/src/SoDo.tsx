@@ -21,6 +21,7 @@ import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
 import HopBatDau from './components/HopBatDau'
 import HopSinhMa from './components/HopSinhMa'
 import HopKetQua from './components/HopKetQua'
+import HopNhom from './components/HopNhom'
 import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
@@ -280,6 +281,13 @@ function SoDoTrong() {
   const nap = useCallback(async (doc: Strategy) => {
     const r = await py.soat(doc.steps, doc.edges)
     const the = r.ok && r.value ? r.value.the : {}
+    // ⚠ Lượt soát này đã có SẴN số thứ tự và bảng Vấn đề — lấy luôn. Bản trước chỉ
+    // nhặt mỗi `the` rồi để hiệu ứng soát lại một lượt nữa: thừa một vòng gọi, mà
+    // giữa hai lượt thì mọi khối hiện số "–" như sơ đồ chưa đánh số được.
+    if (r.ok && r.value) {
+      setThuTu(r.value.thu_tu)
+      setVanDe(r.value.van_de)
+    }
     const { nodes: ns, edges: es } = docSangRf(doc.steps, doc.edges, the)
     setNodes(ns)
     setEdges(es)
@@ -1077,7 +1085,7 @@ function SoDoTrong() {
             if (n.id.startsWith('hn:')) { vaoHatNhan(n.id.slice(3)); return }
             // Bấm đúp một khối HỎI là mở hộp điều kiện của nó.
             const st = (n.data as { step?: Step }).step
-            if (st && (st.kind === 'start'
+            if (st && (st.kind === 'start' || st.kind === 'group'
                        || tuDien?.loai.some(l => l.ma === st.type)
                        || laHanhDong(tuDienLam, st.type))) setDangSua(n.id)
           }}
@@ -1198,6 +1206,10 @@ function SoDoTrong() {
         if (tuDien && tuDien.loai.some(l => l.ma === st.type)) {
           return <HopDieuKien step={st} tuDien={tuDien} onLuu={luu}
                               onDong={() => setDangSua(null)} />
+        }
+        if (st.kind === 'group' && tuDienLam && tuDien) {
+          return <HopNhom step={st} tuDienLam={tuDienLam} tuDienHoi={tuDien}
+                          onLuu={luu} onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'start' && tuDienBD) {
           return <HopBatDau step={st} tuDien={tuDienBD} onLuu={luu}

@@ -1412,3 +1412,26 @@ mark.tim-chu {
 }
 .chu-giai span { display: flex; align-items: center; gap: 5px; }
 .chu-giai i { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+
+/* ---- danh sách hành động trong hộp Nhóm ---- */
+.ds-hd { display: flex; flex-direction: column; gap: 4px; }
+.dong-hd {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  background: var(--raised); border: 1px solid var(--border-soft);
+  font-size: 12px;
+}
+.dong-hd.mo { color: var(--dim); justify-content: center; padding: 14px; }
+.dong-hd .stt {
+  flex: 0 0 18px; text-align: right;
+  font: 600 10.5px var(--font-mono); color: var(--dim);
+}
+.dong-hd > b { font-weight: 600; }
+.dong-hd .ma-hd {
+  font: 11px var(--font-mono); color: var(--accent);
+  padding: 1px 6px; border-radius: 3px; background: var(--accent-soft);
+}
+.dong-hd .day { flex: 1; }
+.dong-hd .nut-nho { padding: 1px 6px; font-size: 11px; }
+.dong-hd .nut-nho.bo { color: var(--dim); }
+.dong-hd .nut-nho.bo:hover { color: var(--err); background: var(--raised-hover); }
