@@ -202,6 +202,20 @@ function SoDoTrong() {
   const [tuDienBD, setTuDienBD] = useState<TuDienBatDau | null>(null)
   /** Mã LEAN vừa sinh — null = chưa mở hộp. */
   const [maSinh, setMaSinh] = useState<KetQuaSinh | null>(null)
+
+  /** Khối này có hộp sửa không.
+   *
+   *  MỘT bản dùng cho CẢ bấm đúp lẫn menu chuột phải — hai lối vào phải nhất trí,
+   *  không thì một lối mở được còn lối kia im lặng mà chẳng ai hiểu vì sao.
+   *
+   *  Và nó kiểm luôn TỪ ĐIỂN ĐÃ NẠP CHƯA: thiếu từ điển thì menu hiện mục ấy mờ đi
+   *  kèm lý do, thay vì bấm vào mà không ra gì. */
+  const coHopSua = useCallback((st?: Step) => !!st && (
+    (st.kind === 'start' && !!tuDienBD)
+    || (st.kind === 'group' && !!tuDienLam && !!tuDien)
+    || !!tuDien?.loai.some(l => l.ma === st.type)
+    || (!!tuDien && laHanhDong(tuDienLam, st.type))
+  ), [tuDien, tuDienLam, tuDienBD])
   /** Kết quả lượt backtest vừa chạy — giữ lại để mở lại được sau khi đóng. */
   const [ketQua, setKetQua] = useState<KetQuaChay | null>(null)
   const [moKetQua, setMoKetQua] = useState(false)
@@ -898,6 +912,12 @@ function SoDoTrong() {
     const so = dangChon.length || 1
     const khac = nodes.filter(x => x.id !== n.id && !biGiau(x.id))
     return [
+      // Mở hộp sửa — đường thứ HAI vào ruột khối. Bấm đúp là nhanh hơn, nhưng trượt
+      // ra nền một cái là không ra gì, nên phải có một lối KHÔNG cần trúng đích.
+      { ten: 'Sửa khối…', icon: 'gear', tat: !coHopSua(st),
+        viSao: 'Khối này chưa có hộp sửa',
+        onClick: () => setDangSua(n.id) },
+      { ngan: true },
       { ten: 'Đổi tên…', icon: 'edit', phim: phimCua('doi-ten'),
         onClick: () => setDoiTen({ loai: 'khoi', id: n.id,
                                    ten: (n.data as { card: Card }).card.title }) },
@@ -938,7 +958,7 @@ function SoDoTrong() {
       { ten: `Xoá ${so > 1 ? so + ' khối' : 'khối'}`, icon: 'trash',
         phim: phimCua('xoa'), onClick: xoa },
     ]
-  }, [menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN, biGiau, themKhoi, setNodes,
+  }, [coHopSua, menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN, biGiau, themKhoi, setNodes,
       chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan, gomHatNhan, taHatNhan, nhanBan, xoa])
 
   /** Lọc nhanh kèm SỐ LƯỢNG — con số là thứ nói "sơ đồ này có 12 chỗ rẽ". */
@@ -1081,13 +1101,14 @@ function SoDoTrong() {
           nodes={nodesVe} edges={edgesVe}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          // ⚠ TẮT PHÓNG TO KHI BẤM ĐÚP. Mặc định của React Flow là bấm đúp vào nền
+          // thì phóng to — mà ở đây bấm đúp đã có nghĩa "mở khối ra sửa". Trượt ra
+          // ngoài khối vài pixel là canvas nhảy một cái, và người dùng tưởng hộp hỏng.
+          // Phóng to đã có cụm zoom dưới thanh trạng thái, không mất gì.
+          zoomOnDoubleClick={false}
           onNodeDoubleClick={(_, n) => {
             if (n.id.startsWith('hn:')) { vaoHatNhan(n.id.slice(3)); return }
-            // Bấm đúp một khối HỎI là mở hộp điều kiện của nó.
-            const st = (n.data as { step?: Step }).step
-            if (st && (st.kind === 'start' || st.kind === 'group'
-                       || tuDien?.loai.some(l => l.ma === st.type)
-                       || laHanhDong(tuDienLam, st.type))) setDangSua(n.id)
+            if (coHopSua((n.data as { step?: Step }).step)) setDangSua(n.id)
           }}
           onPaneContextMenu={ev => {
             ev.preventDefault()
