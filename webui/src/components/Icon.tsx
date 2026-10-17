@@ -70,6 +70,8 @@ const HINH: Record<string, React.ReactNode> = {
   unlink: <><path {...S} d="M6.6 9.4 4.9 11a2.6 2.6 0 0 1-3.7-3.7l1.7-1.7M9.4 6.6 11 4.9a2.6 2.6 0 0 1 3.7 3.7L13 10.3" /><path {...S} d="M2 2l12 12" /></>,
   fit: <><path {...S} d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3" /><rect {...S} x="6" y="6" width="4" height="4" rx=".8" /></>,
   chay: <><circle {...S} cx="8" cy="8" r="6" /><path {...S} d="M6.5 5.3l4.4 2.7-4.4 2.7z" /></>,
+  // DỪNG — ô vuông trong vòng tròn, đúng cặp với `chay` (tam giác trong vòng tròn).
+  dung: <><circle {...S} cx="8" cy="8" r="6" /><rect {...S} x="6" y="6" width="4" height="4" rx="0.5" /></>,
   motSo: <><circle {...S} cx="8" cy="8" r="5.8" /><path {...S} d="M6.8 6.2L8.4 5.2v5.6M7 10.8h2.8" /></>,
   minus: <><path {...S} d="M3 8h10" /></>,
   dau: <><path {...S} d="M11.5 3.4 6.4 8l5.1 4.6M4.6 3.4v9.2" /></>,

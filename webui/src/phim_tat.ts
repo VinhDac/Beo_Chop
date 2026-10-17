@@ -63,6 +63,10 @@ export const LENH: Lenh[] = [
   { ma: 'strategy-moi', nhan: 'Strategy mới', nhom: 'file', phim: ['ctrl+n'] },
   { ma: 'mo-strategy', nhan: 'Mở Strategy…', nhom: 'file', phim: ['ctrl+o'] },
   { ma: 'luu', nhan: 'Lưu Strategy', nhom: 'file', phim: ['ctrl+s'] },
+  /* F6 DỪNG, đúng phím Jenifer_Studio dùng. Chỉ có DỪNG chứ không có CHẠY: chạy là
+     việc có chủ đích, bấm nút là xong; còn dừng là việc gấp — LEAN đang ngốn CPU và
+     người ta muốn nó thôi NGAY, không phải đi tìm cái nút. */
+  { ma: 'dung-backtest', nhan: 'Dừng backtest đang chạy', nhom: 'file', phim: ['f6'] },
   { ma: 'o-tim', nhan: 'Nhảy vào ô tìm khối', nhom: 'file', phim: ['ctrl+f'] },
   { ma: 'bang-phim-tat', nhan: 'Bảng phím tắt (bảng này)', nhom: 'file', phim: ['f2'] },
 ]

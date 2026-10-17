@@ -1,4 +1,5 @@
 import Modal from './Modal'
+import Icon from './Icon'
 import type { TienDoChay } from '../types'
 
 /** HỘP TIẾN ĐỘ — hiện trong lúc LEAN chạy backtest.
@@ -14,14 +15,22 @@ import type { TienDoChay } from '../types'
 const GIAI_DOAN = ['Khởi động LEAN', 'Khởi động Python', 'Nạp thuật toán Python',
                    'Chuẩn bị thuật toán', 'Chạy backtest', 'Dựng kết quả']
 
-export default function HopTienDo({ td, onHuy }: {
+export default function HopTienDo({ td, onHuy, onDung }: {
   td: TienDoChay
   onHuy: () => void
+  /** Dừng hẳn lượt chạy — khác «Ẩn hộp này», thứ chỉ cất cái hộp đi. */
+  onDung: () => void
 }) {
   const i = GIAI_DOAN.indexOf(td.giai_doan)
   return (
     <Modal title="Backtest" width={560} onClose={onHuy}
            footer={<>
+             {/* DỪNG đứng BÊN TRÁI, tách khỏi «Ẩn hộp này»: hai nút nghe giống nhau
+                 mà một cái giết tiến trình LEAN còn một cái chỉ cất hộp đi. Đặt sát
+                 nhau cùng một bên là mời người ta bấm nhầm. */}
+             <button className="nut nut-dung" onClick={onDung}>
+               <Icon name="dung" /> Dừng backtest
+             </button>
              <span className="day" />
              <button className="nut" onClick={onHuy}>Ẩn hộp này</button>
            </>}>

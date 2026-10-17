@@ -644,6 +644,21 @@ function SoDoTrong() {
     ghi(`tách ${nhom.length > 1 ? nhom.length + ' Nhóm' : 'Nhóm'} thành ${them.length} khối`)
   })(), [dangChon, chup, setNodes, setEdges, ghi, bao])
 
+  /** DỪNG lượt backtest đang chạy — F6, nút trong hộp tiến độ, nút trên ribbon.
+   *
+   *  ⚠ Đứng RIÊNG chứ không nằm trong `viec` của ribbon: `viec` khai mãi tận cuối
+   *  component, sau cả bảng phím, và nó dựng LẠI ở mỗi lượt vẽ. Bảng phím trỏ vào
+   *  một object dựng lại liên tục thì hoặc phải đăng ký lại listener mỗi lượt vẽ,
+   *  hoặc giữ một bản cũ — cả hai đều là bẫy.
+   *
+   *  Chỉ bảo Python giết tiến trình rồi THÔI, không tự dọn trạng thái: vòng hỏi
+   *  tiến độ sẽ thấy `xong` ở lượt kế tiếp và dọn đúng một lần. Dọn cả hai nơi thì
+   *  nửa giây sau cái còn lại vẫn bắn. */
+  const dungChay = useCallback(() => void (async () => {
+    const r = await py.dung_backtest()
+    if (!r.ok) await bao({ loi: r.error ?? 'không dừng được' })
+  })(), [bao])
+
   /** Đổi một khoá trên khối đang chọn (màu, ghim số…). */
   const doiKhoa = useCallback((f: (s: Step) => Step) => {
     if (!dangChon.length) return
@@ -994,6 +1009,7 @@ function SoDoTrong() {
           if (n) setDoiTen({ loai: 'khoi', id: n.id,
                              ten: (n.data as { card: Card }).card.title })
         },
+        'dung-backtest': dungChay,
         'strategy-moi': strategyMoi,
         'mo-strategy': () => void mo(),
         luu: () => void luu(),
@@ -1014,7 +1030,7 @@ function SoDoTrong() {
     return () => window.removeEventListener('keydown', nghe)
     // `luu` / `mo` là khai báo hàm nên được nâng lên đầu — gọi được từ đây.
   }, [hoanTac, lamLai, nhanBan, xoa, gomNhom, raNhom, gomHatNhan, taHatNhan,
-      trongHN, raHatNhan,
+      trongHN, raHatNhan, dungChay,
       dangChon, setNodes, biGiau, themKhoi, strategyMoi])
 
   /* ------------------------------------------------------------- bản nháp */
@@ -1210,7 +1226,7 @@ function SoDoTrong() {
       // Chặn thật thì cửa sổ đứng im không vẽ gì, và người dùng tưởng app treo.
       setDangChay(true)
       setTienDo({ dang_chay: true, xong: false, giay: 0, giai_doan: '',
-                  dong_cuoi: '', so_dong: 0 })
+                  dong_cuoi: '', so_dong: 0, da_dung: false })
       const nhip = window.setInterval(() => void (async () => {
         const t = await py.tien_do_backtest()
         if (!t.ok || !t.value) return
@@ -1219,6 +1235,10 @@ function SoDoTrong() {
         window.clearInterval(nhip)
         setDangChay(false)
         setTienDo(null)
+        // ⚠ DỪNG KHÔNG PHẢI LỖI. Bấm Dừng thì Python trả về `ok: false` kèm câu
+        // «Bạn đã dừng lượt chạy này» — đúng với lõi, nhưng ném nó vào hộp báo lỗi
+        // thì người dùng vừa cố ý dừng xong lại bị mắng. Ghi một dòng nhật ký là đủ.
+        if (t.value.da_dung) { ghi('đã dừng backtest'); return }
         const kq = t.value.ket_qua
         if (!kq) { await bao({ loi: 'chạy xong mà không có kết quả' }); return }
         if (!kq.ok) { await bao({ loi: kq.loi }); return }
@@ -1227,6 +1247,7 @@ function SoDoTrong() {
         ghi(`backtest ${kq.ten_lop ?? ''}`)
       })(), 500)
     })(),
+    dung: dungChay,
     moKetQua: () => setMoKetQua(true),
     coKetQua: !!ketQua,
     dangChay,
@@ -1465,7 +1486,7 @@ function SoDoTrong() {
         return null
       })()}
       {tienDo && (
-        <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} />
+        <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
       )}
       {moKetQua && ketQua && (
         <HopKetQua kq={ketQua} onDong={() => setMoKetQua(false)}

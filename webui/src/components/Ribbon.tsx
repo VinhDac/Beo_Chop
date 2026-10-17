@@ -50,11 +50,13 @@ function Nhom({ ten, children, hienTu, chinh }: {
   )
 }
 
-function Nut({ ten, icon, onClick, tat, title }: {
+function Nut({ ten, icon, onClick, tat, title, lop }: {
   ten: string; icon: string; onClick?: () => void; tat?: boolean; title?: string
+  lop?: string
 }) {
   return (
-    <button className="nut-lon" onClick={onClick} disabled={tat} title={title ?? ten}>
+    <button className={'nut-lon' + (lop ? ` ${lop}` : '')} onClick={onClick}
+            disabled={tat} title={title ?? ten}>
       <span className="hinh"><IconNet name={icon} size={18} /></span>
       {ten}
     </button>
@@ -86,6 +88,8 @@ export interface ViecRibbon {
   sinhMa: () => void
   /** Sinh rồi chạy backtest luôn. */
   chay: () => void
+  /** Dừng lượt đang chạy — giết thẳng tiến trình LEAN (F6). */
+  dung: () => void
   /** Mở lại kết quả lượt vừa chạy. */
   moKetQua: () => void
   /** Đã có kết quả để mở chưa. */
@@ -189,8 +193,14 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
       <Nhom ten="Cỗ máy" chinh>
         <Nut ten="Build" icon="gear" onClick={v.sinhMa}
              title="Build — sơ đồ này thành thuật toán LEAN Python, xem trước rồi lưu ra file" />
-        <Nut ten="Backtest" icon="chay" onClick={v.chay} tat={v.dangChay}
-             title="Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này" />
+        {/* MỘT Ô, HAI VIỆC. Đang chạy thì chỗ này là nút DỪNG — mắt người dùng
+            đang ở đúng đây vì họ vừa bấm Backtest, nên đừng bắt đi tìm chỗ khác.
+            Không chạy thì chẳng có gì để dừng, bày thêm một nút mờ là thừa. */}
+        {v.dangChay
+          ? <Nut ten="Dừng" icon="dung" lop="nut-dung" onClick={v.dung}
+                 title="Dừng lượt backtest đang chạy (F6)" />
+          : <Nut ten="Backtest" icon="chay" onClick={v.chay}
+                 title="Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này" />}
         <Nut ten="Optimize" icon="branch" tat
              title="Optimize — quét tham số tìm bộ tốt nhất. CHƯA CÓ: cần mở ô số cho gõ tên tham số trước." />
         <Nut ten="Live" icon="an-lenh" tat

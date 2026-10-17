@@ -252,6 +252,12 @@ class Api(NenCuaSo):
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
 
     @_bat_loi
+    def dung_backtest(self):
+        """DỪNG lượt backtest đang chạy — giết thẳng tiến trình LEAN."""
+        r = chay_lean.dung()
+        return _ok(True) if r["ok"] else _loi(r["loi"])
+
+    @_bat_loi
     def tien_do_backtest(self):
         """Lượt chạy đang tới đâu — giao diện hỏi mỗi nửa giây.
 

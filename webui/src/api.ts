@@ -88,6 +88,8 @@ export const py = {
   chay_backtest: (ten: string, steps: Step[], edges: Edge[]) =>
     goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
       'chay_backtest', ten, steps, edges),
+  /** DỪNG lượt đang chạy — giết thẳng tiến trình LEAN. */
+  dung_backtest: () => goi<boolean>('dung_backtest'),
   /** Lượt chạy đang tới đâu — hỏi mỗi nửa giây. */
   tien_do_backtest: () => goi<TienDoChay>('tien_do_backtest'),
 

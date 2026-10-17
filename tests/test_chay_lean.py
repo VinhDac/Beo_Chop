@@ -212,5 +212,32 @@ finally:
     s[cu] = goc_cu
     luu_tru.ghi_cai_dat(s)
 
+print("\n▸ ⚠ LEAN phải TỰ THOÁT — không thì nó kẹt ở dòng «Press any key»")
+# ĐÃ CẮN THẬT, và là loại lỗi chỉ hiện trong app chứ không hiện khi chạy tự động.
+# `JobQueue.AcknowledgeJob` của LEAN:
+#     if (!Config.GetBool("close-automatically"))
+#     { Console.WriteLine("Engine.Main(): Press any key to continue."); Console.Read(); }
+# Backtest xong rồi mà tiến trình đứng chờ một phím không ai gõ được — vòng đọc
+# `for d in p.stdout` chỉ kết thúc khi tiến trình thoát, nên cả lượt chạy treo ở giai
+# đoạn cuối. Người dùng đo được 138 giây cho một lượt chạy thật sự mất 6 giây.
+#   Lắt léo: chạy từ bài kiểm thì stdin đã ở EOF nên `Console.Read()` trả về ngay —
+#   lỗi KHÔNG hiện ra. Nên phép kiểm ở đây đọc MÃ NGUỒN, không đo thời gian.
+_goc = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+nguon = io.open(os.path.join(_goc, "cat_studio", "chay_lean.py"), encoding="utf-8").read()
+kiem('config bật `close-automatically`', '"close-automatically": True' in nguon,
+     "— cờ có thật của LEAN, đọc từ `Queues/JobQueue.cs`")
+kiem("và stdin của tiến trình con là rỗng",
+     "stdin=subprocess.DEVNULL" in nguon,
+     "— khoá thứ hai: `Console.Read()` trả -1 ngay, không phụ thuộc file config")
+
+print("\n▸ Dừng được giữa chừng")
+kiem("`dung()` lúc rỗi nói không có gì để dừng",
+     chay_lean.dung()["ok"] is False)
+kiem("trạng thái gửi đi KHÔNG kèm tiến trình",
+     "tien_trinh" not in chay_lean.trang_thai(),
+     "— một `Popen` không đóng gói JSON được")
+kiem("có cờ `da_dung` để phân biệt «ta giết nó» với «nó chết»",
+     "da_dung" in chay_lean.trang_thai())
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

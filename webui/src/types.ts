@@ -315,6 +315,8 @@ export interface TienDoChay {
   giai_doan: string
   dong_cuoi: string
   so_dong: number
+  /** Người dùng đã bấm Dừng — lượt này KHÔNG phải hỏng, nên đừng báo như lỗi. */
+  da_dung: boolean
   /** Chỉ có khi `xong`. */
   ket_qua?: KetQuaChay
 }

@@ -77,7 +77,12 @@ _KHOA = threading.Lock()
 #: — người xem tưởng backtest chạy lại từ đầu.
 _TRANG_THAI = {"dang_chay": False, "xong": False, "bat_dau": 0.0,
                "giai_doan": "", "gd_i": 99, "dong_cuoi": "", "so_dong": 0,
-               "kq": None}
+               "kq": None,
+               #: Tiến trình LEAN đang chạy — giữ lại để DỪNG được. Không gửi qua
+               #: cầu nối (`trang_thai` gỡ ra), vì một `Popen` không đóng gói JSON.
+               "tien_trinh": None,
+               #: Người dùng bấm Dừng — để phân biệt "LEAN chết" với "ta giết nó".
+               "da_dung": False}
 
 
 def _dat(**kw):
@@ -85,10 +90,38 @@ def _dat(**kw):
         _TRANG_THAI.update(kw)
 
 
+def dung():
+    """DỪNG lượt đang chạy. -> {ok, loi}
+
+    Giết thẳng tiến trình LEAN. Vòng `for d in p.stdout` sẽ kết thúc ngay vì ống
+    đóng, rồi `chay()` đi tiếp và không tìm thấy file kết quả — nên phải đánh dấu
+    `da_dung` để chỗ ấy nói đúng «bạn đã dừng», chứ không phải «LEAN chạy xong mà
+    không ghi ra kết quả».
+
+    Không dùng `terminate()`: trên Windows nó cũng là `TerminateProcess`, mà LEAN
+    không có trình xử lý tín hiệu nào để dọn dẹp tử tế. Giết là giết."""
+    with _KHOA:
+        if not _TRANG_THAI["dang_chay"]:
+            return {"ok": False, "loi": "Không có lượt nào đang chạy."}
+        p = _TRANG_THAI["tien_trinh"]
+        _TRANG_THAI["da_dung"] = True
+    if p is None:
+        # Đã bấm Chạy nhưng LEAN chưa kịp khởi động. Cờ `da_dung` ở trên sẽ chặn
+        # ngay khi tiến trình vừa dựng xong.
+        return {"ok": True, "loi": ""}
+    try:
+        p.kill()
+    except Exception as e:                          # noqa: BLE001
+        return {"ok": False, "loi": f"Không dừng được: {type(e).__name__}: {e}"}
+    return {"ok": True, "loi": ""}
+
+
 def trang_thai():
     """Ảnh chụp trạng thái lượt chạy -> giao diện hỏi mỗi nửa giây."""
     with _KHOA:
         t = dict(_TRANG_THAI)
+    # `Popen` không đóng gói JSON được — và giao diện cũng chẳng cần nó.
+    t.pop("tien_trinh", None)
     t["giay"] = round(time.time() - t["bat_dau"], 1) if t["bat_dau"] else 0
     return t
 
@@ -439,6 +472,16 @@ def chay(ma, ten_lop):
         "data-folder": os.path.join(sb["goc"], "Data"),
         "results-destination-folder": ra_thu_muc,
         "environment": "backtesting",
+        # ⚠ KHÔNG CÓ DÒNG NÀY THÌ LEAN TREO MÃI. `JobQueue.AcknowledgeJob` chạy xong
+        # thì in «Engine.Main(): Press any key to continue.» rồi `Console.Read()` —
+        # chờ một phím mà không ai gõ được, vì cửa sổ console của nó bị app nuốt.
+        # Vòng đọc `for d in p.stdout` ở dưới chỉ kết thúc khi tiến trình thoát, nên
+        # cả lượt chạy đứng im ở giai đoạn cuối cho tới khi người dùng bỏ cuộc.
+        #     `close-automatically` là cờ CÓ THẬT của LEAN, đọc thẳng từ
+        #     `Queues/JobQueue.cs`: `if (!Config.GetBool("close-automatically"))`.
+        # Lắt léo: lúc chạy từ bài kiểm (stdin đã ở EOF) thì `Console.Read()` trả về
+        # ngay, nên lỗi này KHÔNG hiện ra khi chạy tự động — chỉ hiện trong app thật.
+        "close-automatically": True,
     })
     with open(os.path.join(thu_muc_exe, "config.json"), "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
@@ -451,10 +494,22 @@ def chay(ma, ten_lop):
     try:
         p = subprocess.Popen([sb["launcher"]], cwd=thu_muc_exe, env=moi_truong,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             # Khoá thứ HAI cho cùng cái bẫy trên: stdin rỗng thì
+                             # `Console.Read()` trả -1 ngay. Cờ config phụ thuộc vào
+                             # việc LEAN đọc đúng file ta ghi; cái này thì không.
+                             stdin=subprocess.DEVNULL,
                              text=True, encoding="utf-8", errors="replace",
                              bufsize=1)
     except OSError as e:
         return {"ok": False, "loi": f"Không chạy được LEAN: {e}"}
+    _dat(tien_trinh=p)
+    # Bấm Dừng TRONG LÚC LEAN đang khởi động thì lúc ấy chưa có tiến trình để giết —
+    # `dung()` chỉ kịp dựng cờ. Kiểm ngay sau khi dựng xong, không thì lượt ấy cứ
+    # chạy tiếp như chưa có chuyện gì.
+    with _KHOA:
+        bo = _TRANG_THAI["da_dung"]
+    if bo:
+        p.kill()
 
     het = time.time() + HAN_GIO
     try:
@@ -473,6 +528,10 @@ def chay(ma, ten_lop):
         except Exception:
             p.kill()
     man_hinh = "".join(dong)
+
+    with _KHOA:
+        if _TRANG_THAI["da_dung"]:
+            return {"ok": False, "loi": "Bạn đã dừng lượt chạy này."}
 
     d, nk = _doc_ket_qua(ra_thu_muc, ten_lop)
     if d is None:
@@ -497,7 +556,8 @@ def bat_dau_chay(ma, ten_lop):
             return {"ok": False, "loi": "Đang có một lượt chạy rồi — chờ nó xong đã."}
         _TRANG_THAI.update({"dang_chay": True, "xong": False, "bat_dau": time.time(),
                             "giai_doan": "Khởi động LEAN", "gd_i": 99,
-                            "dong_cuoi": "", "so_dong": 0, "kq": None})
+                            "dong_cuoi": "", "so_dong": 0, "kq": None,
+                            "tien_trinh": None, "da_dung": False})
 
     def chay_nen():
         try:
