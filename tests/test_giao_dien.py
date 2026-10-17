@@ -220,13 +220,32 @@ api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").re
 print("\n▸ Cửa sổ Kết quả: biểu đồ LẤP ĐẦY, cụm tab dưới KÉO ĐƯỢC")
 # Trước đây `.kq-giua` cao theo nội dung, nên biểu đồ dừng giữa chừng và dưới nó là
 # một mảng trống — cửa sổ càng cao, mảng trống càng to.
+# ⚠ `.than-tab` là `0 1 auto` chứ KHÔNG phải `0 0 auto`, và đây là lần đổi luật thứ
+# hai: `0 0 auto` giữ đúng chiều cao đã kéo (tốt) nhưng KHÔNG BAO GIỜ nhường, nên ở
+# cửa sổ nhỏ nhất biểu đồ biến mất. Sàn `min-height` của `.kq-giua` mới là chỗ quyết
+# ai nhường trước — có sàn rồi thì `0 1 auto` vẫn giữ đúng chiều cao khi còn chỗ.
 for lop, luat in ((r"\.cua-so-kq \.kq-giua", "flex: 1 1 auto"),
-                  (r"\.cua-so-kq \.than-tab", "flex: 0 0 auto")):
+                  (r"\.cua-so-kq \.than-tab", "flex: 0 1 auto")):
     kh = re.search(lop + r"[^}]*\}", bo_chu_thich(app))
     kiem(f"`{lop.replace(chr(92), '')}` khai `{luat}`",
          kh is not None and luat in kh.group(0), f"— {kh.group(0)[:70] if kh else '?'}")
-# ⚠ `flex: 0 0 auto` KHÔNG thừa: mặc định `0 1 auto` cho phép co lại khi thiếu chỗ,
-# nên kéo lên 260 mà đo ra 208 — tay kéo trông như hụt mà chẳng hiểu vì sao.
+# ⚠⚠ BA LUẬT NÀY ĐI VỚI NHAU, thiếu một là ĐÈ LÊN NHAU — đã hỏng thật một lần, và
+# tôi không bắt được vì chỉ ĐO BẰNG SỐ mà không nhìn lại ảnh:
+#   1. `align-items: stretch` — `.kq-giua` khai `flex-start` (đúng cho bản trong hộp
+#      thoại). Trong cửa sổ thì hai cột tự cao theo NỘI DUNG, cột phải tràn ra và đè
+#      lên hàng tab lẫn bảng thống kê. `overflow` đặt cho cột KHÔNG cứu được: cột có
+#      tràn khỏi chính nó đâu, nó tràn khỏi CHA.
+#   2. `min-height` cho `.kq-giua` — không có thì ở cửa sổ nhỏ nhất (1020×660) cụm
+#      tab giữ nguyên chiều cao đã kéo và biểu đồ còn 90px.
+#   3. `.kq-ben > .kq-hop { flex: 0 0 auto }` — không có thì ba cái hộp tự bóp rồi
+#      CẮT CỤT bên trong (`overflow: hidden`), «Chọn biểu đồ» mất ba dòng cuối mà
+#      không có thanh cuộn nào báo. Đo `scrollHeight` cũng tưởng vừa khít.
+for lop, luat in ((r"\.cua-so-kq \.kq-giua", "align-items: stretch"),
+                  (r"\.cua-so-kq \.kq-giua", "min-height: 170px"),
+                  (r"\.cua-so-kq \.kq-ben > \.kq-hop", "flex: 0 0 auto")):
+    kh = re.search(lop + r"[^}]*\}", bo_chu_thich(app))
+    kiem(f"`{lop.replace(chr(92), '')}` khai `{luat}`",
+         kh is not None and luat in kh.group(0))
 bd_ = bo_chu_thich_ts(doc("components/BangDuoi.tsx"))
 kq_ = bo_chu_thich_ts(doc("components/HopKetQua.tsx"))
 kiem("bộ kéo cao tách ra dùng chung", "export function useKeoCao" in bd_)

@@ -1414,14 +1414,37 @@ mark.tim-chu {
 .cua-so-kq > .man-kq {
   flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 12px 14px;
 }
-.cua-so-kq .kq-giua { flex: 1 1 auto; min-height: 0; }
-.cua-so-kq .kq-bieu-do { overflow: auto; min-height: 0; }
-.cua-so-kq .kq-ben { overflow: auto; min-height: 0; }
+/* ⚠ `align-items: stretch` LÀ CHỖ QUYẾT ĐỊNH, không phải `overflow` của mấy cột.
+   `.kq-giua` khai `align-items: flex-start` (đúng cho bản trong hộp thoại, nơi cả
+   trang cuộn). Trong cửa sổ thì nó là tai hoạ: hai cột tự cao theo NỘI DUNG chứ
+   không chịu chiều cao của hàng, nên cột phải tràn ra ngoài và ĐÈ LÊN hàng tab lẫn
+   bảng thống kê bên dưới — mà `overflow: auto` đặt cho cột thì vô tác dụng, vì cột
+   có tràn khỏi chính nó đâu, nó tràn khỏi CHA.
+   Cho stretch rồi mỗi cột mới có chiều cao THẬT để `overflow` của nó có nghĩa. */
+.cua-so-kq .kq-giua {
+  /* SÀN cho biểu đồ. Không có nó thì ở cửa sổ nhỏ nhất (1020×660), cụm tab giữ
+     nguyên chiều cao đã kéo và biểu đồ bị bóp còn 90px — tức mất đúng thứ người ta
+     mở cửa sổ này ra để xem. */
+  flex: 1 1 auto; min-height: 170px; align-items: stretch;
+}
+/* `max-height: 52vh` là trần của bản trong hộp thoại — ở đây chiều cao do cửa sổ
+   quyết, giữ nó lại thì biểu đồ bị cắt cụt giữa một cửa sổ còn thừa chỗ. */
+.cua-so-kq .kq-bieu-do { max-height: none; overflow-y: auto; min-height: 0; }
+.cua-so-kq .kq-ben { overflow-y: auto; min-height: 0; }
+/* ⚠ VÀ MẤY HỘP TRONG NÓ PHẢI GIỮ CHIỀU CAO THẬT. Mặc định `flex: 0 1 auto` cho phép
+   chúng CO LẠI, mà `.kq-hop` lại `overflow: hidden` — nên thay vì cột cuộn, ba cái
+   hộp tự bóp rồi cắt cụt nội dung bên trong: «Chọn biểu đồ» mất ba dòng cuối
+   (Portfolio Margin, Assets Sales Volume, Capacity) mà KHÔNG có thanh cuộn nào báo
+   là còn nữa. Đo ra `scrollHeight == clientHeight` nên nhìn số cũng tưởng vừa khít. */
+.cua-so-kq .kq-ben > .kq-hop { flex: 0 0 auto; }
 /* `max-height` của bản trong hộp thoại phải NHƯỜNG: ở đây chiều cao do tay kéo quyết.
    Và `flex: 0 0 auto` để nó GIỮ ĐÚNG chiều cao ấy — mặc định `0 1 auto` cho phép co
    lại khi thiếu chỗ, nên kéo lên 260 mà đo ra 208 và tay kéo trông như hụt. Thiếu chỗ
    thì `.kq-giua` nhường, vì nó mới là chỗ co giãn được. */
-.cua-so-kq .than-tab { max-height: none; flex: 0 0 auto; }
+/* `0 1 auto`: GIỮ ĐÚNG chiều cao đã kéo khi còn chỗ, và NHƯỜNG khi hết chỗ — sàn
+   của `.kq-giua` ở trên quyết ai nhường trước. `0 0 auto` thì nó không nhường bao
+   giờ, và cửa sổ nhỏ là biểu đồ biến mất. */
+.cua-so-kq .than-tab { max-height: none; flex: 0 1 auto; }
 /* Tay kéo cần một gốc toạ độ — nó `position: absolute`. */
 .cua-so-kq .thanh-keo { position: relative; top: 0; height: 7px; }
 .cua-so-kq > .kq-loi { margin: 12px 14px; }
