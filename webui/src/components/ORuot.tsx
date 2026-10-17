@@ -59,7 +59,7 @@ export function Hang({ o, gt, onDoi, children }: {
         <input type="checkbox" className="o-tich" checked={gt === true}
                onChange={e => onDoi?.(e.target.checked)} />
       ) : o.kieu === 'so' ? (
-        <ONhapSo gt={gt} onDoi={n => onDoi?.(n)} />
+        <ONhapSo gt={gt} nguyen={o.nguyen} onDoi={n => onDoi?.(n)} />
       ) : (
         // Placeholder nói ĐÚNG MỘT điều: ô này không bắt buộc. Để trống rồi thì sao
         // là chuyện của từng ô, và `goi_y` bên cạnh đã nói — nhồi vào đây thì ô Mốc

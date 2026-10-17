@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
-import { Hang, ONhapSo, KhaiLean } from './ORuot'
+import { Hang, KhaiLean } from './ORuot'
 import type {
   KhoangNgay, MaChay, OLam, Step, TuDienBatDau,
 } from '../types'
@@ -27,6 +27,10 @@ function DanhSachMa({ ds, td, onDoi }: {
   const sua = (i: number, d: Partial<MaChay>) =>
     onDoi(ds.map((m, j) => (j === i ? { ...m, ...d } : m)))
 
+  /** Mã này có dữ liệu đi kèm LEAN không. Biết ngay lúc gõ, chứ đừng để tới lúc
+   *  backtest chạy xong mà không có lệnh nào rồi mới ngồi đoán vì sao. */
+  const coDuLieu = (m: MaChay) => (td.co_san[m.loai] ?? []).includes(m.ma)
+
   return (
     <div className="ds-ma">
       {ds.map((m, i) => (
@@ -40,6 +44,14 @@ function DanhSachMa({ ds, td, onDoi }: {
               <option key={l.ma} value={l.ma}>{l.nhan}</option>
             ))}
           </select>
+          {/* Không CHẶN — ai có bộ dữ liệu riêng thì mã nào cũng chạy được. Chỉ nói
+              ra, vì bộ miễn phí chỉ có 13 mã. */}
+          {m.ma && !coDuLieu(m) && (
+            <span className="ma-khong-co" title={
+              `Bộ dữ liệu miễn phí đi kèm LEAN không có ${m.ma}. Vẽ vẫn vẽ được, `
+              + 'nhưng backtest trên máy này sẽ không ra lệnh nào — trừ khi bạn tự '
+              + 'tải dữ liệu về.'}>không có dữ liệu</span>
+          )}
           <button className="nut-nho" title="Bỏ mã này"
                   onClick={() => onDoi(ds.filter((_x, j) => j !== i))}>✕</button>
         </div>
@@ -114,10 +126,24 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
             name: ten.trim() || 'Bắt đầu' })
   }
 
+  /* ĐỘ PHÂN GIẢI THẬT SỰ SẼ DÙNG.
+   *
+   * ⚠ `nhip.res` chỉ đúng với nhịp THEO NẾN (`chay === 'on_data'`) — ở đấy nhịp
+   * CHÍNH LÀ độ phân giải. Với nhịp HẸN GIỜ thì `res` là một chữ "MINUTE" còn sót
+   * từ trước D-15, và người dùng chọn riêng bằng ô «Độ phân giải dữ liệu».
+   *
+   * Bản trước dòng này in `Resolution.MINUTE` trong khi ô ghi DAILY và bộ sinh mã
+   * viết ra `Resolution.DAILY` (`sinh_ma` gọi `bat_dau.do_phan_giai`). Dòng khai
+   * LEAN tồn tại ĐÚNG ĐỂ người dùng kiểm lời hứa — nó nói sai thì tệ hơn là không
+   * có nó. Mặc định lấy từ chính ô ấy, không viết lại hằng số ở đây. */
+  const oRes = nhip?.o_them.find(o => o.ten === 'do_phan_giai')
+  const res = !nhip ? ''
+    : nhip.chay === 'on_data' ? nhip.res
+    : String(gt.do_phan_giai ?? oRes?.mac_dinh ?? nhip.res)
   const hamLean = nhip
     ? (nhip.chay === 'on_data'
-        ? `add_*(ma, Resolution.${nhip.res})`
-        : `add_*(ma, Resolution.${nhip.res}) · ${nhip.chay}`)
+        ? `add_*(ma, Resolution.${res})`
+        : `add_*(ma, Resolution.${res}) · ${nhip.chay}`)
     : ''
 
   return (
@@ -147,6 +173,27 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
               </Hang>
             )
           }
+          /* MỐC SO SÁNH — Ô CHỌN, không phải ô gõ. Danh sách là mấy mã khối này
+           * vừa khai, cộng mấy mã CÓ DỮ LIỆU MIỄN PHÍ. Gõ tay thì gõ sai, mà mốc
+           * sai không làm backtest hỏng — nó chỉ vẽ một đường so sánh vô nghĩa,
+           * tức là hỏng LẶNG, loại khó thấy nhất. */
+          if (o.ten === 'moc_so_sanh') {
+            const cua = (gt.ma as MaChay[] | undefined)?.map(m => m.ma).filter(Boolean) ?? []
+            const ds = [...new Set([...cua, ...Object.values(tuDien.co_san).flat()])]
+            return (
+              <Hang key={o.ten} o={o}>
+                <select className="o day" value={String(gt.moc_so_sanh ?? '')}
+                        onChange={e => doi('moc_so_sanh', e.target.value)}>
+                  <option value="">(để trống — LEAN tự lấy SPY)</option>
+                  {ds.map(m => (
+                    <option key={m} value={m}>
+                      {m}{cua.includes(m) ? ' — mã của cỗ máy này' : ''}
+                    </option>
+                  ))}
+                </select>
+              </Hang>
+            )
+          }
           if (o.kieu === 'khoang_ngay') {
             return (
               <Hang key={o.ten} o={o}>
@@ -162,15 +209,19 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
           )
         })}
 
-        {/* Ô thêm của nhịp — giờ, phút, số phút sau khi mở cửa. */}
+        {/* Ô THÊM của nhịp — giờ, phút, số phút sau khi mở cửa, độ phân giải.
+         *
+         *  ⚠ ĐƯA THẲNG `o` CỦA PYTHON VÀO, không dựng lại. Bản trước nặn một object
+         *  mới với `kieu: 'so'` đóng cứng và `chon: []`, nên:
+         *    · «Độ phân giải dữ liệu» là ô CHỌN năm mức mà hiện ra như ô gõ chữ,
+         *      năm lựa chọn bị vứt sạch;
+         *    · câu gợi ý tự chế từ `o.nho_nhat`/`o.lon_nhat` — hai khoá KHÔNG HỀ CÓ
+         *      trong từ điển — nên in ra đúng chữ "Từ undefined đến undefined",
+         *      đè mất câu gợi ý thật mà Python đã viết.
+         *  Giao diện khai lại thứ Python đã khai là đúng cái bệnh dự án này săn. */}
         {(nhip?.o_them ?? []).map(o => (
-          <Hang key={o.ten}
-                o={{ ten: o.ten, nhan: o.nhan, kieu: 'so', mac_dinh: o.mac_dinh,
-                     don_vi: '', goi_y: `Từ ${o.nho_nhat} đến ${o.lon_nhat}.`,
-                     chon: [], bat_buoc: true } as OLam}>
-            <ONhapSo gt={gt[o.ten] ?? o.mac_dinh} nguyen
-                     onDoi={v => doi(o.ten, v)} />
-          </Hang>
+          <Hang key={o.ten} o={o as unknown as OLam} gt={gt[o.ten] ?? o.mac_dinh}
+                onDoi={v => doi(o.ten, v)} />
         ))}
 
         <KhaiLean ham={hamLean} />

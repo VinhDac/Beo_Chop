@@ -1364,6 +1364,13 @@ mark.tim-chu {
 .dong-ma { display: flex; align-items: center; gap: 6px; }
 .dong-ma .o.ma { flex: 0 0 96px; text-transform: uppercase; }
 .dong-ma .o.day { flex: 1 1 auto; min-width: 0; }
+/* Mã không có trong bộ dữ liệu miễn phí: NÓI, không chặn. Màu cảnh báo chứ không
+   màu lỗi — vẽ vẫn vẽ được, chỉ là backtest trên máy này sẽ không ra lệnh nào. */
+.dong-ma .ma-khong-co {
+  flex: 0 0 auto; font-size: 10.5px; color: var(--warn);
+  padding: 1px 6px; border-radius: 3px; border: 1px solid var(--warn);
+  opacity: .75; cursor: help; white-space: nowrap;
+}
 .dong-ma > .nut-nho { color: var(--dim); flex: 0 0 auto; }
 .dong-ma > .nut-nho:hover { color: var(--err); background: var(--raised); }
 .ds-ma > .nut { align-self: flex-start; }

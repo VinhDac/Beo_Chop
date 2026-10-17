@@ -184,6 +184,8 @@ export interface OLam {
   /** `ds_ma` và `khoang_ngay` chỉ khối Bắt đầu có — widget của chúng nằm ngay trong
    *  `HopBatDau.tsx`, không ở `ORuot.tsx`, vì ô chung phải ở lại chung. */
   kieu: 'so' | 'chu' | 'chon' | 'co_khong' | 'ds_ma' | 'khoang_ngay'
+  /** Chỉ nhận số NGUYÊN (giờ, phút). Python khai, giao diện KHÔNG tự đoán. */
+  nguyen?: boolean
   mac_dinh: unknown
   don_vi: string
   goi_y: string

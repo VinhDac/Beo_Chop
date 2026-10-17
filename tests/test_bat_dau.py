@@ -24,6 +24,7 @@ Không mở cửa sổ, không nối mạng -> chạy được ở bất cứ đ
 import io
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -251,6 +252,52 @@ kiem("gửi đủ ô", len(td["o"]) == len(bat_dau.O_BAT_DAU))
 kiem("có bảng loại tài sản", len(td["loai_tai_san"]) == len(bat_dau.LOAI_TAI_SAN))
 kiem("có bảng nhịp", len(td["nhip"]) == len(bat_dau.NHIP))
 kiem("gợi ý mã miễn phí có XAUUSD", "XAUUSD" in td["co_san"]["cfd"])
+
+print("\n▸ Mỗi ô phải TỰ KHAI đủ, giao diện không được đoán hộ")
+_o_them = [(n["ma"], o) for n in td["nhip"] for o in n["o_them"]]
+# ⚠ Ô CHỌN phải có danh sách chọn. «Độ phân giải dữ liệu» khai năm mức, nhưng hộp
+# thoại dựng lại object với `kieu: 'so'` đóng cứng và `chon: []` — nên nó hiện ra như
+# một ô gõ chữ và năm lựa chọn biến mất. Từ điển đúng, giao diện tự chế mới sai.
+hong = [f"{k}/{o['ten']}" for k, o in _o_them if o["kieu"] == "chon" and not o["chon"]]
+kiem("ô chọn nào cũng có danh sách chọn", not hong, f"— {hong}")
+
+# ⚠ VỊ TRÍ THỨ SÁU CỦA `_o` LÀ `don_vi`, KHÔNG PHẢI `goi_y`. Truyền chay thì câu
+# "Từ 0 đến 390." nằm ở ô ĐƠN VỊ — hiện ra cạnh ô số như một đơn vị đo, còn ô gợi ý
+# thì trống. Đã sai thế suốt với `so_phut`, `gio`, `phut`.
+lac = [f"{o['ten']}={o['don_vi']!r}"
+       for _k, o in _o_them + [("", x) for x in td["o"]]
+       if re.search(r"[Tt]ừ .* đến ", str(o.get("don_vi") or ""))]
+kiem("không câu «Từ … đến …» nào lạc sang ô đơn vị", not lac, f"— {lac}")
+
+thieu = [f"{k}/{o['ten']}" for k, o in _o_them
+         if o["kieu"] == "so" and not o["goi_y"]]
+kiem("ô số nào cũng nói khoảng hợp lệ", not thieu, f"— {thieu}")
+kiem("ô giờ/phút khai là SỐ NGUYÊN",
+     all(o["nguyen"] for _k, o in _o_them if o["kieu"] == "so"),
+     "— giao diện từng tự quyết chuyện này")
+
+print("\n▸ Nhịp HẸN GIỜ: độ phân giải là của người dùng, không phải của nhịp")
+# D-15: `schedule.on` chạy theo ĐỒNG HỒ nên dữ liệu ngày vẫn hẹn giờ được. Cột `res`
+# của mấy nhịp hẹn giờ là chữ "MINUTE" còn sót lại từ trước — thứ quyết định thật là
+# ô `do_phan_giai`. Hộp thoại từng in `Resolution.MINUTE` trong khi ô ghi DAILY và
+# bộ sinh mã viết DAILY: dòng khai LEAN nói dối đúng chỗ nó sinh ra để nói thật.
+hen = [n for n in bat_dau.NHIP if n[3] != "on_data"]
+kiem("nhịp hẹn giờ nào cũng có ô độ phân giải",
+     all(any(o["ten"] == "do_phan_giai" for o in n[4]) for n in hen),
+     f"— {len(hen)} nhịp")
+_hen = {"nhip": "tuan"}            # nhịp HẸN GIỜ, cột `res` của nó là "MINUTE"
+kiem("với nhịp hẹn giờ, ô người dùng quyết — không phải cột `res`",
+     bat_dau.do_phan_giai({**_hen, "do_phan_giai": "DAILY"}) == "DAILY"
+     and bat_dau.do_phan_giai({**_hen, "do_phan_giai": "HOUR"}) == "HOUR",
+     "— `res` của nhịp «tuan» là MINUTE, nhưng nó KHÔNG được thắng")
+kiem("giá trị rác thì rơi về mặc định, không nổ",
+     bat_dau.do_phan_giai({**_hen, "do_phan_giai": "rác"}) == "DAILY"
+     and bat_dau.do_phan_giai({**_hen}) == "DAILY")
+# Nhịp THEO NẾN thì ngược lại: nhịp CHÍNH LÀ độ phân giải, ô kia không có mặt.
+kiem("với nhịp theo nến, nhịp mới là độ phân giải",
+     bat_dau.do_phan_giai({"nhip": "phut"}) == "MINUTE"
+     and bat_dau.do_phan_giai({"nhip": "gio", "do_phan_giai": "DAILY"}) == "HOUR",
+     "— ô `do_phan_giai` không hiện ra ở mấy nhịp này nên không được thắng")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

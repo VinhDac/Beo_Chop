@@ -46,10 +46,17 @@ O_KHOANG_NGAY = "khoang_ngay"   # {"tu": "2010-01-01", "den": "2019-01-01"}
 O_DS_MA = "ds_ma"               # [{"ma": "XAUUSD", "loai": "cfd"}, …]
 
 
-def _o(ten, nhan, kieu, mac_dinh, lean, don_vi="", goi_y="", chon=(), bat_buoc=True):
+def _o(ten, nhan, kieu, mac_dinh, lean, don_vi="", goi_y="", chon=(),
+       bat_buoc=True, nguyen=False):
+    """Một ô của khối Bắt đầu.
+
+    `nguyen` = chỉ nhận số NGUYÊN (giờ, phút). Khai ở đây chứ không để giao diện tự
+    biết: "phút có được lẻ không" là luật của ô, mà luật của ô thì thuộc về từ điển.
+    Giao diện từng tự quyết chuyện ấy, và cũng chính nó tự chế luôn câu gợi ý từ hai
+    khoá không hề tồn tại — in ra "Từ undefined đến undefined" suốt một thời gian."""
     return {"ten": ten, "nhan": nhan, "kieu": kieu, "mac_dinh": mac_dinh,
             "lean": lean, "don_vi": don_vi, "goi_y": goi_y, "chon": list(chon),
-            "bat_buoc": bat_buoc}
+            "bat_buoc": bat_buoc, "nguyen": nguyen}
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +113,11 @@ _O_DO_PHAN_GIAI = _o(
 
 
 def _o_phut(nhan, mac_dinh=10):
-    return _o("so_phut", nhan, O_SO, mac_dinh, "", "Từ 0 đến 390.")
+    # ⚠ `goi_y=` CÓ TÊN, không truyền chay: vị trí thứ sáu của `_o` là `don_vi`, nên
+    # "Từ 0 đến 390." vẫn nằm ở ô ĐƠN VỊ suốt từ đầu — hiện ra cạnh ô số như một đơn
+    # vị đo, còn ô gợi ý thì trống trơn.
+    return _o("so_phut", nhan, O_SO, mac_dinh, "", goi_y="Từ 0 đến 390 phút.",
+              nguyen=True)
 
 
 NHIP = (
@@ -117,8 +128,9 @@ NHIP = (
     ("ngay", "Mỗi nến ngày", "DAILY", "on_data", ()),
     ("moi_ngay_luc", "Mỗi ngày đúng giờ", "MINUTE",
      "schedule.on(date_rules.every_day(ma), time_rules.at(gio, phut))",
-     (_o("gio", "Giờ", O_SO, 10, "", "Từ 0 đến 23."),
-      _o("phut", "Phút", O_SO, 0, "", "Từ 0 đến 59."), _O_DO_PHAN_GIAI)),
+     (_o("gio", "Giờ", O_SO, 10, "", goi_y="Từ 0 đến 23.", nguyen=True),
+      _o("phut", "Phút", O_SO, 0, "", goi_y="Từ 0 đến 59.", nguyen=True),
+      _O_DO_PHAN_GIAI)),
     ("sau_mo_cua", "Mỗi ngày, sau khi MỞ cửa", "MINUTE",
      "schedule.on(date_rules.every_day(ma), time_rules.after_market_open(ma, so_phut))",
      (_o_phut("Số phút sau khi mở"), _O_DO_PHAN_GIAI)),

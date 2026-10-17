@@ -215,6 +215,25 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ Hộp Bắt đầu KHÔNG được khai lại thứ Python đã khai")
+bd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
+# ⚠ ĐÃ HỎNG THẬT, ba cái một lúc. Hộp thoại dựng lại object cho mấy ô THÊM của nhịp:
+#   kieu: 'so' đóng cứng  -> «Độ phân giải dữ liệu» (ô CHỌN năm mức) hiện ra như ô gõ
+#   chon: []              -> năm lựa chọn bị vứt
+#   goi_y tự chế từ `o.nho_nhat`/`o.lon_nhat` — hai khoá KHÔNG HỀ CÓ trong từ điển
+#                         -> in ra đúng chữ "Từ undefined đến undefined", đè mất câu
+#                            gợi ý thật. Không lỗi, không cảnh báo, build sạch.
+kiem("không còn đọc khoá `nho_nhat` (từ điển không có khoá ấy)", "nho_nhat" not in bd)
+kiem("không còn đóng cứng `kieu: 'so'`", "kieu: 'so'" not in bd)
+kiem("ô thêm của nhịp đưa thẳng `o` của Python vào",
+     re.search(r"o_them[\s\S]{0,200}<Hang[^>]*o=\{o\b", bd) is not None)
+# Dòng khai LEAN tồn tại ĐÚNG ĐỂ kiểm lời hứa — nó nói sai thì tệ hơn không có nó.
+kiem("dòng khai LEAN đọc độ phân giải NGƯỜI DÙNG chọn", "gt.do_phan_giai" in bd,
+     "— không phải cột `res` của nhịp, thứ còn sót lại từ trước D-15")
+kiem("Mốc so sánh là ô CHỌN", re.search(r"moc_so_sanh[\s\S]{0,400}<select", bd) is not None)
+kiem("mã không có dữ liệu miễn phí thì NÓI ra", "ma-khong-co" in bd,
+     "— nói, chứ không chặn: ai có dữ liệu riêng vẫn chạy được")
+
 print("\n▸ Ribbon: ẩn một nhóm KHÔNG được lấy mất việc gì  (luật của Jenifer_Studio)")
 rib = doc("components/Ribbon.tsx")
 # 13 nút «thêm khối» rải thành ba nhóm nay gộp thành hai nút THỂ LOẠI có menu xổ.
