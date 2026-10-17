@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import type React from 'react'
 
 /** BẢNG DƯỚI — Vấn đề và Nhật ký.
  *
@@ -24,21 +25,19 @@ export interface TabDuoi {
   noiDung: ReactNode
 }
 
-export default function BangDuoi({ tabs, tab, onTab, cao, onCao, gap, onGap }: {
-  tabs: TabDuoi[]
-  tab: string
-  onTab: (ma: string) => void
-  cao: number
-  onCao: (c: number) => void
-  gap: boolean
-  onGap: (g: boolean) => void
-}) {
+/** BỘ KÉO CHIỀU CAO của một bảng nằm dưới cùng — kéo lên là CAO LÊN.
+ *
+ *  Tách ra vì nay có HAI bảng dưới: bảng Vấn đề/Nhật ký của cửa sổ chính, và cụm
+ *  tab của cửa sổ Kết quả. Chép tay lần thứ hai thì hai bảng sẽ có hai cảm giác kéo
+ *  khác nhau — và chỉ một trong hai được sửa khi có lỗi. */
+export function useKeoCao(cao: number, onCao: (c: number) => void,
+                          toiThieu = CAO_TOI_THIEU) {
   const keo = useRef<{ y0: number; c0: number } | null>(null)
 
   const dangKeo = useCallback((e: MouseEvent) => {
     if (!keo.current) return
-    onCao(Math.max(CAO_TOI_THIEU, keo.current.c0 + (keo.current.y0 - e.clientY)))
-  }, [onCao])
+    onCao(Math.max(toiThieu, keo.current.c0 + (keo.current.y0 - e.clientY)))
+  }, [onCao, toiThieu])
 
   const thoiKeo = useCallback(() => { keo.current = null }, [])
 
@@ -51,13 +50,26 @@ export default function BangDuoi({ tabs, tab, onTab, cao, onCao, gap, onGap }: {
     }
   }, [dangKeo, thoiKeo])
 
+  return (e: React.MouseEvent) => { keo.current = { y0: e.clientY, c0: cao } }
+}
+
+export default function BangDuoi({ tabs, tab, onTab, cao, onCao, gap, onGap }: {
+  tabs: TabDuoi[]
+  tab: string
+  onTab: (ma: string) => void
+  cao: number
+  onCao: (c: number) => void
+  gap: boolean
+  onGap: (g: boolean) => void
+}) {
+  const batKeo = useKeoCao(cao, onCao)
+
   const hien = tabs.find(t => t.ma === tab) ?? tabs[0]
 
   return (
     <div className="bang-duoi" style={{ height: gap ? CAO_GAP : cao }}>
       {!gap && (
-        <div className="thanh-keo"
-             onMouseDown={e => { keo.current = { y0: e.clientY, c0: cao } }} />
+        <div className="thanh-keo" onMouseDown={batKeo} />
       )}
       {/* Bấm vào CẢ HÀNG TAB là mở/gập — không phải đi tìm một nút mũi tên tí xíu. */}
       <div className="hang-tab" onDoubleClick={() => onGap(!gap)}>

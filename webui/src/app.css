@@ -1407,7 +1407,23 @@ mark.tim-chu {
 /* CỬA SỔ KẾT QUẢ RIÊNG — `frameless` như cửa sổ chính, nên nó tự vẽ thanh tiêu đề
    và phần ruột phải lấp nốt chỗ còn lại. */
 .cua-so-kq { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-.cua-so-kq > .man-kq { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px 14px; }
+/* TRONG CỬA SỔ RIÊNG, màn Kết quả là một CỘT LẤP ĐẦY, không phải một trang cuộn:
+   dải ô số đứng yên trên đầu, cụm tab đứng yên dưới đáy ở đúng chiều cao vừa kéo,
+   còn BIỂU ĐỒ ăn hết chỗ giữa. Trước đây `.kq-giua` cao theo nội dung nên biểu đồ
+   dừng giữa chừng và dưới nó là một mảng trống — cửa sổ càng cao, mảng trống càng to. */
+.cua-so-kq > .man-kq {
+  flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 12px 14px;
+}
+.cua-so-kq .kq-giua { flex: 1 1 auto; min-height: 0; }
+.cua-so-kq .kq-bieu-do { overflow: auto; min-height: 0; }
+.cua-so-kq .kq-ben { overflow: auto; min-height: 0; }
+/* `max-height` của bản trong hộp thoại phải NHƯỜNG: ở đây chiều cao do tay kéo quyết.
+   Và `flex: 0 0 auto` để nó GIỮ ĐÚNG chiều cao ấy — mặc định `0 1 auto` cho phép co
+   lại khi thiếu chỗ, nên kéo lên 260 mà đo ra 208 và tay kéo trông như hụt. Thiếu chỗ
+   thì `.kq-giua` nhường, vì nó mới là chỗ co giãn được. */
+.cua-so-kq .than-tab { max-height: none; flex: 0 0 auto; }
+/* Tay kéo cần một gốc toạ độ — nó `position: absolute`. */
+.cua-so-kq .thanh-keo { position: relative; top: 0; height: 7px; }
 .cua-so-kq > .kq-loi { margin: 12px 14px; }
 
 /* ---------------- Hộp Cài đặt ---------------- */
@@ -1510,6 +1526,8 @@ mark.tim-chu {
 .o-so-lon.xau > b { color: var(--err); }
 
 .than-tab { max-height: 36vh; overflow: auto; }
+/* Hàng tab của màn Kết quả: cùng nét với bảng dưới của cửa sổ chính. */
+.man-kq > .hang-tab { flex: 0 0 auto; }
 .bang-kq { width: 100%; border-collapse: collapse; font-size: 12px; }
 .bang-kq th {
   position: sticky; top: 0; z-index: 1;

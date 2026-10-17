@@ -217,6 +217,24 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
 
 sodo = bo_chu_thich_ts(doc("SoDo.tsx"))
 api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
+print("\n▸ Cửa sổ Kết quả: biểu đồ LẤP ĐẦY, cụm tab dưới KÉO ĐƯỢC")
+# Trước đây `.kq-giua` cao theo nội dung, nên biểu đồ dừng giữa chừng và dưới nó là
+# một mảng trống — cửa sổ càng cao, mảng trống càng to.
+for lop, luat in ((r"\.cua-so-kq \.kq-giua", "flex: 1 1 auto"),
+                  (r"\.cua-so-kq \.than-tab", "flex: 0 0 auto")):
+    kh = re.search(lop + r"[^}]*\}", bo_chu_thich(app))
+    kiem(f"`{lop.replace(chr(92), '')}` khai `{luat}`",
+         kh is not None and luat in kh.group(0), f"— {kh.group(0)[:70] if kh else '?'}")
+# ⚠ `flex: 0 0 auto` KHÔNG thừa: mặc định `0 1 auto` cho phép co lại khi thiếu chỗ,
+# nên kéo lên 260 mà đo ra 208 — tay kéo trông như hụt mà chẳng hiểu vì sao.
+bd_ = bo_chu_thich_ts(doc("components/BangDuoi.tsx"))
+kq_ = bo_chu_thich_ts(doc("components/HopKetQua.tsx"))
+kiem("bộ kéo cao tách ra dùng chung", "export function useKeoCao" in bd_)
+kiem("và CẢ HAI bảng dưới đều dùng nó",
+     "useKeoCao(" in kq_ and bd_.count("useKeoCao(") >= 2,
+     "— chép tay lần hai thì hai bảng có hai cảm giác kéo khác nhau")
+kiem("không còn bản chép tay nào", kq_.count("addEventListener('mousemove'") == 0)
+
 print("\n▸ ⭐ Thanh tiêu đề tự vẽ và BỘ BẮT KÉO là MỘT thứ")
 # ⚠ ĐÃ HỎNG THẬT. `useKhungCuaSo` chỉ được gọi trong `SoDo` — cửa sổ CHÍNH. Cửa sổ
 # Kết quả riêng dựng `TitleBar` y hệt nhưng không ai lắp bộ kéo cho nó, nên dải tiêu

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import BangBieuDo from './BangBieuDo'
+import { useKeoCao } from './BangDuoi'
 import type { KetQuaChay } from '../types'
 
 /** MÀN KẾT QUẢ — tám ô số, tám bảng biểu đồ bật tắt được, rồi các bảng chi tiết.
@@ -58,6 +59,11 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
   const [hien, setHien] = useState<Record<string, boolean>>(() =>
     Object.fromEntries((kq.bieu_do ?? []).map(b => [b.ten, b.hien])))
   const [chiTieu, setChiTieu] = useState('sharpeRatio')
+  /* CỤM TAB DƯỚI KÉO ĐƯỢC, đúng cảm giác bảng Vấn đề/Nhật ký của cửa sổ chính —
+     dùng CHÍNH bộ kéo của nó (`useKeoCao`), không chép lại. Bảng Lệnh có lúc 5 dòng
+     có lúc 600; chiều cao cố định thì lúc nào cũng sai một trong hai. */
+  const [caoDuoi, setCaoDuoi] = useState(260)
+  const batKeo = useKeoCao(caoDuoi, setCaoDuoi)
 
   const oSo = kq.o_so ?? {}
   const tk = kq.thong_ke ?? {}
@@ -136,6 +142,8 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
           </div>
         </div>
 
+        {/* Tay kéo nằm NGAY TRÊN hàng tab — chỗ mắt đã nhìn khi muốn xem bảng dưới. */}
+        <div className="thanh-keo" onMouseDown={batKeo} />
         <div className="hang-tab">
           {([['tong_quan', 'Tổng quan'],
              ['lenh', `Lệnh (${lenh.length})`],
@@ -147,7 +155,7 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
           ))}
         </div>
 
-        <div className="than-tab">
+        <div className="than-tab" style={{ height: caoDuoi }}>
           {tab === 'tong_quan' && (
             <>
               <div className="tk-hai-cot">
