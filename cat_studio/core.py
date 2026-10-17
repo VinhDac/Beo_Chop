@@ -389,6 +389,13 @@ def mo_ta_lam(step):
         if cau:
             dong.append(f"«{cau}»")
 
+    # MÃ đứng đầu dòng khi khối trỏ tới một mã cụ thể. Thiếu chỗ này thì một Nhóm ba
+    # dòng "Đặt tỷ trọng 40% / 35% / 20%" không nói được nó chia cho những mã nào —
+    # đúng thứ người đọc sơ đồ cần biết nhất ở một chiến thuật chia danh mục.
+    ma = str(g("ma") or "").strip().upper()
+    if ma and dong:
+        dong[0] = f"{ma} · {dong[0]}"
+
     tag = str(g("tag") or "").strip()
     if tag:
         dong.append(f"ghi chú lệnh: «{tag}»")
