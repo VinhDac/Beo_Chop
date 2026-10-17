@@ -1427,6 +1427,63 @@ def soat_khoi_bat_dau(step):
     return ra
 
 
+def soat_day_chuyen(steps):
+    """Soát chéo: DÂY CHUYỀN của LEAN phải khớp đầu khớp đuôi. -> [vấn đề]
+
+    Khối «Phát tín hiệu» không tự đặt lệnh — nó đưa một `Insight` cho dây chuyền:
+
+        tín hiệu -> chia vốn -> phòng rủi ro -> đặt lệnh
+
+    Dây ấy bắt đầu từ tín hiệu và chỉ chạy nếu có người nhận. Ba cách hỏng dưới đây
+    đều HỎNG LẶNG — LEAN chạy xong, không lỗi, mà không một lệnh nào được đặt:
+
+      1. Phát tín hiệu mà không chọn «Chia vốn»: insight bay vào hư không.
+      2. Chọn «Chia vốn» mà chẳng khối nào phát tín hiệu: trạm ấy ngồi không.
+      3. Trộn tín hiệu với khối đặt lệnh tay: model chia vốn cân lại danh mục theo
+         target của nó, nên cú `set_holdings` tay bị gỡ ngay nhịp sau.
+    """
+    ra = []
+    bd = next((x for x in (steps or []) if is_start_step(x)), None)
+    if not bd:
+        return ra
+
+    co_tin_hieu, co_lenh_tay = [], []
+    for x in (steps or []):
+        for a_ in (hanh_dong_cua(x) if is_group_step(x) else [x]):
+            if not isinstance(a_, dict):
+                continue
+            t = a_.get("type")
+            if t == lam.LAM_TIN_HIEU:
+                co_tin_hieu.append(x)
+            elif lam.la_loai_lam(t) and lam.LOAI_LAM[t]["nhom"] == lam.NHOM_LENH:
+                co_lenh_tay.append(x)
+
+    chia = str(o_bat_dau(bd, "chia_von") or "").strip()
+
+    if co_tin_hieu and not chia:
+        _loi(ra, "error", co_tin_hieu[0].get("id"),
+             "Sơ đồ có khối «Phát tín hiệu» mà khối Bắt đầu chưa chọn «Chia vốn theo "
+             "tín hiệu» — tín hiệu phát ra KHÔNG ai nhận, và backtest chạy xong sẽ "
+             "không có lệnh nào.")
+    if chia and not co_tin_hieu:
+        _loi(ra, "warning", bd.get("id"),
+             f'Khối Bắt đầu chọn chia vốn «{chia}», mà sơ đồ không có khối «Phát tín '
+             f"hiệu» nào — trạm ấy không có gì để chia.")
+    if co_tin_hieu and co_lenh_tay:
+        _loi(ra, "error", co_lenh_tay[0].get("id"),
+             "Sơ đồ vừa «Phát tín hiệu» vừa đặt lệnh tay. Hai thứ giành nhau danh "
+             "mục: model chia vốn cân lại theo tỷ trọng của nó, nên lệnh đặt tay bị "
+             "gỡ ngay nhịp sau. Chọn MỘT lối.")
+
+    # Hai trạm sau cũng cần dây: không có chia vốn thì chúng không bao giờ được gọi.
+    for ten_o, nhan in (("phong_rui_ro", "Phòng rủi ro"), ("dat_lenh", "Đặt lệnh")):
+        if str(o_bat_dau(bd, ten_o) or "").strip() and not chia:
+            _loi(ra, "warning", bd.get("id"),
+                 f"«{nhan}» chỉ chạy sau khi có chia vốn — mà «Chia vốn theo tín "
+                 f"hiệu» đang để trống, nên trạm này không bao giờ tới lượt.")
+    return ra
+
+
 def soat_ca_ro(steps):
     """Soát chéo khối: chạy MỘT LƯỢT cho cả rổ thì mọi khối phải gõ rõ tên mã.
 

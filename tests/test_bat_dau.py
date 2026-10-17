@@ -299,5 +299,46 @@ kiem("với nhịp theo nến, nhịp mới là độ phân giải",
      and bat_dau.do_phan_giai({"nhip": "gio", "do_phan_giai": "DAILY"}) == "HOUR",
      "— ô `do_phan_giai` không hiện ra ở mấy nhịp này nên không được thắng")
 
+print("\n▸ ⭐ DÂY CHUYỀN của LEAN — ba chính sách, cắm ở `initialize`")
+# ⚠ Chúng là Ô chứ không phải KHỐI, và đó là quyết định có lý kiểm được: cả ba gọi
+# MỘT LẦN trong `initialize` (ví dụ `BaseFrameworkRegressionAlgorithm.py` của LEAN —
+# năm cái `set_*` đều nằm trong đó). Thả một khối "Chia vốn đều" vào cuối một nhánh
+# thì nó nghĩa là gì — "chỉ đặt cách chia vốn khi RSI < 30"? Không nghĩa nào.
+#   Đường ranh: xảy ra MỖI NHỊP → khối Hành động; đặt MỘT LẦN → ô ở đây.
+for _ten, _ham in (("chia_von", "set_portfolio_construction"),
+                   ("phong_rui_ro", "set_risk_management"),
+                   ("dat_lenh", "set_execution")):
+    _o2 = bat_dau.O_THEO_TEN[_ten]
+    kiem(f"có ô `{_ten}`", _o2["kieu"] == bat_dau.O_CHON and not _o2["bat_buoc"])
+    kiem("  mặc định là KHÔNG dùng", _o2["mac_dinh"] == "",
+         "— không cắm trạm nào thì sơ đồ chạy y như trước")
+    kiem("  khai đúng hàm LEAN", _ham in _o2["lean"])
+
+print("\n▸ Dây chuyền phải khớp đầu khớp đuôi")
+_bd = core.make_start_step()
+_th = core.make_lam_step(lam.LAM_TIN_HIEU)
+
+
+def _nang(ds):
+    return [v for v in ds if v["severity"] == "error"]
+
+
+kiem("phát tín hiệu mà chưa chọn Chia vốn → LỖI",
+     len(_nang(core.soat_day_chuyen([_bd, _th]))) == 1,
+     "— insight bay vào hư không, backtest chạy xong không một lệnh nào")
+_bd["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+kiem("chọn rồi thì sạch", not core.soat_day_chuyen([_bd, _th]))
+kiem("chọn Chia vốn mà không khối tín hiệu nào → CẢNH BÁO",
+     [v["severity"] for v in core.soat_day_chuyen([_bd])] == ["warning"])
+kiem("trộn tín hiệu với lệnh tay → LỖI",
+     len(_nang(core.soat_day_chuyen(
+         [_bd, _th, core.make_lam_step(lam.LAM_DAT_TY_TRONG)]))) == 1,
+     "— model chia vốn cân lại danh mục, lệnh tay bị gỡ ngay nhịp sau")
+_bd2 = core.make_start_step()
+_bd2["phong_rui_ro"] = "TrailingStopRiskManagementModel"
+kiem("phòng rủi ro mà không có chia vốn → CẢNH BÁO",
+     any(v["severity"] == "warning" for v in core.soat_day_chuyen([_bd2])),
+     "— nó chạy SAU chia vốn, không có chia vốn thì không tới lượt")
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

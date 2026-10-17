@@ -178,6 +178,42 @@ SAN = (
 #: Danh sách đọc thẳng từ `_supportedOrderTypes` của từng model trong
 #: `Common/Brokerages/`: Oanda / Binance / Coinbase đều chỉ có
 #: `[Limit, Market, StopMarket, StopLimit]`. Interactive Brokers và Default thì có.
+# ---------------------------------------------------------------------------
+# DÂY CHUYỀN CỦA LEAN — ba trạm đứng SAU cây quyết định
+# ---------------------------------------------------------------------------
+# Mỗi mục là MỘT lớp có thật trong `Algorithm.Framework/`, đã đối chiếu tên file.
+# Để trống = không cắm trạm ấy.
+
+#: Biến tín hiệu thành tỷ trọng. `EqualWeighting` chia đều 1/N cho mấy tín hiệu CÒN
+#: HẠN — đọc mã nguồn: `percent = 1.0 / count`, với `count` đếm insight đang active.
+CHIA_VON = (
+    ("", "— không dùng —"),
+    ("EqualWeightingPortfolioConstructionModel", "Chia ĐỀU cho mọi tín hiệu (1/N)"),
+    ("InsightWeightingPortfolioConstructionModel", "Chia theo TRỌNG SỐ của tín hiệu"),
+    ("ConfidenceWeightedPortfolioConstructionModel", "Chia theo ĐỘ TIN của tín hiệu"),
+    ("MeanVarianceOptimizationPortfolioConstructionModel", "Tối ưu phương sai–kỳ vọng"),
+)
+
+#: Chạy SAU khi chia vốn, được quyền chỉnh lại tỷ trọng.
+#: ⚠ Mấy thứ này trước đây ta TỪ CHỐI (SL/TP cần nhớ qua nến, xem `lam.py`). Lối cổ
+#: điển thì đúng là cần; ở đây LEAN giữ mức hộ, app không nhớ gì cả.
+PHONG_RUI_RO = (
+    ("", "— không dùng —"),
+    ("MaximumDrawdownPercentPerSecurity", "Cắt lỗ theo % từng mã"),
+    ("MaximumUnrealizedProfitPercentPerSecurity", "Chốt lời theo % từng mã"),
+    ("MaximumDrawdownPercentPortfolio", "Cắt lỗ theo % CẢ danh mục"),
+    ("TrailingStopRiskManagementModel", "Trailing stop"),
+)
+
+#: Cách đẩy tỷ trọng thành lệnh.
+DAT_LENH = (
+    ("", "— không dùng —"),
+    ("ImmediateExecutionModel", "Đặt NGAY bằng lệnh thị trường"),
+    ("VolumeWeightedAveragePriceExecutionModel", "Rải theo VWAP"),
+    ("StandardDeviationExecutionModel", "Chờ giá lệch khỏi trung bình"),
+)
+
+
 SAN_KHONG_NHAN_MOC = ("OANDA_BROKERAGE", "BINANCE", "COINBASE")
 
 
@@ -235,6 +271,28 @@ O_BAT_DAU = [
 
     _o("san", "Sàn", O_CHON, "DEFAULT", "set_brokerage_model(BrokerageName.san)",
        chon=list(SAN), goi_y="Quyết phí và trượt giá tính theo kiểu nào."),
+
+    # --- BA CHÍNH SÁCH CỦA DÂY CHUYỀN LEAN ---
+    #
+    # ⚠ Chúng ở ĐÂY chứ không thành khối, vì cả ba gọi MỘT LẦN trong `initialize`
+    # (xem `BaseFrameworkRegressionAlgorithm.py` của LEAN: năm cái `set_*` đều nằm
+    # trong `initialize`). Thả một khối "Chia vốn đều" vào cuối một nhánh thì nó
+    # nghĩa là gì — "chỉ đặt cách chia vốn khi RSI < 30"? Không có nghĩa nào.
+    # Đường ranh là: xảy ra MỖI NHỊP -> khối Hành động; đặt MỘT LẦN -> ô ở đây.
+    #
+    # Cả ba chỉ có tác dụng khi sơ đồ có khối «Phát tín hiệu» — `soat_dây_chuyền`
+    # trong `core.py` canh chuyện đó.
+    _o("chia_von", "Chia vốn theo tín hiệu", O_CHON, "",
+       "set_portfolio_construction(…)", chon=list(CHIA_VON),
+       goi_y="Biến tín hiệu thành tỷ trọng. Không chọn thì tín hiệu phát ra "
+             "KHÔNG ai nhận.", bat_buoc=False),
+    _o("phong_rui_ro", "Phòng rủi ro", O_CHON, "",
+       "set_risk_management(…)", chon=list(PHONG_RUI_RO),
+       goi_y="Chạy SAU khi chia vốn, chỉnh lại tỷ trọng — cắt lỗ, chốt lời, "
+             "trailing stop. LEAN giữ mức, app không nhớ gì.", bat_buoc=False),
+    _o("dat_lenh", "Đặt lệnh", O_CHON, "",
+       "set_execution(…)", chon=list(DAT_LENH),
+       goi_y="Cách đẩy tỷ trọng thành lệnh thật.", bat_buoc=False),
 ]
 
 O_THEO_TEN = {o["ten"]: o for o in O_BAT_DAU}

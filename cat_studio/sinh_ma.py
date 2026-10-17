@@ -379,6 +379,16 @@ def _khai_mo(nc, st):
     moc = str(core.o_bat_dau(st, "moc_so_sanh") or "").strip().upper()
     if moc:
         ra.append(f"self.set_benchmark({moc!r})")
+
+    # DÂY CHUYỀN CỦA LEAN — ba trạm đứng sau cây quyết định, cắm ở `initialize`.
+    # Thứ tự viết ra theo đúng thứ tự dữ liệu chảy qua chúng (insight -> tỷ trọng ->
+    # chỉnh rủi ro -> lệnh), để đọc mã sinh ra là thấy ngay dây chuyền.
+    for ten_o, ham in (("chia_von", "set_portfolio_construction"),
+                       ("phong_rui_ro", "set_risk_management"),
+                       ("dat_lenh", "set_execution")):
+        lop = str(core.o_bat_dau(st, ten_o) or "").strip()
+        if lop:
+            ra.append(f"self.{ham}({lop}())")
     return ra, n
 
 
@@ -405,6 +415,7 @@ def sinh(doc):
         nc.van_de += core.soat_khoi_lam(s)
         nc.van_de += core.soat_khoi_bat_dau(s)
     nc.van_de += core.soat_ca_ro(steps)
+    nc.van_de += core.soat_day_chuyen(steps)
     kq = core.flow_order(steps, edges)
     nc.thu_tu = kq["order"]
 

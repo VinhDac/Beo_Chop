@@ -108,9 +108,11 @@ kiem("và nó với tới CẢ kho, không riêng một họ",
      len({d["ho"] for d in hoi.KHO}) == 5 and len(hoi.KHO) == 68,
      f"— {len(hoi.KHO)} đại lượng")
 
-# ================= 2. Tám loại =================
-print("\n▸ Tám loại hành động")
-kiem("đủ tám", len(lam.LOAI_LAM) == 8, f"— {list(lam.LOAI_LAM)}")
+# ================= 2. Chín loại =================
+print("\n▸ Chín loại hành động")
+# ⚠ Con số đổi từ 8 lên 9 khi thêm «Phát tín hiệu» — khối mở ra DÂY CHUYỀN của LEAN
+# (Universe → Alpha → Portfolio → Risk → Execution) thay cho lối tự đặt lệnh.
+kiem("đủ chín", len(lam.LOAI_LAM) == 9, f"— {list(lam.LOAI_LAM)}")
 kiem("Ghi chú và Báo tin KHÔNG cần mã",
      not lam.GHI_CHU["can_ma"] and not lam.BAO_TIN["can_ma"],
      "— chúng không đụng vào một mã nào")
@@ -304,10 +306,31 @@ kiem("tên đường còn nguyên", ra_v.get("ten_duong") == "RSI 14")
 kiem("ô tích False không bị mất", ra_p.get("ban_sach_truoc") is True)
 
 # ================= 7. Từ điển gửi qua cầu nối =================
+print("\n▸ ⭐ «Phát tín hiệu» — khối mở ra nửa kia của LEAN")
+# Dây chuyền `Alpha → PortfolioConstruction → Risk → Execution` BẮT ĐẦU từ insight.
+# Khối này là chỗ cây quyết định đổ ra insight, và nhờ nó mà ba thứ ta từng từ chối
+# (thoát theo hạn, chia đều 1/N, trailing stop) thành khai báo của LEAN chứ không
+# phải sổ sách của app.
+th = lam.LOAI_LAM[lam.LAM_TIN_HIEU]
+kiem("nằm ở nhóm riêng", th["nhom"] == lam.NHOM_TIN_HIEU,
+     "— nó KHÔNG đặt lệnh, nên không thuộc nhóm Lệnh")
+kiem("cần mã", th["can_ma"])
+kiem("có ô hướng và ô hạn", {o["ten"] for o in th["o"]} == {"huong", "han"})
+# ⚠ HƯỚNG phải đi qua `theo_loai`: mọi ô đều qua `_lit()` thành literal Python, nên
+# nhét `InsightDirection.{huong}` vào mẫu sinh ra `InsightDirection.'UP'` — sai cú
+# pháp, và chỉ lộ ra lúc LEAN nạp file. Đã dính thật.
+kiem("mỗi hướng một câu LEAN riêng", set(th["theo_loai"]) == {"UP", "DOWN", "FLAT"})
+hong = [h for h, v in th["theo_loai"].items()
+        if f"InsightDirection.{h}" not in v["lean"] or "{huong}" in v["lean"]]
+kiem("và không câu nào còn nhét `{huong}` vào mẫu", not hong, f"— {hong}")
+kiem("dùng `emit_insights`, không dựng lớp Alpha nào",
+     all("self.emit_insights(" in v["lean"] for v in th["theo_loai"].values()),
+     "— `EmitInsights` là phương thức công khai của QCAlgorithm, gọi thẳng từ on_data")
+
 print("\n▸ Từ điển gửi được qua cầu nối")
 td = lam.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("đủ tám loại", len(td["loai"]) == 8)
+kiem("đủ chín loại", len(td["loai"]) == 9)
 kiem("mỗi loại có ô", all(l["o"] for l in td["loai"]))
 kiem("mỗi loại khai luôn hàm LEAN cho hộp thoại nói thẳng ra",
      all(l["lean"] for l in td["loai"]))

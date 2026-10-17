@@ -33,6 +33,8 @@ O_CO_KHONG = "co_khong"      # ô tích
 #: chúng cũng khác hẳn nhau: năm cái ĐỤNG VÀO thị trường, ba cái chỉ ghi ra ngoài.
 NHOM_LENH = "Lệnh"
 NHOM_GHI = "Ghi & báo"
+#: Nhóm thứ ba — nói với DÂY CHUYỀN của LEAN thay vì tự đặt lệnh. Xem `TIN_HIEU`.
+NHOM_TIN_HIEU = "Tín hiệu"
 
 
 def _o(ten, nhan, kieu, mac_dinh, don_vi="", goi_y="", chon=(), bat_buoc=True):
@@ -259,6 +261,66 @@ VE_BANG = {
 # ---------------------------------------------------------------------------
 # ⑧ BÁO TIN — chỉ có nghĩa khi chạy thật
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ⑨ PHÁT TÍN HIỆU — nói "mã này nên LÊN", rồi để LEAN lo phần còn lại
+# ---------------------------------------------------------------------------
+# ⚠ KHỐI NÀY MỞ RA NỬA KIA CỦA LEAN. Từ trước tới nay cả bộ khối chỉ dựng theo lối
+# CỔ ĐIỂN: `on_data` rồi tự đặt lệnh. Nhưng `QCAlgorithm` còn năm cái khe khai sẵn —
+# Universe · Alpha · Portfolio Construction · Risk · Execution — nối thành một dây
+# chuyền, và LEAN làm sẵn mỗi khe mấy model.
+#
+# Đọc thẳng `QCAlgorithm.Framework.cs`:
+#     Alpha.Update(…)                     -> insights
+#     PortfolioConstruction.CreateTargets -> targets
+#     RiskManagement.ManageRisk           -> targets đã chỉnh
+#     Execution.Execute                   -> lệnh
+# Dây chuyền ấy BẮT ĐẦU TỪ INSIGHT. Không có insight thì ba trạm sau không có gì làm.
+#
+# `emit_insights` là phương thức CÔNG KHAI của `QCAlgorithm` (`EmitInsights`), nên
+# phát được thẳng từ `on_data` — KHÔNG phải dựng một lớp Alpha model nào. Nhờ vậy
+# hình dạng mã sinh ra không đổi: vẫn cây quyết định, chỉ khác cái lá.
+#
+# ĐỔI LẠI ĐƯỢC GÌ (mấy thứ trước đây ta từ chối vì lối cổ điển bắt app tự giữ sổ):
+#   · thoát theo HẠN      -> `Insight` mang sẵn `period`, LEAN tính `CloseTimeUtc`
+#                            và `IsActive()`; app không đếm nến nào cả;
+#   · chia đều 1/N        -> `EqualWeightingPortfolioConstructionModel`;
+#   · cắt lỗ / trailing   -> mấy model trong `Algorithm.Framework/Risk/`.
+# Cả ba chọn ở khối BẮT ĐẦU, vì chúng gọi một lần trong `initialize` (xem ví dụ
+# `BaseFrameworkRegressionAlgorithm.py` của LEAN) — chúng là CHÍNH SÁCH của cỗ máy,
+# không phải việc xảy ra ở một chỗ trong luồng.
+TIN_HIEU = {
+    "nhan": "Phát tín hiệu",
+    "mo_ta": "nói «mã này nên LÊN» — LEAN lo chia vốn, phòng rủi ro và đặt lệnh",
+    "icon": "branch",
+    "nhom": NHOM_TIN_HIEU,
+    "can_ma": True,
+    "lean": "self.emit_insights(Insight.price({sym}, timedelta(days={han}), "
+            "InsightDirection.…))",
+    "o": [
+        _o("huong", "Hướng", O_CHON, "UP", "", "", [
+            ("UP", "LÊN — nên mua / giữ"),
+            ("DOWN", "XUỐNG — nên bán khống"),
+            ("FLAT", "PHẲNG — thôi giữ mã này"),
+        ]),
+        # HẠN chính là "giữ tối đa bao lâu". Hết hạn, LEAN tự bỏ tín hiệu khỏi rổ
+        # đang tính, và model chia vốn chia lại cho những mã còn hạn — tức vị thế tự
+        # đóng mà KHÔNG khối nào phải đếm ngày.
+        _o("han", "Giữ tối đa", O_SO, 15, "", "ngày",
+           "Hết ngần này ngày, LEAN tự bỏ tín hiệu và chia lại vốn cho mã còn hạn. "
+           "Không khối nào phải đếm ngày — đó là việc của LEAN."),
+    ],
+    # ⚠ HƯỚNG viết thẳng vào câu LEAN, nên phải đi qua `theo_loai` chứ KHÔNG nhét
+    # vào `{…}` của mẫu: mọi ô đều qua `_lit()` để thành literal Python, nên
+    # `InsightDirection.{huong}` sinh ra `InsightDirection.'UP'` — sai cú pháp.
+    # Cùng lối với ô «Gửi bằng» của khối Báo tin: mỗi lựa chọn một câu LEAN riêng.
+    "theo_loai": {
+        h: {"lean": "self.emit_insights(Insight.price({sym}, "
+                    f"timedelta(days={{han}}), InsightDirection.{h}))", "o": []}
+        for h in ("UP", "DOWN", "FLAT")
+    },
+}
+
+
 BAO_TIN = {
     "nhan": "Báo tin",
     "mo_ta": "gửi tin ra ngoài — CHỈ chạy thật mới có tác dụng",
@@ -301,6 +363,7 @@ LAM_HUY_LENH_CHO = "lam_huy_lenh_cho"
 LAM_GHI_CHU = "lam_ghi_chu"
 LAM_VE_BANG = "lam_ve_bang"
 LAM_BAO_TIN = "lam_bao_tin"
+LAM_TIN_HIEU = "lam_tin_hieu"
 
 LOAI_LAM = {
     LAM_DAT_TY_TRONG: DAT_TY_TRONG,
@@ -311,6 +374,7 @@ LOAI_LAM = {
     LAM_GHI_CHU: GHI_CHU,
     LAM_VE_BANG: VE_BANG,
     LAM_BAO_TIN: BAO_TIN,
+    LAM_TIN_HIEU: TIN_HIEU,
 }
 
 
