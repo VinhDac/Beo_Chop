@@ -215,6 +215,36 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ ⚠ MỖI CỬA SỔ MỘT js_api — dùng chung là bốn lỗi cùng lúc")
+# Docstring `NenCuaSo` kể ba, và cả ba đã xảy ra thật: ✕ của cửa sổ thứ hai đóng CỬA
+# SỔ CHÍNH; kéo thanh tiêu đề của nó kéo nhầm cửa sổ; hai cửa sổ ghi đè vùng-cấm của
+# nhau. Cái thứ tư tìm ra hôm nay, nặng nhất: `KhungTuVe` dùng chung giữ đúng MỘT
+# `_proc_cu`, nên vá cửa sổ thứ hai là đè mất WndProc gốc của cửa sổ thứ nhất —
+# pywebview dọn một cửa sổ hai lần và ném thẳng một hộp thoại .NET vào mặt người dùng
+# («Unhandled exception … 'child_fa351807'»). Tái hiện được, và bản vá thì sạch.
+api_py = io.open(os.path.join(GOC, "cat_studio", "api.py"), encoding="utf-8").read()
+kiem("có lớp js_api riêng cho cửa sổ kết quả", "class ApiKetQua(NenCuaSo)" in api_py)
+# ⚠ Tìm DẠNG GỌI `js_api=self,` chứ không tìm chuỗi trần: `js_api=self` còn nằm trong
+# chính mấy câu chú thích KỂ VỀ lỗi này, và một phép kiểm bắt nhầm lời kể của mình
+# thì nó đỏ mãi mà chẳng có gì sai.
+kiem("cửa sổ mới KHÔNG dùng `js_api=self`",
+     "js_api=self," not in api_py and "js_api=phu," in api_py)
+kiem("mỗi cửa sổ vá KHUNG CỦA MÌNH", "phu._va_khung" in api_py)
+# Bề mặt hẹp: cửa sổ kết quả chỉ đọc, không được chạm vào Strategy hay khoá QC.
+# Đo BỀ MẶT THẬT bằng `dir()`, không đọc chữ trong file: docstring của lớp ấy có nhắc
+# tên mấy cửa nó cố tình KHÔNG nhận, và đọc chữ thì vấp ngay vào đó.
+from cat_studio import api as _api  # noqa: E402
+_cua = {m for m in dir(_api.ApiKetQua) if not m.startswith("_")}
+xau = sorted(_cua & {"xoa_strategy", "qc_luu_khoa", "chay_backtest", "luu_strategy",
+                     "sinh_ma", "soat"})
+kiem("bề mặt của nó hẹp", not xau, f"— lọt {xau}" if xau else f"({len(_cua)} cửa)")
+kiem("nhưng đủ để tự lo cửa sổ của mình",
+     {"cua_so_dong", "cua_so_thu_nho", "keo_cua_so", "vung_khong_keo"} <= _cua)
+# Trang kết quả KHÔNG được đổi tiêu đề: `_va_khung` tìm cửa sổ THEO TIÊU ĐỀ trong
+# bốn giây, đổi ngay lúc ấy là nó tìm hụt và cửa sổ mở ra không kéo được.
+kiem("trang kết quả không gọi `set_title`",
+     "set_title" not in bo_chu_thich_ts(doc("TrangKetQua.tsx")))
+
 print("\n▸ Cửa sổ kết quả riêng: MỘT bundle, hai vai — không dựng trang thứ hai")
 # Mỗi lượt backtest mở ra một cửa sổ thật để xếp cạnh nhau mà so. Cửa sổ ấy nạp
 # CHÍNH trang này với `?kq=<mã lượt>`. Dựng một trang HTML thứ hai thì sớm muộn một

@@ -33,8 +33,11 @@ export default function TrangKetQua({ ma }: { ma: string }) {
       }
       const r = await py.doc_luot_chay(ma)
       if (r.ok && r.value) {
+        // ⚠ KHÔNG gọi `set_title` ở đây. Python đã đặt tiêu đề lúc dựng cửa sổ, và
+        // `_va_khung` TÌM CỬA SỔ THEO TIÊU ĐỀ trong bốn giây — đổi tiêu đề ngay lúc
+        // nó đang tìm là nó tìm hụt, và cửa sổ mở ra không khung mà cũng không kéo
+        // được. Trông y như lỗi của `khung_cua_so`.
         setKq(r.value)
-        void py.set_title(`Kết quả · ${r.value.ten_lop ?? ma}`)
       } else {
         setLoi(r.error ?? 'không đọc được lượt chạy này')
       }

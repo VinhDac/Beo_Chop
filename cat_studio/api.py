@@ -130,69 +130,11 @@ class NenCuaSo:
             time.sleep(nhip)
         return False
 
-    #: Cửa sổ kết quả đang mở, theo mã lượt. Giữ lại để bấm hai lần vào cùng một lượt
-    #: thì ĐƯA CỬA SỔ CŨ LÊN chứ không đẻ cái thứ hai chồng lên nhau.
+    #: Cửa sổ kết quả đang mở: {mã lượt: (window, ApiKetQua)}. Giữ lại vì HAI lẽ —
+    #: bấm hai lần vào cùng một lượt thì ĐƯA CỬA SỔ CŨ LÊN chứ không đẻ cái thứ hai,
+    #: và phải giữ tham chiếu tới `ApiKetQua` để Python đừng thu gom mất cái js_api
+    #: đang sống trong cửa sổ ấy.
     _cua_so_kq: dict = {}
-
-    @_bat_loi
-    def mo_cua_so_ket_qua(self, ma_id):
-        """Mở MỘT CỬA SỔ RIÊNG cho một lượt backtest đã lưu.
-
-        VÌ SAO LÀ CỬA SỔ THẬT, không phải một hộp thoại nữa: người ta mở app lên để
-        SO HAI PHIÊN BẢN của cùng một chiến thuật. So thì phải nhìn cùng lúc, mà hộp
-        thoại thì mỗi lần một cái và nó còn che mất sơ đồ. Cửa sổ thật thì kéo sang
-        màn hình khác được, Aero Snap được, xếp cạnh nhau được.
-
-        Cửa sổ mới nạp CHÍNH trang ấy với `?kq=<mã lượt>` — `main.tsx` thấy tham số
-        này thì dựng trang Kết quả thay cho sơ đồ. Một bundle, hai vai; không có
-        trang thứ hai để lệch khỏi trang thứ nhất.
-        """
-        import webview
-        kq = chay_lean.doc_luot_chay(ma_id)
-        if not kq["ok"]:
-            return _loi(kq["loi"])
-
-        cu = self._cua_so_kq.get(ma_id)
-        if cu is not None:
-            try:                      # còn sống thì nâng lên, đừng mở cái nữa
-                cu.restore()
-                return _ok({"id": ma_id, "moi": False})
-            except Exception:         # noqa: BLE001 — đã đóng, mở lại bình thường
-                self._cua_so_kq.pop(ma_id, None)
-
-        tieu_de = f"Kết quả · {kq['ten_lop']} · {_doc_ma_luot(kq['ma_luot'])}"
-        w = webview.create_window(
-            tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?kq={ma_id}",
-            js_api=self,
-            width=1180, height=800, min_size=(900, 600),
-            background_color="#202020",
-            # Cùng kiểu khung với cửa sổ chính: Windows 10 không cho đổi màu thanh
-            # tiêu đề gốc, nên không bỏ khung thì cửa sổ kết quả đội một dải trắng.
-            frameless=True, easy_drag=False,
-        )
-        self._cua_so_kq[ma_id] = w
-        w.events.closed += lambda: self._cua_so_kq.pop(ma_id, None)
-        # Vá khung ở LUỒNG RIÊNG: `_va_khung` thử lại trong bốn giây, mà cú gọi này
-        # đi qua cầu nối nên chặn ở đây là đóng băng giao diện ngần ấy lâu.
-        threading.Thread(target=self._va_khung, args=(tieu_de,), daemon=True).start()
-        return _ok({"id": ma_id, "moi": True})
-
-    @_bat_loi
-    def ds_luot_chay(self):
-        """Kho lượt backtest đã lưu, mới nhất trước."""
-        return _ok(chay_lean.ds_luot_chay())
-
-    @_bat_loi
-    def doc_luot_chay(self, ma_id):
-        """Mở lại một lượt đã lưu — trang Kết quả trong cửa sổ riêng gọi cửa này."""
-        kq = chay_lean.doc_luot_chay(ma_id)
-        return _ok(kq) if kq["ok"] else _loi(kq["loi"])
-
-    @_bat_loi
-    def xoa_luot_chay(self, ma_id):
-        """Xoá hẳn một lượt đã lưu."""
-        r = chay_lean.xoa_luot_chay(ma_id)
-        return _ok(True) if r["ok"] else _loi(r["loi"])
 
     def _ban(self, ten, du_lieu):
         """Đẩy sự kiện sang JS của CHÍNH cửa sổ này. Nuốt lỗi: cửa sổ có thể đã đóng
@@ -244,8 +186,105 @@ class NenCuaSo:
         return _ok(True)
 
 
+class ApiKetQua(NenCuaSo):
+    """js_api của MỘT CỬA SỔ KẾT QUẢ — mỗi cửa sổ một thể hiện.
+
+    Bề mặt hẹp CÓ CHỦ Ý: cửa sổ này chỉ đọc một lượt đã chạy rồi bày ra. Nó không
+    sửa sơ đồ, không chạy backtest, không đụng tới Strategy nào — nên nó cũng không
+    cần cửa nào của `Api`. Đưa cả `Api` cho nó là đưa luôn `xoa_strategy` và
+    `qc_luu_khoa` vào một cửa sổ chẳng có lý do gì chạm tới chúng.
+
+    Phần cửa sổ (✕, thu nhỏ, phóng to, kéo thanh tiêu đề) thừa kế từ `NenCuaSo`, nên
+    mỗi cửa sổ tự nhắm vào CHÍNH MÌNH — xem docstring lớp ấy, ba lỗi nó kể đều đã
+    xảy ra thật."""
+
+    def __init__(self, ma_id):
+        super().__init__()
+        self._ma_id = str(ma_id)
+
+    @_bat_loi
+    def ping(self):
+        return _ok("pong")
+
+    @_bat_loi
+    def doc_luot_chay(self, ma_id=None):
+        """Lượt chạy của cửa sổ này. Bỏ qua mã JS gửi lên — cửa sổ nào thì lượt ấy,
+        không để một cửa sổ đọc sang lượt của cửa sổ khác."""
+        kq = chay_lean.doc_luot_chay(self._ma_id)
+        return _ok(kq) if kq["ok"] else _loi(kq["loi"])
+
+
 class Api(NenCuaSo):
     """Mọi phương thức công khai ở đây thành `window.pywebview.api.<tên>` bên JS."""
+
+
+    @_bat_loi
+    def mo_cua_so_ket_qua(self, ma_id):
+        """Mở MỘT CỬA SỔ RIÊNG cho một lượt backtest đã lưu.
+
+        VÌ SAO LÀ CỬA SỔ THẬT, không phải một hộp thoại nữa: người ta mở app lên để
+        SO HAI PHIÊN BẢN của cùng một chiến thuật. So thì phải nhìn cùng lúc, mà hộp
+        thoại thì mỗi lần một cái và nó còn che mất sơ đồ. Cửa sổ thật thì kéo sang
+        màn hình khác được, Aero Snap được, xếp cạnh nhau được.
+
+        Cửa sổ mới nạp CHÍNH trang ấy với `?kq=<mã lượt>` — `main.tsx` thấy tham số
+        này thì dựng trang Kết quả thay cho sơ đồ. Một bundle, hai vai; không có
+        trang thứ hai để lệch khỏi trang thứ nhất.
+        """
+        import webview
+        kq = chay_lean.doc_luot_chay(ma_id)
+        if not kq["ok"]:
+            return _loi(kq["loi"])
+
+        cu = self._cua_so_kq.get(ma_id)
+        if cu is not None:
+            try:                      # còn sống thì nâng lên, đừng mở cái nữa
+                cu[0].restore()
+                return _ok({"id": ma_id, "moi": False})
+            except Exception:         # noqa: BLE001 — đã đóng, mở lại bình thường
+                self._cua_so_kq.pop(ma_id, None)
+
+        # ⚠ js_api RIÊNG, không phải `self`. Xem docstring `NenCuaSo`: mở cửa sổ thứ
+        # hai với `js_api=self` là ba lỗi cùng lúc — ✕ của nó đóng CỬA SỔ CHÍNH, và
+        # `KhungTuVe` dùng chung làm hai cửa sổ ghi đè WndProc gốc của nhau, dẫn tới
+        # một cửa sổ bị dọn HAI LẦN: `del BrowserView.instances[uid]` của pywebview
+        # ném `KeyError('child_…')` ra thẳng hộp thoại .NET. Đã dính thật.
+        phu = ApiKetQua(ma_id)
+        tieu_de = f"Kết quả · {kq['ten_lop']} · {_doc_ma_luot(kq['ma_luot'])}"
+        w = webview.create_window(
+            tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?kq={ma_id}",
+            js_api=phu,
+            width=1180, height=800, min_size=(900, 600),
+            background_color="#202020",
+            # Cùng kiểu khung với cửa sổ chính: Windows 10 không cho đổi màu thanh
+            # tiêu đề gốc, nên không bỏ khung thì cửa sổ kết quả đội một dải trắng.
+            frameless=True, easy_drag=False,
+        )
+        phu._gan_window(w)
+        self._cua_so_kq[ma_id] = (w, phu)
+        w.events.closed += lambda: self._cua_so_kq.pop(ma_id, None)
+        # Vá khung ở LUỒNG RIÊNG: `_va_khung` thử lại trong bốn giây, mà cú gọi này
+        # đi qua cầu nối nên chặn ở đây là đóng băng giao diện ngần ấy lâu.
+        # `phu._va_khung` chứ không `self._va_khung`: mỗi cửa sổ vá KHUNG CỦA MÌNH.
+        threading.Thread(target=phu._va_khung, args=(tieu_de,), daemon=True).start()
+        return _ok({"id": ma_id, "moi": True})
+
+    @_bat_loi
+    def ds_luot_chay(self):
+        """Kho lượt backtest đã lưu, mới nhất trước."""
+        return _ok(chay_lean.ds_luot_chay())
+
+    @_bat_loi
+    def doc_luot_chay(self, ma_id):
+        """Mở lại một lượt đã lưu — trang Kết quả trong cửa sổ riêng gọi cửa này."""
+        kq = chay_lean.doc_luot_chay(ma_id)
+        return _ok(kq) if kq["ok"] else _loi(kq["loi"])
+
+    @_bat_loi
+    def xoa_luot_chay(self, ma_id):
+        """Xoá hẳn một lượt đã lưu."""
+        r = chay_lean.xoa_luot_chay(ma_id)
+        return _ok(True) if r["ok"] else _loi(r["loi"])
 
     def __init__(self):
         super().__init__()
