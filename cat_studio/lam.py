@@ -51,6 +51,18 @@ O_TAG = _o("tag", "Ghi chú đi kèm lệnh", O_CHU, "", "",
 _O_SO_LUONG = _o("so_luong", "Số lượng", O_SO, 1, "đơn vị",
                  "Số âm = bán khống.")
 
+#: Ô MÃ — có mặt trên mọi khối đụng tới một mã.
+#:
+#: Để trống = **mã đang xét**, tức biến vòng lặp khi khối Bắt đầu chạy "mỗi mã một
+#: lượt". Nhưng khi nó chạy "một lượt cho CẢ RỔ" thì không có mã đang xét nào cả —
+#: lúc ấy ô này BẮT BUỘC, và `core.soat_khoi_lam` bắt chỗ bỏ trống.
+#:
+#: Thiếu ô này thì không viết nổi `set_holdings(QQQ, 0.40)` — tức không diễn đạt
+#: được bất cứ chiến thuật chia danh mục nào.
+O_MA = _o("ma", "Mã", O_CHU, "", "",
+          "Để trống = mã đang xét. Bắt buộc khi khối Bắt đầu chạy cho CẢ RỔ.",
+          bat_buoc=False)
+
 
 # ---------------------------------------------------------------------------
 # ① ĐẶT TỶ TRỌNG — cách dùng nhiều nhất
@@ -69,6 +81,7 @@ DAT_TY_TRONG = {
     "can_ma": True,
     "lean": "self.set_holdings({sym}, {ty_trong}, {ban_sach_truoc}, tag={tag})",
     "o": [
+        O_MA,
         _o("ty_trong", "Tỷ trọng mục tiêu", O_SO, 0.3, "phần",
            "0.3 = 30% danh mục. Số âm = bán khống. 0 = thoát sạch."),
         _o("ban_sach_truoc", "Bán sạch mã khác trước", O_CO_KHONG, False, "",
@@ -87,7 +100,7 @@ LENH_THI_TRUONG = {
     "nhom": NHOM_LENH,
     "can_ma": True,
     "lean": "self.market_order({sym}, {so_luong}, tag={tag})",
-    "o": [_O_SO_LUONG, O_TAG],
+    "o": [O_MA, _O_SO_LUONG, O_TAG],
 }
 
 # ---------------------------------------------------------------------------
@@ -101,6 +114,7 @@ DONG = {
     "can_ma": True,
     "lean": "self.liquidate(…)",
     "o": [
+        O_MA,
         _o("pham_vi", "Đóng cái gì", O_CHON, "ma_nay", "", "", [
             ("ma_nay", "Chỉ mã này"),
             ("tat_ca", "TẤT CẢ mã đang giữ"),
@@ -129,6 +143,7 @@ LENH_CHO = {
     "lean": "LimitOrder / StopMarketOrder / StopLimitOrder / TrailingStopOrder / "
             "LimitIfTouchedOrder / MarketOnOpenOrder / MarketOnCloseOrder",
     "o": [
+        O_MA,
         _o("loai_lenh", "Loại lệnh", O_CHON, "limit", "", "", [
             ("limit", "Giới hạn (Limit)"),
             ("stop", "Dừng (Stop Market)"),
@@ -178,7 +193,7 @@ HUY_LENH_CHO = {
     "nhom": NHOM_LENH,
     "can_ma": True,
     "lean": "self.transactions.cancel_open_orders({sym}, {tag})",
-    "o": [O_TAG],
+    "o": [O_MA, O_TAG],
 }
 
 # ---------------------------------------------------------------------------
@@ -225,6 +240,7 @@ VE_BANG = {
     "can_ma": True,
     "lean": "self.plot({bang}, {ten_duong}, {gia_tri})",
     "o": [
+        O_MA,
         _o("bang", "Tên bảng", O_CHU, "Chỉ báo"),
         # `ten_duong` chứ không phải `duong`: trong một vế đại lượng, `duong` đã có
         # nghĩa khác (chọn đường nào của chỉ báo nhiều đường, như Bollinger).

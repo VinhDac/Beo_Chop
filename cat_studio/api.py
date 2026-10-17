@@ -304,6 +304,9 @@ class Api(NenCuaSo):
             for a in core.hanh_dong_cua(s):
                 if a is not s:
                     van_de.extend(core.soat_khoi_lam({**a, "id": s["id"]}))
+        # Soát CHÉO khối: chạy cả rổ thì mọi khối phải gõ rõ tên mã. Một khối nhìn
+        # vào chính nó thì không biết khối Bắt đầu đang chạy kiểu nào.
+        van_de.extend(core.soat_ca_ro(steps))
         return _ok({
             "thu_tu": kq["order"],
             "entry": kq["entry"],

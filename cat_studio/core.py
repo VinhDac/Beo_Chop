@@ -1349,6 +1349,44 @@ def soat_khoi_bat_dau(step):
     return ra
 
 
+def soat_ca_ro(steps):
+    """Soát chéo khối: chạy MỘT LƯỢT cho cả rổ thì mọi khối phải gõ rõ tên mã.
+
+    Phép này không nằm trong `soat_khoi_lam` được, vì một khối Làm nhìn vào chính nó
+    thì không biết khối Bắt đầu đang chạy kiểu nào. Mà bỏ sót thì mã sinh ra gọi một
+    biến `sym` không tồn tại — Python ném NameError lúc chạy, sau khi đã chờ cả phút."""
+    ra = []
+    bd = next((s for s in (steps or []) if is_start_step(s)), None)
+    if not bd or str(o_bat_dau(bd, "chay_cho") or "") != "ca_danh_muc":
+        return ra
+    for s in (steps or []):
+        for a in (hanh_dong_cua(s) if is_group_step(s) else [s]):
+            if not isinstance(a, dict):
+                continue
+            d = lam.LOAI_LAM.get(a.get("type"))
+            if not d or not d["can_ma"]:
+                continue
+            if not str(a.get("ma") or "").strip():
+                _loi(ra, "error", s.get("id"),
+                     f'"{step_title(s)}": khối Bắt đầu chạy MỘT LƯỢT cho cả rổ nên '
+                     f"không có «mã đang xét» — khối này phải gõ rõ tên mã.")
+    # Hỏi cũng vậy: vế nào để trống mã là trỏ vào một thứ không tồn tại.
+    for s in (steps or []):
+        if not hoi.la_loai_hoi(s.get("type")):
+            continue
+        if not hoi.LOAI_HOI[s["type"]]["can_ma"]:
+            continue
+        for i, dk in enumerate(s.get("dieu_kien") or []):
+            for ve in ((dk or {}).get("trai"), (dk or {}).get("phai")):
+                if not isinstance(ve, dict) or "ma_dl" not in ve:
+                    continue
+                if not str(ve.get("ma") or "").strip():
+                    _loi(ra, "error", s.get("id"),
+                         f'"{step_title(s)}" dòng {i + 1}: chạy cho cả rổ thì vế nào '
+                         f"cũng phải gõ rõ tên mã.")
+    return ra
+
+
 def soat_khoi_lam(step):
     """Soát RUỘT một khối Hành động. -> [{severity, step, index, message}]
 

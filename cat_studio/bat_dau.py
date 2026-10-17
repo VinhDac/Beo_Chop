@@ -82,9 +82,33 @@ CO_SAN_MIEN_PHI = {
 # `schedule.on` lúc chạy), nhưng với người chơi nó là MỘT câu hỏi: *bao lâu tôi xem
 # một lần*. Nên ở đây là một ô, và bộ sinh mã tách ra làm hai.
 #
-# `res` = độ phân giải dữ liệu phải đăng ký. Năm nhịp đầu chạy thẳng trong `on_data`;
-# ba nhịp sau cần `schedule.on`, mà muốn hẹn được giờ trong ngày thì dữ liệu phải có
-# nến phút — nên `res` của chúng là `MINUTE`, không phải `DAILY`.
+# `res` = độ phân giải dữ liệu MẶC ĐỊNH. Năm nhịp đầu chạy thẳng trong `on_data`, nên
+# với chúng nhịp CHÍNH LÀ độ phân giải. Mấy nhịp hẹn giờ thì khác, và đây là chỗ bản
+# D-15 suy luận SAI:
+#
+#   ⚠ Tôi từng viết "muốn hẹn được giờ trong ngày thì dữ liệu phải có nến phút" và ép
+#     `MINUTE`. Sai. `schedule.on` chạy theo ĐỒNG HỒ của thuật toán, không theo lúc
+#     dữ liệu về — nên dữ liệu NGÀY vẫn hẹn giờ được. Một chiến thuật thật (vd2) làm
+#     đúng như thế: `Resolution.Daily` cộng `AfterMarketOpen(spy, 30)`.
+#
+#   Hậu quả của cái sai ấy không nhỏ: ép phút thì `self.sma(sym, 200)` thành 200
+#   PHÚT chứ không phải 200 NGÀY — cùng một sơ đồ, khác hẳn chiến thuật.
+#
+# Nên nhịp hẹn giờ có thêm ô `do_phan_giai` cho người dùng tự chọn, mặc định NGÀY.
+#: Ô ĐỘ PHÂN GIẢI — chỉ hiện với nhịp HẸN GIỜ. Với nhịp theo nến thì nhịp CHÍNH LÀ
+#: độ phân giải, bày thêm một ô nữa chỉ tổ mâu thuẫn.
+_O_DO_PHAN_GIAI = _o(
+    "do_phan_giai", "Độ phân giải dữ liệu", O_CHON, "DAILY", "Resolution.…",
+    chon=[("TICK", "Tick"), ("SECOND", "Giây"), ("MINUTE", "Phút"),
+          ("HOUR", "Giờ"), ("DAILY", "Ngày")],
+    goi_y="Lịch chạy theo ĐỒNG HỒ chứ không theo dữ liệu — nên dữ liệu ngày vẫn "
+          "hẹn giờ được.")
+
+
+def _o_phut(nhan, mac_dinh=10):
+    return _o("so_phut", nhan, O_SO, mac_dinh, "", "Từ 0 đến 390.")
+
+
 NHIP = (
     ("tick", "Mỗi tick", "TICK", "on_data", ()),
     ("giay", "Mỗi nến giây", "SECOND", "on_data", ()),
@@ -93,14 +117,21 @@ NHIP = (
     ("ngay", "Mỗi nến ngày", "DAILY", "on_data", ()),
     ("moi_ngay_luc", "Mỗi ngày đúng giờ", "MINUTE",
      "schedule.on(date_rules.every_day(ma), time_rules.at(gio, phut))",
-     (("gio", "Giờ", 10, 0, 23), ("phut", "Phút", 0, 0, 59))),
+     (_o("gio", "Giờ", O_SO, 10, "", "Từ 0 đến 23."),
+      _o("phut", "Phút", O_SO, 0, "", "Từ 0 đến 59."), _O_DO_PHAN_GIAI)),
     ("sau_mo_cua", "Mỗi ngày, sau khi MỞ cửa", "MINUTE",
      "schedule.on(date_rules.every_day(ma), time_rules.after_market_open(ma, so_phut))",
-     (("so_phut", "Số phút sau khi mở", 10, 0, 390),)),
+     (_o_phut("Số phút sau khi mở"), _O_DO_PHAN_GIAI)),
     ("truoc_dong_cua", "Mỗi ngày, trước khi ĐÓNG cửa", "MINUTE",
      "schedule.on(date_rules.every_day(ma), "
      "time_rules.before_market_close(ma, so_phut))",
-     (("so_phut", "Số phút trước khi đóng", 10, 0, 390),)),
+     (_o_phut("Số phút trước khi đóng"), _O_DO_PHAN_GIAI)),
+    # Nhịp TUẦN — `date_rules.week_start`. Đây là nhịp của mọi chiến thuật "cân lại
+    # danh mục mỗi tuần", mà bảy nhịp trên không cái nào nói được.
+    ("tuan", "Mỗi TUẦN, sau khi MỞ cửa", "MINUTE",
+     "schedule.on(date_rules.week_start(ma), "
+     "time_rules.after_market_open(ma, so_phut))",
+     (_o_phut("Số phút sau khi mở", 30), _O_DO_PHAN_GIAI)),
 )
 
 NHIP_THEO_MA = {n[0]: n for n in NHIP}
@@ -155,10 +186,32 @@ O_BAT_DAU = [
     _o("von", "Vốn", O_SO, 100000, "set_cash(von)", don_vi="$",
        goi_y="Tiền khởi đầu của cỗ máy."),
 
+    # Đệm tiền mặt: phần vốn LEAN KHÔNG cho đặt lệnh, để lệnh khỏi bị từ chối vì
+    # thiếu ký quỹ. Mặc định của LEAN là 0,0025 (0,25%). Đổi nó là đổi sức mua, tức
+    # đổi cả kết quả — nên nó phải khai được chứ không để ngầm.
+    _o("dem_tien_mat", "Đệm tiền mặt", O_SO, 0.0025,
+       "self.settings.free_portfolio_value_percentage = dem_tien_mat",
+       don_vi="phần",
+       goi_y="0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025."),
+
     _o("nhip", "Nhịp", O_CHON, "ngay",
        "Resolution.* · on_data hoặc schedule.on",
        chon=[(m, nhan) for m, nhan, _r, _c, _t in NHIP],
        goi_y="Bao lâu cỗ máy xem một lần."),
+
+    # ⚠ HAI KIỂU CHIẾN THUẬT KHÁC HẲN NHAU, và trước nay ta chỉ có kiểu đầu.
+    #
+    #   · SÀNG TỪNG MÃ — "mã nào RSI < 30 thì mua". Cả sơ đồ chạy LẠI một lượt cho
+    #     từng mã, nên khối không cần gõ tên mã: `sym` là mã đang xét.
+    #   · CHIA DANH MỤC — "xếp hạng 3 ngành rồi chia 40/35/20". Chạy ĐÚNG MỘT lượt,
+    #     rồi đặt tỷ trọng cho từng mã có tên. Không có "mã đang xét" nào cả.
+    #
+    # Lòi ra khi dựng lại một chiến thuật thật (vd2 trong `tai_lieu/chiến thuật ví
+    # dụ/`): nó cân lại cả rổ mỗi tuần, mà bộ khối cũ không nói nổi câu ấy.
+    _o("chay_cho", "Chạy cho ai", O_CHON, "moi_ma", "for sym in self._ma: …",
+       chon=[("moi_ma", "Mỗi mã một lượt — sàng từng mã"),
+             ("ca_danh_muc", "Một lượt cho CẢ RỔ — chia danh mục")],
+       goi_y="Chia danh mục thì mọi khối phải gõ rõ tên mã."),
 
     # ⚠ ĐỂ TRỐNG KHÔNG PHẢI LÀ "KHÔNG CÓ MỐC". `DefaultBrokerageModel.GetBenchmark`
     # trả về **SPY** — tức cỗ máy vàng của bạn bị đem so với cổ phiếu Mỹ, và không
@@ -182,10 +235,23 @@ def o_cua(gia_tri=None):
     ra = list(O_BAT_DAU)
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if n:
-        for ten, nhan, mac_dinh, nho, lon in n[4]:
-            ra.append(_o(ten, nhan, O_SO, mac_dinh, n[3],
-                         goi_y=f"Từ {nho} đến {lon}."))
+        ra.extend(n[4])
     return ra
+
+
+def do_phan_giai(gia_tri=None):
+    """Độ phân giải dữ liệu THẬT của một khối Bắt đầu -> "DAILY" / "MINUTE"…
+
+    Nhịp theo nến: nhịp chính là độ phân giải. Nhịp hẹn giờ: lấy ô người dùng chọn,
+    thiếu thì rơi về mặc định của nhịp ấy."""
+    n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
+    if not n:
+        return "DAILY"
+    if n[3] == "on_data":
+        return n[2]
+    v = str((gia_tri or {}).get("do_phan_giai") or "").strip().upper()
+    hop_le = {m for m, _nhan in _O_DO_PHAN_GIAI["chon"]}
+    return v if v in hop_le else str(_O_DO_PHAN_GIAI["mac_dinh"])
 
 
 def ham_lean(gia_tri=None):
@@ -193,8 +259,9 @@ def ham_lean(gia_tri=None):
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if not n:
         return ""
-    return (f"add_*(ma, Resolution.{n[2]})" if n[3] == "on_data"
-            else f"add_*(ma, Resolution.{n[2]}) · {n[3]}")
+    r = do_phan_giai(gia_tri)
+    return (f"add_*(ma, Resolution.{r})" if n[3] == "on_data"
+            else f"add_*(ma, Resolution.{r}) · {n[3]}")
 
 
 def tu_dien():
@@ -204,8 +271,6 @@ def tu_dien():
         "loai_tai_san": [{"ma": m, "nhan": n, "lean": h} for m, n, h in LOAI_TAI_SAN],
         "co_san": {k: list(v) for k, v in CO_SAN_MIEN_PHI.items()},
         "nhip": [{"ma": m, "nhan": n, "res": r, "chay": c,
-                  "o_them": [{"ten": t, "nhan": nh, "mac_dinh": md,
-                              "nho_nhat": no, "lon_nhat": lo}
-                             for t, nh, md, no, lo in th]}
+                  "o_them": list(th)}
                  for m, n, r, c, th in NHIP],
     }

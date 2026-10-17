@@ -123,6 +123,8 @@ class _Nc:
         self.da = set()
         self.ma_khai = {}      # ticker -> True, lấy từ khối Bắt đầu
         self.res = "Resolution.DAILY"
+        #: True = chạy MỘT LƯỢT cho cả rổ (chia danh mục), nên KHÔNG có biến `sym`.
+        self.ca_danh_muc = False
         self.thu_tu = {}
         self.dem = 0
 
@@ -135,9 +137,15 @@ class _Nc:
 # ---------------------------------------------------------------------------
 
 def _sym_py(nc, ve, sid):
-    """Mã của một vế -> biểu thức Python. Trống = mã đang xét."""
+    """Mã của một vế hay một hành động -> biểu thức Python. Trống = mã đang xét.
+
+    ⚠ Khi khối Bắt đầu chạy cho CẢ RỔ thì KHÔNG có mã đang xét — không có biến `sym`
+    nào trong hàm sinh ra. Để trống lúc ấy là sinh ra mã không chạy được, nên báo."""
     m = str((ve or {}).get("ma") or "").strip().upper()
     if not m:
+        if nc.ca_danh_muc:
+            nc.loi(sid, "Khối Bắt đầu chạy MỘT LƯỢT cho cả rổ nên không có «mã đang "
+                        "xét» — khối này phải gõ rõ tên mã.")
         return "sym"
     if m not in nc.ma_khai:
         nc.loi(sid, f'Điều kiện trỏ tới mã "{m}" mà khối Bắt đầu chưa khai nó. '
@@ -182,7 +190,9 @@ def _dieu_kien_py(nc, step):
             ve.append(f"not ({trai})" if phep == "khong" else f"({trai})")
         else:
             ve.append(f"({trai} {phep} {_ve_py(nc, dk.get('phai'), loai, step['id'])})")
-    return " and ".join(ve), core.mo_ta_dieu_kien(ds[0], loai)
+    # Chữ mô tả phải nói CẢ cổng, không phải mỗi dòng đầu: một cổng hai điều kiện mà
+    # `tag` chỉ ghi một dòng thì đọc nhật ký lệnh sẽ tưởng nó khớp vì lý do khác.
+    return " and ".join(ve), " và ".join(core.mo_ta_dieu_kien(dk, loai) for dk in ds)
 
 
 # ---------------------------------------------------------------------------
@@ -197,7 +207,9 @@ def _lam_py(nc, a, sid, mach):
         nc.loi(sid, f'Chưa sinh được khối loại "{t}".')
         return []
     mau = lam.ham_lean(t, a)
-    gt = {"sym": "sym"}
+    # Mã lấy từ ô `ma` của CHÍNH khối ấy — thiếu chỗ này thì mọi hành động đều viết
+    # `set_holdings(sym, …)` và không chiến thuật chia danh mục nào diễn đạt được.
+    gt = {"sym": _sym_py(nc, a, sid) if d["can_ma"] else "sym"}
     for o in lam.o_cua(t, a):
         gt[o["ten"]] = _lit(core.o_lam(a, o["ten"]))
 
@@ -338,14 +350,20 @@ def _khai_mo(nc, st):
         if len(p) == 3:
             ra.append(f"self.{ham}({int(p[0])}, {int(p[1])}, {int(p[2])})")
     ra.append(f"self.set_cash({_lit(core.o_bat_dau(st, 'von'))})")
+    # Đệm tiền mặt: chỉ viết ra khi KHÁC mặc định của LEAN. Viết thừa một dòng bằng
+    # đúng mặc định chỉ tổ làm người đọc tưởng ta đang đổi một thứ gì đó.
+    dem = core._f(core.o_bat_dau(st, "dem_tien_mat"))
+    if dem is not None and abs(dem - 0.0025) > 1e-12:
+        ra.append(f"self.settings.free_portfolio_value_percentage = {_lit(dem)}")
     san = str(core.o_bat_dau(st, "san") or "DEFAULT")
     ra.append(f"self.set_brokerage_model(BrokerageName.{san})")
 
+    nc.ca_danh_muc = str(core.o_bat_dau(st, "chay_cho") or "") == "ca_danh_muc"
     n = bat_dau.nhip_cua(str(core.o_bat_dau(st, "nhip") or ""))
     if not n:
         nc.loi(st.get("id"), "Khối Bắt đầu chưa có nhịp chạy.")
         n = bat_dau.NHIP[4]
-    nc.res = f"Resolution.{n[2]}"
+    nc.res = f"Resolution.{bat_dau.do_phan_giai(st)}"
 
     ra.append("")
     ra.append("self._ten = {}")
@@ -387,6 +405,7 @@ def sinh(doc):
         nc.van_de += core.soat_khoi_hoi(s)
         nc.van_de += core.soat_khoi_lam(s)
         nc.van_de += core.soat_khoi_bat_dau(s)
+    nc.van_de += core.soat_ca_ro(steps)
     kq = core.flow_order(steps, edges)
     nc.thu_tu = kq["order"]
 
@@ -411,6 +430,8 @@ def sinh(doc):
     if nc.kho.ds:
         dong_mo.append("")
         dong_mo.append("self._cb = {}")
+        # Khai chỉ báo cho MỌI mã trong rổ, kể cả khi sơ đồ chạy một lượt: một khối
+        # có thể hỏi RSI của QQQ còn khối kia hỏi RSI của GLD.
         dong_mo.append("for sym in self._ma:")
         dong_mo.append(TAB + "self._cb[sym] = {}")
         for k, (cau, dk) in nc.kho.ds.items():
@@ -440,10 +461,10 @@ def sinh(doc):
 
     ok = not any(p["severity"] == "error" for p in nc.van_de)
     return {"ok": ok, "ten_lop": lop, "van_de": nc.van_de,
-            "ma": _ghep(lop, d.get("name"), nhip, dong_mo, than)}
+            "ma": _ghep(lop, d.get("name"), nhip, dong_mo, than, nc.ca_danh_muc)}
 
 
-def _ghep(lop, ten, nhip, dong_mo, than):
+def _ghep(lop, ten, nhip, dong_mo, than, ca_danh_muc=False):
     """Ghép thành một file Python hoàn chỉnh."""
     hen = nhip[3] != "on_data"
     r = [
@@ -466,11 +487,17 @@ def _ghep(lop, ten, nhip, dong_mo, than):
               TAB * 2 + "pass", "",
               TAB + "def _nhip(self):",
               TAB * 2 + "data = self.current_slice"]
-    r += [TAB * 2 + "if self.is_warming_up:",
-          TAB * 3 + "return",
-          TAB * 2 + "for sym in self._ma:",
-          TAB * 3 + "self._mot_ma(sym, data)",
-          "",
-          TAB + "def _mot_ma(self, sym, data):"]
+    r += [TAB * 2 + "if self.is_warming_up:", TAB * 3 + "return"]
+    if ca_danh_muc:
+        # CHIA DANH MỤC: chạy đúng một lượt, mọi khối tự gọi tên mã của nó.
+        r += [TAB * 2 + "self._mot_luot(data)",
+              "",
+              TAB + "def _mot_luot(self, data):"]
+    else:
+        # SÀNG TỪNG MÃ: cả sơ đồ chạy lại cho từng mã, `sym` là mã đang xét.
+        r += [TAB * 2 + "for sym in self._ma:",
+              TAB * 3 + "self._mot_ma(sym, data)",
+              "",
+              TAB + "def _mot_ma(self, sym, data):"]
     r += [TAB * 2 + d if d else "" for d in (than or ["pass"])]
     return "\n".join(r) + "\n"

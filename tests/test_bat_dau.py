@@ -57,8 +57,13 @@ print("\n▸ MỌI ô phải khai được câu LEAN đứng sau nó")
 thieu = [o["ten"] for o in bat_dau.O_BAT_DAU if not str(o.get("lean") or "").strip()]
 kiem("không ô nào thiếu `lean`", not thieu,
      f"— {thieu}" if thieu else f"({len(bat_dau.O_BAT_DAU)} ô)")
-kiem("đúng SÁU ô", len(bat_dau.O_BAT_DAU) == 6,
-     f"— {[o['ten'] for o in bat_dau.O_BAT_DAU]}")
+# ⚠ KHÔNG canh SỐ Ô. Bản trước viết `== 6` và phải sửa ngay lần đầu một chiến
+# thuật thật đòi thêm ô — mà thêm ô theo ví dụ thật chính là cách làm đã chốt.
+# Canh CẤU TRÚC thì không phải sửa mỗi lần, mà vẫn chặn đúng thứ đáng chặn.
+ten_o = [o["ten"] for o in bat_dau.O_BAT_DAU]
+kiem("không ô nào trùng tên", len(set(ten_o)) == len(ten_o), f"— {ten_o}")
+kiem("có đủ năm ô cốt lõi",
+     {"ma", "khoang", "von", "nhip", "san"} <= set(ten_o), f"— {ten_o}")
 kiem("mỗi loại tài sản một hàm `add_*` RIÊNG",
      len({h for _m, _n, h in bat_dau.LOAI_TAI_SAN}) == len(bat_dau.LOAI_TAI_SAN),
      "— hai loại cùng một hàm là một loại bịa")
@@ -86,13 +91,26 @@ kiem("đủ năm nhịp theo NẾN — đúng năm `Resolution` của LEAN",
 kiem("và có nhịp HẸN GIỜ", len(hen_gio) >= 1, f"— {len(hen_gio)} nhịp")
 kiem("nhịp hẹn giờ đều qua `schedule.on`",
      all("schedule.on" in n[3] for n in hen_gio), f"— {len(hen_gio)} nhịp")
-kiem("và chúng đăng ký dữ liệu PHÚT, không phải NGÀY",
-     all(n[2] == "MINUTE" for n in hen_gio),
-     "— dữ liệu ngày thì không có giờ nào trong đó mà hẹn")
+# ⚠ TỪNG CANH NGƯỢC: bản D-15 bắt nhịp hẹn giờ phải là PHÚT, "vì dữ liệu ngày không
+# có giờ nào trong đó mà hẹn". Sai — `schedule.on` chạy theo đồng hồ thuật toán, nên
+# dữ liệu ngày vẫn hẹn giờ được (vd2 làm đúng thế). Ép phút thì SMA(200) thành 200
+# phút chứ không phải 200 ngày: cùng sơ đồ, khác hẳn chiến thuật.
+kiem("nhịp hẹn giờ cho CHỌN độ phân giải",
+     all(any(o["ten"] == "do_phan_giai" for o in n[4]) for n in hen_gio))
+_st = core.make_start_step()
+_st["nhip"] = "sau_mo_cua"
+kiem("và mặc định là NGÀY, không tự ép xuống phút",
+     bat_dau.do_phan_giai(_st) == "DAILY", f"— {bat_dau.do_phan_giai(_st)}")
+_st["do_phan_giai"] = "MINUTE"
+kiem("chọn phút thì mới ra phút", bat_dau.do_phan_giai(_st) == "MINUTE")
+_st["nhip"] = "ngay"
+kiem("nhịp theo nến thì nhịp CHÍNH LÀ độ phân giải",
+     bat_dau.do_phan_giai(_st) == "DAILY", "— ô chọn không đè lên nó")
 
 print("\n▸ Ô thêm chỉ hiện theo nhịp đã chọn")
 st = core.make_start_step()
-kiem("nhịp theo nến: đúng sáu ô", len(bat_dau.o_cua(st)) == 6)
+kiem("nhịp theo nến: không thêm ô nào",
+     len(bat_dau.o_cua(st)) == len(bat_dau.O_BAT_DAU))
 st["nhip"] = "moi_ngay_luc"
 ten_o = [o["ten"] for o in bat_dau.o_cua(st)]
 kiem("«mỗi ngày đúng giờ» thêm ô Giờ và Phút",
@@ -107,7 +125,7 @@ kiem("và câu LEAN đổi theo",
 print("\n▸ Khối vừa thả ra đã chạy được ngay")
 st = core.make_start_step()
 thieu_o = [o["ten"] for o in bat_dau.o_cua() if o["ten"] not in st]
-kiem("có đủ sáu ô mặc định", not thieu_o, f"— {thieu_o}" if thieu_o else "")
+kiem("có đủ ô mặc định", not thieu_o, f"— {thieu_o}" if thieu_o else "")
 kiem("khối mới KHÔNG báo lỗi gì", not core.soat_khoi_bat_dau(st),
      f"— {[p['message'][:45] for p in core.soat_khoi_bat_dau(st)]}")
 kiem("mặc định chạy trên vàng — dữ liệu miễn phí có sẵn",
@@ -229,7 +247,7 @@ kiem("khoá lạ bị bỏ", "rac_tu_file_sua_tay" not in ra2,
 print("\n▸ Từ điển gửi được qua cầu nối")
 td = bat_dau.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("đủ sáu ô", len(td["o"]) == 6)
+kiem("gửi đủ ô", len(td["o"]) == len(bat_dau.O_BAT_DAU))
 kiem("có bảng loại tài sản", len(td["loai_tai_san"]) == len(bat_dau.LOAI_TAI_SAN))
 kiem("có bảng nhịp", len(td["nhip"]) == len(bat_dau.NHIP))
 kiem("gợi ý mã miễn phí có XAUUSD", "XAUUSD" in td["co_san"]["cfd"])

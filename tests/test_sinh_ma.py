@@ -148,8 +148,20 @@ m2 = sinh_ma.sinh(d2)["ma"]
 kiem("có `schedule.on`", "self.schedule.on(" in m2)
 kiem("dùng đúng luật ngày và luật giờ của LEAN",
      "self.date_rules.every_day(" in m2 and "self.time_rules.after_market_open(" in m2)
-kiem("đăng ký dữ liệu PHÚT, không phải NGÀY", "Resolution.MINUTE" in m2,
-     "— dữ liệu ngày thì không có giờ nào trong đó mà hẹn")
+# ⚠ PHÉP KIỂM NÀY TỪNG CANH NGƯỢC. Bản D-15 khẳng định nhịp hẹn giờ PHẢI đăng ký dữ
+# liệu phút, "vì dữ liệu ngày không có giờ nào trong đó mà hẹn" — và đóng cứng điều
+# ấy thành luật. Sai: `schedule.on` chạy theo ĐỒNG HỒ của thuật toán, không theo lúc
+# dữ liệu về. Một chiến thuật thật (vd2) dùng `Resolution.Daily` cộng
+# `AfterMarketOpen(spy, 30)` và chạy bình thường.
+#   Cái sai ấy không nhỏ: ép phút thì `self.sma(sym, 200)` thành 200 PHÚT chứ không
+#   phải 200 NGÀY — cùng một sơ đồ, khác hẳn chiến thuật.
+kiem("nhịp hẹn giờ mặc định lấy dữ liệu NGÀY", "Resolution.DAILY" in m2,
+     "— lịch chạy theo đồng hồ, không theo dữ liệu")
+kiem("và KHÔNG tự ép xuống phút", "Resolution.MINUTE" not in m2)
+d2b, k2b = so_do_rsi(nhip="sau_mo_cua")
+k2b[0]["do_phan_giai"] = "MINUTE"
+m2b = sinh_ma.sinh(core.make_process_template("x", k2b, d2b["edges"]))["ma"]
+kiem("chọn phút thì mới ra phút", "Resolution.MINUTE" in m2b)
 kiem("ruột chạy ở `_nhip`", "def _nhip(self):" in m2)
 kiem("và lấy nến mới nhất của LEAN, không tự nhớ",
      "data = self.current_slice" in m2)

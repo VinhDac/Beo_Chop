@@ -1272,11 +1272,12 @@ mark.tim-chu {
   display: flex; align-items: stretch;
   flex: 1 1 auto; min-width: 0; overflow-x: auto;
 }
+/* Nền cam đã bỏ: chữ và icon cam là đủ để mắt tìm ra cụm này, mà một mảng màu nằm
+   im trên thanh công cụ thì đọc như một nút đang bật — nói sai một trạng thái. */
 .nhom-ribbon.chinh {
   flex: 0 0 auto;
   border-right: none;
   border-left: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--accent-soft), transparent 72%);
 }
 .nhom-ribbon.chinh .ten-nhom { color: var(--accent); }
 .nhom-ribbon.chinh .nut-lon { color: var(--accent); }
