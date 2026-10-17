@@ -378,7 +378,9 @@ select.o { cursor: pointer; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 10px 3px;
+  /* 8px chứ không 10: sáu nhóm × hai bên = 24px, vừa đủ để cả dải lọt vào cửa sổ
+     mặc định 1360px mà không nhóm nào phải ẩn. Đo rồi mới sửa, không ước. */
+  padding: 0 8px 3px;
   border-right: 1px solid var(--border-soft);
   /* KHÔNG cho co. Mặc định của flex là co lại khi hết chỗ, mà nhóm co thì nhãn nút
      tràn ra ngoài nút và đè lên nút bên cạnh — "Delay" chồng lên "Sửa", "Xoá" chồng
@@ -418,6 +420,32 @@ select.o { cursor: pointer; }
 .nut-lon:active:not(:disabled) { background: var(--raised-hover); }
 .nut-lon:disabled { opacity: .38; cursor: default; }
 .nut-lon .hinh { width: 22px; height: 22px; display: block; }
+/* Nút đang xổ menu phải TRÔNG như đang bấm xuống — không thì bảng nổi lên mà chẳng
+   rõ nó mọc ra từ đâu. */
+.nut-lon.dang-mo { background: var(--raised-hover); border-color: var(--border); }
+
+/* ---------------- Menu xổ của nút ribbon ---------------- */
+.menu-xo { padding: 4px; overflow: auto; }
+.mx-dau {
+  padding: 6px 8px 3px; font: 600 10px var(--font); color: var(--accent);
+  letter-spacing: .03em; text-transform: uppercase;
+}
+.mx-muc {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 6px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.mx-muc:hover:not(:disabled) { background: var(--raised-hover); }
+/* Mục TẮT vẫn hiện, kèm lý do — giấu đi thì người chơi tưởng tính năng không có. */
+.mx-muc:disabled { color: var(--dim); cursor: default; }
+.mx-muc > svg { flex: 0 0 auto; margin-top: 2px; }
+.mx-chu { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mx-chu > b { font: 500 12.5px var(--font); }
+.mx-chu > i {
+  font: 10.5px var(--font-mono); font-style: normal; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mx-muc:disabled > .mx-chu > i { color: var(--warn); font-family: var(--font); }
 .o-tro-thu.bang-craft .dai-mau { background: #b8860b; }
 .react-flow__edge.day-goi-y { pointer-events: none; }
 .react-flow__edge.day-goi-y path { stroke-dasharray: 5 5; opacity: .45; }
@@ -1322,9 +1350,10 @@ mark.tim-chu {
    một lớp `hien-tu-*` dùng trong TSX mà không có ở đây thì chẳng ẩn gì cả — hỏng
    LẶNG, build vẫn sạch. (Đã hỏng thật: 1090 và 1250 nằm trong TSX từ đầu mà CSS
    không hề có.) */
-@media (max-width: 1089px) { .hien-tu-1090 { display: none; } }
-@media (max-width: 1249px) { .hien-tu-1250 { display: none; } }
-@media (max-width: 1459px) { .hien-tu-1460 { display: none; } }
+@media (max-width: 859px) { .hien-tu-860 { display: none; } }
+@media (max-width: 1059px) { .hien-tu-1060 { display: none; } }
+@media (max-width: 1199px) { .hien-tu-1200 { display: none; } }
+@media (max-width: 1344px) { .hien-tu-1345 { display: none; } }
 
 /* ==========================================================================
    HỘP THOẠI KHỐI BẮT ĐẦU — hai widget riêng của nó

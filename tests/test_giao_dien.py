@@ -215,6 +215,35 @@ kiem("danh sách mã lấy từ KHỐI BẮT ĐẦU",
      "s.kind === 'start'" in doc("SoDo.tsx") and "dsMa" in doc("SoDo.tsx"),
      "— một nguồn duy nhất")
 
+print("\n▸ Ribbon: ẩn một nhóm KHÔNG được lấy mất việc gì  (luật của Jenifer_Studio)")
+rib = doc("components/Ribbon.tsx")
+# 13 nút «thêm khối» rải thành ba nhóm nay gộp thành hai nút THỂ LOẠI có menu xổ.
+# Mỗi loại một nút riêng là lối cũ — và lời biện hộ của nó («chọn loại quyết luôn hộp
+# thoại bày ra cái gì») đã hết hiệu lực từ khi 68 đại lượng về chung một kho.
+kiem("Xác nhận và Hành động là nút có menu, không phải năm với tám nút",
+     rib.count("<NutMenu") >= 2 and "v.loaiHoi.map" in rib and "v.loaiLam.map" in rib)
+kiem("mục tắt vẫn hiện kèm LÝ DO", "tat: l.tat" in rib,
+     "— giấu đi thì người chơi tưởng tính năng không tồn tại")
+kiem("mỗi hành động bày hàm LEAN nó gọi", "phu: l.lean" in rib)
+# THỨ TỰ ẨN đi theo "còn đường nào khác không". Hạt nhân từ khi mất Ctrl+G thì chỉ
+# còn ribbon và menu chuột phải, nên nó phải là nhóm ẩn SAU CÙNG — tức ngưỡng NHỎ NHẤT.
+bang = re.search(r"const HIEN_TU = \{([^}]*)\}", rib)
+nguong = dict((k, int(v)) for k, v in
+              re.findall(r"(\w+):\s*(\d+)", bang.group(1) if bang else ""))
+kiem("có đủ bốn ngưỡng", len(nguong) == 4, f"— {nguong}")
+kiem("Hạt nhân ẩn SAU CÙNG — nó không còn cụm phím nào",
+     bool(nguong) and nguong.get("hatNhan") == min(nguong.values()),
+     f"— {nguong}")
+kiem("Hoàn tác ẩn TRƯỚC TIÊN — Ctrl+Z vẫn còn đó",
+     bool(nguong) and nguong.get("hoanTac") == max(nguong.values()))
+# SÀN: nhóm luôn hiện phải lọt vào cửa sổ hẹp nhất app cho phép.
+aw = io.open(os.path.join(GOC, "app_web.py"), encoding="utf-8").read()
+mi = re.search(r"min_size=\((\d+),", aw)
+kiem("ngưỡng nhỏ nhất vẫn dưới sàn cửa sổ",
+     mi is not None and bool(nguong) and min(nguong.values()) <= int(mi.group(1)),
+     f"— sàn {mi.group(1) if mi else '?'}px, ngưỡng nhỏ nhất "
+     f"{min(nguong.values()) if nguong else '?'}")
+
 print("\n▸ Ctrl+G là của NHÓM, không phải của Hạt nhân  (như Jenifer_Studio)")
 pt = doc("phim_tat.ts")
 for ma, cum in (("gom-nhom", "ctrl+g"), ("ra-nhom", "ctrl+shift+g")):

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import IconNet from './Icon'
+import NutMenu from './NutMenu'
 
 /** Thanh công cụ kiểu ribbon của Paint: nút nhóm lại, nhãn nhóm nằm DƯỚI, có vạch ngăn
  *  giữa các nhóm.
@@ -12,12 +13,28 @@ import IconNet from './Icon'
  */
 /** NGƯỠNG ẨN NHÓM — cửa sổ phải rộng từ ngần này px thì nhóm mới còn hiện.
  *
+ *  SỐ ĐO THẬT, không chọn cho tròn (luật của Jenifer_Studio). Đo bề ngang từng nhóm
+ *  trong trình duyệt rồi CỘNG DỒN từ cái luôn hiện:
+ *      sàn = Thêm khối 374 + Cỗ máy 332 + lề 8 = 714
+ *      + Hạt nhân 137 -> 851   + Strategy 198 -> 1049
+ *      + Sửa 147      -> 1196  + Hoàn tác 143 -> 1339
+ *  Làm tròn lên một chút cho có chỗ thở. Cả dải là 1339px, vừa cửa sổ mặc định
+ *  1360px — nên ở cỡ mặc định KHÔNG nhóm nào phải ẩn. Sàn cửa sổ là 1020px
+ *  (`app_web.py min_size`), nên Hạt nhân thực tế chẳng bao giờ ẩn.
+ *
+ *  THỨ TỰ ẨN theo "còn đường nào khác không", đúng luật *ẩn một nhóm KHÔNG được lấy
+ *  mất việc gì*: Hoàn tác đi trước (Ctrl+Z), rồi Sửa (Ctrl+D/Delete + menu chuột
+ *  phải), rồi Strategy (Ctrl+N/O/S). Hạt nhân đi SAU CÙNG vì từ khi Ctrl+G thành của
+ *  Nhóm thì nó chỉ còn hai đường: ribbon và menu chuột phải.
+ *
+ *  Nhóm nào đổi bề ngang thì đo lại cả bảng — và nhớ `@media` tương ứng ở `app.css`.
+ *
  *  MỘT BẢNG DUY NHẤT, vì mỗi số ở đây phải có một `@media (max-width: <số-1>px)
  *  .hien-tu-<số>` trong `app.css`. Thiếu dòng CSS thì lớp sinh ra CHẲNG ẨN GÌ CẢ:
  *  không lỗi, không cảnh báo, `tsc` sạch, build sạch — chỉ có ribbon tràn ngang và
  *  nhãn các nút đè lên nhau ở cửa sổ hẹp. (Đã hỏng thật với 1090 và 1250, suốt từ đầu.)
  *  `test_giao_dien` đọc đúng bảng này rồi đối chiếu với `app.css`. */
-const HIEN_TU = { ghiBao: 1460, hoanTac: 1090, strategy: 1250 }
+const HIEN_TU = { hatNhan: 860, strategy: 1060, sua: 1200, hoanTac: 1345 }
 
 function Nhom({ ten, children, hienTu, chinh }: {
   ten: string; children: ReactNode; hienTu?: number
@@ -92,44 +109,52 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
           nhóm nên nó luôn dài hơn cửa sổ: cụm chính bị trôi hẳn ra ngoài màn hình.
           Nay phần trái tự cuộn, phần phải đứng im. */}
       <div className="ribbon-cuon">
+      {/* MỘT NHÓM DUY NHẤT CHO VIỆC «THẢ MỘT KHỐI XUỐNG» — năm slot, như Jenifer.
+          Trước đây mười ba nút rải thành ba nhóm, mà cả mười ba cùng làm đúng một
+          việc ấy; ribbon dài hơn cửa sổ và nhãn thì cụt thành "thị trường", "vị thế"
+          — danh từ không có động từ, phải đọc tên nhóm mới hiểu.
+
+          ⚠ Chỗ này từng có một lời biện hộ, nay đã HẾT HIỆU LỰC: *"chọn loại là
+          quyết định ĐẦU TIÊN, mà nó cũng quyết luôn hộp thoại bày ra cái gì"*. Đúng
+          hồi năm họ câu hỏi còn là tường ngăn. Nay cả 68 đại lượng nằm chung một kho
+          và họ nào cũng với tới được từ bất kỳ khối nào, nên chọn họ không còn quyết
+          cái gì nữa — nó chỉ là «mở sẵn ở mục này». Một lời biện hộ sống lâu hơn cái
+          lý của nó thì nguy hơn là không có lời nào. */}
       <Nhom ten="Thêm khối">
-        <Nut ten="Bắt đầu" icon="start" onClick={v.themBatDau} />
+        <Nut ten="Bắt đầu" icon="start" onClick={v.themBatDau}
+             title="Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn" />
+        <NutMenu ten="Xác nhận" icon="branch"
+                 title="Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ"
+                 muc={v.loaiHoi.map(l => ({
+                   nhan: l.nhan, phu: l.mo_ta, icon: l.icon, tat: l.tat,
+                   chay: () => v.themHoi(l.ma),
+                 }))} />
+        <NutMenu ten="Hành động" icon="action"
+                 title="Thêm một việc sẽ làm với thị trường, hoặc một dòng ghi ra ngoài"
+                 dauMuc={(m, i) => {
+                   const n = v.loaiLam[i]?.nhom
+                   return i === 0 || n !== v.loaiLam[i - 1]?.nhom ? n : undefined
+                 }}
+                 muc={v.loaiLam.map(l => ({
+                   // Dòng phụ là HÀM LEAN nó sẽ gọi — cùng lời hứa như `.lean-khai`
+                   // của hộp thoại: mỗi khối là một thứ có thật, kiểm được ngay ở đây.
+                   nhan: l.nhan, phu: l.lean, icon: l.icon, tat: l.tat,
+                   chay: () => v.themLam(l.ma),
+                 }))} />
         <Nut ten="Nhóm" icon="group" onClick={v.themNhom}
-             title="Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt" />
+             title="Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt (Ctrl+G gom khối đang chọn)" />
         <Nut ten="Quay về" icon="quay-ve" onClick={v.themQuayVe}
              title="Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp" />
       </Nhom>
 
-      {/* NĂM LOẠI CÂU HỎI, mỗi loại một nút riêng. Không gộp thành một nút "Hỏi" rồi
-          bắt chọn loại trong hộp thoại: chọn loại là quyết định ĐẦU TIÊN, mà nó cũng
-          quyết luôn hộp thoại bày ra cái gì. */}
-      <Nhom ten="Xác nhận">
-        {v.loaiHoi.map(l => (
-          <Nut key={l.ma} ten={l.nhan.replace('Hỏi ', '')} icon={l.icon}
-               onClick={() => v.themHoi(l.ma)}
-               title={l.tat ? `${l.mo_ta} — ${l.tat}` : l.mo_ta} />
-        ))}
+      <Nhom ten="Sửa" hienTu={HIEN_TU.sua}>
+        <Nut ten="Nhân bản" icon="copy" onClick={v.nhanBan} tat={!soChon} title="Ctrl+D" />
+        <Nut ten="Xoá" icon="trash" onClick={v.xoa} tat={!soChon} title="Delete" />
       </Nhom>
 
-      {/* HAI NHÓM HÀNH ĐỘNG, tên nhóm do Python quyết (`lam.NHOM_*`). Tám nút một
-          hàng thì ribbon dài quá khổ cửa sổ, mà chúng cũng khác hẳn nhau: năm cái
-          ĐỤNG VÀO thị trưồng, ba cái chỉ ghi ra ngoài. Nhóm sau ẩn đi khi cửa sổ hẽp. */}
-      {[...new Set(v.loaiLam.map(l => l.nhom))].map((ten, i) => (
-        <Nhom key={ten} ten={ten} hienTu={i === 0 ? undefined : HIEN_TU.ghiBao}>
-          {v.loaiLam.filter(l => l.nhom === ten).map(l => (
-            <Nut key={l.ma} ten={l.nhan} icon={l.icon}
-                 onClick={() => v.themLam(l.ma)}
-                 title={l.tat ? `${l.mo_ta} — ${l.tat}` : `${l.mo_ta}  ·  ${l.lean}`} />
-          ))}
-        </Nhom>
-      ))}
-
-      <Nhom ten="Sửa">
-        <Nut ten="Nhân bản" icon="copy" onClick={v.nhanBan} tat={!soChon} />
-        <Nut ten="Xoá" icon="trash" onClick={v.xoa} tat={!soChon} />
-      </Nhom>
-
-      <Nhom ten="Hạt nhân">
+      {/* HẠT NHÂN KHÔNG CÒN CỤM PHÍM NÀO (Ctrl+G nay là của Nhóm, như Jenifer), nên
+          ribbon và menu chuột phải là hai đường duy nhất — ẩn nhóm này sau cùng. */}
+      <Nhom ten="Hạt nhân" hienTu={HIEN_TU.hatNhan}>
         <Nut ten="Gom" icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
              title="Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi" />
         <Nut ten="Tách" icon="unlink" onClick={v.taHatNhan} tat={!soChon}
@@ -137,17 +162,19 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
       </Nhom>
 
       <Nhom ten="Hoàn tác" hienTu={HIEN_TU.hoanTac}>
-        <Nut ten="Hoàn tác" icon="undo" onClick={v.hoanTac} tat={!coHoanTac} />
-        <Nut ten="Làm lại" icon="redo" onClick={v.lamLai} tat={!coLamLai} />
+        <Nut ten="Hoàn tác" icon="undo" onClick={v.hoanTac} tat={!coHoanTac} title="Ctrl+Z" />
+        <Nut ten="Làm lại" icon="redo" onClick={v.lamLai} tat={!coLamLai} title="Ctrl+Y" />
       </Nhom>
 
       <Nhom ten="Strategy" hienTu={HIEN_TU.strategy}>
-        <Nut ten="Mới" icon="file" onClick={v.moi} />
+        <Nut ten="Mới" icon="file" onClick={v.moi} title="Ctrl+N" />
         <Nut ten="Kho" icon="folder" onClick={v.mo}
-             title="Kho Strategy — mở, đổi tên, nhân bản, xoá" />
-        <Nut ten="Lưu" icon="save" onClick={v.luu} />
-        <Nut ten="Lưu thành…" icon="copy" onClick={v.luuThanh}
-             title="Lưu thành một Strategy mới, giữ nguyên bản đang mở" />
+             title="Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)" />
+        <NutMenu ten="Lưu" icon="save" title="Ctrl+S"
+                 muc={[{ nhan: 'Lưu', phu: 'Ctrl+S — ghi đè bản đang mở',
+                         icon: 'save', chay: v.luu },
+                       { nhan: 'Lưu thành…', phu: 'một Strategy mới, giữ nguyên bản đang mở',
+                         icon: 'copy', chay: v.luuThanh }]} />
       </Nhom>
 
       {/* CỤM CHÍNH — đẩy SÁT MÉP PHẢI và tô sáng. Đây là ĐẦU RA của cả việc vẽ, không
