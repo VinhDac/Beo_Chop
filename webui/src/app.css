@@ -1401,6 +1401,26 @@ mark.tim-chu {
 .dong-ma > .nut-nho:hover { color: var(--err); background: var(--raised); }
 .ds-ma > .nut { align-self: flex-start; }
 
+/* Ô «CHẠY TRÊN MÃ NÀO» — HAI KIỂU, một cột: bộ chọn kiểu trên, ruột của kiểu ấy dưới.
+   `.ds-ma` nay nằm TRONG `.o-chay-ma`, nên mấy luật `:has(.ds-ma)` ở dưới đổi sang
+   bắt `.o-chay-ma` — không thì chọn một rổ là cái nhãn tụt về giữa hàng. */
+.o-chay-ma { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.o-chay-ma > select.o { flex: 0 0 auto; }
+.ro-o { display: flex; flex-direction: column; gap: 2px; }
+.ro-hang { display: flex; align-items: center; gap: 8px; }
+.ro-nhan { flex: 0 0 96px; color: var(--muted); font-size: 12px; }
+.ro-hang .o.day { flex: 1 1 auto; min-width: 0; text-transform: uppercase; }
+/* Gợi ý của ô con — xếp thẳng cột với ô, không thẳng với cái nhãn. */
+.ro-goi-y {
+  margin-left: 104px; font-size: 10.5px; line-height: 1.4; color: var(--dim);
+}
+/* Nhắc, KHÔNG chặn: rổ đổi theo ngày nên không khối nào gõ được tên mã. Nói lúc
+   chọn chứ đừng để tới lúc bấm Build mới hiện một bảng Vấn đề dài. */
+.ro-nhac {
+  font-size: 11px; line-height: 1.45; color: var(--warn); opacity: .8;
+  border-left: 2px solid var(--warn); padding: 2px 0 2px 7px;
+}
+
 /* ---------------- Kho lượt backtest ---------------- */
 .kho-luot { display: flex; flex-direction: column; gap: 6px; }
 .kq-cho {
@@ -1500,11 +1520,13 @@ mark.tim-chu {
 .khoang-ngay .o { flex: 0 0 auto; }
 .khoang-ngay .mui { color: var(--dim); }
 /* Hàng có widget nhiều dòng thì nhãn phải lên ĐẦU hàng, không căn giữa theo cả cụm. */
-.hop-lam .o-hang:has(.ds-ma) { align-items: flex-start; }
+.hop-lam .o-hang:has(.o-chay-ma), .hop-lam .o-hang:has(.ds-ma) { align-items: flex-start; }
+.hop-lam .o-hang:has(.o-chay-ma) .nhan-o,
 .hop-lam .o-hang:has(.ds-ma) .nhan-o { padding-top: 6px; }
 /* ...và lời gợi ý KHÔNG được co giãn tự do ở hàng này. Mặc định nó `flex: 1 1 auto`
    giống danh sách mã, nên hai bên chia đôi chể ngang và ô "loại tài sản" bị bóp còn
    một mẩu không đọc nổi tên loại nào. */
+.hop-lam .o-hang:has(.o-chay-ma) .goi-y-o,
 .hop-lam .o-hang:has(.ds-ma) .goi-y-o { flex: 0 0 150px; }
 
 /* ==========================================================================

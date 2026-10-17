@@ -355,9 +355,20 @@ def _tien(n):
 
 def mo_ta_bat_dau(step):
     """Khối BẮT ĐẦU -> mấy dòng chữ trên thẻ."""
-    ds = o_bat_dau(step, "ma") or []
+    gt_ma = o_bat_dau(step, "ma")
+    ro = bat_dau.ro_cua(gt_ma)
+    ds = [] if ro else (gt_ma or [])
     ten_loai = {m: n for m, n, _h in bat_dau.LOAI_TAI_SAN}
-    if not ds:
+    if ro:
+        # RỔ phải hiện NGUYÊN câu của nó, kể cả mã ETF và số mã lấy: "rổ ETF" chung
+        # chung thì thẻ khối không nói nổi hai cỗ máy khác nhau ở chỗ nào.
+        dong = [f"rổ: {ro[1]}"]
+        if ro[0] == "etf":
+            lay = _f(bat_dau.gt_ro(gt_ma, "lay")) or 0
+            etf = str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper() or "?"
+            dong = [f"rổ {etf}" + (f" · {int(lay)} mã nặng nhất" if lay > 0
+                                   else " · cả rổ")]
+    elif not ds:
         dong = ["chưa chọn mã nào"]
     elif len(ds) == 1:
         m = ds[0]
@@ -1354,6 +1365,42 @@ def _doc_ngay(s):
         return None
 
 
+def _soat_ro(step, sid, ten, gt):
+    """Soát ô `ma` khi nó là một RỔ. -> [vấn đề]
+
+    Hai chỗ hỏng LẶNG:
+      · mã rổ không có trong từ điển — file sửa tay, hay file của một bản app sau.
+        Bộ sinh mã sẽ coi nó là "không phải rổ" rồi đi nhánh gõ-mã-sẵn với danh sách
+        rỗng, tức sinh ra một cỗ máy không có mã nào mà không ai báo gì.
+      · ETF để trống tên — `Symbol.create('', …)` không ném, nó dựng một mã rỗng, rồi
+        rổ chọn ra số không mã và backtest chạy hết sạch, báo 0 lệnh."""
+    ra = []
+    ma_ro = str(gt.get("ro") or "").strip()
+    ro = bat_dau.ro_cua(gt)
+    if not ro:
+        _loi(ra, "error", sid,
+             f'"{ten}": không có rổ "{ma_ro}" — chọn lại một rổ, hoặc đổi về gõ mã '
+             f"sẵn. Bản app này biết: "
+             + ", ".join(m for m, *_ in bat_dau.RO) + ".")
+        return ra
+    if ro[0] != "etf":
+        return ra
+
+    etf = str(bat_dau.gt_ro(gt, "ma_etf") or "").strip()
+    if not etf:
+        _loi(ra, "error", sid,
+             f'"{ten}": rổ ETF mà chưa gõ mã ETF nào — LEAN sẽ dựng một mã rỗng, '
+             f"chọn ra số không mã, và backtest chạy hết rồi báo 0 lệnh.")
+    lay = _f(bat_dau.gt_ro(gt, "lay"))
+    if lay is None:
+        _loi(ra, "error", sid, f'"{ten}": «lấy mấy mã» không phải một con số.')
+    elif lay < 0:
+        _loi(ra, "error", sid,
+             f'"{ten}": «lấy mấy mã» âm — `co[:{int(lay)}]` cắt từ đuôi nên rổ ra '
+             f"gần như rỗng, mà không có lỗi nào.")
+    return ra
+
+
 def soat_khoi_bat_dau(step):
     """Soát RUỘT khối Bắt đầu. -> [{severity, step, index, message}]
 
@@ -1366,7 +1413,12 @@ def soat_khoi_bat_dau(step):
     ten = step_title(step)
 
     ds = o_bat_dau(step, "ma")
-    if not isinstance(ds, list) or not ds:
+    # Ô `ma` có HAI KIỂU (xem `bat_dau.RO`). Kiểu rổ thì mấy phép dưới đây vô nghĩa —
+    # không có dòng mã nào để mà soát trống hay trùng — nên nó có phép soát riêng.
+    if isinstance(ds, dict):
+        ra += _soat_ro(step, sid, ten, ds)
+        ds = []
+    elif not isinstance(ds, list) or not ds:
         _loi(ra, "error", sid,
              f'"{ten}": chưa chọn mã nào — cỗ máy sẽ chạy đủ mọi nến mà không mua '
              f"bán gì.")
@@ -1481,6 +1533,53 @@ def soat_day_chuyen(steps):
             _loi(ra, "warning", bd.get("id"),
                  f"«{nhan}» chỉ chạy sau khi có chia vốn — mà «Chia vốn theo tín "
                  f"hiệu» đang để trống, nên trạm này không bao giờ tới lượt.")
+    return ra
+
+
+def soat_ro_dong(steps):
+    """Soát chéo: khối Bắt đầu chạy trên một RỔ ĐỘNG thì hai thứ phải khớp theo.
+
+    Cả hai đều HỎNG LẶNG — backtest chạy hết, không một lỗi nào, và bảng kết quả chỉ
+    nói "0 lệnh" hoặc nói một con số vô nghĩa:
+
+      1. **Rổ cộng «chia danh mục»** (chạy MỘT LƯỢT cho cả rổ). Lối chia danh mục
+         sống bằng việc gõ rõ tên từng mã rồi đặt tỷ trọng cho nó — "40% QQQ, 35%
+         GLD". Mà rổ gồm mã nào thì LEAN quyết lại mỗi ngày: hôm nay 8 mã, tháng sau
+         11 mã, và không mã nào gõ trước được. Nên mọi khối trong sơ đồ ấy sẽ bị
+         `_sym_py` chối từng cái một — tức là lỗi, nhưng lỗi ở MƯỜI chỗ khác nhau,
+         trong khi nguyên nhân chỉ có một chỗ. Nói ở đây, nói đúng chỗ.
+      2. **Rổ mà không có «Phát tín hiệu»**. Rổ động là nửa trên của dây chuyền
+         LEAN (`set_universe_selection` -> insight -> chia vốn -> lệnh). Không có
+         khối phát tín hiệu thì sơ đồ phải tự đặt lệnh cho từng mã — mà không mã nào
+         gõ được tên, nên cả sơ đồ chỉ còn mỗi mã-đang-xét, và «Đặt tỷ trọng» cho
+         mã đang xét trên một rổ 500 mã là 500 lần giành nhau một danh mục. Đây là
+         CẢNH BÁO chứ không phải lỗi: một sơ đồ chỉ «Ghi chú» hay «Vẽ bảng» thì vẫn
+         có nghĩa — nó đang xem rổ hôm nay gồm những gì."""
+    ra = []
+    bd = next((x for x in (steps or []) if is_start_step(x)), None)
+    if not bd:
+        return ra
+    ro = bat_dau.ro_cua(o_bat_dau(bd, "ma"))
+    if not ro:
+        return ra
+
+    if str(o_bat_dau(bd, "chay_cho") or "") == "ca_danh_muc":
+        _loi(ra, "warning", bd.get("id"),
+             f"Khối Bắt đầu chạy trên rổ «{ro[1]}» mà lại đặt «Một lượt cho CẢ RỔ — "
+             f"chia danh mục». Hai thứ chống nhau: chia danh mục cần gõ rõ tên từng "
+             f"mã, mà rổ gồm mã nào thì LEAN quyết lại mỗi ngày — hôm nay 8 mã, "
+             f"tháng sau 11 mã. Đổi sang «Mỗi mã một lượt — sàng từng mã».")
+
+    co_tin_hieu = any(
+        isinstance(a_, dict) and a_.get("type") == lam.LAM_TIN_HIEU
+        for x in (steps or [])
+        for a_ in (hanh_dong_cua(x) if is_group_step(x) else [x]))
+    if not co_tin_hieu:
+        _loi(ra, "warning", bd.get("id"),
+             f"Khối Bắt đầu chạy trên rổ «{ro[1]}» mà sơ đồ không có khối «Phát tín "
+             f"hiệu» nào. Rổ động là nửa trên của dây chuyền LEAN — nửa dưới là tín "
+             f"hiệu rồi chia vốn. Thiếu nó thì mỗi mã trong rổ sẽ tự đặt lệnh và "
+             f"giành nhau cùng một danh mục.")
     return ra
 
 

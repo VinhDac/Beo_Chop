@@ -355,6 +355,27 @@ export interface MaChay {
   loai: string
 }
 
+/** Ô «Chạy trên mã nào» khi nó nói kiểu RỔ — một câu `set_universe_selection`.
+ *
+ *  HAI KIỂU CHO MỘT Ô, phân biệt bằng HÌNH DẠNG: `MaChay[]` là mấy mã gõ sẵn,
+ *  `RoChay` là một rổ. Đúng lối vế phải của điều kiện (`{so}` hay `{ma_dl}`), và nhờ
+ *  vậy file cũ (ô `ma` là một mảng) mở ra vẫn chạy, không phải di cư schema.
+ *
+ *  `ma_etf`/`lay` là ô CON của rổ ETF — Python khai chúng trong `RoDong.o_them`, chứ
+ *  TypeScript không khai lại. Ô con nào rổ khác không có thì không có mặt. */
+export interface RoChay {
+  ro: string
+  [o: string]: unknown
+}
+
+/** Một RỔ có thể chọn. `lop` là lớp `UniverseSelectionModel` có thật của LEAN. */
+export interface RoDong {
+  ma: string
+  nhan: string
+  lop: string
+  o_them: OLam[]
+}
+
 /** Khoảng backtest. Lưu kiểu ISO (`2010-01-31`) chứ không phải kiểu Việt: file phải
  *  xếp được theo thứ tự chữ và không mập mờ ngày/tháng. Thẻ khối mới hiện kiểu Việt. */
 export interface KhoangNgay {
@@ -372,6 +393,9 @@ export interface NhipChay {
   /** Ô chỉ hiện khi chọn nhịp này (giờ, phút, số phút sau khi mở cửa…). */
   o_them: { ten: string; nhan: string; mac_dinh: number
             nho_nhat: number; lon_nhat: number }[]
+  /** CÙNG nhịp ấy nhưng ô `ma` là một RỔ: lịch không neo vào mã nào được, vì rổ lúc
+   *  `initialize` còn rỗng. Python khai câu thứ hai này ở `bat_dau.NHIP`. */
+  chay_ro: string
 }
 
 export interface TuDienBatDau {
@@ -381,6 +405,8 @@ export interface TuDienBatDau {
   /** Mã có sẵn trong bộ dữ liệu MIỄN PHÍ, để gợi ý — không phải để chặn. */
   co_san: Record<string, string[]>
   nhip: NhipChay[]
+  /** Kiểu thứ hai của ô «Chạy trên mã nào» — xem `RoChay`. */
+  ro: RoDong[]
 }
 
 /* ------------------------------- Kho và khoá -------------------------------- */

@@ -540,5 +540,42 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
 - **⚠ Để trống «Mốc so sánh» KHÔNG phải là không có mốc:**
   `DefaultBrokerageModel.GetBenchmark` trả về SPY, tức cỗ máy vàng bị đem so với cổ
   phiếu Mỹ mà không một dòng nào nói ra. Nay gợi ý nói thẳng và biểu đồ ghi tên thật.
-- **Trạng thái:** vẽ → sinh → chạy → đọc đã thông trọn vòng, 10/10 bài kiểm xanh.
-  Chưa có: Tối ưu, Chạy thật, vòng lặp trong mã sinh ra, chọn mã động, lớp game.
+- **Trạng thái:** vẽ → sinh → chạy → đọc đã thông trọn vòng, 11/11 bài kiểm xanh.
+  Chưa có: Tối ưu, Chạy thật, vòng lặp trong mã sinh ra, lớp game.
+
+## D-17 · RỔ ĐỘNG — khe thứ năm, và nó là một Ô chứ không phải một khối
+
+Dây chuyền LEAN có năm khe; D-16 mở bốn (tín hiệu · chia vốn · phòng rủi ro · đặt
+lệnh). Khe còn lại là `set_universe_selection` — *chạy trên mã nào*, mà LEAN quyết
+lại mỗi ngày.
+
+- **MỘT Ô, HAI KIỂU — không phải khối mới.** `set_universe_selection` gọi MỘT LẦN
+  trong `initialize`, đúng cùng luật đã chốt ở D-16: *xảy ra mỗi nhịp thì thành khối,
+  đặt một lần thì thành ô*. Nên nó là kiểu thứ hai của chính ô «Chạy trên mã nào»:
+  ô ấy nhận một LIST (mã gõ sẵn) hoặc một DICT (một rổ). Phân biệt bằng HÌNH DẠNG,
+  đúng lối vế phải của điều kiện (`{so}` hay `{ma_dl}`) — nhờ vậy file cũ mở ra vẫn
+  chạy, không phải di cư schema.
+- **Chín rổ, chín lớp CÓ THẬT** trong `Algorithm.Framework/Selection/`.
+  **⚠ Cố ý KHÔNG có `ManualUniverseSelectionModel`** dù nó cũng có thật: nó nhận một
+  danh sách mã gõ sẵn, tức đúng câu mà kiểu LIST đã nói. Bày cả hai là bày hai cách
+  nói một thứ rồi để người chơi đoán cách nào mới đúng.
+- **Hàm lọc «lấy mấy mã» cũng khai trong từ điển** (`bat_dau.LOC_TRONG_SO`), không để
+  bộ sinh mã tự nghĩ ra: một hàm lọc cũng là mã LEAN, và lời hứa D-11 không có ngoại
+  lệ. Ba dòng ấy chép từ ví dụ của chính LEAN; `weight` là trường có thật của
+  `ETFConstituentData`, và nó NULLABLE nên phải gạn trước khi xếp.
+- **⚠ BA chỗ nhánh này khác hẳn, cả ba đã ÉP TÁI HIỆN bằng backtest thật** (SPY
+  12/2020, rổ top 8 — 14 lệnh khớp hết):
+  1. `universe_settings.resolution` phải đứng TRƯỚC `set_universe_selection`: model
+     chụp lấy settings ngay lúc dựng. Đặt sau thì rổ chạy bằng phút trong khi sơ đồ
+     nói ngày, và `sma(sym, 200)` thành 200 PHÚT.
+  2. Chỉ báo khai ở `on_securities_changed`, không ở `initialize` — lúc ấy rổ còn
+     rỗng. Và hàm ấy phải ghi `self._cb[sym] = {}` **kể cả khi sơ đồ không có chỉ báo
+     nào**: ĐÃ ĐO — còn dòng ấy 15 lệnh, bỏ nó **0 lệnh**, backtest sạch cả hai lần.
+  3. `set_warm_up` vô dụng với chỉ báo sinh giữa đường -> `warm_up_indicator`. Nhưng
+     nó chỉ nạp được những gì CÓ trên đĩa, nên vẫn phải chặn `is_ready`: ĐÃ ĐO —
+     `RSI(20000) < 60` còn chặn thì 0 lệnh, bỏ chặn thì **17 lệnh khớp hết trên một
+     chỉ báo chưa bao giờ chín**, đọc ra ~53, một con số trông bình thường.
+- **Nhịp hẹn giờ phải có câu LEAN THỨ HAI.** `date_rules.every_day(ma)` cần một mã,
+  mà `self._ma[0]` trên một rổ là `IndexError` ở dòng đầu `initialize`. LEAN có sẵn
+  mấy hàm KHÔNG MÃ (`after_market_open(so_phut)` lấy giờ mở sớm nhất trong các mã
+  đang có, mặc định SPY), nên mỗi nhịp khai thêm một câu cho nhánh rổ.

@@ -36,6 +36,7 @@ CSS = os.path.join(GOC, "webui", "src")
 DAT_LUC_CHAY = {"--mau"}
 
 dung = sai = 0
+NL = chr(10)
 
 
 def kiem(ten, dk, chi_tiet=""):
@@ -402,6 +403,40 @@ kiem("dòng khai LEAN đọc độ phân giải NGƯỜI DÙNG chọn", "gt.do_p
 kiem("Mốc so sánh là ô CHỌN", re.search(r"moc_so_sanh[\s\S]{0,400}<select", bd) is not None)
 kiem("mã không có dữ liệu miễn phí thì NÓI ra", "ma-khong-co" in bd,
      "— nói, chứ không chặn: ai có dữ liệu riêng vẫn chạy được")
+
+print(NL + "▸ Ô «Chạy trên mã nào» có HAI KIỂU — và kiểu rổ làm vỡ bốn chỗ cũ")
+# Ô ấy nay nhận MỘT MẢNG mã gõ sẵn hoặc MỘT OBJECT rổ. Object không có `.map`, nên
+# mọi chỗ cũ coi nó là mảng sẽ ném `TypeError` — React bắt được và thay cả cây bằng
+# một màn trắng. Không phải lỗi lặng, nhưng nó lặng ở chỗ KHÁC: `tsc` sạch, vì mấy
+# chỗ ấy đều `as MaChay[]` — tức tự khai rằng mình biết chắc, mà không biết chắc.
+kiem("một chỗ duy nhất quyết «đang nói kiểu nào»", "export function laRo(" in bd,
+     "— hai nơi cùng đoán hình dạng là hai nơi để trôi khỏi nhau")
+kiem("Mốc so sánh không còn gọi `.map` thẳng trên `gt.ma`",
+     "Array.isArray(gt.ma)" in bd)
+kiem("danh sách mã của canvas cũng chặn",
+     "Array.isArray(khoiBatDau?.ma)" in bo_chu_thich_ts(doc("SoDo.tsx")),
+     "— rổ thì KHÔNG có mã nào để bày, đúng như `sinh_ma._sym_py` chối")
+# Dòng khai LEAN đổi CẢ HAI NỬA khi chọn rổ: không `add_*` nào, và lịch chạy bằng mấy
+# hàm KHÔNG MÃ. Nó tồn tại đúng để kiểm lời hứa — nói sai thì tệ hơn không có.
+kiem("dòng khai LEAN nói `universe_settings` khi chọn rổ",
+     "universe_settings.resolution" in bd)
+kiem("và lấy câu lịch KHÔNG MÃ của Python", "nhip.chay_ro" in bd,
+     "— `self._ma[0]` trên một rổ là IndexError ở dòng đầu `initialize`")
+# Ô CON của rổ cũng phải đưa thẳng `o` của Python vào — cùng cái bẫy đã cắn ở ô thêm
+# của nhịp (ô CHỌN hiện ra như ô gõ, câu gợi ý thật bị đè).
+kiem("ô con của rổ đưa thẳng `o` của Python vào",
+     re.search(r"muc\?\.o_them[\s\S]{0,300}<OTheoKieu[^>]*o=\{o\b", bd) is not None)
+# `Hang` dựng một `<label>`, mà ô con của rổ nằm TRONG `<label>` của hàng «Chạy trên
+# mã nào» — label lồng label thì bấm nhãn con nhảy focus sang ô cha, lặng lẽ.
+kiem("ô con của rổ KHÔNG lồng `Hang` (label trong label)",
+     re.search(r"muc\?\.o_them[\s\S]{0,300}<Hang", bd) is None)
+kiem("và `OTheoKieu` là một chỗ duy nhất quyết `kieu` nào ra widget nào",
+     "export function OTheoKieu(" in doc("components/ORuot.tsx"))
+# Mấy luật CSS canh `:has(.ds-ma)` để nhãn xếp lên đầu hàng — chọn rổ thì `.ds-ma`
+# không còn, nên nhãn tụt về giữa. Build vẫn sạch, chỉ nhìn mới thấy.
+css_bd = doc("app.css")
+kiem("CSS của hàng ấy bắt cả `.o-chay-ma`", ":has(.o-chay-ma)" in css_bd,
+     "— chỉ bắt `.ds-ma` thì chọn rổ là cái nhãn tụt về giữa hàng")
 
 print("\n▸ Ribbon: ẩn một nhóm KHÔNG được lấy mất việc gì  (luật của Jenifer_Studio)")
 rib = doc("components/Ribbon.tsx")

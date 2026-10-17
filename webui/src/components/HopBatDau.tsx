@@ -1,10 +1,18 @@
 import { useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
-import { Hang, KhaiLean } from './ORuot'
+import { DocThem, Hang, KhaiLean, OTheoKieu } from './ORuot'
 import type {
-  KhoangNgay, MaChay, OLam, Step, TuDienBatDau,
+  KhoangNgay, MaChay, OLam, RoChay, Step, TuDienBatDau,
 } from '../types'
+
+/** Ô «Chạy trên mã nào» đang nói kiểu nào — MỘT CHỖ DUY NHẤT quyết định.
+ *
+ *  Phân biệt bằng HÌNH DẠNG, y như Python (`bat_dau.ro_cua`): mảng là mấy mã gõ sẵn,
+ *  object là một rổ. Hai nơi cùng đoán hình dạng là hai nơi để trôi khỏi nhau. */
+export function laRo(v: unknown): v is RoChay {
+  return !!v && typeof v === 'object' && !Array.isArray(v)
+}
 
 /** HỘP THOẠI KHỐI BẮT ĐẦU — nửa «thiết lập» của thuật toán.
  *
@@ -66,6 +74,82 @@ function DanhSachMa({ ds, td, onDoi }: {
       <button className="nut" onClick={() => onDoi([...ds, { ma: '', loai: 'equity' }])}>
         <Icon name="plus" /> Thêm mã
       </button>
+    </div>
+  )
+}
+
+/** Ô «Chạy trên mã nào» — HAI KIỂU, một widget.
+ *
+ *  Đúng lối vế phải của điều kiện: ở đấy một vế là MỘT SỐ hay MỘT ĐẠI LƯỢNG, và chỉ
+ *  có một nút để đổi qua lại. Ở đây là MẤY MÃ GÕ SẴN hay MỘT RỔ.
+ *
+ *  ⚠ ĐỔI KIỂU THÌ THAY CẢ GIÁ TRỊ, không trộn. Giữ lại danh sách mã cũ bên trong
+ *  object rổ là lưu ra một ô mang cả hai câu trả lời, rồi `bat_dau.ro_cua` thấy
+ *  object nên chọn nhánh rổ — và danh sách mã kia nằm im trong file, không ai xoá
+ *  được vì giao diện không còn chỗ nào bày nó ra. */
+function OChayTrenMa({ gt, td, onDoi }: {
+  gt: unknown; td: TuDienBatDau; onDoi: (v: MaChay[] | RoChay) => void
+}) {
+  const ro = laRo(gt) ? gt : null
+  const muc = ro ? td.ro.find(r => r.ma === String(ro.ro ?? '')) : undefined
+
+  /** Đổi sang một rổ khác thì điền luôn mặc định cho mấy ô con của nó.
+   *
+   *  Không điền thì ô con bày số 0 trong khi Python rơi về mặc định của từ điển —
+   *  thẻ khối và hộp thoại nói hai đằng. Đúng cái bẫy đã gặp ở ô nhịp. */
+  function chonRo(maRo: string) {
+    if (!maRo) { onDoi([{ ma: '', loai: 'equity' }]); return }
+    const v: RoChay = { ro: maRo }
+    for (const o of td.ro.find(r => r.ma === maRo)?.o_them ?? []) {
+      v[o.ten] = o.mac_dinh
+    }
+    onDoi(v)
+  }
+
+  return (
+    <div className="o-chay-ma">
+      <select className="o day" value={ro ? String(ro.ro ?? '') : ''}
+              onChange={e => chonRo(e.target.value)}>
+        <option value="">Mấy mã gõ sẵn</option>
+        {td.ro.map(r => (
+          <option key={r.ma} value={r.ma}>Rổ — {r.nhan}</option>
+        ))}
+      </select>
+
+      {!ro ? (
+        <DanhSachMa ds={Array.isArray(gt) ? (gt as MaChay[]) : []} td={td}
+                    onDoi={onDoi} />
+      ) : (<>
+        {/* Ô CON của rổ — ĐƯA THẲNG `o` CỦA PYTHON VÀO, không dựng lại. Bày lại một
+            object `kieu: 'so'` đóng cứng là đúng cái bệnh dự án này săn: ô «Mã ETF»
+            sẽ thành ô số, và câu gợi ý thật mà Python đã viết thì mất.
+
+            Dùng `OTheoKieu` chứ KHÔNG dùng `Hang`: `Hang` dựng một `<label>`, mà cả
+            khối này đã nằm trong `<label>` của hàng «Chạy trên mã nào» — label lồng
+            label thì bấm vào nhãn con nhảy focus sang ô cha, lặng lẽ. */}
+        {(muc?.o_them ?? []).map(o => (
+          <div className="ro-o" key={o.ten}>
+            <div className="ro-hang">
+              <span className="ro-nhan">{o.nhan}</span>
+              <OTheoKieu o={o} gt={ro[o.ten] ?? o.mac_dinh}
+                         onDoi={v => onDoi({ ...ro, [o.ten]: v })} />
+              <DocThem o={o} gt={ro[o.ten] ?? o.mac_dinh} />
+            </div>
+            {/* Gợi ý hiện THÀNH DÒNG, không chỉ nằm trong `title`. Câu của ô «Mã
+                ETF» nói bộ dữ liệu miễn phí có rổ của ETF nào — giấu nó sau một cái
+                hover là để người chơi gõ một mã không có dữ liệu rồi ngồi đoán vì
+                sao backtest không ra lệnh nào. */}
+            {o.goi_y && <div className="ro-goi-y">{o.goi_y}</div>}
+          </div>
+        ))}
+        {/* Rổ gồm mã nào là chuyện LEAN quyết lại mỗi ngày, nên không khối nào gõ
+            được tên mã. Nói ra Ở ĐÂY, lúc chọn — chứ đừng để tới lúc bấm Build mới
+            hiện một bảng Vấn đề dài. */}
+        <div className="ro-nhac">
+          Rổ đổi theo ngày, nên không khối nào gõ được tên mã — mọi khối chạy cho
+          «mã đang xét». Cần khối «Phát tín hiệu» để LEAN chia vốn.
+        </div>
+      </>)}
     </div>
   )
 }
@@ -140,10 +224,19 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
   const res = !nhip ? ''
     : nhip.chay === 'on_data' ? nhip.res
     : String(gt.do_phan_giai ?? oRes?.mac_dinh ?? nhip.res)
+  /* RỔ ĐỘNG đổi CẢ HAI NỬA của câu này, nên dòng khai phải đổi theo (nó tồn tại đúng
+   * để người dùng kiểm lời hứa — nói sai thì tệ hơn là không có):
+   *   · không có `add_*` nào; độ phân giải đi qua `universe_settings`;
+   *   · lịch chạy bằng mấy hàm KHÔNG MÃ (`nhip.chay_ro`), vì rổ lúc `initialize`
+   *     còn rỗng nên `self._ma[0]` ném `IndexError`.
+   * Hai nửa ấy Python đã khai ở `bat_dau.ham_lean`; chỗ này bày lại cùng một câu. */
+  const coRo = laRo(gt.ma)
+  const chay = !nhip ? '' : coRo ? nhip.chay_ro : nhip.chay
+  const dauLean = coRo
+    ? `universe_settings.resolution = Resolution.${res}`
+    : `add_*(ma, Resolution.${res})`
   const hamLean = nhip
-    ? (nhip.chay === 'on_data'
-        ? `add_*(ma, Resolution.${res})`
-        : `add_*(ma, Resolution.${res}) · ${nhip.chay}`)
+    ? (chay === 'on_data' ? dauLean : `${dauLean} · ${chay}`)
     : ''
 
   return (
@@ -168,8 +261,7 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
           if (o.kieu === 'ds_ma') {
             return (
               <Hang key={o.ten} o={o}>
-                <DanhSachMa ds={(gt.ma as MaChay[]) ?? []} td={tuDien}
-                            onDoi={v => doi('ma', v)} />
+                <OChayTrenMa gt={gt.ma} td={tuDien} onDoi={v => doi('ma', v)} />
               </Hang>
             )
           }
@@ -178,7 +270,11 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
            * sai không làm backtest hỏng — nó chỉ vẽ một đường so sánh vô nghĩa,
            * tức là hỏng LẶNG, loại khó thấy nhất. */
           if (o.ten === 'moc_so_sanh') {
-            const cua = (gt.ma as MaChay[] | undefined)?.map(m => m.ma).filter(Boolean) ?? []
+            /* ⚠ `gt.ma` CÓ THỂ LÀ MỘT RỔ, và object không có `.map` — dòng này từng
+               đổ cả hộp thoại ngay lúc mở. Rổ thì không có mã nào gõ trước được,
+               nên danh sách chỉ còn mấy mã có dữ liệu miễn phí. */
+            const cua = Array.isArray(gt.ma)
+              ? (gt.ma as MaChay[]).map(m => m.ma).filter(Boolean) : []
             const ds = [...new Set([...cua, ...Object.values(tuDien.co_san).flat()])]
             return (
               <Hang key={o.ten} o={o}>

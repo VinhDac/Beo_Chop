@@ -416,8 +416,13 @@ function SoDoTrong() {
   const khoiBatDau = useMemo(
     () => nodes.map(n => (n.data as { step: Step }).step).find(s => s.kind === 'start'),
     [nodes])
+  /* ⚠ Ô `ma` CÓ HAI KIỂU: mảng mã gõ sẵn, hay một object RỔ. Rổ thì object không có
+     `.map` — dòng này từng đổ cả canvas. Và rổ thì ĐÚNG là không có mã nào để bày:
+     rổ gồm những gì là chuyện LEAN quyết lại mỗi ngày, nên mọi ô chọn mã chỉ còn
+     «mã đang xét» (`sinh_ma._sym_py` chối mọi tên mã gõ vào, cùng một luật). */
   const dsMa = useMemo(() => {
-    const ds = (khoiBatDau?.ma as { ma?: string }[] | undefined) ?? []
+    const ds = Array.isArray(khoiBatDau?.ma)
+      ? (khoiBatDau.ma as { ma?: string }[]) : []
     return ds.map(x => String(x?.ma ?? '').trim()).filter(Boolean)
   }, [khoiBatDau])
   const coMaDangXet = (khoiBatDau?.chay_cho as string | undefined) !== 'ca_danh_muc'

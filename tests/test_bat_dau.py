@@ -21,6 +21,7 @@ Mấy chỗ hỏng LẶNG bài này canh:
 
 Không mở cửa sổ, không nối mạng -> chạy được ở bất cứ đâu.
 """
+import inspect
 import io
 import json
 import os
@@ -30,9 +31,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import bat_dau, core  # noqa: E402
+from cat_studio import bat_dau, core, lam  # noqa: E402
 
 dung = sai = 0
+NL = chr(10)
 
 
 def kiem(ten, dk, chi_tiet=""):
@@ -69,7 +71,11 @@ kiem("mỗi loại tài sản một hàm `add_*` RIÊNG",
      len({h for _m, _n, h in bat_dau.LOAI_TAI_SAN}) == len(bat_dau.LOAI_TAI_SAN),
      "— hai loại cùng một hàm là một loại bịa")
 kiem("mỗi nhịp khai rõ độ phân giải và lối chạy",
-     all(r and c for _m, _n, r, c, _t in bat_dau.NHIP))
+     all(r and c for _m, _n, r, c, _t, _cr in bat_dau.NHIP))
+# ⚠ Ô THỨ SÁU của mỗi nhịp — câu lịch cho RỔ ĐỘNG. Thiếu nó thì `sinh_ma` viết
+# `self._ma[0]`, mà rổ lúc `initialize` còn RỖNG: `IndexError` ở dòng đầu.
+kiem("mỗi nhịp có thêm câu lịch KHÔNG MÃ, cho rổ động",
+     all(cr for *_x, cr in bat_dau.NHIP))
 
 print("\n▸ Làm nóng KHÔNG thành ô — bộ sinh mã tự suy từ chỉ báo đã vẽ")
 ten_o = {o["ten"] for o in bat_dau.o_cua()}
@@ -77,10 +83,16 @@ for cam in ("lam_nong", "warm_up", "warmup"):
     kiem(f"không có ô `{cam}`", cam not in ten_o)
 kiem("và lý do được ghi lại trong bat_dau.py", "set_warm_up" in bat_dau.__doc__)
 
-print("\n▸ Cố ý CHƯA có: chọn mã động, và cửa vào thứ hai")
-kiem("chưa có universe", "universe" not in json.dumps(bat_dau.tu_dien()).lower())
+print("\n▸ Cố ý CHƯA có: cửa vào thứ hai")
 kiem("nhưng ghi rõ là bỏ có chủ ý",
-     "add_universe" in bat_dau.__doc__ and "chủ ý" in bat_dau.__doc__)
+     "cửa vào thứ hai" in bat_dau.__doc__ and "chủ ý" in bat_dau.__doc__)
+# ⚠ BÀI NÀY TỪNG CANH NGƯỢC: nó bắt từ điển KHÔNG được có chữ "universe", vì hồi D-15
+# chọn mã động là chỗ "cố ý chưa có". Nay nó có rồi — và nó KHÔNG phải một khối mới,
+# nó là kiểu thứ hai của chính ô «Chạy trên mã nào» (`set_universe_selection` gọi một
+# lần trong `initialize`, đúng luật của ba ô chính sách). Giữ bài cũ thì nó chặn đúng
+# cái việc vừa làm xong, nên đổi chiều: giờ canh rổ phải CÓ.
+kiem("và nay ô `ma` nói được RỔ ĐỘNG",
+     "universe" in json.dumps(bat_dau.tu_dien()).lower())
 
 # ================= 2. Nhịp giải quyết cái hack "một lần mỗi ngày" =================
 print("\n▸ Nhịp — thứ xoá hẳn cái hack «chỉ một lần mỗi ngày»")
@@ -339,6 +351,94 @@ _bd2["phong_rui_ro"] = "TrailingStopRiskManagementModel"
 kiem("phòng rủi ro mà không có chia vốn → CẢNH BÁO",
      any(v["severity"] == "warning" for v in core.soat_day_chuyen([_bd2])),
      "— nó chạy SAU chia vốn, không có chia vốn thì không tới lượt")
+
+
+# ================= 7. RỔ ĐỘNG — kiểu thứ hai của ô «Chạy trên mã nào» ==========
+print(NL + "▸ Rổ động — mỗi rổ phải là MỘT lớp có thật của LEAN")
+kiem("mỗi rổ khai một lớp LEAN",
+     all(lop for _m, _n, lop, _t in bat_dau.RO), f"— {len(bat_dau.RO)} rổ")
+kiem("không lớp nào trùng",
+     len({lop for _m, _n, lop, _t in bat_dau.RO}) == len(bat_dau.RO),
+     "— hai rổ cùng một lớp là một rổ bịa")
+kiem("không mã rổ nào trùng",
+     len({m for m, *_ in bat_dau.RO}) == len(bat_dau.RO))
+# ⚠ `ManualUniverseSelectionModel` CÓ THẬT mà CỐ Ý không khai: nó nhận danh sách mã
+# gõ sẵn, tức đúng câu mà kiểu LIST của ô `ma` đã nói. Bày cả hai là bày hai cách nói
+# một thứ. Canh ở đây để lần sau ai thấy "thiếu" thì đọc được lý do.
+kiem("cố ý KHÔNG có ManualUniverseSelectionModel",
+     not any("Manual" in lop for _m, _n, lop, _t in bat_dau.RO)
+     and "ManualUniverseSelectionModel" in inspect.getsource(bat_dau),
+     "— và lý do ghi ngay cạnh `RO`, chỗ người sửa sẽ đọc")
+
+print(NL + "▸ HAI KIỂU MỘT Ô — phân biệt bằng HÌNH DẠNG, một chỗ duy nhất")
+kiem("list = mã gõ sẵn", bat_dau.ro_cua([{"ma": "SPY", "loai": "equity"}]) is None)
+kiem("dict = một rổ", bat_dau.ro_cua({"ro": "qc500"})[2]
+     == "QC500UniverseSelectionModel")
+kiem("mã rổ lạ thì KHÔNG nhận", bat_dau.ro_cua({"ro": "bia_ra"}) is None)
+kiem("None cũng không phải rổ", bat_dau.ro_cua(None) is None)
+# ⚠ HỎNG LẶNG: `gt_ro` chỉ rơi về mặc định khi khoá VẮNG, không khi nó RỖNG. Bản đầu
+# coi "" như vắng, nên xoá trắng ô «Mã ETF» là nó lặng lẽ thành "SPY" — hộp thoại
+# trống trơn mà cỗ máy chạy rổ SPY, và phép soát không có gì để bắt.
+kiem("khoá VẮNG thì rơi về mặc định", bat_dau.gt_ro({"ro": "etf"}, "ma_etf") == "SPY")
+kiem("khoá RỖNG thì GIỮ rỗng, để soát bắt được",
+     bat_dau.gt_ro({"ro": "etf", "ma_etf": ""}, "ma_etf") == "")
+
+print(NL + "▸ Soát rổ — ba chỗ hỏng LẶNG")
+_r = core.make_start_step()
+_r["ma"] = {"ro": "khong_co_that"}
+kiem("mã rổ lạ → LỖI", len(_nang(core.soat_khoi_bat_dau(_r))) == 1,
+     "— không thì bộ sinh mã đi nhánh gõ-mã-sẵn với danh sách rỗng, lặng lẽ")
+_r["ma"] = {"ro": "etf", "ma_etf": "", "lay": 8}
+kiem("rổ ETF mà trống mã ETF → LỖI", _nang(core.soat_khoi_bat_dau(_r)),
+     "— LEAN dựng một mã rỗng, chọn ra 0 mã, backtest chạy hết báo 0 lệnh")
+_r["ma"] = {"ro": "etf", "ma_etf": "SPY", "lay": -3}
+kiem("«lấy mấy mã» ÂM → LỖI", _nang(core.soat_khoi_bat_dau(_r)),
+     "— `co[:-3]` cắt từ đuôi nên rổ ra gần như rỗng, không lỗi nào")
+_r["ma"] = {"ro": "etf", "ma_etf": "SPY", "lay": 8}
+kiem("rổ điền đủ thì sạch", not core.soat_khoi_bat_dau(_r))
+# Mấy phép của kiểu LIST (trống, trùng mã, chưa chọn loại) KHÔNG được áp lên rổ —
+# rổ không có dòng mã nào để mà trống hay trùng.
+kiem("rổ KHÔNG bị báo «chưa chọn mã nào»",
+     not any("chưa chọn mã nào" in v["message"]
+             for v in core.soat_khoi_bat_dau(_r)))
+
+print(NL + "▸ Soát chéo — rổ cộng cái gì thì vô nghĩa")
+_r2 = core.make_start_step()
+_r2["ma"] = {"ro": "kim_loai"}
+_r2["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+_th2 = core.make_lam_step(lam.LAM_TIN_HIEU)
+kiem("rổ + «chia danh mục» → CẢNH BÁO",
+     any("chống nhau" in v["message"] for v in core.soat_ro_dong(
+         [dict(_r2, chay_cho="ca_danh_muc"), _th2])),
+     "— chia danh mục cần gõ rõ tên mã, mà rổ đổi theo ngày")
+kiem("rổ mà KHÔNG có «Phát tín hiệu» → CẢNH BÁO",
+     any("Phát tín hiệu" in v["message"] for v in core.soat_ro_dong([_r2])))
+kiem("rổ + sàng từng mã + có tín hiệu thì sạch",
+     not core.soat_ro_dong([_r2, _th2]))
+kiem("gõ mã sẵn thì phép này không chạm vào",
+     not core.soat_ro_dong([core.make_start_step()]))
+
+print(NL + "▸ Thẻ khối phải NÓI RA rổ, không nói chung chung")
+_r3 = core.make_start_step()
+_r3["ma"] = {"ro": "etf", "ma_etf": "QQQ", "lay": 5}
+kiem("thẻ nói mã ETF và số mã lấy", "QQQ" in dong_the(_r3)[0]
+     and "5" in dong_the(_r3)[0], f"— {dong_the(_r3)[0]}")
+_r3["ma"] = {"ro": "etf", "ma_etf": "QQQ", "lay": 0}
+kiem("lấy 0 = cả rổ", "cả rổ" in dong_the(_r3)[0], f"— {dong_the(_r3)[0]}")
+_r3["ma"] = {"ro": "bien_dong"}
+kiem("rổ có sẵn thì nói tên rổ", "biến động" in dong_the(_r3)[0],
+     f"— {dong_the(_r3)[0]}")
+
+print(NL + "▸ Rổ phải SỐNG qua lưu/mở — `chuan_hoa_khoi` dựng lại khối từ đầu")
+_r4 = core.make_start_step()
+_r4["ma"] = {"ro": "etf", "ma_etf": "QQQ", "lay": 3}
+_mo = core.normalize_process({"name": "x", "steps": [_r4]})["steps"][0]
+kiem("cả dict rổ còn nguyên", _mo["ma"] == {"ro": "etf", "ma_etf": "QQQ", "lay": 3},
+     f"— {_mo['ma']}")
+# ⚠ Ô CON của rổ nằm TRONG dict, không thành khoá riêng của khối: đổi sang gõ mã tay
+# thì cả câu trả lời cũ đi theo, không để lại một `lay = 3` lơ lửng trong file.
+kiem("ô con không rò ra thành khoá của khối",
+     "lay" not in _mo and "ma_etf" not in _mo)
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

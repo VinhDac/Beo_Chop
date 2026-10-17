@@ -44,7 +44,8 @@ Ba quyết định liền nhau:
 | **Bộ sinh mã** — sơ đồ → thuật toán LEAN Python | ✅ |
 | **Chạy LEAN TỪ TRONG APP** | ❌ **chưa** — hiện phải chạy tay |
 | **Vòng lặp** trong mã sinh ra | ❌ **chưa** — báo rõ, không đoán |
-| **Chọn mã động** (universe) · lớp game | ❌ **chưa** |
+| **Chọn mã động** (universe) — ô «Chạy trên mã nào» nhận một RỔ | ✅ |
+| Lớp game | ❌ **chưa** |
 
 Bài kiểm: **9/9 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
 

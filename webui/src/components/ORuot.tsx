@@ -39,6 +39,55 @@ export function ONhapSo({ gt, onDoi, nguyen }: {
   )
 }
 
+/** CHỈ cái widget của một ô, không nhãn không gợi ý.
+ *
+ *  Tách ra khỏi `Hang` vì ô CON của một rổ cần đúng phần này: `Hang` dựng một
+ *  `<label>`, mà `<label>` lồng trong `<label>` là HTML sai — bấm vào nhãn con sẽ
+ *  nhảy focus sang ô cha, và trình duyệt không báo gì cả. Một chỗ duy nhất quyết
+ *  `kieu` nào ra widget nào, hai chỗ dùng. */
+export function OTheoKieu({ o, gt, onDoi }: {
+  o: OLam; gt?: unknown; onDoi?: (v: unknown) => void
+}) {
+  if (o.kieu === 'chon') {
+    return (
+      <select className="o day" value={String(gt ?? '')}
+              onChange={e => onDoi?.(e.target.value)}>
+        {o.chon.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
+      </select>
+    )
+  }
+  if (o.kieu === 'co_khong') {
+    return (
+      <input type="checkbox" className="o-tich" checked={gt === true}
+             onChange={e => onDoi?.(e.target.checked)} />
+    )
+  }
+  if (o.kieu === 'so') {
+    return <ONhapSo gt={gt} nguyen={o.nguyen} onDoi={n => onDoi?.(n)} />
+  }
+  // Placeholder nói ĐÚNG MỘT điều: ô này không bắt buộc. Để trống rồi thì sao là
+  // chuyện của từng ô, và `goi_y` bên cạnh đã nói — nhồi vào đây thì ô Mốc so sánh
+  // hiện câu "bộ sinh mã tự điền", mà nó có tự điền mốc nào đâu.
+  return (
+    <input className="o day" spellCheck={false} value={String(gt ?? '')}
+           placeholder={o.bat_buoc ? '' : 'không bắt buộc'}
+           onChange={e => onDoi?.(e.target.value)} />
+  )
+}
+
+/** Đơn vị / cách đọc thêm của một ô — dùng chung với `OTheoKieu`. */
+export function DocThem({ o, gt }: { o: OLam; gt?: unknown }) {
+  // Tỷ trọng lưu ĐÚNG DẠNG LEAN NHẬN (0.3), nên bày thêm "= 30%" ngay cạnh — một
+  // dòng ĐỌC, không phải một phép đổi giấu trong giao diện.
+  if (o.don_vi === 'phần') {
+    return <span className="doc-them">= {Math.round(Number(gt ?? 0) * 1000) / 10}%</span>
+  }
+  // Mọi đơn vị KHÁC hiện nguyên văn. Trước đây chỉ `$` được viết riêng một dòng, nên
+  // ô nào khai "phút", "lần", "ngày"… là đơn vị ấy biến mất — từ điển nói mà giao
+  // diện không nghe.
+  return o.don_vi ? <span className="doc-them">{o.don_vi}</span> : null
+}
+
 /** Một hàng = một ô.
  *
  *  `children` thay chỗ ô mặc định, cho mấy kiểu chỉ MỘT hộp thoại cần (danh sách mã,
@@ -50,34 +99,8 @@ export function Hang({ o, gt, onDoi, children }: {
   return (
     <label className="o-hang" title={o.goi_y || o.nhan}>
       <span className="nhan-o">{o.nhan}</span>
-      {children ?? (o.kieu === 'chon' ? (
-        <select className="o day" value={String(gt ?? '')}
-                onChange={e => onDoi?.(e.target.value)}>
-          {o.chon.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
-        </select>
-      ) : o.kieu === 'co_khong' ? (
-        <input type="checkbox" className="o-tich" checked={gt === true}
-               onChange={e => onDoi?.(e.target.checked)} />
-      ) : o.kieu === 'so' ? (
-        <ONhapSo gt={gt} nguyen={o.nguyen} onDoi={n => onDoi?.(n)} />
-      ) : (
-        // Placeholder nói ĐÚNG MỘT điều: ô này không bắt buộc. Để trống rồi thì sao
-        // là chuyện của từng ô, và `goi_y` bên cạnh đã nói — nhồi vào đây thì ô Mốc
-        // so sánh hiện câu "bộ sinh mã tự điền", mà nó có tự điền mốc nào đâu.
-        <input className="o day" spellCheck={false} value={String(gt ?? '')}
-               placeholder={o.bat_buoc ? '' : 'không bắt buộc'}
-               onChange={e => onDoi?.(e.target.value)} />
-      ))}
-      {/* Tỷ trọng lưu ĐÚNG DẠNG LEAN NHẬN (0.3), nên bày thêm "= 30%" ngay cạnh — một
-          dòng ĐỌC, không phải một phép đổi giấu trong giao diện. */}
-      {o.don_vi === 'phần' ? (
-        <span className="doc-them">= {Math.round(Number(gt ?? 0) * 1000) / 10}%</span>
-      // Mọi đơn vị KHÁC hiện nguyên văn. Trước đây chỉ `$` được viết riêng một dòng,
-      // nên ô nào khai "phút", "lần", "ngày"… là đơn vị ấy biến mất — từ điển nói mà
-      // giao diện không nghe.
-      ) : o.don_vi ? (
-        <span className="doc-them">{o.don_vi}</span>
-      ) : null}
+      {children ?? <OTheoKieu o={o} gt={gt} onDoi={onDoi} />}
+      <DocThem o={o} gt={gt} />
       {o.goi_y && <span className="goi-y-o">{o.goi_y}</span>}
     </label>
   )

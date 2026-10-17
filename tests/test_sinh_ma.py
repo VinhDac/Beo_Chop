@@ -27,6 +27,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 from cat_studio import bat_dau, core, hoi, lam, sinh_ma  # noqa: E402
 
 dung = sai = 0
+NL = chr(10)
 
 
 def kiem(ten, dk, chi_tiet=""):
@@ -233,6 +234,164 @@ k7[3]["dieu_kien"] = list(k7[1]["dieu_kien"])      # cho trùng THẬT
 r7 = sinh_ma.sinh(core.make_process_template("x", k7, d7["edges"]))
 kiem("mà trùng THẬT thì vẫn báo",
      any("giống hệt" in p["message"] for p in r7["van_de"]))
+
+
+# ================= 9. RỔ ĐỘNG — `set_universe_selection` =================
+# Nhánh này KHÁC nhánh gõ-mã-sẵn ở BA chỗ, và cả ba đều hỏng LẶNG nếu làm sai: khai
+# mã, khai chỉ báo, và `self._ma` lấy từ đâu. Hình dạng dưới đây đã dò bằng một
+# backtest THẬT trước khi viết bộ sinh mã (SPY 12/2020 -> 14 lệnh, khớp hết).
+print(NL + "▸ Rổ động — ba chỗ nhánh này khác hẳn nhánh gõ mã sẵn")
+
+
+def so_do_ro(gt_ro, nhip="ngay", chay_cho="moi_ma", co_cb=True):
+    """Sơ đồ chạy trên một RỔ: RSI quá bán thì phát tín hiệu LÊN."""
+    bd = core.make_start_step()
+    bd["ma"] = gt_ro
+    bd["khoang"] = {"tu": "2020-12-01", "den": "2020-12-07"}
+    bd["nhip"], bd["chay_cho"], bd["pos"] = nhip, chay_cho, o(0, 0)
+    bd["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+    bd["dat_lenh"] = "ImmediateExecutionModel"
+
+    th = core.make_lam_step(lam.LAM_TIN_HIEU, "Nên lên")
+    th["huong"], th["han"], th["pos"] = "UP", 5, o(400, 0)
+    if not co_cb:
+        return core.make_process_template("Ro", [bd, th],
+                                          [{"from": bd["id"], "to": th["id"]}])
+    g = core.make_hoi_step(hoi.HOI_THI_TRUONG, "Quá bán?")
+    g["dieu_kien"] = [core.make_dieu_kien("rsi", "<", 30, tham_so={"n": 14})]
+    g["pos"] = o(200, 0)
+    return core.make_process_template(
+        "Ro", [bd, g, th],
+        [{"from": bd["id"], "to": g["id"]}, {"from": g["id"], "to": th["id"]}])
+
+
+r_etf = sinh_ma.sinh(so_do_ro({"ro": "etf", "ma_etf": "SPY", "lay": 8}))
+m_etf = r_etf["ma"]
+kiem("sinh xong không lỗi", r_etf["ok"],
+     f"— {[p['message'][:70] for p in r_etf['van_de'] if p['severity'] == 'error']}")
+loi_cp = ""
+try:
+    compile(m_etf, "<ro>", "exec")
+except SyntaxError as e:
+    loi_cp = f"dòng {e.lineno}: {e.msg}"
+kiem("biên dịch được", not loi_cp, f"— {loi_cp}")
+
+print(NL + "  (1) khai mã — một câu `set_universe_selection`, KHÔNG `add_*` nào")
+kiem("có `set_universe_selection`", "self.set_universe_selection(" in m_etf)
+kiem("đúng lớp LEAN", "ETFConstituentsUniverseSelectionModel('SPY'" in m_etf)
+# KHÔNG được còn một dòng `add_*` nào: thêm `add_equity` cạnh một rổ là đăng ký một
+# mã NGOÀI rổ, nó chạy suốt backtest mà sơ đồ không nói tới nó ở đâu cả.
+kiem("không còn dòng `add_` nào", "self.add_" not in m_etf)
+kiem("không còn `self._ten`", "self._ten" not in m_etf)
+# THỨ TỰ: model chụp lấy `universe_settings` ngay lúc dựng, nên đặt độ phân giải SAU
+# là rổ lặng lẽ chạy bằng mặc định của LEAN (phút) trong khi sơ đồ nói nến ngày — và
+# `self.sma(sym, 200)` thành 200 PHÚT. Cùng sơ đồ, khác hẳn chiến thuật.
+kiem("độ phân giải đặt TRƯỚC khi dựng model",
+     m_etf.index("universe_settings.resolution")
+     < m_etf.index("set_universe_selection"))
+kiem("và đúng độ phân giải của nhịp",
+     "self.universe_settings.resolution = Resolution.DAILY" in m_etf)
+
+print(NL + "  (2) hàm lọc — thân hàm lấy TỪ TỪ ĐIỂN, không do bộ sinh mã nghĩ ra")
+kiem("có hàm lọc", "def _loc_ro(self, ds):" in m_etf)
+kiem("thân hàm đúng câu của từ điển",
+     all(d.format(lay=8) in m_etf for d in bat_dau.LOC_TRONG_SO))
+# `weight` NULLABLE (`public decimal? Weight`) — không gạn thì `sort` so None với số
+# và ném TypeError giữa lượt chọn rổ. LEAN tự gạn y thế trong ví dụ của họ.
+kiem("có gạn `weight` rỗng trước khi xếp", "if c.weight" in m_etf)
+r_ca_ro = sinh_ma.sinh(so_do_ro({"ro": "etf", "ma_etf": "SPY", "lay": 0}))
+kiem("«lấy 0» = cả rổ, nên KHÔNG sinh hàm lọc",
+     "_loc_ro" not in r_ca_ro["ma"] and r_ca_ro["ok"])
+
+print(NL + "  (3) chỉ báo — khai ở `on_securities_changed`, KHÔNG ở `initialize`")
+# Lúc `initialize` chạy, rổ còn RỖNG: `for sym in self._ma` duyệt số không mã, nên
+# chẳng chỉ báo nào được khai, và `self._cb[sym]` ném KeyError ở nến đầu.
+kiem("có `on_securities_changed`",
+     "def on_securities_changed(self, changes):" in m_etf)
+kiem("đọc `added_securities` và `removed_securities`",
+     "changes.added_securities" in m_etf and "changes.removed_securities" in m_etf)
+kiem("KHÔNG khai chỉ báo trong `initialize`",
+     "for sym in self._ma:" not in m_etf.split("def on_data")[0])
+# `set_warm_up` VÔ DỤNG với chỉ báo sinh giữa đường — nó chặn N nến ĐẦU, mà mã vào
+# rổ ở tháng thứ năm thì nó đã hết tác dụng từ lâu.
+kiem("KHÔNG dùng `set_warm_up`", "set_warm_up" not in m_etf)
+kiem("dùng `warm_up_indicator` cho từng mã",
+     "self.warm_up_indicator(s.symbol, _cb, Resolution.DAILY)" in m_etf)
+
+print(NL + "  (4) `self._ma` đọc lại MỖI NHỊP từ `active_securities`")
+kiem("đọc từ `active_securities`", "self.active_securities" in m_etf)
+kiem("đọc trong `on_data`, không trong `initialize`",
+     "active_securities" not in m_etf.split("def on_data")[0])
+
+print(NL + "  (5) HAI BẪY LẶNG của nhánh này")
+# BẪY 1: `self._ma` lọc `if kvp.key in self._cb`, nên `on_securities_changed` PHẢI
+# ghi `self._cb[sym] = {}` kể cả khi sơ đồ KHÔNG CÓ chỉ báo nào. Thiếu dòng ấy thì
+# `self._cb` rỗng mãi, `_ma` lọc ra rỗng, cỗ máy chạy đủ mọi nến mà không làm gì.
+r_kho_cb = sinh_ma.sinh(so_do_ro({"ro": "kim_loai"}, co_cb=False))
+m_kho_cb = r_kho_cb["ma"]
+kiem("sơ đồ KHÔNG chỉ báo vẫn có `on_securities_changed`",
+     "def on_securities_changed(self, changes):" in m_kho_cb)
+kiem("và vẫn ghi `self._cb[s.symbol] = {}`",
+     "self._cb[s.symbol] = {}" in m_kho_cb,
+     "— ĐÃ ÉP: còn dòng ấy 15 lệnh, bỏ nó 0 lệnh, backtest sạch cả hai lần")
+kiem("lọc và nguồn khớp nhau", "if kvp.key in self._cb" in m_kho_cb)
+# BẪY 2: mã mới vào rổ mà chưa đủ nến thì chỉ báo CHƯA CHÍN, và nó vẫn đọc ra một
+# con số. ĐÃ ÉP TÁI HIỆN bằng backtest thật — đây là hàng rào CÓ người vượt:
+#   · mã không có dữ liệu trên máy -> `is_ready=False`, giá trị đúng 0.0;
+#   · mã có dữ liệu mà lịch sử ngắn hơn chu kỳ -> `is_ready=False`, giá trị ~53,
+#     một con số trông bình thường đến mức không ai nghi.
+#   · `RSI(20000) < 60`: CÒN chặn = 0 lệnh; BỎ chặn = 17 lệnh khớp hết, trên một
+#     chỉ báo chưa bao giờ chín. Backtest sạch cả hai lần.
+kiem("có chặn `is_ready` khi sơ đồ CÓ chỉ báo",
+     "if not all(x.is_ready for x in self._cb[sym].values()):" in m_etf,
+     "— bỏ ra là 17 lệnh trên một chỉ báo chưa chín, đã đo")
+kiem("không có chỉ báo thì KHÔNG cần chặn", "is_ready" not in m_kho_cb)
+# Nhánh gõ mã sẵn KHÔNG cần chặn ấy — `set_warm_up` chặn hộ ở N nến đầu.
+kiem("nhánh gõ mã sẵn vẫn dùng `set_warm_up`, không chặn `is_ready`",
+     "set_warm_up" in ma and "is_ready" not in ma)
+
+print(NL + "  (6) nhịp HẸN GIỜ cộng rổ — lịch không neo vào mã nào được")
+# `self._ma[0]` trên một rổ là IndexError ở dòng đầu `initialize` — rổ lúc ấy rỗng.
+r_tuan = sinh_ma.sinh(so_do_ro({"ro": "kim_loai"}, nhip="tuan"))
+m_tuan = r_tuan["ma"]
+kiem("sinh xong không lỗi", r_tuan["ok"])
+kiem("KHÔNG có `self._ma[0]`", "self._ma[0]" not in m_tuan,
+     "— rổ lúc `initialize` còn rỗng: IndexError ngay dòng đầu")
+kiem("dùng câu lịch KHÔNG MÃ của LEAN",
+     "self.date_rules.week_start()" in m_tuan
+     and "self.time_rules.after_market_open(30)" in m_tuan)
+d_tuan, k_tuan = so_do_rsi(nhip="tuan")
+kiem("mà gõ mã sẵn thì vẫn neo vào mã",
+     "self._ma[0]" in sinh_ma.sinh(d_tuan)["ma"])
+
+# Nhịp LẠ (file sửa tay): bộ sinh mã vẫn đi tiếp để bày ra phần sinh được, nên câu
+# lịch phải rơi về `on_data` chứ không được là chuỗi RỖNG — chuỗi rỗng đi qua
+# `hen[:-1]` thành một câu `schedule.on` cụt đầu, và file sinh ra không biên dịch nổi.
+d_la, k_la = so_do_rsi()
+k_la[0]["nhip"] = "nhip_bia_ra"
+r_la = sinh_ma.sinh(core.make_process_template("x", k_la, d_la["edges"]))
+kiem("nhịp LẠ thì báo lỗi, không sinh câu lịch cụt",
+     not r_la["ok"] and "schedule" not in r_la["ma"])
+loi_la = ""
+try:
+    compile(r_la["ma"], "<la>", "exec")
+except SyntaxError as e:
+    loi_la = f"dòng {e.lineno}: {e.msg}"
+kiem("và phần sinh được vẫn biên dịch nổi", not loi_la, f"— {loi_la}")
+
+print(NL + "  (7) rổ thì KHÔNG khối nào gõ được tên mã")
+# Rổ gồm mã nào là chuyện LEAN quyết lại mỗi ngày, nên app không có danh sách ấy để
+# đối chiếu. Báo LỖI, và câu báo phải nói đúng chuyện đó — chứ bảo "thêm mã ấy vào
+# khối Bắt đầu" là bảo người chơi làm một việc hộp thoại không có chỗ để làm.
+d_ma = so_do_ro({"ro": "etf", "ma_etf": "SPY", "lay": 8})
+for s in d_ma["steps"]:
+    if s.get("type") == lam.LAM_TIN_HIEU:
+        s["ma"] = "AAPL"
+r_ma = sinh_ma.sinh(d_ma)
+kiem("gõ tên mã trên một rổ -> LỖI", not r_ma["ok"])
+kiem("và câu báo nói đúng VÌ SAO",
+     any("LEAN quyết lại mỗi ngày" in p["message"] for p in r_ma["van_de"]),
+     f"— {[p['message'][:60] for p in r_ma['van_de'] if p['severity'] == 'error']}")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

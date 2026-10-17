@@ -125,6 +125,9 @@ class _Nc:
         self.res = "Resolution.DAILY"
         #: True = chạy MỘT LƯỢT cho cả rổ (chia danh mục), nên KHÔNG có biến `sym`.
         self.ca_danh_muc = False
+        #: Mục RỔ đang chọn, hay None nếu khối Bắt đầu gõ mã sẵn. Khác nhau ở ba chỗ:
+        #: khai mã, khai chỉ báo, và `self._ma` lấy từ đâu.
+        self.ro = None
         self.thu_tu = {}
         self.dem = 0
 
@@ -148,8 +151,18 @@ def _sym_py(nc, ve, sid):
                         "xét» — khối này phải gõ rõ tên mã.")
         return "sym"
     if m not in nc.ma_khai:
-        nc.loi(sid, f'Điều kiện trỏ tới mã "{m}" mà khối Bắt đầu chưa khai nó. '
-                    f"Thêm mã ấy vào khối Bắt đầu, hoặc bỏ nó khỏi điều kiện.")
+        # RỔ ĐỘNG thì KHÔNG mã nào gõ được tên: rổ gồm những mã nào là chuyện LEAN
+        # quyết lại mỗi ngày, app không có danh sách ấy để mà đối chiếu. Câu báo lỗi
+        # phải nói đúng chuyện đó, chứ bảo "thêm mã ấy vào khối Bắt đầu" là bảo
+        # người chơi làm một việc mà hộp thoại không có chỗ để làm.
+        if nc.ro:
+            nc.loi(sid, f'Khối Bắt đầu chạy trên một RỔ nên không khối nào gõ được '
+                        f'tên mã — rổ gồm những mã nào là chuyện LEAN quyết lại mỗi '
+                        f'ngày. Bỏ mã "{m}" khỏi khối này để nó chạy cho MÃ ĐANG '
+                        f"XÉT, hoặc đổi khối Bắt đầu về gõ mã sẵn.")
+        else:
+            nc.loi(sid, f'Điều kiện trỏ tới mã "{m}" mà khối Bắt đầu chưa khai nó. '
+                        f"Thêm mã ấy vào khối Bắt đầu, hoặc bỏ nó khỏi điều kiện.")
         return "sym"
     return f"self._ten[{m!r}]"
 
@@ -340,8 +353,58 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
 # initialize
 # ---------------------------------------------------------------------------
 
+def _khai_ro(nc, gt_ma):
+    """Ô `ma` là một RỔ -> mấy dòng khai rổ trong `initialize`. -> [dòng].
+
+    ⚠ `universe_settings.resolution` phải đứng TRƯỚC `set_universe_selection`: model
+    nhận `universe_settings` làm tham số, nên nó chụp lấy giá trị ở ngay lúc dựng.
+    Đặt sau thì rổ lặng lẽ chạy bằng độ phân giải MẶC ĐỊNH của LEAN (phút) trong khi
+    sơ đồ nói nến ngày — và `self.sma(sym, 200)` thành 200 PHÚT. Đã dò bằng backtest
+    thật, không phải suy ra.
+
+    KHÔNG có dòng `add_*` nào ở nhánh này, và đó là cả điểm: rổ gồm mã nào thì LEAN
+    quyết lại mỗi ngày. Nên `self._ma` cũng không khai được ở đây — xem `_ghep`."""
+    ra = ["# RỔ ĐỘNG: không gõ mã nào, LEAN tự quyết hôm nay rổ gồm những gì.",
+          f"self.universe_settings.resolution = {nc.res}"]
+    lop = nc.ro[2]
+    if nc.ro[0] != "etf":
+        ra.append(f"self.set_universe_selection({lop}())")
+        return ra
+
+    ma_etf = str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper()
+    lay = core._f(bat_dau.gt_ro(gt_ma, "lay")) or 0
+    if lay > 0:
+        ra.append(f"self.set_universe_selection({lop}({ma_etf!r}, "
+                  f"self.universe_settings, self._loc_ro))")
+    else:
+        ra.append(f"self.set_universe_selection({lop}({ma_etf!r}, "
+                  f"self.universe_settings))")
+    return ra
+
+
+def _ham_loc_ro(nc, st):
+    """Hàm lọc rổ ETF theo trọng số -> [dòng] của một phương thức, hay [].
+
+    THÂN HÀM LẤY TỪ TỪ ĐIỂN (`bat_dau.LOC_TRONG_SO`), đúng luật D-11 — một hàm lọc
+    cũng là mã LEAN, nên nó không được sinh ra ở đây. Chỗ trống duy nhất là `{lay}`."""
+    if not nc.ro or nc.ro[0] != "etf":
+        return []
+    gt_ma = core.o_bat_dau(st, "ma")
+    lay = int(core._f(bat_dau.gt_ro(gt_ma, "lay")) or 0)
+    if lay <= 0:
+        return []
+    return ["def _loc_ro(self, ds):",
+            TAB + '"""Rổ ETF -> mấy mã NẶNG nhất. `weight` là trường có thật của',
+            TAB + '`ETFConstituentData`, và nó NULLABLE nên phải gạn trước khi xếp."""',
+            ] + [TAB + d.format(lay=lay) for d in bat_dau.LOC_TRONG_SO]
+
+
 def _khai_mo(nc, st):
-    """Khối Bắt đầu -> các dòng của `initialize`. -> ([dòng], nhịp)."""
+    """Khối Bắt đầu -> các dòng của `initialize`. -> [dòng].
+
+    KHÔNG trả về nhịp nữa: câu lịch nay do `bat_dau.ham_chay` quyết, vì nó phụ thuộc
+    cả vào KIỂU ô `ma`. Trả thêm một bản sao của "nhịp nào" ở đây là để hai chỗ cùng
+    biết một thứ, rồi trôi khỏi nhau."""
     ra = []
     k = core.o_bat_dau(st, "khoang") or {}
     for ten, ham in (("tu", "set_start_date"), ("den", "set_end_date")):
@@ -358,23 +421,29 @@ def _khai_mo(nc, st):
     ra.append(f"self.set_brokerage_model(BrokerageName.{san})")
 
     nc.ca_danh_muc = str(core.o_bat_dau(st, "chay_cho") or "") == "ca_danh_muc"
-    n = bat_dau.nhip_cua(str(core.o_bat_dau(st, "nhip") or ""))
-    if not n:
+    if not bat_dau.nhip_cua(str(core.o_bat_dau(st, "nhip") or "")):
+        # Nhịp lạ = file sửa tay. Báo rồi đi tiếp: `bat_dau.ham_chay` và
+        # `do_phan_giai` đều rơi về nhịp «mỗi nến ngày», nên phần còn lại vẫn sinh
+        # ra được và người dùng thấy bảng Vấn đề chỉ đúng một chỗ hỏng.
         nc.loi(st.get("id"), "Khối Bắt đầu chưa có nhịp chạy.")
-        n = bat_dau.NHIP[4]
     nc.res = f"Resolution.{bat_dau.do_phan_giai(st)}"
 
     ra.append("")
-    ra.append("self._ten = {}")
-    ten_ham = {m: h for m, _nh, h in bat_dau.LOAI_TAI_SAN}
-    for m in core.o_bat_dau(st, "ma") or []:
-        k2 = str((m or {}).get("ma") or "").strip().upper()
-        h = ten_ham.get((m or {}).get("loai"))
-        if not k2 or not h:
-            continue
-        nc.ma_khai[k2] = True
-        ra.append(f"self._ten[{k2!r}] = self.{h}({k2!r}, {nc.res}).symbol")
-    ra.append("self._ma = list(self._ten.values())")
+    gt_ma = core.o_bat_dau(st, "ma")
+    nc.ro = bat_dau.ro_cua(gt_ma)
+    if nc.ro:
+        ra += _khai_ro(nc, gt_ma)
+    else:
+        ra.append("self._ten = {}")
+        ten_ham = {m: h for m, _nh, h in bat_dau.LOAI_TAI_SAN}
+        for m in gt_ma or []:
+            k2 = str((m or {}).get("ma") or "").strip().upper()
+            h = ten_ham.get((m or {}).get("loai"))
+            if not k2 or not h:
+                continue
+            nc.ma_khai[k2] = True
+            ra.append(f"self._ten[{k2!r}] = self.{h}({k2!r}, {nc.res}).symbol")
+        ra.append("self._ma = list(self._ten.values())")
 
     moc = str(core.o_bat_dau(st, "moc_so_sanh") or "").strip().upper()
     if moc:
@@ -389,7 +458,7 @@ def _khai_mo(nc, st):
         lop = str(core.o_bat_dau(st, ten_o) or "").strip()
         if lop:
             ra.append(f"self.{ham}({lop}())")
-    return ra, n
+    return ra
 
 
 # ---------------------------------------------------------------------------
@@ -415,6 +484,7 @@ def sinh(doc):
         nc.van_de += core.soat_khoi_lam(s)
         nc.van_de += core.soat_khoi_bat_dau(s)
     nc.van_de += core.soat_ca_ro(steps)
+    nc.van_de += core.soat_ro_dong(steps)
     nc.van_de += core.soat_day_chuyen(steps)
     kq = core.flow_order(steps, edges)
     nc.thu_tu = kq["order"]
@@ -425,7 +495,7 @@ def sinh(doc):
         nc.loi(None, "Sơ đồ chưa có khối Bắt đầu — không biết chạy trên mã gì.")
         return {"ok": False, "ma": "", "ten_lop": lop, "van_de": nc.van_de}
 
-    dong_mo, nhip = _khai_mo(nc, st_bd)
+    dong_mo = _khai_mo(nc, st_bd)
     nc.da.add(bd)
 
     # Ruột phải sinh TRƯỚC `initialize`: chính lúc đi qua các khối Hỏi mới biết sơ đồ
@@ -437,7 +507,15 @@ def sinh(doc):
         nc.loi(sid, "Khối này không nối vào sơ đồ nên không sinh mã.", "warning")
 
     # --- chỉ báo + làm nóng ---
-    if nc.kho.ds:
+    dong_doi_ro = []
+    if nc.ro:
+        # RỔ ĐỘNG: KHÔNG khai chỉ báo được ở đây. Lúc `initialize` chạy, rổ còn rỗng
+        # (`self._ma` chưa có mã nào) — LEAN chỉ chọn rổ lần đầu khi nến đầu về. Nên
+        # chỉ báo khai ở `on_securities_changed`, hàm LEAN gọi mỗi lần rổ đổi.
+        dong_mo.append("")
+        dong_mo.append("self._cb = {}")
+        dong_doi_ro = _khai_cb_theo_ro(nc)
+    elif nc.kho.ds:
         dong_mo.append("")
         dong_mo.append("self._cb = {}")
         # Khai chỉ báo cho MỌI mã trong rổ, kể cả khi sơ đồ chạy một lượt: một khối
@@ -458,8 +536,12 @@ def sinh(doc):
         dong_mo.append("self._cb = {sym: {} for sym in self._ma}")
 
     # --- hẹn giờ ---
-    if nhip[3] != "on_data":
-        hen = _thay(nhip[3], {"ma": "self._ma[0]",
+    # ⚠ CÂU LỊCH ĐỔI THEO KIỂU Ô `ma`, không chỉ theo nhịp. `self._ma[0]` trên một rổ
+    # động là `IndexError` ở dòng đầu `initialize` — rổ lúc ấy còn rỗng. Nhịp mang
+    # sẵn hai câu, lấy đúng câu qua `bat_dau.ham_chay` (xem chú thích ở `NHIP`).
+    cau_chay = bat_dau.ham_chay(st_bd)
+    if cau_chay != "on_data":
+        hen = _thay(cau_chay, {"ma": "self._ma[0]",
                               "gio": str(core.o_bat_dau(st_bd, "gio") or 0),
                               "phut": str(core.o_bat_dau(st_bd, "phut") or 0),
                               "so_phut": str(core.o_bat_dau(st_bd, "so_phut") or 0)})
@@ -471,12 +553,51 @@ def sinh(doc):
 
     ok = not any(p["severity"] == "error" for p in nc.van_de)
     return {"ok": ok, "ten_lop": lop, "van_de": nc.van_de,
-            "ma": _ghep(lop, d.get("name"), nhip, dong_mo, than, nc.ca_danh_muc)}
+            "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
+                        nc.ca_danh_muc, nc.ro, dong_doi_ro,
+                        _ham_loc_ro(nc, st_bd), bool(nc.kho.ds))}
 
 
-def _ghep(lop, ten, nhip, dong_mo, than, ca_danh_muc=False):
+def _khai_cb_theo_ro(nc):
+    """Chỉ báo của một RỔ ĐỘNG -> thân `on_securities_changed`. -> [dòng].
+
+    `on_securities_changed(self, changes)` là hàm CÓ THẬT của `QCAlgorithm`, LEAN gọi
+    nó mỗi lần rổ đổi, với `changes.added_securities` và `changes.removed_securities`.
+
+    ⚠ HAI CHỖ HỎNG LẶNG Ở ĐÂY, cả hai đã dò bằng backtest thật:
+
+      1. **Dòng `self._cb[sym] = {}` phải viết ra KỂ CẢ KHI SƠ ĐỒ KHÔNG CÓ CHỈ BÁO
+         NÀO.** `self._ma` lấy từ `active_securities` có lọc `if kvp.key in self._cb`
+         (xem `_ghep`) — lọc ấy tồn tại để không mã nào lọt vào vòng trước khi chỉ
+         báo của nó kịp sinh ra. Bỏ dòng này thì `self._cb` rỗng mãi, `self._ma` lọc
+         ra rỗng, và cỗ máy chạy đủ mọi nến mà không làm gì. Không lỗi, không cảnh
+         báo, chỉ một bảng kết quả "0 lệnh".
+
+      2. **`set_warm_up` VÔ DỤNG với chỉ báo sinh giữa đường**, nên thay bằng
+         `self.warm_up_indicator(sym, cb, res)` — hàm có thật của `QCAlgorithm`, nó
+         nạp lịch sử đủ cho đúng chỉ báo ấy ngay lúc tạo. `set_warm_up` chặn cả thuật
+         toán trong N nến ĐẦU; mã vào rổ ở tháng thứ năm thì nó đã hết tác dụng từ
+         lâu.
+         `warm_up_indicator` nạp được bao nhiêu thì tuỳ đĩa có bao nhiêu, nên nó
+         KHÔNG thay được chặn `is_ready` — xem `_ghep`, chỗ dựng chặn ấy."""
+    ra = ["for s in changes.removed_securities:",
+          TAB + "self._cb.pop(s.symbol, None)",
+          "for s in changes.added_securities:",
+          TAB + "if s.symbol in self._cb:",
+          TAB * 2 + "continue",
+          TAB + "self._cb[s.symbol] = {}"]
+    for k, (cau, dk) in nc.kho.ds.items():
+        ra.append(TAB + "_cb = " + _thay(cau, {"sym": "s.symbol"}))
+        if dk:
+            ra.append(TAB + _thay(dk, {"sym": "s.symbol"}))
+        ra.append(TAB + f"self.warm_up_indicator(s.symbol, _cb, {nc.res})")
+        ra.append(TAB + f"self._cb[s.symbol][{k!r}] = _cb")
+    return ra
+
+
+def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
+          loc_ro=(), co_cb=False):
     """Ghép thành một file Python hoàn chỉnh."""
-    hen = nhip[3] != "on_data"
     r = [
         '"""Thuật toán sinh bởi Cat_Studio — ' + str(ten or "") + ".",
         "",
@@ -491,6 +612,17 @@ def _ghep(lop, ten, nhip, dong_mo, than, ca_danh_muc=False):
         TAB + "def initialize(self):",
     ]
     r += [TAB * 2 + d if d else "" for d in dong_mo]
+
+    # --- RỔ ĐỘNG: hai phương thức nữa, cả hai là cửa CÓ THẬT của `QCAlgorithm` ---
+    if loc_ro:
+        r += [""] + [TAB + d if d else "" for d in loc_ro]
+    if ro:
+        r += ["", TAB + "def on_securities_changed(self, changes):",
+              TAB * 2 + "# Rổ đổi thì LEAN gọi vào đây — mã vào rổ thì khai chỉ báo",
+              TAB * 2 + "# cho nó, mã ra rổ thì bỏ. `initialize` khai không được:",
+              TAB * 2 + "# lúc ấy rổ còn rỗng."]
+        r += [TAB * 2 + d if d else "" for d in doi_ro]
+
     r += ["", TAB + "def on_data(self, data):"]
     if hen:
         r += [TAB * 2 + "# Nhịp hẹn giờ: ruột chạy ở `_nhip`, không chạy theo nến.",
@@ -498,6 +630,13 @@ def _ghep(lop, ten, nhip, dong_mo, than, ca_danh_muc=False):
               TAB + "def _nhip(self):",
               TAB * 2 + "data = self.current_slice"]
     r += [TAB * 2 + "if self.is_warming_up:", TAB * 3 + "return"]
+    if ro:
+        # RỔ ĐỘNG: danh sách mã đổi theo NGÀY, nên phải đọc lại mỗi nhịp từ chính
+        # LEAN. `active_securities` là cửa có thật của `QCAlgorithm`, duyệt ra cặp
+        # khoá–giá trị. Lọc `in self._cb` để mã vừa vào rổ mà chỉ báo chưa kịp sinh
+        # thì chưa vào vòng — xem `_khai_cb_theo_ro`.
+        r += [TAB * 2 + "self._ma = [kvp.key for kvp in self.active_securities",
+              TAB * 2 + "            if kvp.key in self._cb]"]
     if ca_danh_muc:
         # CHIA DANH MỤC: chạy đúng một lượt, mọi khối tự gọi tên mã của nó.
         r += [TAB * 2 + "self._mot_luot(data)",
@@ -509,5 +648,27 @@ def _ghep(lop, ten, nhip, dong_mo, than, ca_danh_muc=False):
               TAB * 3 + "self._mot_ma(sym, data)",
               "",
               TAB + "def _mot_ma(self, sym, data):"]
+        if ro and co_cb:
+            # ⚠ CHẶN CHỈ BÁO CHƯA SẴN SÀNG — chỉ nhánh rổ cần, và nó hỏng LẶNG.
+            #
+            # Lối gõ mã sẵn không cần dòng này: `set_warm_up(N)` chặn hộ ở N nến đầu,
+            # và mọi mã đều đã có mặt từ nến đầu. Rổ thì mã vào giữa đường, nên
+            # `set_warm_up` không với tới — ta thay bằng `warm_up_indicator`, mà nó
+            # chỉ nạp được ĐÚNG NHỮNG GÌ CÓ TRÊN ĐĨA.
+            #
+            # ĐÃ ÉP TÁI HIỆN BẰNG BACKTEST THẬT (SPY 12/2020, rổ top 8), và đây là
+            # hai dạng «chưa sẵn sàng» đo được, không phải suy ra:
+            #   · mã KHÔNG CÓ dữ liệu trên máy (AMZN, BRK.B trong bộ miễn phí):
+            #     `is_ready=False`, `current.value` đọc ra ĐÚNG **0.0**;
+            #   · mã CÓ dữ liệu mà lịch sử NGẮN HƠN chu kỳ (thử RSI 20000 ngày):
+            #     `is_ready=False`, mà giá trị đọc ra ~**53** — một con số trông
+            #     bình thường đến mức không ai nghi. Đây là dạng nguy hơn.
+            # `RSI < 60` trên dạng thứ hai: CÒN chặn thì 0 lệnh; BỎ chặn thì **17
+            # lệnh khớp hết** trên một chỉ báo chưa bao giờ chín. Backtest sạch cả
+            # hai lần. Đó là lý do dòng này có mặt.
+            r += [TAB * 2 + "# Mã mới vào rổ mà chưa đủ nến thì chỉ báo chưa chín —",
+                  TAB * 2 + "# nó vẫn đọc ra một con số, chỉ là số ấy chưa có nghĩa.",
+                  TAB * 2 + "if not all(x.is_ready for x in self._cb[sym].values()):",
+                  TAB * 3 + "return"]
     r += [TAB * 2 + d if d else "" for d in (than or ["pass"])]
     return "\n".join(r) + "\n"
