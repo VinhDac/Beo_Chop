@@ -39,6 +39,68 @@ const DAU: Record<string, string> = {
  *  XUẤT RA ngoài vì khối «Vẽ lên bảng» cũng cần đúng bộ chọn này — `Plot` của LEAN
  *  nhận một con số, và con số ấy lấy từ cùng kho đại lượng. Hai bộ chọn thì sớm muộn
  *  một bên bày ra thứ bên kia không có. */
+/** Mấy núm của MỘT đại lượng: mã, tham số, đường. Dùng hai lần trong một bảng —
+ *  cho đại lượng chính và cho đại lượng được GHÉP vào — nên tách ra, hai bản sao thì
+ *  sớm muộn một bên thêm núm mà bên kia không có. */
+function ChinhDL({ dl, ve, dsMa, coMaDangXet, onDoi }: {
+  dl: DaiLuong
+  ve: VeDieuKien
+  dsMa: string[]
+  coMaDangXet: boolean
+  onDoi: (v: Partial<VeDieuKien>) => void
+}) {
+  return (<>
+    {dl.can_ma && (
+      <label className="bn-hang"><span>Mã</span>
+        <ChonMa ds={dsMa} giaTri={ve.ma} coMaDangXet={coMaDangXet}
+                onDoi={m => onDoi({ ma: m || undefined })} />
+      </label>
+    )}
+    {dl.tham_so.map(t => (
+      <label key={t.ten} className="bn-hang"><span>{t.nhan}</span>
+        <input className="o so" inputMode="numeric"
+               value={String(ve.tham_so?.[t.ten] ?? t.mac_dinh)}
+               onChange={e => onDoi({ tham_so: {
+                 ...(ve.tham_so ?? {}),
+                 [t.ten]: e.target.value as unknown as number } })} />
+      </label>
+    ))}
+    {dl.duong && (
+      <label className="bn-hang"><span>Đường</span>
+        <select className="o" value={ve.duong ?? dl.duong[0][0]}
+                onChange={e => onDoi({ duong: e.target.value })}>
+          {dl.duong.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
+        </select>
+      </label>
+    )}
+  </>)
+}
+
+/** Bảng chọn đại lượng cho VẾ GHÉP — `select` thường, không phải bảng nổi thứ hai.
+ *
+ *  ⚠ VÌ SAO KHÔNG LỒNG `Ve` VÀO ĐÂY. `BangNoi` nghe Esc trên `window`, và hai bảng
+ *  lồng nhau thì bảng NGOÀI đăng ký trước nên nó đóng trước — một phím Esc đóng cả
+ *  hai, mất cả phép ghép vừa đặt. `select` của trình duyệt không có chuyện đó. */
+function ChonGhep({ td, giaTri, onDoi }: {
+  td: TuDienHoi
+  giaTri: string
+  onDoi: (ma: string) => void
+}) {
+  const nhom = [...new Set(td.kho.filter(d => d.kieu === 'so').map(d => d.nhom))]
+  return (
+    <select className="o" value={giaTri} onChange={e => onDoi(e.target.value)}>
+      <option value="">một con số</option>
+      {nhom.map(n => (
+        <optgroup key={n} label={n}>
+          {td.kho.filter(d => d.kieu === 'so' && d.nhom === n).map(d => (
+            <option key={d.ma} value={d.ma}>{d.nhan}</option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  )
+}
+
 export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }: {
   ve: VeDieuKien
   td: TuDienHoi
@@ -58,7 +120,12 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
 
   const laSo = choSo && ve.ma_dl === undefined
   const dl = ve.ma_dl ? td.kho.find(d => d.ma === ve.ma_dl) : undefined
-  const coChinh = !!dl && (dl.can_ma || dl.tham_so.length > 0 || !!dl.duong)
+  // Đại lượng kiểu SỐ thì bánh răng luôn có, kể cả khi nó không mã không tham số:
+  // phép GHÉP nằm trong bảng ấy, không có bánh răng thì không ai tới được.
+  const coChinh = !!dl && (dl.can_ma || dl.tham_so.length > 0 || !!dl.duong
+                           || dl.kieu === 'so')
+  const ghep = ve.ghep
+  const dlGhep = ghep?.ma_dl ? td.kho.find(d => d.ma === ghep.ma_dl) : undefined
 
   const bat = (o: 'chon' | 'chinh', r: React.RefObject<HTMLButtonElement>) => {
     setNeo(r.current?.getBoundingClientRect() ?? null)
@@ -109,32 +176,63 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
       )}
 
       {mo === 'chinh' && neo && dl && (
-        <BangNoi neo={neo} rong={262} cao={320} onDong={() => setMo('')}>
+        <BangNoi neo={neo} rong={262} cao={440} onDong={() => setMo('')}>
           <div className="bn-chinh">
-            {dl.can_ma && (
-              <label className="bn-hang"><span>Mã</span>
-                <ChonMa ds={dsMa} giaTri={ve.ma} coMaDangXet={coMaDangXet}
-                        onDoi={m => onDoi({ ...ve, ma: m || undefined })} />
-              </label>
-            )}
-            {dl.tham_so.map(t => (
-              <label key={t.ten} className="bn-hang"><span>{t.nhan}</span>
-                <input className="o so" inputMode="numeric"
-                       value={String(ve.tham_so?.[t.ten] ?? t.mac_dinh)}
-                       onChange={e => onDoi({ ...ve, tham_so: {
-                         ...(ve.tham_so ?? {}),
-                         [t.ten]: e.target.value as unknown as number } })} />
-              </label>
-            ))}
-            {dl.duong && (
-              <label className="bn-hang"><span>Đường</span>
-                <select className="o" value={ve.duong ?? dl.duong[0][0]}
-                        onChange={e => onDoi({ ...ve, duong: e.target.value })}>
-                  {dl.duong.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
+            <ChinhDL dl={dl} ve={ve} dsMa={dsMa} coMaDangXet={coMaDangXet}
+                     onDoi={v => onDoi({ ...ve, ...v })} />
+
+            {/* GHÉP — chỗ diễn đạt «giá / đỉnh 60 nến ≤ 0,97», tức rơi 3% từ đỉnh.
+                Chỉ bày cho đại lượng kiểu SỐ: ĐÚNG/SAI thì cộng trừ vô nghĩa. */}
+            {dl.kieu === 'so' && (
+              <label className="bn-hang bn-ghep"><span>Ghép với</span>
+                <select className="o" value={ghep?.phep ?? ''}
+                        onChange={e => onDoi({ ...ve, ghep: e.target.value
+                          // Mở ra là SỐ 1, không đoán hộ một đại lượng. Và 1 chứ
+                          // không phải 0: chia cho 0 thì cả vế thành 0 cứng.
+                          ? { ...(ghep ?? { so: 1 }), phep: e.target.value }
+                          : undefined })}>
+                  <option value="">— không ghép —</option>
+                  {td.phep_ghep.map(p => (
+                    <option key={p.ma} value={p.ma}>{p.nhan}</option>
+                  ))}
                 </select>
               </label>
             )}
-            <div className="bn-lean">{dl.lean}</div>
+            {ghep?.phep && (<>
+              <label className="bn-hang"><span>Đại lượng</span>
+                <ChonGhep td={td} giaTri={ghep.ma_dl ?? ''} onDoi={ma => {
+                  if (!ma) { onDoi({ ...ve, ghep: { phep: ghep.phep, so: 1 } }); return }
+                  const d = td.kho.find(x => x.ma === ma)
+                  if (!d) return
+                  const ts: Record<string, number> = {}
+                  for (const t of d.tham_so) ts[t.ten] = t.mac_dinh
+                  onDoi({ ...ve, ghep: { phep: ghep.phep, ma_dl: ma,
+                    duong: d.duong?.[0]?.[0],
+                    ...(d.tham_so.length ? { tham_so: ts } : {}) } })
+                }} />
+              </label>
+              {dlGhep
+                ? <ChinhDL dl={dlGhep} ve={ghep} dsMa={dsMa}
+                           coMaDangXet={coMaDangXet}
+                           onDoi={v => onDoi({ ...ve,
+                             ghep: { ...ghep, ...v } as typeof ghep })} />
+                : <label className="bn-hang"><span>Con số</span>
+                    {/* `defaultValue` + chuyền NGUYÊN chuỗi, đúng lối ô số của
+                        `ChonDaiLuong`: ép `Number()` từng phím là nuốt dấu chấm,
+                        «0.97» lặng lẽ thành «97». */}
+                    <input className="o so" inputMode="decimal"
+                           defaultValue={String(ghep.so ?? 1)}
+                           onChange={e => onDoi({ ...ve, ghep: {
+                             ...ghep, ma_dl: undefined,
+                             so: e.target.value as unknown as number } })} />
+                  </label>}
+            </>)}
+          </div>
+          {/* NGOÀI `.bn-chinh` — tấm ấy cuộn được, nên dòng khai hàm LEAN để trong
+              nó là nó cuộn mất. Ghim ở chân, đúng như bảng chọn đại lượng. */}
+          <div className="bn-lean">
+            {dl.lean}{ghep?.phep && ` ${ghep.phep} ${
+              dlGhep ? dlGhep.lean : String(ghep.so ?? 1)}`}
           </div>
         </BangNoi>
       )}

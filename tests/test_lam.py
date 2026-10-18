@@ -249,7 +249,11 @@ kiem("loại lệnh lạ → lỗi", any("không có loại lệnh" in m for m i
 print("\n▸ Vẽ lên bảng mà chưa chọn đại lượng → bộ sinh mã không biết viết gì")
 v0 = core.make_lam_step(lam.LAM_VE_BANG)
 kiem("khối mới → lỗi, và nói đúng là CHƯA CHỌN",
-     any("chưa chọn đại lượng" in m for m in loi(v0)), f"— {loi(v0)}")
+     any("chưa chọn" in m for m in loi(v0)), f"— {loi(v0)}")
+# Và nó gọi ĐÚNG TÊN ô, lấy từ từ điển — không phải "đại lượng" chung chung, vì giờ
+# có hai khối mang ô đại lượng và hai ô ấy tên khác nhau.
+kiem("gọi đúng tên ô «Giá trị vẽ»",
+     any("giá trị vẽ" in m for m in loi(v0)), f"— {loi(v0)}")
 # ⚠ ĐỔI LUẬT: trước đây đại lượng của HỌ khác bị chối thẳng. Nay chỉ còn một kho,
 # nên `dang_giu` được nhận — và bị chối vì LÝ DO THẬT: nó trả ĐÚNG/SAI, mà `Plot`
 # của LEAN cần một con số. Lý do đúng thì người đọc còn biết phải làm gì.
@@ -334,6 +338,75 @@ kiem("đủ chín loại", len(td["loai"]) == 9)
 kiem("mỗi loại có ô", all(l["o"] for l in td["loai"]))
 kiem("mỗi loại khai luôn hàm LEAN cho hộp thoại nói thẳng ra",
      all(l["lean"] for l in td["loai"]))
+
+print("\n▸ ⚠ TRỌNG SỐ — khe thứ bảy của `Insight.Price`, bỏ trống là 0 LỆNH lặng thinh")
+# ĐÃ DÍNH THẬT, và dính TỪ TRƯỚC: bảng «Chia vốn» đã bày `InsightWeighting...` trong
+# khi KHÔNG khối nào đặt được `weight`. Model ấy hỏi `insight.weight is not None` để
+# quyết có dựng mục tiêu hay không, nên weight rỗng = nó bỏ qua MỌI tín hiệu =
+# backtest chạy hết, không lỗi, không một lệnh nào.
+kiem("khe `weight` đứng thứ 7 trong chữ ký thật của Insight.Price",
+     lam.INSIGHT_THAM_SO.index("weight") == 6,
+     f"— {lam.INSIGHT_THAM_SO}")
+_th = lam.TIN_HIEU
+kiem("khối Phát tín hiệu có ô đại lượng", _th.get("co_dai_luong") is True)
+kiem("ô ấy tên «Trọng số»", _th.get("nhan_dai_luong") == "Trọng số")
+kiem("và nó NHẬN được một con số", _th.get("dai_luong_so") is True,
+     "— không thì mọi sơ đồ buộc phải xếp hạng")
+kiem("mặc định là SỐ 1, không phải rỗng", _th.get("gia_tri_mac_dinh") == {"so": 1},
+     "— rỗng thì `_ve_py` ra 0, mà trọng số 0 là không vị thế nào")
+_moi = core.make_lam_step(lam.LAM_TIN_HIEU)
+kiem("khối vừa thả ra đã có trọng số 1", _moi.get("gia_tri") == {"so": 1})
+kiem("và khối mới KHÔNG bị soát bắt lỗi", not core.soat_khoi_lam(_moi),
+     f"— {[v['message'][:60] for v in core.soat_khoi_lam(_moi)]}")
+for _h, _v in _th["theo_loai"].items():
+    kiem(f"câu LEAN hướng {_h} điền tới khe trọng số",
+         "{gia_tri}" in _v["lean"] and _v["lean"].count("None") == 3,
+         f"— {_v['lean'][-60:]}")
+
+print("\n▸ Nhãn ô đại lượng do TỪ ĐIỂN nói, giao diện không gõ cứng")
+# ĐÃ DÍNH THẬT: `HopHanhDong.tsx` gõ cứng "Giá trị vẽ", nên khối Phát tín hiệu vừa
+# thêm ô «Trọng số» là hộp thoại gọi nó bằng tên của khối khác. Cùng họ với chỗ
+# `sinh_ma` gõ cứng `LAM_VE_BANG` — một tên khối nằm trong mã dùng chung.
+_co_dl = [d for d in lam.LOAI_LAM.values() if d.get("co_dai_luong")]
+kiem("có từ hai khối mang ô đại lượng — nên nhãn KHÔNG thể là một", len(_co_dl) >= 2)
+kiem("khối nào cũng khai nhãn riêng",
+     all(d.get("nhan_dai_luong") for d in _co_dl),
+     f"— {[d['nhan'] for d in _co_dl if not d.get('nhan_dai_luong')]}")
+kiem("hai nhãn khác nhau",
+     len({d["nhan_dai_luong"] for d in _co_dl}) == len(_co_dl))
+_hhd = io.open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
+    __file__))), "webui", "src", "components", "HopHanhDong.tsx"),
+    encoding="utf-8").read()
+kiem("giao diện đọc `nhan_dai_luong`", "nhan_dai_luong" in _hhd)
+_go_cung = [d["nhan_dai_luong"] for d in _co_dl
+            if f"\"{d['nhan_dai_luong']}\"" in _hhd
+            or f"'{d['nhan_dai_luong']}'" in _hhd]
+kiem("và KHÔNG gõ cứng nhãn nào", not _go_cung, f"— {_go_cung}")
+kiem("bộ sinh mã cũng theo từ điển, không theo tên khối",
+     "co_dai_luong" in io.open(os.path.join(os.path.dirname(os.path.dirname(
+         os.path.abspath(__file__))), "cat_studio", "sinh_ma.py"),
+         encoding="utf-8").read())
+
+print("\n▸ ⚠ Bảng «Chia vốn» chỉ được bày model mà khối VẼ ĐƯỢC nuôi")
+# Hàng rào cho cả họ: ai thêm một model chia vốn vào bảng mà khe nó đọc chưa ai điền
+# thì bài này đổ — chứ không phải người dùng chọn vào rồi ngồi đoán vì sao 0 lệnh.
+_khe_dien = set()
+for _i, _ten in enumerate(lam.INSIGHT_THAM_SO):
+    for _v in _th["theo_loai"].values():
+        _args = _v["lean"].split("Insight.price(", 1)[-1]
+        # Tách thô theo dấu phẩy ở tầng ngoài là đủ: mẫu không có dấu phẩy lồng nào
+        # ngoài `timedelta(days=…)`, mà cái ấy không có phẩy.
+        _ds = [x.strip() for x in _args.rsplit("))", 1)[0].split(",")]
+        if _i < len(_ds) and _ds[_i] not in ("None", ""):
+            _khe_dien.add(_ten)
+kiem("khe đã có người điền", "weight" in _khe_dien, f"— {sorted(_khe_dien)}")
+_nuoi_duoc = _khe_dien | {""}      # "" = model không đọc khe nào, luôn chạy được
+_chua_nuoi = [m for m, _n in bat_dau.CHIA_VON
+              if m and bat_dau.CHIA_VON_DOC.get(m, "?") not in _nuoi_duoc]
+kiem("mọi model đang bày đều có khe được nuôi", not _chua_nuoi,
+     f"— {_chua_nuoi} đọc khe chưa ai điền")
+kiem("và mỗi model đang bày đều khai nó đọc khe nào",
+     all(m in bat_dau.CHIA_VON_DOC for m, _n in bat_dau.CHIA_VON if m))
 
 print("\n▸ ⚠ Ô `chon` không được là một CHUỖI bị xé thành từng chữ")
 # ĐÃ DÍNH THẬT, hai lần, cùng một kiểu: `_o(ten, nhan, kieu, mac_dinh, don_vi,

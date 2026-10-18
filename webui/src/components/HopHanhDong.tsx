@@ -54,7 +54,12 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
       }
       // Khối cần một đại lượng mà chưa có thì cho sẵn cái đầu bảng: hộp mở ra với một
       // ô trống trơn thì lưu xuống là lỗi ngay, mà người chơi chẳng biết mình bỏ sót gì.
-      if (coDL && !(ra.gia_tri as VeDieuKien | undefined)?.ma_dl) {
+      // ⚠ Ô NHẬN SỐ thì ĐỪNG điền hộ. «Trọng số» của khối Phát tín hiệu mặc định là
+      // số 1 (`gia_tri_mac_dinh` trong từ điển); điền hộ "Giá hiện tại" vào đó là
+      // lặng lẽ đổi ý người dùng thành một chiến thuật xếp hạng mà họ không đặt.
+      const gt0 = ra.gia_tri as VeDieuKien | undefined
+      const coSo = !!loai?.dai_luong_so && gt0?.so !== undefined
+      if (coDL && !gt0?.ma_dl && !coSo) {
         const d = tuDienHoi.kho[0]
         const ts: Record<string, number> = {}
         for (const t of d.tham_so) ts[t.ten] = t.mac_dinh
@@ -145,9 +150,12 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
 
         {coDL && (
           <label className="o-hang">
-            <span className="nhan-o">Giá trị vẽ</span>
+            {/* Nhãn lấy từ TỪ ĐIỂN: «Giá trị vẽ» với khối Vẽ lên bảng, «Trọng số»
+                với khối Phát tín hiệu. Gõ cứng một nhãn ở đây là mọi khối có ô đại
+                lượng đều bị gọi sai tên. */}
+            <span className="nhan-o">{loai?.nhan_dai_luong ?? 'Giá trị'}</span>
             <Ve ve={(gt.gia_tri as VeDieuKien) ?? {}} td={tuDienHoi} dsMa={dsMa}
-                coMaDangXet={coMaDangXet} choSo={false}
+                coMaDangXet={coMaDangXet} choSo={!!loai?.dai_luong_so}
                 onDoi={v => doi('gia_tri', v)} />
           </label>
         )}

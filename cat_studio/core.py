@@ -293,8 +293,10 @@ def make_lam_step(loai, name=None):
     for o in lam.o_cua(loai):
         st[o["ten"]] = o["mac_dinh"]
     if d.get("co_dai_luong"):
-        # Giá trị vẽ KHÔNG có mặc định: không có đại lượng nào đáng để đoán hộ.
-        st["gia_tri"] = {}
+        # Mặc định do TỪ ĐIỂN khai, không gõ cứng ở đây. «Giá trị vẽ» thì rỗng — không
+        # có đại lượng nào đáng đoán hộ; «Trọng số» thì là số 1 — bỏ trống nó là
+        # `insight.weight = None`, và model chia theo trọng số lặng lẽ ra 0 lệnh.
+        st["gia_tri"] = dict(d.get("gia_tri_mac_dinh") or {})
     return st
 
 
@@ -1289,7 +1291,47 @@ def _soat_dai_luong(ra, sid, dau_cau, ve):
         _loi(ra, "error", sid,
              f'{dau_cau}{dl["nhan"]} có nhiều đường — phải chọn một '
              f'({", ".join(n for _m, n in dl["duong"])}).')
+    _soat_ghep(ra, sid, dau_cau, ve, dl)
     return dl
+
+
+def _soat_ghep(ra, sid, dau_cau, ve, dl):
+    """Soát phần GHÉP của một vế: «giá / đỉnh 60 nến».
+
+    Đặt trong `_soat_dai_luong` nên nó canh CẢ BA chỗ có vế đại lượng — hai vế của
+    khối Hỏi và ô đại lượng của khối Làm — chỉ bằng một bản."""
+    ghep = ve.get("ghep")
+    if not isinstance(ghep, dict) or not ghep.get("phep"):
+        return
+    ten_phep = dict(hoi.PHEP_GHEP).get(ghep["phep"])
+    if not ten_phep:
+        _loi(ra, "error", sid, f'{dau_cau}không có phép ghép "{ghep["phep"]}".')
+        return
+    # ĐÚNG/SAI không cộng trừ được — cả hai bên của phép ghép.
+    if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
+        _loi(ra, "error", sid,
+             f'{dau_cau}{dl["nhan"]} chỉ trả ĐÚNG/SAI, không {ten_phep} được.')
+    if "ma_dl" not in ghep:
+        so = ghep.get("so", 0)
+        # Chia cho hằng số 0: LEAN ra 0 nên không nổ, nhưng cả vế thành số 0 cứng —
+        # dòng điều kiện mất nghĩa mà chẳng ai thấy gì.
+        if ghep["phep"] == "/" and not so:
+            _loi(ra, "warning", sid,
+                 f"{dau_cau}chia cho 0 — LEAN trả về 0 chứ không báo lỗi, nên cả vế "
+                 f"này luôn bằng 0.")
+        return
+    # MỘT TẦNG THÔI. Bộ sinh mã chỉ dịch một tầng ghép (xem `_ve_py`), nên tầng thứ
+    # hai mà nhận ở đây là nó biến mất khỏi mã sinh ra — soát sạch mà chạy sai.
+    if isinstance(ghep.get("ghep"), dict) and ghep["ghep"].get("phep"):
+        _loi(ra, "error", sid,
+             f"{dau_cau}ghép hai tầng — chỉ ghép được MỘT phép. Chuyển hằng số sang "
+             f"vế kia thường là đủ: «a / b − 1 ≤ −0,03» cũng là «a / b ≤ 0,97».")
+        return
+    dl2 = _soat_dai_luong(ra, sid, f"{dau_cau}phần {ten_phep} ", ghep)
+    if dl2 and dl2["kieu"] == hoi.KIEU_CO_KHONG:
+        _loi(ra, "error", sid,
+             f'{dau_cau}{ten_phep} {dl2["nhan"]} không được — nó chỉ trả ĐÚNG/SAI, '
+             f"không phải một con số.")
 
 
 def soat_khoi_hoi(step):
@@ -1702,12 +1744,19 @@ def soat_khoi_lam(step):
                  f'"{ten}" là DỪNG HẲN — chạm tới khối này là cỗ máy thôi chạy, mọi '
                  f"nến sau đó không được xét nữa.")
 
-    elif t == lam.LAM_VE_BANG:
-        dl = _soat_dai_luong(ra, sid, f'"{ten}": ', step.get("gia_tri"))
+    # Ô ĐẠI LƯỢNG — soát theo TỪ ĐIỂN, không theo tên khối, nên khối nào khai
+    # `co_dai_luong` cũng được canh.
+    d_loai = lam.LOAI_LAM.get(t) or {}
+    if d_loai.get("co_dai_luong"):
+        nhan_o = d_loai.get("nhan_dai_luong", "Giá trị")
+        gt = step.get("gia_tri") or {}
+        if not gt.get("ma_dl") and not d_loai.get("dai_luong_so"):
+            _loi(ra, "error", sid, f'"{ten}": chưa chọn {nhan_o.lower()}.')
+        dl = _soat_dai_luong(ra, sid, f'"{ten}": ', gt) if gt.get("ma_dl") else None
         if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
             _loi(ra, "error", sid,
-                 f'"{ten}": {dl["nhan"]} chỉ trả ĐÚNG/SAI, mà Plot của LEAN cần một '
-                 f"con số.")
+                 f'"{ten}": {dl["nhan"]} chỉ trả ĐÚNG/SAI, mà {nhan_o.lower()} cần '
+                 f"một con số.")
     return ra
 
 

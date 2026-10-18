@@ -494,5 +494,27 @@ kiem("hiệu ứng soát không tự dọn hẹn của mình",
      re.search(r"py\.soat\([\s\S]{0,900}?return \(\) => \{[^}]*clearTimeout", sodo)
      is None)
 
+print("\n▸ ⚠ Bảng nổi là `overflow: hidden` — ruột nó PHẢI cuộn được")
+# `.bang-noi` cắt mọi thứ tràn ra (để bo góc và đổ bóng cho gọn). Từ khi ô GHÉP mở
+# thêm một tầng núm, trường hợp sâu nhất là MACD ghép MACD: ĐO ĐƯỢC 499px ruột trong
+# một bảng cao tối đa 440. Không có hai dòng dưới đây thì 59px cuối bị CẮT — và cái
+# bị cắt chính là dòng khai hàm LEAN ở chân, thứ nói cho người dùng biết họ vừa vẽ
+# ra câu gì. Không lỗi, không cảnh báo, chỉ là nó không còn ở đó.
+_css = io.open(os.path.join(GOC, "webui", "src", "app.css"), encoding="utf-8").read()
+_bn = re.search(r"\.bang-noi\s*\{[^}]*\}", _css)
+kiem("`.bang-noi` vẫn là overflow:hidden — nên luật dưới mới cần",
+     bool(_bn) and "overflow: hidden" in _bn.group(0))
+_bc = re.search(r"\.bn-chinh\s*\{[^}]*\}", _css)
+kiem("`.bn-chinh` cuộn được", bool(_bc) and "overflow-y: auto" in _bc.group(0),
+     f"— {_bc.group(0) if _bc else 'KHÔNG CÓ LUẬT NÀO'}")
+kiem("và có `min-height: 0` — thiếu nó thì flex item không co lại để mà cuộn",
+     bool(_bc) and "min-height: 0" in _bc.group(0))
+_hdk = io.open(os.path.join(GOC, "webui", "src", "components", "HopDieuKien.tsx"),
+               encoding="utf-8").read()
+kiem("dòng khai LEAN nằm NGOÀI tấm cuộn, nên nó ghim ở chân",
+     re.search(r"</div>\s*(?:\{/\*[\s\S]*?\*/\}\s*)?<div className=\"bn-lean\"",
+               _hdk) is not None,
+     "— để trong `.bn-chinh` là nó cuộn mất")
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

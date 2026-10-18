@@ -196,5 +196,88 @@ thieu_dv = [d["ma"] for d in td["kho"]
 kiem("đại lượng SỐ nào cũng khai đơn vị", not thieu_dv,
      f"— {thieu_dv}" if thieu_dv else "— để bảng chọn xếp «cùng đơn vị» lên trước")
 
+print("\n▸ GHÉP hai đại lượng — đúng bốn phép LEAN có, và ĐÚNG MỘT TẦNG")
+# Vì sao có phép ghép: ví dụ 1 cần «rơi 3% từ đỉnh 60 nến», mà một đại lượng đơn lẻ
+# không nói nổi. LEAN khai sẵn bốn phép trong `IndicatorExtensions` — ta bày đúng bốn
+# cái ấy, không bịa thêm.
+from cat_studio import sinh_ma  # noqa: E402
+
+kiem("đúng bốn phép", len(hoi.PHEP_GHEP) == 4)
+kiem("và chúng là Plus · Minus · Times · Over của LEAN",
+     {m for m, _n in hoi.PHEP_GHEP} == {"+", "-", "*", "/"})
+kiem("từ điển gửi được sang giao diện", len(hoi.tu_dien()["phep_ghep"]) == 4,
+     "— không có thì giao diện phải gõ cứng bốn phép, thành hai bản sự thật")
+
+
+def _ghep(trai_dl, phep, phai, **kw):
+    """Một khối Hỏi một dòng, vế trái có ghép. -> (lời soát, dòng mã sinh ra)."""
+    h = core.make_hoi_step("hoi_thi_truong")
+    dk = core.make_dieu_kien(trai_dl, kw.pop("phep_so", "<="), kw.pop("so", 0.97))
+    dk["trai"]["ghep"] = dict(phai, phep=phep)
+    h["dieu_kien"] = [dk]
+    loi = [v["message"] for v in core.soat_khoi_hoi(h)]
+    bd = core.make_start_step()
+    bd["ma"] = [{"ma": "SPY", "loai": "equity"}]
+    t = core.make_lam_step("lam_tin_hieu")
+    st, ed = [bd, h, t], [{"from": bd["id"], "to": h["id"], "port": "out"},
+                          {"from": h["id"], "to": t["id"], "port": "out"}]
+    kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "Do",
+                       "steps": st, "edges": ed})
+    dong = next((l.strip() for l in kq["ma"].splitlines()
+                 if l.strip().startswith("if (")), "")
+    return loi, dong
+
+
+_loi, _dong = _ghep("gia", "/", {"ma_dl": "max", "tham_so": {"n": 60}})
+kiem("«giá / đỉnh 60 nến ≤ 0,97» soát SẠCH", not _loi, f"— {_loi}")
+kiem("và sinh ra đúng phép chia ấy",
+     "price / self._cb[sym]['max_60'].current.value" in _dong, f"— {_dong}")
+# CHIA CHO 0 — LEAN tự quy định: `GetOverIndicatorComposer` trả 0 chứ không nổ. Nếu
+# ta sinh phép chia trần thì một nến khối lượng 0 là đứt cả lượt backtest.
+kiem("chia có chốt 0 đúng như LEAN làm", "else 0)" in _dong, f"— {_dong}")
+_loi2, _dong2 = _ghep("gia", "*", {"ma_dl": "khoi_luong"})
+kiem("phép nhân thì KHÔNG chốt gì thêm",
+     "else 0" not in _dong2 and " * " in _dong2, f"— {_dong2}")
+
+print("\n▸ Mấy lối ghép SAI phải bị chặn, và nói đúng lý do")
+_loi3, _ = _ghep("dang_giu", "+", {"ma_dl": "gia"}, phep_so="la")
+kiem("ĐÚNG/SAI không cộng trừ được",
+     any("ĐÚNG/SAI" in m and "cộng" in m for m in _loi3), f"— {_loi3}")
+_loi4, _ = _ghep("gia", "+", {"ma_dl": "dang_giu"})
+kiem("và cũng không cộng ĐÚNG/SAI vào",
+     any("ĐÚNG/SAI" in m for m in _loi4), f"— {_loi4}")
+_loi5, _dong5 = _ghep("gia", "/", {"so": 0})
+kiem("chia cho hằng số 0 → CẢNH BÁO, vì cả vế thành 0 cứng",
+     any("chia cho 0" in m for m in _loi5), f"— {_loi5}")
+_loi6, _ = _ghep("gia", "?", {"ma_dl": "max", "tham_so": {"n": 60}})
+kiem("phép lạ → lỗi", any("phép ghép" in m for m in _loi6), f"— {_loi6}")
+# ⚠ MỘT TẦNG. Bộ sinh mã chỉ dịch một tầng, nên tầng thứ hai mà nhận ở đây là nó
+# BIẾN MẤT khỏi mã sinh ra — soát sạch mà chạy sai, đúng kiểu hỏng lặng.
+_loi7, _dong7 = _ghep("gia", "/", {"ma_dl": "max", "tham_so": {"n": 60},
+                                   "ghep": {"phep": "-", "so": 1}})
+kiem("ghép hai tầng → lỗi", any("hai tầng" in m for m in _loi7), f"— {_loi7}")
+kiem("và bộ sinh mã thật sự BỎ tầng thứ hai — nên lỗi kia không phải cấm vô cớ",
+     "- 1" not in _dong7, f"— {_dong7}")
+
+print("\n▸ Ghép phải SỐNG qua lưu/mở — `chuan_hoa_khoi` dựng lại khối từ đầu")
+_h = core.make_hoi_step("hoi_thi_truong")
+_dk = core.make_dieu_kien("gia", "<=", 0.97)
+_dk["trai"]["ghep"] = {"phep": "/", "ma_dl": "max", "tham_so": {"n": 60}}
+_h["dieu_kien"] = [_dk]
+_lai = core.chuan_hoa_khoi(json.loads(json.dumps(_h)))
+kiem("cả phép ghép còn nguyên",
+     (_lai["dieu_kien"][0]["trai"] or {}).get("ghep")
+     == {"phep": "/", "ma_dl": "max", "tham_so": {"n": 60}},
+     f'— {(_lai["dieu_kien"][0]["trai"] or {}).get("ghep")}')
+
+print("\n▸ Giao diện ĐỌC bốn phép từ từ điển, không gõ cứng")
+_goc = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_tsx = io.open(os.path.join(_goc, "webui", "src", "components", "HopDieuKien.tsx"),
+               encoding="utf-8").read()
+kiem("bày `td.phep_ghep`", "td.phep_ghep" in _tsx)
+kiem("không gõ cứng nhãn phép nào",
+     not any(f"'{n}'" in _tsx for _m, n in hoi.PHEP_GHEP),
+     "— thêm phép bên Python là giao diện có ngay, không phải sửa hai chỗ")
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

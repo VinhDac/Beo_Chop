@@ -1318,7 +1318,15 @@ mark.tim-chu {
 .dl-ten { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dl-dv { flex: 0 0 auto; font-size: 10.5px; color: var(--dim); }
 
-.bn-chinh { display: flex; flex-direction: column; }
+/* ⚠ PHẢI CUỘN ĐƯỢC, vì `.bang-noi` là `overflow: hidden`. Trường hợp sâu nhất —
+   Bollinger (mã + hai tham số + đường) GHÉP với một Bollinger nữa — là mười một hàng;
+   không cuộn thì nó bị CẮT ở mép bảng, và dòng khai hàm LEAN ở chân biến mất mà
+   chẳng ai thấy gì. `min-height: 0` vì nó là flex item: thiếu dòng ấy thì nó không
+   bao giờ co lại để mà cuộn. Cùng lối với `.bn-ds`. */
+.bn-chinh {
+  display: flex; flex-direction: column;
+  min-height: 0; overflow-y: auto;
+}
 .bn-hang {
   display: flex; align-items: center; gap: 9px;
   padding: 6px 9px; font-size: 12px;
@@ -1326,6 +1334,12 @@ mark.tim-chu {
 .bn-hang > span { flex: 0 0 96px; color: var(--muted); }
 .bn-hang .o { flex: 1; min-width: 0; }
 .bn-hang .o.so { text-align: right; }
+/* GHÉP mở ra một tầng núm nữa ngay dưới nó, nên phải thấy rõ chỗ bắt đầu: không có
+   vạch này thì «Chu kỳ» của đại lượng chính và «Chu kỳ» của đại lượng ghép nằm cạnh
+   nhau trông y như hai tham số của cùng một thứ. */
+.bn-ghep {
+  margin-top: 3px; border-top: 1px solid var(--border-soft); padding-top: 9px;
+}
 
 /* ==========================================================================
    HỘP THOẠI KHỐI HÀNH ĐỘNG

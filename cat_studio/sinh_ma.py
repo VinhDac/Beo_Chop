@@ -168,7 +168,35 @@ def _sym_py(nc, ve, sid):
 
 
 def _ve_py(nc, ve, sid):
-    """Một VẾ của điều kiện -> biểu thức Python."""
+    """Một VẾ của điều kiện -> biểu thức Python, GHÉP rồi nếu vế có ghép.
+
+    Ghép là cách diễn đạt mấy thứ chỉ một đại lượng không nói nổi: «giá / đỉnh 60 nến
+    ≤ 0,97» là rơi 3% từ đỉnh; «lãi/lỗ / giá vốn» là lãi theo phần. Đúng bốn phép LEAN
+    khai trong `IndicatorExtensions` (xem `hoi.PHEP_GHEP`).
+
+    ⚠ MỘT tầng ghép, không phải cây biểu thức. Vì dạng vd1 cần — `a/b − 1 ≤ −0,03` —
+    bằng đúng `a/b ≤ 0,97`: chuyển hằng số sang vế kia là xong. Cây biểu thức lồng
+    nhau thì hàng điều kiện lại thành một ô gõ công thức, mất cái sạch của 3 ô."""
+    if not isinstance(ve, dict):
+        return "0"
+    bt = _mot_dai_luong(nc, ve, sid)
+    ghep = ve.get("ghep") if isinstance(ve.get("ghep"), dict) else None
+    if not ghep or not ghep.get("phep"):
+        return bt
+    phep = ghep["phep"]
+    if phep not in [m for m, _n in hoi.PHEP_GHEP]:
+        nc.loi(sid, f'Không có phép ghép "{phep}".')
+        return bt
+    b = _mot_dai_luong(nc, ghep, sid)
+    if phep == "/":
+        # LEAN chia cho 0 thì ra 0 (`GetOverIndicatorComposer`), không nổ. Copy đúng
+        # thế — không có cái này thì một nến khối lượng 0 là đứt cả lượt backtest.
+        return f"({bt} / {b} if {b} else 0)"
+    return f"({bt} {phep} {b})"
+
+
+def _mot_dai_luong(nc, ve, sid):
+    """MỘT đại lượng (hay một con số) -> biểu thức Python. Không xét ghép."""
     if not isinstance(ve, dict):
         return "0"
     if "ma_dl" not in ve:
@@ -231,7 +259,10 @@ def _lam_py(nc, a, sid, mach):
         gt["tag"] = _lit(_chu_tag(nc, sid, mach))
     if t == lam.LAM_GHI_CHU and not str(core.o_lam(a, "cau") or "").strip():
         gt["cau"] = _lit(_chu_tag(nc, sid, mach))
-    if t == lam.LAM_VE_BANG:
+    # Theo TỪ ĐIỂN, không theo tên một khối: khối nào khai `co_dai_luong` cũng nhận
+    # được `{gia_tri}`. Gõ cứng `LAM_VE_BANG` ở đây là lý do khối Phát tín hiệu vừa
+    # thêm ô «Trọng số» mà mẫu LEAN của nó vẫn không được điền.
+    if d.get("co_dai_luong"):
         gt["gia_tri"] = _ve_py(nc, a.get("gia_tri"), sid)
     try:
         return [mau.format(**gt)]

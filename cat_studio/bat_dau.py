@@ -242,13 +242,35 @@ SAN = (
 
 #: Biến tín hiệu thành tỷ trọng. `EqualWeighting` chia đều 1/N cho mấy tín hiệu CÒN
 #: HẠN — đọc mã nguồn: `percent = 1.0 / count`, với `count` đếm insight đang active.
+#: ⚠ CHỈ BÀY MODEL MÀ KHỐI VẼ ĐƯỢC NUÔI. Mỗi model đọc một trường của `Insight`, và
+#: trường nào không ai đặt thì model ấy chết LẶNG — đọc thẳng `Algorithm.Framework/
+#: Portfolio/*.py`:
+#:
+#:   EqualWeighting            không đọc gì            -> chạy
+#:   InsightWeighting          `insight.weight`        -> ô «Trọng số» của Phát tín hiệu
+#:   ConfidenceWeighted        `insight.confidence`    -> CHƯA ai đặt được
+#:   MeanVarianceOptimization  `insight.magnitude`     -> CHƯA ai đặt được
+#:
+#: Hai cái dưới: `should_create_target_for_insight` trả False cho MỌI tín hiệu (hay
+#: `set_run_time_error` thẳng), nên chọn vào là backtest chạy hết rồi ra 0 lệnh, không
+#: một lời nào. Thà không bày còn hơn bày rồi báo lỗi — thêm ô nuôi được chúng thì
+#: mở lại, ĐỪNG mở trước.
 CHIA_VON = (
     ("", "— không dùng —"),
     ("EqualWeightingPortfolioConstructionModel", "Chia ĐỀU cho mọi tín hiệu (1/N)"),
-    ("InsightWeightingPortfolioConstructionModel", "Chia theo TRỌNG SỐ của tín hiệu"),
-    ("ConfidenceWeightedPortfolioConstructionModel", "Chia theo ĐỘ TIN của tín hiệu"),
-    ("MeanVarianceOptimizationPortfolioConstructionModel", "Tối ưu phương sai–kỳ vọng"),
+    ("InsightWeightingPortfolioConstructionModel",
+     "Chia theo TRỌNG SỐ — mã điểm cao được nhiều vốn hơn"),
 )
+
+#: Model chia vốn -> khe nào của `Insight` nó ĐỌC ("" = không đọc gì). Giữ cả mấy
+#: model CHƯA bày, để bài kiểm biết vì sao chúng chưa bày và ai muốn mở lại thì phải
+#: thêm ô nuôi khe ấy trước. Đọc `should_create_target_for_insight` của từng model.
+CHIA_VON_DOC = {
+    "EqualWeightingPortfolioConstructionModel": "",
+    "InsightWeightingPortfolioConstructionModel": "weight",
+    "ConfidenceWeightedPortfolioConstructionModel": "confidence",
+    "MeanVarianceOptimizationPortfolioConstructionModel": "magnitude",
+}
 
 #: Chạy SAU khi chia vốn, được quyền chỉnh lại tỷ trọng.
 #: ⚠ Mấy thứ này trước đây ta TỪ CHỐI (SL/TP cần nhớ qua nến, xem `lam.py`). Lối cổ

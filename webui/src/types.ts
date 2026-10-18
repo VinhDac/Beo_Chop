@@ -145,6 +145,9 @@ export interface VeDieuKien {
   tham_so?: Record<string, number>
   duong?: string
   so?: number
+  /** GHÉP với một đại lượng (hay một số) nữa bằng một phép tính: «giá / đỉnh 60 nến».
+   *  MỘT tầng, không lồng nhau — xem `sinh_ma._ve_py` để biết vì sao. */
+  ghep?: VeDieuKien & { phep: string }
 }
 
 export interface DongDieuKien {
@@ -168,6 +171,8 @@ export interface LoaiHoi {
 export interface TuDienHoi {
   phep_so: { ma: string; nhan: string }[]
   phep_co_khong: { ma: string; nhan: string }[]
+  /** Bốn phép GHÉP hai đại lượng — đúng bộ `IndicatorExtensions` của LEAN. */
+  phep_ghep: { ma: string; nhan: string }[]
   loai: LoaiHoi[]
   /** CẢ 68 đại lượng, một mảng phẳng. Bảng chọn bày đúng mảng này — nên không có
    *  cách nào một đại lượng khai trong `hoi.py` mà người dùng với không tới. */
@@ -212,6 +217,11 @@ export interface LoaiLam {
   theo_loai: Record<string, { lean: string; o: OLam[] }>
   /** Khối này có ô chọn ĐẠI LƯỢNG không (chọn trong CẢ kho, không riêng một họ). */
   co_dai_luong?: boolean
+  /** Tên ô đại lượng ấy: «Giá trị vẽ», «Trọng số»… — từ điển nói, giao diện bày. */
+  nhan_dai_luong?: string
+  /** Ô ấy nhận được một CON SỐ thay cho đại lượng không. «Trọng số» thì có (mặc định
+   *  là 1); «Giá trị vẽ» thì không — vẽ hằng số là một đường thẳng tắp. */
+  dai_luong_so?: boolean
 }
 
 export interface TuDienLam {

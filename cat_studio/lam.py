@@ -36,6 +36,13 @@ NHOM_GHI = "Ghi & báo"
 #: Nhóm thứ ba — nói với DÂY CHUYỀN của LEAN thay vì tự đặt lệnh. Xem `TIN_HIEU`.
 NHOM_TIN_HIEU = "Tín hiệu"
 
+#: CHỮ KÝ THẬT của `Insight.Price`, chép từ `Common/Algorithm/Framework/Alphas/
+#: Insight.cs`. Khai ra đây vì mỗi model chia vốn đọc MỘT khe trong này, và khe nào
+#: không ai điền thì model ấy chết lặng (xem `bat_dau.CHIA_VON`). Có bảng này thì bài
+#: kiểm soi được: model đang bày ra có khe nào chưa ai điền không.
+INSIGHT_THAM_SO = ("symbol", "period", "direction", "magnitude", "confidence",
+                   "source_model", "weight", "tag")
+
 
 def _o(ten, nhan, kieu, mac_dinh, don_vi="", goi_y="", chon=(), bat_buoc=True):
     return {"ten": ten, "nhan": nhan, "kieu": kieu, "mac_dinh": mac_dinh,
@@ -256,6 +263,10 @@ VE_BANG = {
     #: khối Hỏi. Trước đây khoá cứng vào họ "hỏi thị trường", nên vẽ được RSI mà
     #: không vẽ được «Tổng giá trị danh mục» — thứ ai cũng muốn nhìn.
     "co_dai_luong": True,
+    "nhan_dai_luong": "Giá trị vẽ",
+    #: Plot cần một con số ĐỔI THEO NẾN; vẽ một hằng số là một đường thẳng tắp, nên
+    #: ô này KHÔNG nhận số — khác ô «Trọng số» của khối Phát tín hiệu.
+    "dai_luong_so": False,
 }
 
 # ---------------------------------------------------------------------------
@@ -295,7 +306,21 @@ TIN_HIEU = {
     "nhom": NHOM_TIN_HIEU,
     "can_ma": True,
     "lean": "self.emit_insights(Insight.price({sym}, timedelta(days={han}), "
-            "InsightDirection.…))",
+            "InsightDirection.…, None, None, None, {gia_tri}))",
+    #: TRỌNG SỐ — đây là chỗ LEAN so mã này với mã khác, và nó là tham số CÓ SẴN của
+    #: `Insight.Price(symbol, period, direction, magnitude, confidence, sourceModel,
+    #: weight, tag)`. Ta vẫn gọi đúng hàm ấy, chỉ là trước đây bỏ trống khe thứ bảy.
+    #:
+    #: ⚠ BỎ TRỐNG LÀ CHẾT LẶNG. `InsightWeightingPortfolioConstructionModel.
+    #: should_create_target_for_insight` trả `insight.weight is not None` — tức
+    #: weight rỗng thì nó KHÔNG dựng mục tiêu cho bất kỳ tín hiệu nào, và backtest
+    #: chạy hết, không lỗi, 0 lệnh. Nên mặc định là SỐ 1, không phải rỗng: mọi mã
+    #: cùng điểm 1 thì LEAN chuẩn hoá ra 1/N, y hệt chia đều — vô hại và hợp lý.
+    #: Muốn XẾP HẠNG thì đổi số 1 thành một đại lượng (điểm cao được nhiều vốn hơn).
+    "co_dai_luong": True,
+    "nhan_dai_luong": "Trọng số",
+    "dai_luong_so": True,
+    "gia_tri_mac_dinh": {"so": 1},
     "o": [
         _o("huong", "Hướng", O_CHON, "UP", "", "", [
             ("UP", "LÊN — nên mua / giữ"),
@@ -315,7 +340,8 @@ TIN_HIEU = {
     # Cùng lối với ô «Gửi bằng» của khối Báo tin: mỗi lựa chọn một câu LEAN riêng.
     "theo_loai": {
         h: {"lean": "self.emit_insights(Insight.price({sym}, "
-                    f"timedelta(days={{han}}), InsightDirection.{h}))", "o": []}
+                    f"timedelta(days={{han}}), InsightDirection.{h}, "
+                    "None, None, None, {gia_tri}))", "o": []}
         for h in ("UP", "DOWN", "FLAT")
     },
 }
@@ -421,7 +447,11 @@ def tu_dien():
              "can_ma": d["can_ma"], "lean": d["lean"], "tat": d.get("tat", False),
              "nhom": d["nhom"],
              "o": d["o"], "theo_loai": d.get("theo_loai", {}),
-             "co_dai_luong": d.get("co_dai_luong", False)}
+             "co_dai_luong": d.get("co_dai_luong", False),
+             # Nhãn và "có nhận số không" phải đi KÈM, không thì giao diện lại gõ
+             # cứng "Giá trị vẽ" cho mọi khối có ô đại lượng.
+             "nhan_dai_luong": d.get("nhan_dai_luong", "Giá trị"),
+             "dai_luong_so": d.get("dai_luong_so", False)}
             for ma, d in LOAI_LAM.items()
         ],
     }

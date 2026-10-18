@@ -42,6 +42,16 @@ PHEP_SO = (
 #: Đại lượng kiểu đúng/sai dùng hai phép này thay cho sáu phép trên.
 PHEP_CO_KHONG = (("la", "là ĐÚNG"), ("khong", "là SAI"))
 
+#: GHÉP hai đại lượng thành một vế: «giá / đỉnh 60 nến ≤ 0,97» — tức rơi 3% từ đỉnh.
+#: Bốn phép này là bốn phép LEAN khai trong `IndicatorExtensions`: `Plus` · `Minus` ·
+#: `Times` · `Over`. Không bịa thêm phép nào ngoài bộ ấy.
+#:
+#: ⚠ CHIA CHO 0: LEAN tự quy định sẵn, đọc `GetOverIndicatorComposer()` —
+#:     (l, r) => r.Current.Value == 0m ? new IndicatorResult(0m, MathError) : l / r
+#: tức ra SỐ 0 chứ không nổ. Bộ sinh mã copy đúng thế (`a / b if b else 0`), không tự
+#: nghĩ ra cách xử lý khác.
+PHEP_GHEP = (("+", "cộng"), ("-", "trừ"), ("*", "nhân"), ("/", "chia cho"))
+
 KIEU_SO = "so"
 KIEU_CO_KHONG = "co_khong"
 
@@ -372,6 +382,7 @@ def tu_dien():
     return {
         "phep_so": [{"ma": m, "nhan": n} for m, n in PHEP_SO],
         "phep_co_khong": [{"ma": m, "nhan": n} for m, n in PHEP_CO_KHONG],
+        "phep_ghep": [{"ma": m, "nhan": n} for m, n in PHEP_GHEP],
         "loai": [
             {"ma": loai, "nhan": d["nhan"], "mo_ta": d["mo_ta"], "icon": d["icon"],
              "tat": d["tat"]}
