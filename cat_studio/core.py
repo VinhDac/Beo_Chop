@@ -475,8 +475,15 @@ def mo_ta_lam(step):
                         + (f" · giữ tối đa {_so_gon(han)} ngày" if han else ""))
         # TRỌNG SỐ chỉ nói ra khi nó KHÁC 1. Mặc định 1 nghĩa là "mọi mã ngang nhau",
         # tức không xếp hạng gì — bày nó lên thẻ chỉ làm rối thẻ.
+        #
+        # ⚠ NHƯNG CÓ GHÉP THÌ LUÔN NÓI, kể cả khi phần gốc bằng 1. Trọng số
+        # «1 / độ lệch chuẩn» — nghịch đảo biến động, một lối chia vốn kinh điển —
+        # có phần gốc đúng bằng 1, nên luật "khác 1 mới nói" giấu mất đúng cái cách
+        # chia vốn mà người dùng vừa đặt.
         gt = step.get("gia_tri")
-        if isinstance(gt, dict) and gt.get("ma_dl"):
+        co_ghep = isinstance(gt, dict) and isinstance(gt.get("ghep"), dict) \
+            and gt["ghep"].get("phep")
+        if isinstance(gt, dict) and (gt.get("ma_dl") or co_ghep):
             dong.append(f"trọng số: {_ve_dieu_kien(gt)}")
         elif isinstance(gt, dict) and _f(gt.get("so")) not in (None, 1):
             dong.append(f"trọng số: {_so_gon(_f(gt.get('so')))}")
