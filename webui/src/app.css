@@ -486,7 +486,6 @@ select.o { cursor: pointer; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mx-muc:disabled > .mx-chu > i { color: var(--warn); font-family: var(--font); }
-.o-tro-thu.bang-craft .dai-mau { background: #b8860b; }
 .react-flow__edge.day-goi-y { pointer-events: none; }
 .react-flow__edge.day-goi-y path { stroke-dasharray: 5 5; opacity: .45; }
 /* ---------------- Hộp (node) ---------------- */
@@ -971,43 +970,56 @@ mark.tim-chu {
    nó giúp nhìn là chính cái canvas ngay dưới nó. Để trên ribbon thì mắt phải nhảy lên
    một dải khác để tìm, và nó dễ bị bấm nhầm lẫn với mấy nút "thêm". */
 .o-tim-noi { position: absolute; z-index: 6; left: 12px; top: 12px; }
-/* ---------------- Thẻ CỖ MÁY LEAN ----------------
-   NỔI Ở GÓC PHẢI TRÊN, đối xứng với ô Tìm bên trái. Nó là CỬA DUY NHẤT vào hộp Cỗ
-   máy nên luôn có mặt; chữ bên trong chỉ kể thứ đã đổi.
+/* ---------------- Ô CỖ MÁY LEAN ----------------
+   GÓC PHẢI canvas, đối xứng với ô Tìm bên trái. Nó là CỬA DUY NHẤT vào hộp Cỗ máy
+   nên luôn có mặt, kể cả khi chưa đặt gì.
 
-   SỐ ĐO CHÉP Y HỆT `.hop .chan` CỦA JENIFER_STUDIO — cái chân khối đựng mấy thẻ
-   `.the`: `gap: 5px`, `padding: 7px 10px`, và thẻ thì dùng thẳng class `.the` của
-   Cat (10.5px, `padding: 1px 8px`) — đúng cái huy hiệu đang in trên khối. Tự chế
-   một bộ số khác là đẻ ra viên thuốc thứ hai không giống thứ gì trong app.
-
-   ⚠ PHÌNH THÌ PHÌNH XUỐNG DƯỚI, KHÔNG SANG NGANG. `width` chặn cứng, nên thêm một
-   món là thẻ xuống dòng chứ cái hộp không kéo dài ra giữa canvas — chỗ ấy là chỗ
-   nhìn sơ đồ. Nhãn chiếm cả dòng trên (`width: 100%`) khi có thẻ, nên thẻ bắt đầu
-   từ mép trái và mắt đếm được theo cột.
-   Lúc CHƯA ĐẶT GÌ thì không chặn gì cả: hộp co lại đúng bằng một dòng chữ. */
+   DÁNG CHÉP Y HỆT `.o-tro-thu` CỦA JENIFER_STUDIO, từng con số — và chép vì cùng một
+   lẽ: NÓ KHÔNG PHẢI MỘT BƯỚC. Không số thứ tự, không cổng nối, không kéo đi được,
+   không nằm trong `steps`. Vẽ giống `.hop` thì người dùng sẽ đi tìm cổng để nối, tìm
+   số thứ tự để biết nó chạy lúc nào — hai thứ không tồn tại. Nên:
+     · viền ĐỨT — quy ước quen thuộc cho "không nằm trong luồng"
+     · KHÔNG bóng đổ — bóng làm nó nổi lên như một khối thật
+     · 264px, hẹp hơn khối (296px) một quãng rõ rệt, để không ai nhầm cùng một họ
+     · màu `--co-may`, không lẫn với màu khối nào trên sơ đồ */
 .tag-co-may-noi { position: absolute; z-index: 6; right: 12px; top: 12px; }
-.tag-co-may {
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: 5px;
-  padding: 7px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-  text-align: left; cursor: pointer;
-  transition: border-color .12s, background .12s;
+.o-co-may {
+  width: 264px; padding: 8px 10px 10px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--co-may) 55%, var(--border));
+  border-radius: var(--radius);
+  cursor: default;
 }
-.tag-co-may:hover { border-color: var(--accent); background: var(--raised); }
-.tag-co-may.co { width: 208px; }
-.tag-co-may .ten {
-  font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
-  color: var(--muted); white-space: nowrap;
+.o-co-may .cm-dau { display: flex; align-items: center; gap: 6px; color: var(--co-may); }
+.o-co-may .dai-mau {
+  width: 3px; height: 14px; border-radius: 2px; background: var(--co-may);
 }
-.tag-co-may.co .ten { width: 100%; color: var(--accent); }
-.tag-co-may .trong { font-size: 10.5px; color: var(--dim); }
-/* Thẻ dùng CHUNG `.the` với huy hiệu trên khối (khai ở đầu file) — chỉ thêm chặn
-   bề ngang, vì một nhãn model dài vẫn có thể lọt qua phép rút ngắn bên Python. */
-.tag-co-may .the { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.o-co-may .cm-ten {
+  font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap;
+}
+.o-co-may .cm-nhan {
+  margin-left: auto; font-size: 10px; letter-spacing: .3px; white-space: nowrap;
+  color: var(--co-may); border: 1px solid currentColor;
+  border-radius: 999px; padding: 1px 7px;
+}
+.o-co-may .cm-than { margin-top: 6px; font-size: 11px; line-height: 1.5; color: var(--muted); }
+/* Mấy thứ ĐANG đặt — mỗi món một thẻ `.the`, đúng class huy hiệu trên khối, nên hai
+   thứ nổi trên canvas trông cùng một nhà. Xuống dòng chứ không cắt bớt: cắt là mất
+   hẳn mấy việc cuối mà không dấu hiệu nào. */
+.o-co-may .cm-nhac {
+  margin-top: 6px; color: var(--dim);
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.o-co-may .cm-sua { margin-top: 8px; width: 100%; justify-content: center; }
+/* Gọn lại còn ĐÚNG hàng đầu. Bớt cả đệm dưới — để nguyên thì hàng đầu trôi lửng
+   giữa một ô cao gấp đôi nó, trông như đang tải dở. */
+.o-co-may.gon { padding: 6px 8px 6px 10px; }
+.o-co-may .cm-gon {
+  border: none; background: none; cursor: pointer;
+  color: var(--dim); font-size: 9px; line-height: 1;
+  padding: 4px 5px; margin-left: 2px; border-radius: 3px;
+}
+.o-co-may .cm-gon:hover { background: var(--raised); color: var(--text); }
 
 /* Khối khớp ô tìm: viền vàng, thấy từ xa trên một sơ đồ nghìn khối. */
 .hop.tim-thay { box-shadow: 0 0 0 2px var(--warn), var(--shadow-lg); }

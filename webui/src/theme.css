@@ -72,6 +72,12 @@
   --khoi-lam: #4a9eda;
   --khoi-tim: #9b7ae0;
 
+  /* Màu RIÊNG của ô «Cỗ máy LEAN» ở góc canvas — để nó không lẫn với khối nào trên
+     sơ đồ. Cùng vai `--dacbiet` bên Jenifer_Studio: một màu chỉ dành cho thứ KHÔNG
+     nằm trong luồng. Không mượn `--accent` (màu người dùng tự đặt, đầy trên ribbon)
+     cũng không mượn `--khoi-tim` (một trong sáu màu người dùng tô cho khối). */
+  --co-may: #9b7ae0;
+
   /* Ghim số ⟲ — dùng cho cả huy hiệu khối đã ghim lẫn đường nối quay lại.
      MỘT màu cho cả hai là cố ý: nhìn một cái là nối được "đường này quay về đâu". */
   --ghim: #d9a441;
@@ -109,6 +115,8 @@
   --canvas-bg: #fafafa;
   --canvas-dot: #d8d8d8;
   --accent-soft: rgba(255, 122, 26, 0.14);
+  /* Nền sáng: tím kia quá nhạt trên nền trắng, đậm xuống một bậc. */
+  --co-may: #7c53d6;
   --shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
