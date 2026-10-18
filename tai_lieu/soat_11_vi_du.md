@@ -306,27 +306,97 @@ lúc chạy, và lượt chạy thật thấy cả ba:
 
 ---
 
+## Ba chỗ bí cuối — và cái nào cũng là VỎ, không phải thuật toán
+
+Soát xong còn ba thứ sơ đồ không nói nổi. Hoá ra cả ba đều nằm ở HÌNH của sơ đồ, nên
+làm được mà không đụng gì tới LEAN.
+
+### ① Một điểm GHÉP NHIỀU THÀNH PHẦN
+
+`0,25×ROC(63) + 0,35×ROC(126) + 0,40×ROC(252) − 0,20×biến_động` — vd7 · vd9 · vd10 đều
+cần. Trước đó một vế chỉ ghép được một tầng hai vế.
+
+Nay một vế là một DANH SÁCH thành phần, mỗi cái có HỆ SỐ riêng. Hệ số nằm TRONG thành
+phần chứ không thành một phép `×` rời, và đó là cả mẹo: có hệ số thì tổng có trọng số
+viết được bằng một chuỗi nối trái→phải, không cần thứ tự ưu tiên. Không có nó thì
+`0,25×a + 0,35×b` nối trái→phải ra `((0,25×a)+0,35)×b` — sai, mà sai LẶNG.
+
+### ② NHỚ QUA NẾN
+
+vd10 · vd11 cần cỗ máy nhớ quyết định của chính nó. Khối Bắt đầu khai ô nhớ (CHUNG
+hoặc THEO MÃ), khối «Ghi nhớ» ghi vào, hàng điều kiện đọc ra. Người dùng đặt TÊN cho
+ô, và thẻ khối gọi bằng tên ấy: *Nhớ «đang chờ mua lại» = ĐÚNG*.
+
+Chạy thật vd11: 187 lệnh với cái cờ, 430 lệnh khi bỏ nó ra — tức ô nhớ thật sự chặn
+lệnh, không phải một ô cho đẹp.
+
+### ③ HAI CHIẾN THUẬT CON CHẠY SONG SONG RỒI TRỘN TỶ TRỌNG
+
+Chỗ bí cuối, và chỗ dễ hiểu sai nhất.
+
+**Không làm được bằng cách phát hai tín hiệu.** Đọc `PortfolioConstructionModel.
+GetTargetInsights`: nó gộp theo Symbol rồi lấy `.Last()`, nên hai nhánh cùng phát cho
+một mã thì cái sau ĐÈ cái trước — LEAN không cộng. Ai tưởng mình trộn được bằng hai
+tín hiệu thì backtest vẫn chạy, chỉ là một nửa chiến thuật biến mất không báo gì.
+
+Chỗ chặn thật nằm ở APP, không nằm ở LEAN: nhánh rẽ từ sơ đồ xưa nay sinh ra
+`if / elif`, tức LOẠI TRỪ NHAU. Nên khối Bắt đầu nay có ô **«Nhánh chạy thế nào»**:
+
+| | sinh ra | nghĩa |
+|---|---|---|
+| Lần lượt *(mặc định)* | `if / elif` + `else: return` | cây quyết định — rẽ MỘT đường |
+| Chạy hết | mấy câu `if` RỜI, không `else` | mọi nhánh khớp đều chạy |
+
+Và phép trộn làm ở TỶ TRỌNG: mỗi nhánh con ghi điểm của nó vào một ô nhớ, rồi chỗ gộp
+phát một tín hiệu có trọng số là tổng có trọng số của mấy ô ấy. Ba thứ ở trên khớp
+vào nhau đúng tại đây — ghép nhiều thành phần + ô nhớ + nhánh chạy hết.
+
+**Ba luật rẽ nhánh phải NỚI, và luật thứ tư phải GIỮ.** Ba luật nói cùng một câu
+("nhánh này khớp thì nhánh kia không bao giờ tới lượt") nên chúng chỉ đúng khi chạy
+lần lượt; giữ nguyên là chặn đúng cái người dùng vừa cố ý bật. Còn luật *"hai nhánh
+không được nằm ngang nhau"* thì GIỮ: chạy hết vẫn chạy theo một THỨ TỰ, và hai nhánh
+ghi cùng một ô nhớ thì cái chạy sau thắng — để ngang nhau là để toạ độ canvas quyết
+kết quả backtest.
+
+#### Chạy thật: vd10 vẽ lại bằng ba sleeve
+
+`net[s] = 0,34·gen263[s] + 0,33·s531[s] + 0,33·s504cg[s]` — đúng một dòng netting của
+vd10 gốc. Vẽ: 6 nhánh (mỗi sleeve một nhánh bật, một nhánh tắt) cùng đổ về một khối
+Phát tín hiệu. SPY · QQQ · IWM · EEM · AAPL, 2015–2020.
+
+| | lệnh | lãi | Sharpe | sụt sâu nhất |
+|---|---|---|---|---|
+| **Chạy hết** | 5.979 | **+34,2 %** | 0,33 | 14,4 % |
+| Lần lượt *(cùng sơ đồ, đổi đúng một ô)* | 3.526 | +8,4 % | −0,24 | 5,1 % |
+
+Lượt thứ hai là phép thử ngược, không phải cho đủ bộ: lần lượt thì chỉ sleeve đầu
+khớp được ghi, hai sleeve sau không bao giờ tới lượt, nên tổng trộn thiếu hai phần
+ba. Hai lượt ra giống nhau mới là tin xấu — nó có nghĩa cái ô ấy không nối vào đâu.
+
+#### Và một hàng rào không ai gác, lòi ra lúc làm
+
+`lam.GHI_NHO` khai `can_ma=False` kèm chú thích *"suy từ ô nhớ"* — mà không có ai suy.
+Nên một ô nhớ THEO MÃ trong sơ đồ chạy MỘT LƯỢT cho cả rổ sinh ra biến `sym` không tồn
+tại: `NameError` lúc chạy, sau khi đã chờ cả phút. Nay `can_ma` hỏi theo KHỐI chứ
+không theo loại, và có bài canh cả hai chiều.
+
+---
+
 ## Kết
 
 Về phần VỎ thì xong: 177 món của LEAN, 136 bày ra, 41 khai rõ lý do, không còn món
 nào thiếu mà không ai biết. Và từ nay có bài canh đứng ở đó, nên bảng nào tụt lại sau
 LEAN là cổng đỏ chứ không phải chờ một ví dụ lòi ra.
 
-Về mười một ví dụ thì **chưa**, và chỗ còn thiếu nay đã gọn lại thành những thứ
-KHÔNG phải vỏ:
+Về khả năng VẼ thì **bốn lỗ hổng ban đầu nay hết**. Chỗ còn lại không phải lỗ hổng của
+app:
 
-* **vd4** — Alpha slot nay có, nhưng nó `import` hai tệp không có trong thư mục.
-  Thiếu tệp, không thiếu tính năng.
-* **vd5** — nay vẽ được: `RiskParity` / `MeanVariance` / `BlackLitterman` làm đúng
-  việc mà nó gọi scipy để làm.
-* **vd7 · vd9** — phần nghịch đảo biến động nay là `RiskParity`; phần nhớ (cooldown,
-  đỉnh vốn) là `TrailingStop` / `MaximumDrawdownPercentPortfolio`; phần trần cứng N
-  mã là rổ `ema_cheo`. Còn đúng MỘT thứ: **điểm nhiều thành phần**
-  (`0.25×r63 + 0.35×r126 + 0.40×r252 − 0.20×vol`), vì ghép đại lượng chỉ một tầng
-  hai vế. Đó là một câu hỏi về HÌNH của hàng điều kiện, không phải về LEAN.
-* **vd10 · vd11** — cần **máy trạng thái** (vd11 nhớ bảy thứ). LEAN không có khái
-  niệm ấy, nên làm nó là tự viết thuật toán. Đây là chỗ nên dừng.
-* **vd8** — PCA. LEAN không có. Chỗ nên dừng thứ hai.
+* **vd4** — `import` hai tệp không có trong thư mục. Thiếu TỆP, không thiếu tính năng.
+* **vd8** — PCA. LEAN không có, nên làm nó là tự viết thuật toán. Chỗ nên dừng.
+* **vd10 · vd11 bản ĐẦY ĐỦ** — vẽ được cái lõi (netting ba sleeve · nhớ qua nến), còn
+  phần rổ doanh nghiệp thì dữ liệu miễn phí chỉ có 11 ngày (24/03–07/04/2014), và lối
+  đặt lệnh `MarketOnOpenOrder` thì khối Hành động chưa bày. Hai thứ ấy là việc tiếp,
+  và cả hai đều là VỎ.
 
-Nói gọn: **bốn lỗ hổng ban đầu nay còn một** (điểm nhiều thành phần), cộng hai chỗ
-cố ý dừng (máy trạng thái · PCA) và một ví dụ thiếu tệp.
+Nói gọn: **ba chỗ bí cuối đã bịt, và cái nào cũng bịt bằng vỏ** — không một dòng thuật
+toán nào của LEAN bị app viết lại.

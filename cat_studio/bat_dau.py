@@ -95,7 +95,7 @@ LOAI_TAI_SAN = (
 #: sách nhóm bên TypeScript thì đó là bảng tra thứ hai, và nó sẽ tụt lại.
 NHOM_O = (
     ("chay_gi", "Chạy trên cái gì", "mã nào, giá tính thế nào, mỗi mã một lượt hay "
-                                    "cả rổ một lượt"),
+                                    "cả rổ một lượt, nhánh rẽ một đường hay chạy hết"),
     ("tien", "Thời gian và tiền", "từ bao giờ đến bao giờ, bao nhiêu tiền"),
     ("nhip", "Nhịp — xem lại khi nào", "mỗi nến, hay hẹn giờ theo lịch"),
     ("day_chuyen", "Dây chuyền LEAN", "tín hiệu đi qua bốn trạm: phát → chia vốn → "
@@ -1150,6 +1150,33 @@ O_BAT_DAU = [
     #
     # Lòi ra khi dựng lại một chiến thuật thật (vd2 trong `tai_lieu/chiến thuật ví
     # dụ/`): nó cân lại cả rổ mỗi tuần, mà bộ khối cũ không nói nổi câu ấy.
+    # ⚠ Ô NÀY ĐỔI NGỮ NGHĨA CỦA CẢ SƠ ĐỒ, nên nó phải có mặt chứ không ngầm định.
+    #
+    # Bản trước chỉ có một lối: các nhánh THỬ LẦN LƯỢT, nhánh đầu khớp thì thôi —
+    # `if / elif`. Lối ấy đúng cho cây quyết định (*"ở điểm rẽ các nhánh được thử lần
+    # lượt, nên nhánh trượt phải LÙI LẠI ĐƯỢC"*), và nó là mặc định.
+    #
+    # Nhưng có một họ chiến thuật nó không nói nổi: CHẠY HAI CHIẾN THUẬT CON SONG
+    # SONG rồi trộn tỷ trọng. vd10 trong tập ví dụ làm đúng thế — `Rebalance263` và
+    # `Rebalance531` cùng chạy, mỗi cái ra một bộ tỷ trọng, rồi `_execute_net` cộng
+    # lại. Với `if / elif` thì chiến thuật con thứ hai không bao giờ tới lượt.
+    #
+    # ⚠ VÀ KHÔNG LÀM ĐƯỢC BẰNG CÁCH PHÁT HAI TÍN HIỆU. Đọc
+    # `PortfolioConstructionModel.GetTargetInsights`: nó gộp theo SYMBOL rồi lấy
+    # `.Last()`, nên hai nhánh cùng phát cho một mã thì cái sau ĐÈ cái trước — LEAN
+    # không cộng. Trộn phải làm ở tỷ trọng: mỗi nhánh con ghi điểm của nó vào một ô
+    # nhớ, rồi một nhánh cuối phát tín hiệu với trọng số là tổng có trọng số của mấy
+    # ô ấy (ghép nhiều thành phần). Ba thứ vừa làm xong khớp vào nhau đúng ở đây.
+    _o("nhanh_chay", "Nhánh chạy thế nào", O_CHON, "lan_luot",
+       "if / elif  ·  if / if",
+       # Chữ đầu phải NÓI HẾT: ô chọn cắt cụt câu dài, mà phần bị cắt của hai dòng
+       # này lại là phần phân biệt chúng. Lời giải thích dài để trong `goi_y`.
+       chon=[("lan_luot", "Lần lượt — nhánh khớp TRƯỚC thì chạy"),
+             ("tat_ca", "Chạy HẾT — mọi nhánh khớp đều chạy")],
+       goi_y="«Lần lượt» là cây quyết định: rẽ một đường. «Chạy hết» cho phép hai "
+             "chiến thuật con cùng chạy rồi trộn kết quả qua ô nhớ.",
+       nhom="chay_gi"),
+
     _o("chay_cho", "Chạy cho ai", O_CHON, "moi_ma", "for sym in self._ma: …",
        chon=[("moi_ma", "Mỗi mã một lượt — sàng từng mã"),
              ("ca_danh_muc", "Một lượt cho CẢ RỔ — chia danh mục")],

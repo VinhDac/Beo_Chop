@@ -7,7 +7,8 @@ và canh cả mấy chỗ hỏng LẶNG của bản thân mã sinh ra:
   · cú pháp Python sai (file không chạy, mà `soat` thì bảo sơ đồ sạch);
   · chỉ báo khai HAI LẦN khi hai khối cùng dùng RSI(14);
   · quên `set_warm_up` → N nến đầu quyết trên số rác;
-  · nhánh sinh thành mấy câu `if` rời thay vì `if/elif` → nhiều nhánh cùng chạy;
+  · nhánh sinh sai kiểu — `if` rời khi đang LẦN LƯỢT (nhiều nhánh cùng chạy),
+    hay `if/elif` khi đang CHẠY HẾT (nhánh thứ hai không bao giờ chạy);
   · điều kiện trỏ tới mã chưa khai ở khối Bắt đầu;
   · vòng lặp sinh bừa thành thứ sơ đồ không nói.
 
@@ -20,6 +21,7 @@ import io
 import os
 import re
 import sys
+import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -669,6 +671,204 @@ _kq = sinh_ma.sinh(_so_do_chia_von("EqualWeightingPortfolioConstructionModel"))
 kiem("model không đọc lịch sử thì KHÔNG làm nóng thừa",
      "set_warm_up" not in _kq["ma"],
      "— chia đều mà chờ 252 nến là cắt mất một năm đầu")
+
+# ================= 11. Hai chiến thuật con chạy SONG SONG =================
+# Ô «Nhánh chạy thế nào» ở khối Bắt đầu đổi ngữ nghĩa điểm rẽ: LẦN LƯỢT (`if/elif`,
+# rẽ một đường) hay CHẠY HẾT (`if` rời, hai chiến thuật con cùng làm việc một nhịp).
+#
+# ⚠ BÀI NÀY CHẠY THÂN SINH RA, KHÔNG CHỈ ĐỌC CHUỖI. Đếm `if`/`elif` thì chỉ canh được
+# hình dáng, mà cái hỏng LẶNG nằm ở KẾT QUẢ: một ô nhớ không được ghi, một tín hiệu
+# không được phát. Nên dựng một `self` giả rồi chạy thật ba nhịp và so số.
+print("\n▸ ⑪ Nhánh LẦN LƯỢT và nhánh CHẠY HẾT")
+
+
+def _so_do_tron(kieu):
+    """Hai nhánh cất điểm vào hai ô nhớ, chỗ gộp trộn hai điểm thành một trọng số.
+
+    Đúng hình vd10: `Rebalance263` và `Rebalance531` cùng chạy rồi trộn tỷ trọng."""
+    bd = core.make_start_step()
+    bd["ma"] = [{"ma": "SPY", "loai": "equity"}]
+    bd["khoang"] = {"tu": "2015-01-01", "den": "2016-12-31"}
+    bd["pos"], bd["nhanh_chay"] = o(0, 0), kieu
+    bd["tri_nho"] = [{"ma": "nho_ma_so_1", "nhan": "điểm nhanh", "ban_dau": 0},
+                     {"ma": "nho_ma_so_2", "nhan": "điểm chậm", "ban_dau": 0}]
+    bd["chia_von"] = "InsightWeightingPortfolioConstructionModel"
+
+    a = core.make_hoi_step(hoi.HOI_THI_TRUONG, "Đà ngắn dương?")
+    a["dieu_kien"] = [core.make_dieu_kien("roc", ">", 0, tham_so={"n": 21})]
+    a["pos"] = o(240, -160)
+    ga = core.make_lam_step(lam.LAM_GHI_NHO, "Cất điểm nhanh")
+    ga["o_nho"], ga["cach"] = "nho_ma_so_1", "gan"
+    ga["gia_tri"], ga["pos"] = {"ma_dl": "roc", "tham_so": {"n": 21}}, o(480, -160)
+
+    b = core.make_hoi_step(hoi.HOI_THI_TRUONG, "Đà dài dương?")
+    b["dieu_kien"] = [core.make_dieu_kien("roc", ">", 0, tham_so={"n": 126})]
+    b["pos"] = o(240, 160)
+    gb = core.make_lam_step(lam.LAM_GHI_NHO, "Cất điểm chậm")
+    gb["o_nho"], gb["cach"] = "nho_ma_so_2", "gan"
+    gb["gia_tri"], gb["pos"] = {"ma_dl": "roc", "tham_so": {"n": 126}}, o(480, 160)
+
+    gop = core.make_lam_step(lam.LAM_TIN_HIEU, "Trộn hai điểm")
+    gop["huong"], gop["han"], gop["pos"] = "UP", 21, o(760, 0)
+    gop["gia_tri"] = {"ma_dl": "nho_ma_so_1", "he_so": 0.5,
+                      "ghep": [{"phep": "+", "ma_dl": "nho_ma_so_2", "he_so": 0.5}]}
+
+    st = [bd, a, ga, b, gb, gop]
+    ed = [{"from": bd["id"], "to": a["id"]}, {"from": a["id"], "to": ga["id"]},
+          {"from": bd["id"], "to": b["id"]}, {"from": b["id"], "to": gb["id"]},
+          {"from": ga["id"], "to": gop["id"]}, {"from": gb["id"], "to": gop["id"]}]
+    return core.make_process_template(f"trộn {kieu}", st, ed)
+
+
+def _than_mot_ma(ma):
+    """Mấy dòng TRONG `_mot_ma`, đã bỏ thụt đầu dòng. -> chuỗi."""
+    d = ma.split("def _mot_ma(self, sym, data):", 1)[1].split(NL)[1:]
+    lay = []
+    for dong in d:
+        if dong.strip() and not dong.startswith(" " * 8):
+            break
+        lay.append(dong)
+    return textwrap.dedent(NL.join(lay))
+
+
+class _ChiBaoGia:
+    def __init__(self, v):
+        self.current = type("C", (), {"value": v})()
+
+
+class _SelfGia:
+    """`self` giả — vừa đủ mấy thứ thân `_mot_ma` gọi tới, không hơn."""
+
+    def __init__(self, nhanh, dai):
+        self._cb = {"X": {"roc_21": _ChiBaoGia(nhanh), "roc_126": _ChiBaoGia(dai)}}
+        self._n = {"so_1": 0.0, "so_2": 0.0}
+        self.phat = []
+
+    def _nho_cua(self, _sym):
+        return self._n
+
+    def emit_insights(self, x):
+        self.phat.append(x)
+
+
+def _chay_than(than, nhanh, dai):
+    """Chạy thân ấy MỘT nhịp với hai giá trị chỉ báo. -> (ô nhớ, trọng số hay None)."""
+    s = _SelfGia(nhanh, dai)
+    mt = {"self": s, "sym": "X", "data": None,
+          "timedelta": lambda **k: k,
+          "InsightDirection": type("D", (), {"UP": "UP", "DOWN": "DOWN"}),
+          "Insight": type("I", (), {"price": staticmethod(lambda *a: a)})}
+    # Bọc vào một hàm: `return` giữa thân mới đúng nghĩa "hết lượt, nến sau tính lại".
+    exec(compile("def _n():" + NL + textwrap.indent(than, "    "), "than", "exec"), mt)
+    mt["_n"]()
+    return dict(s._n), (s.phat[0][6] if s.phat else None)
+
+
+_than = {}
+for _k in ("lan_luot", "tat_ca"):
+    _kq = sinh_ma.sinh(_so_do_tron(_k))
+    kiem(f"«{_k}» sinh được mã sạch", _kq["ok"],
+         f"— {[v['message'] for v in _kq['van_de'] if v['severity'] == 'error'][:1]}")
+    _than[_k] = _than_mot_ma(_kq["ma"] or "")
+
+_tl = _than["lan_luot"]
+_tc = _than["tat_ca"]
+kiem("LẦN LƯỢT: một `if`, một `elif`",
+     len(re.findall(r"^if \(", _tl, re.M)) == 1
+     and len(re.findall(r"^elif \(", _tl, re.M)) == 1)
+kiem("LẦN LƯỢT: có `else: return` chốt trước chỗ gộp", "else:" in _tl
+     and "return" in _tl, "— thiếu nó là không khớp nhánh nào vẫn rơi xuống chỗ gộp")
+kiem("CHẠY HẾT: hai `if` RỜI, không `elif`",
+     len(re.findall(r"^if \(", _tc, re.M)) == 2 and "elif " not in _tc)
+kiem("CHẠY HẾT: KHÔNG có `else: return`", "else:" not in _tc and "return" not in _tc,
+     "— chốt lại là chặn đúng chỗ trộn, tức cả tính năng thành vô dụng")
+kiem("cả hai đều trộn ĐỦ HAI ô nhớ",
+     all(t.count("self._nho_cua(sym)['so_1']") == 2
+         and t.count("self._nho_cua(sym)['so_2']") == 2 for t in (_tl, _tc)),
+     "— rơi một thành phần ghép thì trọng số vẫn ra số, chỉ là số SAI")
+
+# ---- Và nay CHẠY, để con số tự nói ----
+# Ba nhịp, và nhịp thứ ba là nhịp vạch rõ hai kiểu khác nhau ở đâu.
+_mong = {
+    #  (roc21, roc126): {kiểu: (ô nhớ, trọng số)}
+    (1.0, 1.0): {"lan_luot": ({"so_1": 1.0, "so_2": 0.0}, 0.5),
+                 "tat_ca":   ({"so_1": 1.0, "so_2": 1.0}, 1.0)},
+    (-1.0, 1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 1.0}, 0.5),
+                  "tat_ca":   ({"so_1": 0.0, "so_2": 1.0}, 0.5)},
+    # Không nhánh nào khớp: LẦN LƯỢT là HẾT LƯỢT (không phát gì), còn CHẠY HẾT vẫn
+    # phát — vì chỗ gộp không phải nhánh, nó là chỗ trộn.
+    (-1.0, -1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 0.0}, None),
+                   "tat_ca":   ({"so_1": 0.0, "so_2": 0.0}, 0.0)},
+}
+for (_a, _b), _theo in sorted(_mong.items()):
+    for _k, (_nho_m, _w_m) in sorted(_theo.items()):
+        _nho, _w = _chay_than(_than[_k], _a, _b)
+        kiem(f"chạy thật «{_k}» roc21={_a:+.0f} roc126={_b:+.0f}",
+             _nho == _nho_m and _w == _w_m,
+             f"— nhớ {_nho}, trọng số {_w}")
+
+# ---- Ba luật rẽ nhánh phải NỚI đúng chỗ, và luật thứ tư phải GIỮ ----
+# Nới sai thì người dùng bật «chạy hết» xong vẫn bị chặn; giữ sai thì thứ tự chạy do
+# toạ độ canvas quyết mà không ai báo.
+def _so_do_khong_cong(kieu, lech=200):
+    """Hai nhánh KHÔNG CỔNG — lần lượt là lỗi, chạy hết là chuyện thường."""
+    bd = core.make_start_step()
+    bd["ma"] = [{"ma": "SPY", "loai": "equity"}]
+    bd["pos"], bd["nhanh_chay"] = o(0, 0), kieu
+    x = core.make_lam_step(lam.LAM_GHI_CHU, "Ghi A")
+    x["pos"] = o(240, -lech // 2)
+    y = core.make_lam_step(lam.LAM_GHI_CHU, "Ghi B")
+    y["pos"] = o(240, lech // 2)
+    return core.make_process_template("hai nhánh trống", [bd, x, y],
+                                      [{"from": bd["id"], "to": x["id"]},
+                                       {"from": bd["id"], "to": y["id"]}])
+
+
+for _k, _mong_loi in (("lan_luot", True), ("tat_ca", False)):
+    # MỘT sơ đồ, không gọi hàm hai lần: hai lần là hai bộ id khác nhau, cạnh trỏ vào
+    # hư không, không còn điểm rẽ nào — và hàng rào im lặng vì chẳng thấy gì mà soát.
+    _sd = _so_do_khong_cong(_k)
+    _ds = core.validate_flow_graph(_sd["steps"], _sd["edges"])
+    _co = any(v["severity"] == "error" and "không có cổng" in v["message"] for v in _ds)
+    kiem(f"«{_k}»: hai nhánh không cổng {'bị chặn' if _mong_loi else 'được cho qua'}",
+         _co == _mong_loi, f"— {[v['message'][:60] for v in _ds if v['severity'] == 'error'][:1]}")
+
+# Luật "ngang nhau" KHÔNG được nới: chạy hết thì vẫn chạy theo một thứ tự, và hai
+# nhánh ghi cùng một ô nhớ thì cái chạy sau thắng.
+_sd = _so_do_khong_cong("tat_ca", lech=0)
+_ds = core.validate_flow_graph(_sd["steps"], _sd["edges"])
+kiem("«tat_ca»: hai nhánh NGANG NHAU vẫn là lỗi",
+     any("NGANG NHAU" in v["message"] for v in _ds),
+     "— chạy hết vẫn chạy theo thứ tự, mà thứ tự ấy do toạ độ quyết")
+
+# ---- `can_ma` suy từ Ô NHỚ, không đóng cứng theo loại khối ----
+# Ô nhớ THEO MÃ trong sơ đồ chạy MỘT LƯỢT cho cả rổ = một biến `sym` không tồn tại.
+print("\n▸ Ô nhớ THEO MÃ đòi «mã đang xét»")
+kiem("ô nhớ CHUNG thì không đòi mã",
+     not core._lam_can_ma({"type": lam.LAM_GHI_NHO, "o_nho": "nho_so_1"}))
+kiem("ô nhớ THEO MÃ thì đòi mã",
+     core._lam_can_ma({"type": lam.LAM_GHI_NHO, "o_nho": "nho_ma_so_1"}))
+
+
+def _so_do_ca_ro(o_nho):
+    bd = core.make_start_step()
+    bd["ma"] = [{"ma": "SPY", "loai": "equity"}]
+    bd["pos"], bd["chay_cho"] = o(0, 0), "ca_danh_muc"
+    bd["tri_nho"] = [{"ma": o_nho, "nhan": "điểm", "ban_dau": 0}]
+    g = core.make_lam_step(lam.LAM_GHI_NHO, "Cất điểm")
+    g["o_nho"], g["cach"], g["pos"] = o_nho, "gan", o(240, 0)
+    g["gia_tri"] = {"so": 1}
+    return core.make_process_template("cả rổ", [bd, g],
+                                      [{"from": bd["id"], "to": g["id"]}])
+
+
+for _on, _mong_loi in (("nho_so_1", False), ("nho_ma_so_1", True)):
+    _sd = _so_do_ca_ro(_on)
+    _ds = core.soat_ca_ro(_sd["steps"])
+    kiem(f"cả rổ + «{_on}» {'bị chặn' if _mong_loi else 'được cho qua'}",
+         bool(_ds) == _mong_loi,
+         f"— {[v['message'][:70] for v in _ds][:1]}")
+
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

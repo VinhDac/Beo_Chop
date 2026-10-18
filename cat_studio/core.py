@@ -384,6 +384,13 @@ def mo_ta_bat_dau(step):
     moc = str(o_bat_dau(step, "moc_so_sanh") or "").strip()
     if moc:
         dong.append(f"mốc so sánh: {moc}")
+    # ⚠ «CHẠY HẾT» PHẢI HIỆN TRÊN THẺ. Nhìn canvas thấy hai nhánh rẽ ra thì người đọc
+    # hiểu là một trong hai — đó là nghĩa mặc định, và nó in sẵn trong HÌNH. Bật chạy
+    # hết là đổi nghĩa ấy mà hình không đổi gì, nên không nói ra thì cả sơ đồ đọc sai
+    # và chẳng có dấu hiệu nào. Mặc định thì KHÔNG in: thêm một dòng nhắc lại điều hình
+    # vẽ đã nói là làm thẻ dài ra mà không thêm tin gì.
+    if str(o_bat_dau(step, "nhanh_chay") or "") == "tat_ca":
+        dong.append("nhánh: CHẠY HẾT — không lần lượt")
     return dong
 
 
@@ -1389,6 +1396,12 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
                  f"Khối Bắt đầu có {len(vao)} đường nối ĐI VÀO. Nó là điểm neo, "
                  f"không bao giờ được chạy tới từ chỗ khác. Hãy gỡ mấy đường đó.")
 
+    # Sơ đồ đang chạy nhánh LẦN LƯỢT (`if/elif`) hay CHẠY HẾT (`if/if`)? Đọc thẳng từ
+    # khối Bắt đầu chứ không nhận qua tham số: như vậy mọi người gọi hàm này (bảng Vấn
+    # đề, bộ sinh mã, test) đều soát theo đúng ngữ nghĩa sơ đồ đang chọn, không ai phải
+    # nhớ truyền thêm một cờ — quên truyền là soát sai mà chẳng báo gì.
+    nhanh_het = bool(bd) and str(o_bat_dau(bd[0], "nhanh_chay") or "") == "tat_ca"
+
     # ---- Đường nối trỏ về chính nó ----
     for e in (edges or []):
         if isinstance(e, dict) and e.get("from") and e.get("from") == e.get("to") \
@@ -1410,6 +1423,12 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
     # Nhiều đường ra KHÔNG phải lỗi, nhưng phải quyết định được đi đường nào. Ở điểm rẽ
     # các nhánh được thử lần lượt trên->dưới, nên mỗi nhánh phải mở đầu bằng một CỔNG,
     # trừ tối đa MỘT nhánh mặc định — và nhánh mặc định luôn khớp nên bắt buộc xếp CUỐI.
+    #
+    # ⚠ BA LUẬT DƯỚI ĐÂY CHỈ ĐÚNG KHI NHÁNH CHẠY LẦN LƯỢT. Chúng đều nói một câu:
+    # "nhánh này khớp thì nhánh kia không bao giờ tới lượt". Sơ đồ chọn CHẠY HẾT thì
+    # không còn chuyện tới lượt — mỗi câu `if` tự quyết lấy, hai chiến thuật con cùng
+    # chạy trong một nhịp, và một nhánh không cổng chỉ là một nhánh LUÔN chạy. Giữ
+    # nguyên mấy luật ấy là chặn đúng cái người dùng vừa cố ý bật.
     for sid, nhanh in ke.items():
         if len(nhanh) < 2 or sid not in theo_id:
             continue
@@ -1420,7 +1439,9 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
         quay = [uv for uv in nhanh if theo_id[uv].get("ghim")]
         thang = [uv for uv in nhanh if uv not in quay]
         khong_cong = [uv for uv in thang if not is_branch_gate(theo_id[uv])]
-        if len(khong_cong) > 1:
+        if nhanh_het:
+            pass                 # chạy hết: nhánh không cổng là nhánh luôn chạy
+        elif len(khong_cong) > 1:
             ds_ten = ", ".join(ten(uv) for uv in khong_cong)
             _loi(ra, "error", sid,
                  f"{ten(sid)} rẽ {len(nhanh)} nhánh nhưng có {len(khong_cong)} nhánh "
@@ -1446,6 +1467,9 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
         # thị y hệt mà khác vị trí sẽ chạy ra khác nhau.
         # Báo LỖI chứ không cảnh báo: sửa chỉ tốn một cú kéo, còn để nguyên thì cái sai
         # không bao giờ lộ ra — sơ đồ trông vẫn đúng.
+        # ⚠ LUẬT NÀY ĐÚNG CẢ KHI CHẠY HẾT, nên nó KHÔNG được nới. Chạy hết thì mọi
+        # nhánh đều chạy, nhưng vẫn chạy theo một THỨ TỰ — và thứ tự đó đọc được: hai
+        # nhánh ghi vào cùng một ô nhớ, hay cùng đặt lệnh một mã, thì cái chạy sau thắng.
         for i, a in enumerate(thang):
             for b in thang[i + 1:]:
                 ya, yb = _khoa_nhanh(theo_id[a])[1], _khoa_nhanh(theo_id[b])[1]
@@ -1453,14 +1477,16 @@ def validate_flow_graph(steps, edges, nhan_cong=None):
                     continue
                 _loi(ra, "error", a,
                      f"{ten(a)} và {ten(b)} là hai nhánh của {ten(sid)} nhưng nằm "
-                     f"NGANG NHAU (lệch {abs(ya - yb):.0f} px). Nhánh nào được thử "
-                     f"trước là do vị trí quyết, nên đặt ngang nhau là để máy tự chọn "
-                     f"bằng thứ mắt không thấy. Hãy kéo một trong hai lên hoặc xuống "
+                     f"NGANG NHAU (lệch {abs(ya - yb):.0f} px). Nhánh nào "
+                     f"{'chạy' if nhanh_het else 'được thử'} trước là do vị trí quyết, "
+                     f"nên đặt ngang nhau là để máy tự chọn bằng thứ mắt không thấy. "
+                     f"Hãy kéo một trong hai lên hoặc xuống "
                      f"ít nhất {LECH_TOI_THIEU:.0f} px.")
 
         # Hai cổng cùng điều kiện y hệt: cái dưới không bao giờ tới lượt.
+        # (Chạy hết thì cả hai đều chạy — trùng điều kiện là thừa, không phải chết.)
         da_thay = {}
-        for uv in nhanh:
+        for uv in (nhanh if not nhanh_het else []):
             if not is_branch_gate(theo_id[uv]):
                 continue
             # ⚠ Bản trước đọc khoá `conditions` — thứ đã chết cùng bộ khối cũ (D-12).
@@ -2044,8 +2070,7 @@ def soat_ca_ro(steps):
         for a in (hanh_dong_cua(s) if is_group_step(s) else [s]):
             if not isinstance(a, dict):
                 continue
-            d = lam.LOAI_LAM.get(a.get("type"))
-            if not d or not d["can_ma"]:
+            if not _lam_can_ma(a):
                 continue
             if not str(a.get("ma") or "").strip():
                 _loi(ra, "error", s.get("id"),
@@ -2069,6 +2094,26 @@ def soat_ca_ro(steps):
                          f'"{step_title(s)}" dòng {i + 1}: chạy cho cả rổ thì vế nào '
                          f"cũng phải gõ rõ tên mã.")
     return ra
+
+
+def _lam_can_ma(a):
+    """Khối Hành động NÀY có cần «mã đang xét» không. -> bool
+
+    Cờ `can_ma` của từ điển là cờ cho cả LOẠI, mà một loại có thể cần mã hay không tuỳ
+    ô người dùng chọn — nên hỏi theo KHỐI, không hỏi theo loại.
+
+    ⚠ ĐÚNG CHỖ KHỐI «GHI NHỚ» ĐÃ HỨA MÀ CHƯA AI LÀM: `lam.GHI_NHO` khai `can_ma=False`
+    kèm chú thích "suy từ ô nhớ", nhưng không có ai suy. Nên ô nhớ THEO MÃ
+    (`self._nho_cua(sym)[…]`) trong một sơ đồ chạy MỘT LƯỢT cho cả rổ sinh ra một biến
+    `sym` không tồn tại: Python ném NameError lúc chạy, sau khi đã chờ cả phút — đúng
+    cái mà `soat_ca_danh_muc` sinh ra để chặn."""
+    d = lam.LOAI_LAM.get(a.get("type"))
+    if not d:
+        return False
+    if d["can_ma"]:
+        return True
+    o_nho = hoi.o_nho_cua(str(a.get("o_nho") or ""))
+    return bool(o_nho and o_nho["can_ma"])
 
 
 def soat_khoi_lam(step):

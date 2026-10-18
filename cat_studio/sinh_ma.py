@@ -185,6 +185,9 @@ class _Nc:
         self.res = "Resolution.DAILY"
         #: True = chạy MỘT LƯỢT cho cả rổ (chia danh mục), nên KHÔNG có biến `sym`.
         self.ca_danh_muc = False
+        #: Nhánh CHẠY HẾT (`if/if`) thay vì lần lượt (`if/elif`) — ô «Nhánh chạy thế
+        #: nào» của khối Bắt đầu. Đặt một lần ở `_khai_mo`, y lối `ca_danh_muc`.
+        self.nhanh_het = False
         #: Mục RỔ đang chọn, hay None nếu khối Bắt đầu gõ mã sẵn. Khác nhau ở ba chỗ:
         #: khai mã, khai chỉ báo, và `self._ma` lấy từ đâu.
         self.ro = None
@@ -431,9 +434,20 @@ def _chuoi(nc, cur, dung_tai, sau, mach):
 def _toa(nc, cur, nhanh, dung_tai, sau, mach):
     """Toả ra nhiều nhánh từ `cur`. -> [dòng].
 
-    Các nhánh được thử LẦN LƯỢT, nhánh đầu khớp thì thôi — đúng ngữ nghĩa `is_branch_
-    gate` đã chốt (*"ở điểm rẽ các nhánh được thử lần lượt, nên nhánh trượt phải LÙI
-    LẠI ĐƯỢC"*). Nên `if / elif`, không phải mấy câu `if` rời."""
+    HAI NGỮ NGHĨA, và ô «Nhánh chạy thế nào» ở khối Bắt đầu chọn:
+
+    · LẦN LƯỢT (mặc định) — `if / elif`. Nhánh đầu khớp thì thôi, đúng ngữ nghĩa
+      `is_branch_gate` đã chốt (*"ở điểm rẽ các nhánh được thử lần lượt, nên nhánh
+      trượt phải LÙI LẠI ĐƯỢC"*). Đây là cây quyết định: rẽ một đường.
+
+    · CHẠY HẾT — mấy câu `if` RỜI. Mọi nhánh khớp đều chạy, nên hai chiến thuật con
+      cùng làm việc trong một nhịp. vd10 cần đúng câu này: `Rebalance263` và
+      `Rebalance531` cùng chạy rồi trộn tỷ trọng.
+
+    ⚠ CHẠY HẾT THÌ KHÔNG CÓ `else`, VÀ KHÔNG CÓ `return` CHỐT. Với `if/elif`, không
+    làn nào khớp nghĩa là hết lượt nên phải `return` để khỏi rơi xuống chỗ gộp. Với
+    `if/if` thì "không làn nào khớp" không còn là một trạng thái — mỗi câu `if` tự
+    quyết lấy, và chỗ gộp PHẢI chạy vì nó chính là chỗ trộn kết quả lại."""
     if not nhanh:
         return []
     if len(nhanh) == 1:
@@ -443,6 +457,7 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
     if gop == dung_tai:
         gop = dung_tai
     ra = []
+    het = nc.nhanh_het           # chạy HẾT mọi nhánh khớp, không lần lượt
     co_cua_chot = True            # mọi làn đều có cổng -> cần `else: return`
     for i, head in enumerate(nhanh):
         st = nc.theo_id.get(head)
@@ -453,7 +468,7 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
             dk, mo_ta = _dieu_kien_py(nc, st)
             than = _toa(nc, head, list(nc.ke.get(head) or []), gop or dung_tai, sau,
                         mach + [mo_ta])
-            ra.append(f"{'if' if not ra else 'elif'} {dk}:"
+            ra.append(f"{'if' if (het or not ra) else 'elif'} {dk}:"
                       f"  # {nc.thu_tu.get(head, '?')} · {core.step_title(st)}")
             ra += [TAB + d for d in (than or ["pass"])]
         else:
@@ -461,6 +476,11 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
             # xếp sau nó không bao giờ tới lượt.
             co_cua_chot = False
             than = _chuoi(nc, head, gop or dung_tai, sau, mach)
+            if het:
+                # CHẠY HẾT: làn không cổng chỉ là một làn luôn chạy, nó KHÔNG nuốt
+                # mấy làn sau. Nên viết thẳng thân nó ra rồi đi tiếp, không `else`.
+                ra += than or ["pass"]
+                continue
             if not ra:
                 ra += than or ["pass"]
             else:
@@ -472,7 +492,7 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
                              f"giờ tới lượt.", "warning")
             break
     if gop and gop != dung_tai:
-        if co_cua_chot:
+        if co_cua_chot and not het:
             # Không làn nào khớp thì hết lượt — chứ không rơi xuống chỗ gộp.
             ra.append("else:")
             ra.append(TAB + "return")
@@ -653,6 +673,7 @@ def _khai_mo(nc, st):
         ra.append("self.add_security_initializer(self._khoi_tao_ma)")
 
     nc.ca_danh_muc = str(core.o_bat_dau(st, "chay_cho") or "") == "ca_danh_muc"
+    nc.nhanh_het = str(core.o_bat_dau(st, "nhanh_chay") or "") == "tat_ca"
     if not bat_dau.nhip_cua(str(core.o_bat_dau(st, "nhip") or "")):
         # Nhịp lạ = file sửa tay. Báo rồi đi tiếp: `bat_dau.ham_chay` và
         # `do_phan_giai` đều rơi về nhịp «mỗi nến ngày», nên phần còn lại vẫn sinh
