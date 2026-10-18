@@ -104,6 +104,25 @@ kiem("đủ năm nhịp theo NẾN — đúng năm `Resolution` của LEAN",
 kiem("và có nhịp HẸN GIỜ", len(hen_gio) >= 1, f"— {len(hen_gio)} nhịp")
 kiem("nhịp hẹn giờ đều qua `schedule.on`",
      all("schedule.on" in n[3] for n in hen_gio), f"— {len(hen_gio)} nhịp")
+# ⚠ THIẾU NHỊP THÁNG thì mọi chiến thuật "cân lại danh mục mỗi tháng" không nói
+# được — mà đếm trong tập ví dụ thì có tới ba cái dùng nó. Người ta phải lách bằng
+# nhịp NGÀY rồi tự đếm ngày trong khối, tức app lại đi đếm hộ LEAN đúng thứ LEAN đã
+# có sẵn hàm (`date_rules.month_start` / `month_end`).
+kiem("có nhịp THÁNG — cả đầu tháng lẫn cuối tháng",
+     {"thang_dau", "thang_cuoi"} <= {n[0] for n in bat_dau.NHIP},
+     f"— {sorted(n[0] for n in bat_dau.NHIP)}")
+# Mỗi nhịp phải trỏ vào một `date_rules` CÓ THẬT của LEAN, không bịa tên quy tắc.
+_quy_tac = ("every_day", "week_start", "month_start", "month_end")
+_bia = [n[0] for n in hen_gio
+        if not any(f"date_rules.{q}(" in n[3] for q in _quy_tac)]
+kiem("nhịp nào cũng dùng một `date_rules` có thật", not _bia, f"— {_bia}")
+# Và câu "không mã" phải khớp câu "có mã": rổ động không gõ được tên mã nào, nên hai
+# câu lệch nhau là rổ chạy một nhịp khác hẳn nhịp người dùng chọn.
+_lech = [n[0] for n in hen_gio
+         if n[3].split("date_rules.")[1].split("(")[0]
+         != n[5].split("date_rules.")[1].split("(")[0]]
+kiem("câu cho RỔ ĐỘNG dùng cùng quy tắc ngày với câu gõ mã sẵn", not _lech,
+     f"— {_lech}")
 # ⚠ TỪNG CANH NGƯỢC: bản D-15 bắt nhịp hẹn giờ phải là PHÚT, "vì dữ liệu ngày không
 # có giờ nào trong đó mà hẹn". Sai — `schedule.on` chạy theo đồng hồ thuật toán, nên
 # dữ liệu ngày vẫn hẹn giờ được (vd2 làm đúng thế). Ép phút thì SMA(200) thành 200

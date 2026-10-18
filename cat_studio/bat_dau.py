@@ -200,6 +200,23 @@ NHIP = (
      (_o_phut("Số phút sau khi mở", 30), _O_DO_PHAN_GIAI),
      "schedule.on(date_rules.week_start(), "
      "time_rules.after_market_open(so_phut))"),
+    # Nhịp THÁNG — `date_rules.month_start` / `month_end`. Thiếu hai nhịp này thì mọi
+    # chiến thuật "cân lại danh mục mỗi tháng" không nói được, mà đó là nhịp phổ biến
+    # nhất của lối đầu tư theo rổ: đếm trong tập ví dụ thì có tới ba cái dùng nó.
+    # Người ta phải lách bằng nhịp NGÀY rồi tự đếm ngày trong khối — tức app lại đi
+    # đếm hộ LEAN đúng thứ LEAN đã có sẵn hàm.
+    ("thang_dau", "Mỗi THÁNG, đầu tháng", "MINUTE",
+     "schedule.on(date_rules.month_start(ma), "
+     "time_rules.after_market_open(ma, so_phut))",
+     (_o_phut("Số phút sau khi mở", 30), _O_DO_PHAN_GIAI),
+     "schedule.on(date_rules.month_start(), "
+     "time_rules.after_market_open(so_phut))"),
+    ("thang_cuoi", "Mỗi THÁNG, cuối tháng", "MINUTE",
+     "schedule.on(date_rules.month_end(ma), "
+     "time_rules.before_market_close(ma, so_phut))",
+     (_o_phut("Số phút trước khi đóng", 30), _O_DO_PHAN_GIAI),
+     "schedule.on(date_rules.month_end(), "
+     "time_rules.before_market_close(so_phut))"),
 )
 
 NHIP_THEO_MA = {n[0]: n for n in NHIP}
