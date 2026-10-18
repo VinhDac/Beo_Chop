@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import core, hoi, lam  # noqa: E402
+from cat_studio import bat_dau, cai_dat, core, hoi, lam  # noqa: E402
 
 dung = sai = 0
 
@@ -334,6 +334,45 @@ kiem("đủ chín loại", len(td["loai"]) == 9)
 kiem("mỗi loại có ô", all(l["o"] for l in td["loai"]))
 kiem("mỗi loại khai luôn hàm LEAN cho hộp thoại nói thẳng ra",
      all(l["lean"] for l in td["loai"]))
+
+print("\n▸ ⚠ Ô `chon` không được là một CHUỖI bị xé thành từng chữ")
+# ĐÃ DÍNH THẬT, hai lần, cùng một kiểu: `_o(ten, nhan, kieu, mac_dinh, don_vi,
+# goi_y, chon)` — đếm nhầm một chỗ trống là câu gợi ý trôi sang khe `chon`, rồi
+# `list(chon)` xé nó thành ['H','ế','t',...]. Đơn vị mất, gợi ý mất, mà build
+# vẫn sạch và hộp thoại vẫn mở — hỏng LẶNG. Ô «Giữ tối đa» của «Phát tín hiệu»
+# đã nằm nguyên như thế. Quét ĐỆ QUY cả bốn từ điển, nên bẫy này không mọc lại
+# được ở bất cứ khối nào, kể cả ô con trong `theo_loai` hay trong rổ.
+def _moi_chon(x, duong=""):
+    """Mọi khoá `chon` ở BẤT CỨ độ sâu nào -> (đường dẫn, giá trị)."""
+    if isinstance(x, dict):
+        for k, v in x.items():
+            if k == "chon":
+                yield f"{duong}.{k}", v
+            else:
+                yield from _moi_chon(v, f"{duong}.{k}")
+    elif isinstance(x, (list, tuple)):
+        for i, v in enumerate(x):
+            yield from _moi_chon(v, f"{duong}[{i}]")
+
+
+_xau = []
+_dem = 0
+for _ten_td, _td in (("HÀNH ĐỘNG", lam.tu_dien()), ("XÁC NHẬN", hoi.tu_dien()),
+                     ("BẮT ĐẦU", bat_dau.tu_dien()), ("CÀI ĐẶT", cai_dat.tu_dien())):
+    for _duong, _chon in _moi_chon(_td, _ten_td):
+        _dem += 1
+        for _c in _chon:
+            if isinstance(_c, str) and len(_c) <= 1:
+                _xau.append(f"{_duong} = {_chon[:6]}…")
+                break
+kiem(f"quét {_dem} ô `chon` trong bốn từ điển", _dem > 20)
+kiem("không ô nào là chuỗi bị xé thành chữ", not _xau, f"— {_xau}")
+
+print("\n▸ Ô số của «Phát tín hiệu» — đơn vị và gợi ý phải về ĐÚNG khe của nó")
+_han = [o for o in lam.TIN_HIEU["o"] if o["ten"] == "han"][0]
+kiem("đơn vị là «ngày»", _han["don_vi"] == "ngày")
+kiem("gợi ý nói LEAN tự bỏ tín hiệu", "LEAN" in _han["goi_y"])
+kiem("ô số thì KHÔNG có danh sách chọn", not _han["chon"])
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

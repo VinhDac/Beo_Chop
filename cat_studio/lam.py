@@ -305,7 +305,7 @@ TIN_HIEU = {
         # HẠN chính là "giữ tối đa bao lâu". Hết hạn, LEAN tự bỏ tín hiệu khỏi rổ
         # đang tính, và model chia vốn chia lại cho những mã còn hạn — tức vị thế tự
         # đóng mà KHÔNG khối nào phải đếm ngày.
-        _o("han", "Giữ tối đa", O_SO, 15, "", "ngày",
+        _o("han", "Giữ tối đa", O_SO, 15, "ngày",
            "Hết ngần này ngày, LEAN tự bỏ tín hiệu và chia lại vốn cho mã còn hạn. "
            "Không khối nào phải đếm ngày — đó là việc của LEAN."),
     ],
