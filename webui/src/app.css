@@ -981,25 +981,31 @@ mark.tim-chu {
      · viền ĐỨT — quy ước quen thuộc cho "không nằm trong luồng"
      · KHÔNG bóng đổ — bóng làm nó nổi lên như một khối thật
      · 264px, hẹp hơn khối (296px) một quãng rõ rệt, để không ai nhầm cùng một họ
-     · màu `--co-may`, không lẫn với màu khối nào trên sơ đồ */
+
+   MÀU LÀ CAM HỆ THỐNG (`--accent`). Jenifer dùng một màu riêng (`--dacbiet`) vì bên
+   ấy accent là màu NGƯỜI DÙNG TỰ ĐẶT trong Cài đặt, nên lấy nó là ô trợ thủ đổi màu
+   theo ý thích mà chẳng vì nghĩa gì. Cat KHÔNG có núm ấy — `accent` đã bị bỏ khỏi
+   hộp Cài đặt vì không dòng nào đọc tới — nên nó là màu cố định của app, và ô này là
+   đồ đạc của app chứ không phải một khối trên sơ đồ. Một màu riêng ở đây chỉ là thêm
+   một màu nữa để nhớ. */
 .tag-co-may-noi { position: absolute; z-index: 6; right: 12px; top: 12px; }
 .o-co-may {
   width: 264px; padding: 8px 10px 10px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--co-may) 55%, var(--border));
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: var(--radius);
   cursor: default;
 }
-.o-co-may .cm-dau { display: flex; align-items: center; gap: 6px; color: var(--co-may); }
+.o-co-may .cm-dau { display: flex; align-items: center; gap: 6px; color: var(--accent); }
 .o-co-may .dai-mau {
-  width: 3px; height: 14px; border-radius: 2px; background: var(--co-may);
+  width: 3px; height: 14px; border-radius: 2px; background: var(--accent);
 }
 .o-co-may .cm-ten {
   font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap;
 }
 .o-co-may .cm-nhan {
   margin-left: auto; font-size: 10px; letter-spacing: .3px; white-space: nowrap;
-  color: var(--co-may); border: 1px solid currentColor;
+  color: var(--accent); border: 1px solid currentColor;
   border-radius: 999px; padding: 1px 7px;
 }
 .o-co-may .cm-than { margin-top: 6px; font-size: 11px; line-height: 1.5; color: var(--muted); }
