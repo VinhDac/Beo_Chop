@@ -53,7 +53,7 @@ O_DS_MA = "ds_ma"               # [{"ma": "XAUUSD", "loai": "cfd"}, …]
 
 
 def _o(ten, nhan, kieu, mac_dinh, lean, don_vi="", goi_y="", chon=(),
-       bat_buoc=True, nguyen=False):
+       bat_buoc=True, nguyen=False, nhom=""):
     """Một ô của khối Bắt đầu.
 
     `nguyen` = chỉ nhận số NGUYÊN (giờ, phút). Khai ở đây chứ không để giao diện tự
@@ -62,7 +62,7 @@ def _o(ten, nhan, kieu, mac_dinh, lean, don_vi="", goi_y="", chon=(),
     khoá không hề tồn tại — in ra "Từ undefined đến undefined" suốt một thời gian."""
     return {"ten": ten, "nhan": nhan, "kieu": kieu, "mac_dinh": mac_dinh,
             "lean": lean, "don_vi": don_vi, "goi_y": goi_y, "chon": list(chon),
-            "bat_buoc": bat_buoc, "nguyen": nguyen}
+            "bat_buoc": bat_buoc, "nguyen": nguyen, "nhom": nhom}
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +78,34 @@ LOAI_TAI_SAN = (
     ("index", "Chỉ số", "add_index"),
     ("future", "Hợp đồng tương lai", "add_future"),
 )
+
+#: NĂM NHÓM CỦA HỘP BẮT ĐẦU — thứ tự bày ra là thứ tự người ta nghĩ.
+#:
+#: ⚠ VÌ SAO CÓ BẢNG NÀY (18/10/2026). Hộp Bắt đầu mở ra là MỘT danh sách phẳng, và
+#: hồi nó có sáu ô thì thế là đủ. Hôm nay nó có mười lăm ô chính cộng ô con của nhịp,
+#: của quy tắc giờ, của rổ, của bốn trạm dây chuyền, của model phí và trượt giá —
+#: hơn hai mươi ô xếp thành một cột. Không ô nào sai, mà cả hộp thì không đọc được:
+#: «Đệm tiền mặt» đứng cạnh «Nhịp», «Mốc so sánh» đứng giữa «Chạy cho ai» và «Sàn».
+#:
+#: Nhóm khai Ở ĐÂY, không gõ cứng trong .tsx — cùng luật với mọi thứ khác trong từ
+#: điển: thêm một ô mới là khai luôn nó thuộc nhóm nào, và giao diện có ngay. Gõ danh
+#: sách nhóm bên TypeScript thì đó là bảng tra thứ hai, và nó sẽ tụt lại.
+NHOM_O = (
+    ("chay_gi", "Chạy trên cái gì", "mã nào, giá tính thế nào, mỗi mã một lượt hay "
+                                    "cả rổ một lượt"),
+    ("tien", "Thời gian và tiền", "từ bao giờ đến bao giờ, bao nhiêu tiền"),
+    ("nhip", "Nhịp — xem lại khi nào", "mỗi nến, hay hẹn giờ theo lịch"),
+    ("day_chuyen", "Dây chuyền LEAN", "tín hiệu đi qua bốn trạm: phát → chia vốn → "
+                                      "phòng rủi ro → đặt lệnh"),
+    ("chi_phi", "Sàn và chi phí", "phí và trượt giá tính theo kiểu nào"),
+    ("do_luong", "Đo lường", "so cỗ máy này với cái gì"),
+)
+
+#: Ô nào KHÔNG khai nhóm thì rơi về nhóm này — bày ra cuối cùng. Rơi về êm thì một ô
+#: mới quên khai nhóm sẽ biến mất khỏi hộp thoại mà không ai thấy; rơi về đây thì nó
+#: vẫn hiện, chỉ là hiện ở cuối, và `test_bat_dau` bắt được chuyện quên khai.
+NHOM_KHAC = "khac"
+
 
 #: Loại tài sản nào NHẬN được tham số `data_normalization_mode`. Đọc chữ ký trong
 #: `Algorithm/QCAlgorithm.cs`: chỉ `AddEquity` và `AddFuture` có tham số ấy;
@@ -367,39 +395,39 @@ NHIP = (
 
     ("moi_ngay", "Mỗi NGÀY", "MINUTE",
      "schedule.on(date_rules.every_day(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.every_day(), {gio})"),
     ("tuan", "Mỗi TUẦN — đầu tuần", "MINUTE",
      "schedule.on(date_rules.week_start(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.week_start(), {gio})"),
     ("tuan_cuoi", "Mỗi TUẦN — cuối tuần", "MINUTE",
      "schedule.on(date_rules.week_end(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.week_end(), {gio})"),
     ("thang_dau", "Mỗi THÁNG — đầu tháng", "MINUTE",
      "schedule.on(date_rules.month_start(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.month_start(), {gio})"),
     ("thang_cuoi", "Mỗi THÁNG — cuối tháng", "MINUTE",
      "schedule.on(date_rules.month_end(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.month_end(), {gio})"),
     ("quy_dau", "Mỗi QUÝ — đầu quý", "MINUTE",
      "schedule.on(date_rules.quarter_start(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.quarter_start(), {gio})"),
     ("quy_cuoi", "Mỗi QUÝ — cuối quý", "MINUTE",
      "schedule.on(date_rules.quarter_end(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.quarter_end(), {gio})"),
     ("nam_dau", "Mỗi NĂM — đầu năm", "MINUTE",
      "schedule.on(date_rules.year_start(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.year_start(), {gio})"),
     ("nam_cuoi", "Mỗi NĂM — cuối năm", "MINUTE",
      "schedule.on(date_rules.year_end(ma), {gio})",
-     (_O_DO_PHAN_GIAI,),
+     (_O_DO_PHAN_GIAI, _O_QUY_TAC_GIO),
      "schedule.on(date_rules.year_end(), {gio})"),
 )
 
@@ -1021,15 +1049,15 @@ O_BAT_DAU = [
        "add_cfd / add_equity / add_forex / add_crypto / add_index / add_future · "
        "hoặc set_universe_selection(…) nếu chọn một rổ",
        goi_y="Gõ sẵn mấy mã, hoặc chọn một RỔ — rổ thì LEAN tự quyết hôm nay gồm "
-             "những mã nào. Nhiều mã thì cả sơ đồ chạy lại một lượt cho TỪNG mã."),
+             "những mã nào. Nhiều mã thì cả sơ đồ chạy lại một lượt cho TỪNG mã.", nhom="chay_gi"),
 
     _o("khoang", "Từ ngày → đến ngày", O_KHOANG_NGAY,
        {"tu": "2010-01-01", "den": "2019-01-01"},
        "set_start_date(tu) · set_end_date(den)",
-       goi_y="Dữ liệu vàng miễn phí có từ 20/03/2006 đến 25/02/2019."),
+       goi_y="Dữ liệu vàng miễn phí có từ 20/03/2006 đến 25/02/2019.", nhom="tien"),
 
     _o("von", "Vốn", O_SO, 100000, "set_cash(von)", don_vi="$",
-       goi_y="Tiền khởi đầu của cỗ máy."),
+       goi_y="Tiền khởi đầu của cỗ máy.", nhom="tien"),
 
     # Đệm tiền mặt: phần vốn LEAN KHÔNG cho đặt lệnh, để lệnh khỏi bị từ chối vì
     # thiếu ký quỹ. Mặc định của LEAN là 0,0025 (0,25%). Đổi nó là đổi sức mua, tức
@@ -1037,12 +1065,12 @@ O_BAT_DAU = [
     _o("dem_tien_mat", "Đệm tiền mặt", O_SO, 0.0025,
        "self.settings.free_portfolio_value_percentage = dem_tien_mat",
        don_vi="phần",
-       goi_y="0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025."),
+       goi_y="0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025.", nhom="tien"),
 
     _o("nhip", "Nhịp", O_CHON, "ngay",
        "Resolution.* · on_data hoặc schedule.on",
        chon=[(m, nhan) for m, nhan, *_ in NHIP],
-       goi_y="Bao lâu cỗ máy xem một lần."),
+       goi_y="Bao lâu cỗ máy xem một lần.", nhom="nhip"),
 
     # ⚠ HAI KIỂU CHIẾN THUẬT KHÁC HẲN NHAU, và trước nay ta chỉ có kiểu đầu.
     #
@@ -1056,7 +1084,7 @@ O_BAT_DAU = [
     _o("chay_cho", "Chạy cho ai", O_CHON, "moi_ma", "for sym in self._ma: …",
        chon=[("moi_ma", "Mỗi mã một lượt — sàng từng mã"),
              ("ca_danh_muc", "Một lượt cho CẢ RỔ — chia danh mục")],
-       goi_y="Chia danh mục thì mọi khối phải gõ rõ tên mã."),
+       goi_y="Chia danh mục thì mọi khối phải gõ rõ tên mã.", nhom="chay_gi"),
 
     # ⚠ ĐỂ TRỐNG KHÔNG PHẢI LÀ "KHÔNG CÓ MỐC". `DefaultBrokerageModel.GetBenchmark`
     # trả về **SPY** — tức cỗ máy vàng của bạn bị đem so với cổ phiếu Mỹ, và không
@@ -1064,19 +1092,19 @@ O_BAT_DAU = [
     _o("moc_so_sanh", "Mốc so sánh", O_CHU, "", "set_benchmark(ma)",
        goi_y="Để trống thì LEAN tự lấy SPY (cổ phiếu Mỹ). Gõ chính mã mình chạy để "
              "so với «mua rồi ôm».",
-       bat_buoc=False),
+       bat_buoc=False, nhom="do_luong"),
 
     _o("san", "Sàn", O_CHON, "DEFAULT", "set_brokerage_model(BrokerageName.san)",
-       chon=list(SAN), goi_y="Quyết phí và trượt giá tính theo kiểu nào."),
+       chon=list(SAN), goi_y="Quyết phí và trượt giá tính theo kiểu nào.", nhom="chi_phi"),
 
     _o("phi", "Phí (ghi đè Sàn)", O_CHON, "",
        "security.set_fee_model(…)", chon=[(m, n) for m, n, *_ in PHI],
        goi_y="Để trống thì phí theo Sàn đã chọn. Đặt phí cố định 0 là cách xem "
-             "chiến thuật tự nó lãi bao nhiêu trước khi trừ phí.", bat_buoc=False),
+             "chiến thuật tự nó lãi bao nhiêu trước khi trừ phí.", bat_buoc=False, nhom="chi_phi"),
     _o("truot_gia", "Trượt giá (ghi đè Sàn)", O_CHON, "",
        "security.set_slippage_model(…)",
        chon=[(m, n) for m, n, *_ in TRUOT_GIA],
-       goi_y="Để trống thì trượt giá theo Sàn đã chọn.", bat_buoc=False),
+       goi_y="Để trống thì trượt giá theo Sàn đã chọn.", bat_buoc=False, nhom="chi_phi"),
 
     _o("chuan_hoa_gia", "Chuẩn hoá giá", O_CHON, "",
        "add_equity(…, data_normalization_mode=…) · universe_settings."
@@ -1085,7 +1113,7 @@ O_BAT_DAU = [
        goi_y="Cổ tức và chia tách tính vào giá thế nào. Để trống thì LEAN dùng "
              "ADJUSTED. Chỉ có tác dụng với CỔ PHIẾU, HĐ tương lai và rổ động — "
              "ngoại hối / tiền mã hoá / CFD / chỉ số không nhận tham số này.",
-       bat_buoc=False),
+       bat_buoc=False, nhom="chay_gi"),
 
     # --- BA CHÍNH SÁCH CỦA DÂY CHUYỀN LEAN ---
     #
@@ -1106,18 +1134,18 @@ O_BAT_DAU = [
        "add_alpha(…)", chon=[(m, n) for m, n, *_ in PHAT_TIN_HIEU],
        goi_y="Model TỰ phát tín hiệu cho mọi mã trong rổ, không cần khối vẽ nào. "
              "Dùng được CÙNG LÚC với khối «Phát tín hiệu» — LEAN gộp cả hai nguồn.",
-       bat_buoc=False),
+       bat_buoc=False, nhom="day_chuyen"),
     _o("chia_von", "Chia vốn theo tín hiệu", O_CHON, "",
        "set_portfolio_construction(…)", chon=list(CHIA_VON),
        goi_y="Biến tín hiệu thành tỷ trọng. Không chọn thì tín hiệu phát ra "
-             "KHÔNG ai nhận.", bat_buoc=False),
+             "KHÔNG ai nhận.", bat_buoc=False, nhom="day_chuyen"),
     _o("phong_rui_ro", "Phòng rủi ro", O_CHON, "",
        "set_risk_management(…)", chon=[(m, n) for m, n, *_ in PHONG_RUI_RO],
        goi_y="Chạy SAU khi chia vốn, chỉnh lại tỷ trọng — cắt lỗ, chốt lời, "
-             "trailing stop. LEAN giữ mức, app không nhớ gì.", bat_buoc=False),
+             "trailing stop. LEAN giữ mức, app không nhớ gì.", bat_buoc=False, nhom="day_chuyen"),
     _o("dat_lenh", "Đặt lệnh", O_CHON, "",
        "set_execution(…)", chon=list(DAT_LENH),
-       goi_y="Cách đẩy tỷ trọng thành lệnh thật.", bat_buoc=False),
+       goi_y="Cách đẩy tỷ trọng thành lệnh thật.", bat_buoc=False, nhom="day_chuyen"),
 ]
 
 O_THEO_TEN = {o["ten"]: o for o in O_BAT_DAU}
@@ -1144,13 +1172,18 @@ def o_cua(gia_tri=None):
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if n:
         ra.extend(n[4])
-        # Nhịp HẸN GIỜ thì mới có ô «Lúc nào trong ngày», và ô con của quy tắc giờ
-        # ấy (số phút, hay giờ+phút) đi theo nó — cùng lối nhịp mang ô con của nhịp.
-        if n[3] != "on_data":
-            ra.append(_O_QUY_TAC_GIO)
-            g = gio_da_chon(gia_tri)
-            if g:
-                ra.extend(g[4])
+        # Ô «Lúc nào trong ngày» nay nằm NGAY TRONG `o_them` của từng nhịp hẹn giờ,
+        # nên dòng trên đã lấy nó rồi. Chỉ còn ô con của chính quy tắc giờ (số phút,
+        # hay giờ+phút) — một tầng nữa.
+        #
+        # ⚠ TRƯỚC ĐÂY Ô ẤY CHÈN RIÊNG Ở ĐÂY, và `o_cua` thì chỉ Python gọi. Giao diện
+        # dựng danh sách ô từ `O_BAT_DAU` cộng mấy bảng `o_them`, nên một ô chỉ sống
+        # trong `o_cua` là một ô KHÔNG BAO GIỜ HIỆN RA: người dùng chọn nhịp QUÝ rồi
+        # không thấy đâu chỗ chọn giờ, và lịch chạy ở mặc định. Nhìn ảnh mới thấy —
+        # đo bằng JS thì ô ấy vẫn có trong `o_cua`, vẫn lưu được, vẫn sinh mã đúng.
+        g = gio_da_chon(gia_tri)
+        if g:
+            ra.extend(g[4])
     r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
     if r:
         ra.extend(r[2])
@@ -1342,6 +1375,9 @@ def tu_dien():
     """Cả từ điển, dạng gửi được qua cầu nối."""
     return {
         "o": O_BAT_DAU,
+        # NHÓM — giao diện xếp ô theo đây. Thứ tự trong bảng là thứ tự bày.
+        "nhom": [{"ma": m, "nhan": n, "mo_ta": d} for m, n, d in NHOM_O],
+        "nhom_khac": NHOM_KHAC,
         "loai_tai_san": [{"ma": m, "nhan": n, "lean": h} for m, n, h in LOAI_TAI_SAN],
         "co_san": {k: list(v) for k, v in CO_SAN_MIEN_PHI.items()},
         "nhip": [{"ma": m, "nhan": n, "res": r, "chay": c,
@@ -1356,4 +1392,18 @@ def tu_dien():
         # KHÔNG dựng lại ô ấy — nó bày thẳng `o` Python gửi sang.
         "phong_rui_ro": [{"ma": m, "nhan": n, "o_them": list(th)}
                          for m, n, th in PHONG_RUI_RO],
+        # ⚠ BỐN BẢNG DƯỚI ĐÂY PHẢI GỬI, không thì giao diện không biết ô con của
+        # chúng tồn tại. Mỗi bảng mang ô con của riêng mình đúng hình `{ma, nhan,
+        # o_them}` như ba bảng trên, nên hộp thoại chỉ cần biết «ô TÊN NÀY tra BẢNG
+        # NÀO» — không cần biết trong đó có mấy ô, cũng không cần biết ô gõ hay ô
+        # chọn. Thiếu một bảng ở đây thì ô ấy chọn xong không có núm nào hiện ra, và
+        # model chạy ở mặc định của LEAN — đúng bệnh đã gặp ba lần hôm nay.
+        "quy_tac_gio": [{"ma": m, "nhan": n, "o_them": list(th)}
+                        for m, n, _c, _ck, th in QUY_TAC_GIO],
+        "phat_tin_hieu": [{"ma": m, "nhan": n, "o_them": list(th)}
+                          for m, n, th, _l in PHAT_TIN_HIEU],
+        "phi": [{"ma": m, "nhan": n, "o_them": list(th)}
+                for m, n, th, _l in PHI],
+        "truot_gia": [{"ma": m, "nhan": n, "o_them": list(th)}
+                      for m, n, th, _l in TRUOT_GIA],
     }

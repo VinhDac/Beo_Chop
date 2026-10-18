@@ -210,6 +210,9 @@ export interface OLam {
   /** Chỉ ô CHỌN: [mã, nhãn]. */
   chon: [string, string][]
   bat_buoc: boolean
+  /** Nhóm của ô, chỉ khối Bắt đầu dùng (xem `TuDienBatDau.nhom`). Để trống hay
+   *  vắng thì ô rơi vào nhóm «Khác» và vẫn hiện ra — rơi về êm mà KHÔNG mất ô. */
+  nhom?: string
 }
 
 /** Một loại việc. `lean` là lời khai: hàm có thật của LEAN đứng sau nó. */
@@ -425,9 +428,26 @@ export interface NhipChay {
   chay_ro: string
 }
 
+/** Một bảng «chọn cái này thì hiện thêm mấy ô kia» — `nhip`, `phong_rui_ro`,
+ *  `quy_tac_gio`, `phat_tin_hieu`, `phi`, `truot_gia` đều đúng hình này. Nhờ vậy
+ *  hộp thoại chỉ cần biết «ô TÊN NÀY tra BẢNG NÀO», không cần biết trong `o_them`
+ *  có mấy ô hay chúng là ô gõ hay ô chọn. */
+export interface BangCoOThem { ma: string; nhan: string; o_them: OLam[] }
+
 export interface TuDienBatDau {
-  /** Sáu ô, cùng hình dạng với ô của khối Làm nên dùng chung được widget. */
+  /** Mười lăm ô, cùng hình dạng với ô của khối Làm nên dùng chung được widget. */
   o: OLam[]
+  /** NHÓM — hộp thoại xếp ô theo đây, thứ tự trong mảng là thứ tự bày ra.
+   *
+   *  Hộp Bắt đầu từng là MỘT danh sách phẳng, và hồi nó có sáu ô thì thế là đủ. Nay
+   *  mười lăm ô chính cộng ô con của nhịp, quy tắc giờ, rổ, bốn trạm dây chuyền,
+   *  model phí và trượt giá — hơn hai mươi ô một cột. Nhóm khai bên PYTHON chứ không
+   *  gõ cứng ở đây: gõ danh sách nhóm trong .tsx là dựng bảng tra thứ hai, và nó sẽ
+   *  tụt lại sau từ điển. */
+  nhom: { ma: string; nhan: string; mo_ta: string }[]
+  /** Nhóm cho ô nào CHƯA khai nhóm — bày cuối cùng, để một ô mới quên khai nhóm thì
+   *  vẫn hiện ra chứ không biến mất lặng lẽ. */
+  nhom_khac: string
   loai_tai_san: { ma: string; nhan: string; lean: string }[]
   /** Mã có sẵn trong bộ dữ liệu MIỄN PHÍ, để gợi ý — không phải để chặn. */
   co_san: Record<string, string[]>
@@ -438,7 +458,16 @@ export interface TuDienBatDau {
    *  `nhip`/`ro`, nên hộp thoại bày chúng bằng đúng một đường. Nhãn ô khác nhau ở
    *  từng model (cắt khi lỗ / chốt khi lãi / tụt khỏi đỉnh), nên TypeScript KHÔNG
    *  dựng lại ô ấy: ngưỡng là cả cái phanh, nó phải nói đúng phanh nào. */
-  phong_rui_ro: { ma: string; nhan: string; o_them: OLam[] }[]
+  phong_rui_ro: BangCoOThem[]
+  /** Quy tắc GIỜ — bảng riêng, vì `schedule.on(date_rules.X, time_rules.Y)` nhận
+   *  mọi X với mọi Y. Gộp hai thứ ấy vào một danh sách cặp là chỉ phủ được những
+   *  cặp ai đó nghĩ ra để thêm. */
+  quy_tac_gio: BangCoOThem[]
+  /** Model Alpha — trạm TỰ phát tín hiệu, không cần khối vẽ nào. */
+  phat_tin_hieu: BangCoOThem[]
+  /** Phí và trượt giá GHI ĐÈ ô «Sàn». */
+  phi: BangCoOThem[]
+  truot_gia: BangCoOThem[]
 }
 
 /* ------------------------------- Kho và khoá -------------------------------- */

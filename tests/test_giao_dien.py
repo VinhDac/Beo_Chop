@@ -396,23 +396,60 @@ bd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
 #                            gợi ý thật. Không lỗi, không cảnh báo, build sạch.
 kiem("không còn đọc khoá `nho_nhat` (từ điển không có khoá ấy)", "nho_nhat" not in bd)
 kiem("không còn đóng cứng `kieu: 'so'`", "kieu: 'so'" not in bd)
-kiem("ô thêm của nhịp đưa thẳng `o` của Python vào",
-     re.search(r"o_them[\s\S]{0,200}<Hang[^>]*o=\{o\b", bd) is not None)
-# Ô NGƯỠNG của trạm phòng rủi ro là Ô THÊM thứ hai, cùng một luật nên cùng một
-# đường: Python khai `PHONG_RUI_RO[*].o_them`, hộp thoại bày lại. Nhãn ô khác nhau ở
-# từng model («cắt khi lỗ» / «chốt khi lãi» / «tụt khỏi đỉnh»), nên dựng lại ô ấy
-# bên TypeScript là nói sai ba trong bốn lần — mà con số vẫn chạy, nên không ai thấy.
-kiem("ô ngưỡng của phòng rủi ro cũng đi qua `o_them` của Python",
-     "tuDien.phong_rui_ro" in bd
-     and re.search(r"rui\?\.o_them[\s\S]{0,120}<Hang[^>]*o=\{o\b", bd) is not None,
-     "— một ô gõ cứng bên này là một nhãn nói sai mà build vẫn sạch")
-kiem("và không gõ cứng nhãn ngưỡng nào",
-     not [o["nhan"] for _m, _n, th in bat_dau.PHONG_RUI_RO for o in th
-          if f'"{o["nhan"]}"' in bd or f"'{o['nhan']}'" in bd])
+kiem("ô con đưa thẳng `o` của Python vào, không dựng lại",
+     re.search(r"function veOVaCon\([\s\S]{0,400}<Hang[^>]*o=\{o\b", bd)
+     is not None)
+# ⚠ VÀ PHẢI VẼ LỒNG NHIỀU TẦNG. Chuỗi thật sâu hai tầng rồi: «Nhịp» mở ra «Lúc nào
+# trong ngày», ô ấy lại mở ra «Số phút sau khi mở» hay «Giờ» + «Phút». Bản vẽ một
+# tầng thì tầng thứ hai biến mất, và lịch chạy ở mặc định — không lỗi, không một lời.
+kiem("và vẽ ĐỆ QUY, không dừng ở một tầng",
+     re.search(r"function veOVaCon\([\s\S]{0,700}veOVaCon\(c,", bd) is not None,
+     "— `veOVaCon` phải gọi lại chính nó cho ô con")
+
+# ⚠ MỌI BẢNG CÓ Ô CON PHẢI ĐƯỢC TRA — và đây là hàng rào quan trọng nhất của mục
+# này. Python gửi sáu bảng mang `o_them` (`nhip` · `quy_tac_gio` · `phong_rui_ro` ·
+# `phat_tin_hieu` · `phi` · `truot_gia`). Thêm bảng thứ bảy mà quên khai trong
+# `bangOThem` thì ô ấy chọn xong KHÔNG núm nào hiện ra, và model chạy ở mặc định của
+# LEAN — nhãn hứa một đằng, mã sinh ra một nẻo, không một lời nào.
+#
+# Bệnh ấy đã dính ba lần trong một ngày: `StandardDeviationExecutionModel` chạy ở
+# `Resolution.MINUTE` ngầm; rổ `ema_cheo` chạy ở 500 mã trong khi hộp hứa 20;
+# `add_security_initializer` đặt sai chỗ nên phí/trượt giá không có tác dụng gì.
+# LẶP QUA CHÍNH TỪ ĐIỂN: Python thêm một bảng là phép này canh luôn.
+_co_o_con = [k for k, v in bat_dau.tu_dien().items()
+             if isinstance(v, list) and v
+             and all(isinstance(x, dict) and "o_them" in x for x in v)]
+kiem("Python gửi đủ sáu bảng có ô con", len(_co_o_con) >= 6, f"— {_co_o_con}")
+# ⚠ `ro` KHÔNG đi qua `bangOThem`, CỐ Ý: ô con của rổ («Mã ETF», «Lấy mấy mã») nằm
+# trong widget `OChayTrenMa` của ô «Chạy trên mã nào», vì «rổ nào» và «rổ ấy lấy mấy
+# mã» là MỘT câu trả lời cho MỘT câu hỏi (xem `bat_dau._o_ro`). Widget ấy cũng bày
+# thẳng `o_them` của Python — phép soi nhãn gõ cứng ngay dưới canh cả nó.
+_O_CON_CHO_KHAC = {
+    "ro": "ô con của rổ nằm trong widget OChayTrenMa của ô «Chạy trên mã nào»",
+}
+_quen = [k for k in _co_o_con
+         if f"{k}: tuDien.{k}" not in bd and k not in _O_CON_CHO_KHAC]
+kiem("bảng nào có ô con thì `bangOThem` phải tra được", not _quen,
+     f"— {_quen} gửi sang mà hộp thoại không tra, nên ô con của chúng KHÔNG hiện")
+# Và danh sách ngoại lệ không được mục: tên nào trong đó mà Python không còn gửi,
+# hay nay đã đi qua `bangOThem`, thì phải xoá khỏi đây.
+_muc = [k for k in _O_CON_CHO_KHAC
+        if k not in _co_o_con or f"{k}: tuDien.{k}" in bd]
+kiem("danh sách ngoại lệ ô con không mục", not _muc, f"— {_muc}")
+
+# Nhãn ô con khác nhau ở từng model («cắt khi lỗ» / «chốt khi lãi» / «tụt khỏi
+# đỉnh»), nên dựng lại ô ấy bên TypeScript là nói sai gần hết — mà con số vẫn chạy,
+# nên không ai thấy. Soi CẢ SÁU bảng, không riêng phòng rủi ro.
+_go_cung = sorted({o["nhan"] for k in _co_o_con
+                   for muc in bat_dau.tu_dien()[k] for o in muc["o_them"]
+                   if f'"{o["nhan"]}"' in bd or f"'{o['nhan']}'" in bd})
+kiem("và không gõ cứng nhãn ô con nào", not _go_cung, f"— {_go_cung}")
 # Lưu thì phải BỎ ô của lựa chọn không còn hiện — không thì file mang theo một ngưỡng
 # cắt lỗ của trạm đã tắt, rồi mở lại là nó lặng lẽ sống lại.
-kiem("lưu có lọc ô của lựa chọn đã tắt, cho CẢ HAI nhóm",
-     re.search(r"function luu\(\)[\s\S]{0,400}rui\?\.o_them", bd) is not None)
+kiem("lưu có lọc ô của lựa chọn đã tắt, cho MỌI bảng",
+     re.search(r"function luu\(\)[\s\S]{0,400}Object\.keys\(bangOThem\)", bd)
+     is not None,
+     "— lọc theo tên bảng gõ tay thì thêm bảng thứ bảy là nó lọt")
 # Dòng khai LEAN tồn tại ĐÚNG ĐỂ kiểm lời hứa — nó nói sai thì tệ hơn không có nó.
 # Nên giao diện KHÔNG ghép câu ấy nữa: nó hỏi `bat_dau.khai()` sau MỖI thay đổi rồi
 # bày lại nguyên văn. Trước đây chỗ này tự suy ra độ phân giải thật, tự chọn `add_*`

@@ -1945,3 +1945,36 @@ mark.tim-chu {
 /* Dòng xếp hạng BẤM ĐÚP được — lấy bộ số ấy về sơ đồ. Đổi con trỏ để nói ra là nó
    bấm được: một bảng trông như chỉ để đọc thì không ai nghĩ tới chuyện bấm đúp. */
 .tu-bang tbody tr.co-the-ap { cursor: pointer; }
+
+/* ───────────────────────── Hộp Bắt đầu — NHÓM Ô ─────────────────────────────
+   Hộp này từng là MỘT cột phẳng, và hồi nó có sáu ô thì thế là đủ. Nay mười lăm ô
+   chính cộng ô con của nhịp, quy tắc giờ, rổ, bốn trạm dây chuyền, model phí và
+   trượt giá — hơn hai mươi ô một cột. Không ô nào sai, mà cả hộp thì không đọc được.
+
+   Nhóm và thứ tự nhóm do PYTHON khai (`bat_dau.NHOM_O`); CSS ở đây chỉ vẽ. */
+.hop-lam .nhom-o {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 11px 12px 12px;
+  border: 1px solid var(--border-soft); border-radius: var(--radius);
+  background: var(--raised);
+}
+.hop-lam .nhom-ten {
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  margin: 0; font: 600 11.5px var(--font);
+  color: var(--accent); text-transform: uppercase; letter-spacing: .04em;
+}
+/* Câu mô tả nhóm: chữ nhỏ, KHÔNG in hoa, và được phép xuống dòng. Nó trả lời "nhóm
+   này nói về cái gì", nên nó phải đọc như một câu chứ không như một nhãn. */
+.hop-lam .nhom-mo-ta {
+  font: 400 11px var(--font); color: var(--dim);
+  text-transform: none; letter-spacing: 0;
+}
+/* Ô CON thụt vào và có vạch dọc bên trái: nhìn là biết nó thuộc về ô ngay trên, chứ
+   không phải một ô độc lập. Bản trước dồn hết ô con xuống đáy hộp, nên «Giờ»/«Phút»
+   của nhịp nằm cách ô «Nhịp» mười ô. */
+.hop-lam .o-con {
+  display: flex; flex-direction: column; gap: 9px;
+  margin-left: 14px; padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+.hop-lam .o-con .nhan-o { flex: 0 0 118px; }
