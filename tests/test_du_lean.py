@@ -175,7 +175,16 @@ CO_Y_BO = {
         "PearsonCorrelationPairsTradingAlphaModel kế thừa nó.",
     "FundamentalUniverseSelectionModel":
         "Lớp NỀN — đòi người dùng viết hàm lọc bằng Python, trái D-11. Mấy con "
-        "kế thừa nó (QC500, EmaCross, Fine, Coarse) mới là món bày được.",
+        "kế thừa nó mà KHÔNG đòi hàm lọc (QC500, EmaCross) thì đã bày.",
+    "CoarseFundamentalUniverseSelectionModel":
+        "Chữ ký của nó là `(Func<IEnumerable<CoarseFundamental>, "
+        "IEnumerable<Symbol>> coarseSelector, …)` — tham số BẮT BUỘC là một HÀM "
+        "Python người dùng tự viết. Bày ra thì ô ấy là chỗ gõ mã Python, tức app "
+        "mọc ra một bộ máy tính toán thứ hai (trái D-11).",
+    "FineFundamentalUniverseSelectionModel":
+        "Đòi HAI hàm lọc Python (`coarseSelector` + `fineSelector`), cùng lý do "
+        "với CoarseFundamental. Và bộ dữ liệu miễn phí cũng không có `fine`: thư "
+        "mục `fundamental/` chỉ có `coarse/`.",
     "UniverseSelectionModel":
         "Lớp NỀN của cả họ Rổ.",
     "CustomUniverseSelectionModel":
@@ -238,7 +247,7 @@ MOC = {
     "chi_bao": 105,
     "chia_von": 5,
     "alpha": 0,
-    "ro": 9,
+    "ro": 10,
     "phong_rui_ro": 4,
     "dat_lenh": 3,
 }

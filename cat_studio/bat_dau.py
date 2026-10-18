@@ -511,7 +511,24 @@ LOC_TRONG_SO = (
     "return [c.symbol for c in co[:{lay}]]",
 )
 
-#: (mã, nhãn, lớp LEAN, ô con). Lớp nào không cần tham số thì ô con rỗng.
+#: (mã, nhãn, lớp LEAN, ô con, CÂU LEAN). Lớp nào không cần tham số thì ô con rỗng.
+#:
+#: ⚠ Ô THỨ NĂM — CÂU LEAN — THÊM NGÀY 18/10/2026, và đây là vì sao. Trước đó không rổ
+#: nào khai câu của mình; `lean_ro` và `sinh_ma._ro_py` cùng ĐOÁN theo một dòng:
+#:
+#:     if ro[0] != "etf":  ->  f"set_universe_selection({lop}())"
+#:
+#: Tức mọi rổ khác ETF đều được gọi KHÔNG THAM SỐ. Đúng, nhưng đúng tình cờ: chín rổ
+#: đang có thì tám cái thật sự không nhận tham số nào. Thêm một rổ CÓ tham số là nó
+#: sinh ra lời gọi rỗng — `EmaCrossUniverseSelectionModel()` chạy ở 100/300/**500 mã**
+#: mặc định của LEAN trong khi hộp thoại hứa «giữ 20 mã», và không một lời nào. Đúng
+#: bệnh `StandardDeviationExecutionModel`: nhãn hứa một đằng, mã sinh ra một nẻo.
+#:
+#: Nay mỗi rổ tự khai, và CẢ HAI chỗ (hộp thoại + bộ sinh mã) gọi cùng `lean_ro`, nên
+#: không còn hai bộ chữ để mà lệch nhau.
+#:
+#: Trong câu: `{tên_ô}` thay bằng giá trị ô ấy — ô CHỮ thành chuỗi Python có dấu
+#: nháy, ô SỐ thành số. `{loc_ro}` là chỗ duy nhất có điều kiện, xem `lean_ro`.
 RO = (
     ("etf", "Các mã trong một ETF", "ETFConstituentsUniverseSelectionModel",
      (_o_ro("ma_etf", "Mã ETF", O_CHU, "SPY",
@@ -522,30 +539,63 @@ RO = (
       # `LOC_TRONG_SO` ngay trên.
       _o_ro("lay", "Lấy mấy mã", O_SO, 8, don_vi="mã", nguyen=True,
             goi_y="Lấy mấy mã NẶNG nhất trong ETF. Để 0 thì lấy cả rổ — SPY là "
-                  "hơn 500 mã, nặng máy."))),
-    ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất",
-     "QC500UniverseSelectionModel", ()),
-    # ⚠ CHƯA BÀY `EmaCrossUniverseSelectionModel`, VÀ ĐÂY LÀ LÝ DO — vì nó đáng bày:
-    # nó chính là TRẦN CỨNG «chỉ giữ N mã» mà soát 11 ví dụ đi tìm suốt. Câu "chấm
-    # điểm cả rổ rồi giữ 12 mã tốt nhất" không nói được ở trạm chia vốn (model chia
-    # cho MỌI mã có tín hiệu, không cắt ở mã thứ 12); nó nói ở tầng RỔ này.
+                  "hơn 500 mã, nặng máy.")),
+     "set_universe_selection(ETFConstituentsUniverseSelectionModel({ma_etf}, "
+     "self.universe_settings{loc_ro}))"),
+    # ⚠ BA RỔ DƯỚI ĐÂY DỰA TRÊN DỮ LIỆU DOANH NGHIỆP, và bộ miễn phí kèm LEAN chỉ
+    # có đúng MƯỜI MỘT NGÀY của nó: `Data/equity/usa/fundamental/coarse/` từ
+    # 24/03/2014 đến 07/04/2014. Ngoài khoảng ấy, LEAN nói thẳng trong nhật ký
+    # *"Failed universe data requests 100%"* và rổ ra RỔNG — backtest chạy hết,
+    # 0 lệnh, bảng Kết quả không một lời nào.
     #
-    # Chặn ở bộ sinh mã, không chặn ở đây: `_ro_py` viết `{lop}()` KHÔNG tham số cho
-    # mọi rổ khác `etf`, nên bày nó ra là sinh `EmaCrossUniverseSelectionModel()` —
-    # chạy ở 100/300/**500 mã** mặc định của LEAN trong khi hộp thoại hứa «giữ 20
-    # mã». Lại đúng bệnh của `StandardDeviationExecutionModel`: nhãn hứa một đằng,
-    # mã sinh ra một nẻo, không một lời nào.
+    # `qc500` đã bày từ lâu mà nhãn KHÔNG nói chuyện ấy — một cái bẫy có sẵn, chỉ
+    # lòi ra khi chạy thật rổ `ema_cheo`. Nay nói ngay trong NHÃN, đúng lối bảng
+    # «Đặt lệnh» nói con số LEAN dùng vào nhãn vì không có ô nào để điền.
     #
-    # Chữa đúng gốc là để MỖI RỔ tự khai câu LEAN của nó (như mọi mục khác trong từ
-    # điển) thay vì để `_ro_py` đoán theo `ro[0] == "etf"`. Làm xong việc ấy thì mở
-    # dòng này, và cả `CoarseFundamental`/`FineFundamental` nếu có dữ liệu.
-    ("etf_thanh_khoan", "Rổ ETF thanh khoản — cả sáu nhóm", "LiquidETFUniverse", ()),
-    ("kim_loai", "ETF kim loại — vàng, bạc, bạch kim", "MetalsETFUniverse", ()),
-    ("nang_luong", "ETF năng lượng — dầu, khí, mặt trời", "EnergyETFUniverse", ()),
-    ("cong_nghe", "ETF công nghệ", "TechnologyETFUniverse", ()),
-    ("trai_phieu", "ETF trái phiếu Mỹ", "USTreasuriesETFUniverse", ()),
-    ("bien_dong", "ETF biến động — VIX", "VolatilityETFUniverse", ()),
-    ("nganh_sp500", "ETF các ngành của S&P 500", "SP500SectorsETFUniverse", ()),
+    # ⚠ ĐÃ CHẠY THẬT, VÀ SỰ THẬT CÒN HẸP HƠN THẾ. Chạy `ema_cheo` trong đúng khoảng
+    # 25/03–07/04/2014: «universe data requests 21/21 succeeded, 0 failed» — tức cơ
+    # chế rổ chạy đúng. Nhưng 0 mã được chọn, vì mười một ngày không đủ LÀM NÓNG
+    # EMA: mặc định của LEAN là EMA(100)/EMA(300), mà hạ xuống EMA(5)/EMA(10) thì
+    # cũng vẫn 0. Nên với bộ dữ liệu miễn phí, ba rổ doanh nghiệp này BÀY RA ĐƯỢC
+    # nhưng chưa chọn nổi một mã nào — mua bộ fundamental của QuantConnect mới dùng
+    # thật. Bày kèm câu nhắc còn hơn giấu: giấu thì người dùng không biết là app
+    # nói được câu «chỉ giữ N mã», và đó mới là câu họ đi tìm.
+    ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất "
+               "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+     "QC500UniverseSelectionModel", (),
+     "set_universe_selection(QC500UniverseSelectionModel())"),
+    # ⚠ ĐÂY LÀ TRẦN CỨNG «CHỈ GIỮ N MÃ» mà soát 11 ví dụ đi tìm suốt — và tôi đã tìm
+    # sai tầng. Câu "chấm điểm cả rổ rồi giữ 12 mã tốt nhất" KHÔNG nói được ở trạm
+    # chia vốn: model chia cho MỌI mã có tín hiệu, không cắt ở mã thứ 12. Nó nói ở
+    # đây, tầng RỔ. `EmaCrossUniverseSelectionModel(nhanh, cham, count)` giữ mã nào
+    # EMA nhanh còn trên EMA chậm, rồi lấy `count` mã NẶNG nhất — xếp hạng là việc
+    # của LEAN, app không đếm hộ gì.
+    ("ema_cheo", "EMA nhanh TRÊN EMA chậm — giữ N mã nặng nhất "
+                 "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+     "EmaCrossUniverseSelectionModel",
+     (_o_ro("ema_nhanh", "EMA nhanh", O_SO, 100, don_vi="nến", nguyen=True,
+            goi_y="Chu kỳ EMA nhanh. LEAN mặc định 100."),
+      _o_ro("ema_cham", "EMA chậm", O_SO, 300, don_vi="nến", nguyen=True,
+            goi_y="Chu kỳ EMA chậm. LEAN mặc định 300."),
+      _o_ro("giu_n", "Giữ mấy mã", O_SO, 20, don_vi="mã", nguyen=True,
+            goi_y="Trong số mã đạt điều kiện, giữ ngần này mã NẶNG nhất. LEAN "
+                  "mặc định 500 — để cao thì nặng máy.")),
+     "set_universe_selection(EmaCrossUniverseSelectionModel({ema_nhanh}, "
+     "{ema_cham}, {giu_n}))"),
+    ("etf_thanh_khoan", "Rổ ETF thanh khoản — cả sáu nhóm", "LiquidETFUniverse", (),
+     "set_universe_selection(LiquidETFUniverse())"),
+    ("kim_loai", "ETF kim loại — vàng, bạc, bạch kim", "MetalsETFUniverse", (),
+     "set_universe_selection(MetalsETFUniverse())"),
+    ("nang_luong", "ETF năng lượng — dầu, khí, mặt trời", "EnergyETFUniverse", (),
+     "set_universe_selection(EnergyETFUniverse())"),
+    ("cong_nghe", "ETF công nghệ", "TechnologyETFUniverse", (),
+     "set_universe_selection(TechnologyETFUniverse())"),
+    ("trai_phieu", "ETF trái phiếu Mỹ", "USTreasuriesETFUniverse", (),
+     "set_universe_selection(USTreasuriesETFUniverse())"),
+    ("bien_dong", "ETF biến động — VIX", "VolatilityETFUniverse", (),
+     "set_universe_selection(VolatilityETFUniverse())"),
+    ("nganh_sp500", "ETF các ngành của S&P 500", "SP500SectorsETFUniverse", (),
+     "set_universe_selection(SP500SectorsETFUniverse())"),
 )
 
 RO_THEO_MA = {r[0]: r for r in RO}
@@ -597,12 +647,24 @@ def lean_ro(gia_tri):
     r = ro_cua(gia_tri)
     if not r:
         return ""
-    if r[0] != "etf":
-        return f"set_universe_selection({r[2]}())"
-    lay = _nguyen(gt_ro(gia_tri, "lay"))
-    ma_etf = str(gt_ro(gia_tri, "ma_etf") or "").strip().upper()
-    return (f"set_universe_selection({r[2]}({ma_etf!r}, self.universe_settings"
-            + (", self._loc_ro))" if lay > 0 else "))"))
+    cau = r[4]
+    for o in r[3]:
+        v = gt_ro(gia_tri, o["ten"])
+        if o["kieu"] == O_CHU:
+            lit = repr(str(v or "").strip().upper())
+        elif o.get("nguyen"):
+            lit = repr(_nguyen(v))
+        else:
+            lit = repr(float(v) if str(v).strip() not in ("", "None") else 0.0)
+        cau = cau.replace("{%s}" % o["ten"], lit)
+    # ⚠ `{loc_ro}` LÀ CHỖ DUY NHẤT CÓ ĐIỀU KIỆN, và luật ở đúng một dòng dưới đây:
+    # «lấy mấy mã» > 0 thì rổ ETF phải nhận thêm HÀM LỌC (`LOC_TRONG_SO`), vì lọc
+    # theo trọng số không phải một con số truyền vào mà là một hàm LEAN gọi lại.
+    # Để 0 là lấy cả rổ, không cần hàm nào.
+    if "{loc_ro}" in cau:
+        lay = _nguyen(gt_ro(gia_tri, "lay"))
+        cau = cau.replace("{loc_ro}", ", self._loc_ro" if lay > 0 else "")
+    return cau
 
 
 def _nguyen(v):
@@ -862,7 +924,7 @@ def tu_dien():
         # RỔ — kiểu thứ hai của ô «Chạy trên mã nào». Giao diện CHỈ BÀY: nhãn, lớp
         # LEAN và mấy ô con đều khai ở đây, không khai lại bên TypeScript.
         "ro": [{"ma": m, "nhan": n, "lop": lop, "o_them": list(th)}
-               for m, n, lop, th in RO],
+               for m, n, lop, th, _l in RO],
         # PHÒNG RỦI RO — mỗi model mang ô NGƯỠNG của riêng nó, cùng lối `nhip`/`ro`.
         # Nhãn ô khác nhau ở từng model (lỗ / lãi / tụt khỏi đỉnh), nên giao diện
         # KHÔNG dựng lại ô ấy — nó bày thẳng `o` Python gửi sang.

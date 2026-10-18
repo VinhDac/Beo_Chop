@@ -460,21 +460,18 @@ def _khai_ro(nc, gt_ma):
 
     KHÔNG có dòng `add_*` nào ở nhánh này, và đó là cả điểm: rổ gồm mã nào thì LEAN
     quyết lại mỗi ngày. Nên `self._ma` cũng không khai được ở đây — xem `_ghep`."""
+    # ⚠ GỌI `bat_dau.lean_ro`, KHÔNG TỰ GHÉP CÂU Ở ĐÂY. Bản trước ghép tại chỗ, nên
+    # có HAI bộ chữ cho cùng một câu: một cho hộp thoại, một cho mã sinh ra, và
+    # `test_sinh_ma` phải đứng so hai bộ ấy với nhau. Hai bộ chữ thì sớm muộn lệch —
+    # mà lệch ở đây nghĩa là hộp thoại khai một câu LEAN không có trong mã.
+    #
+    # Và cả hai bản đều ĐOÁN theo `ro[0] != "etf"` -> gọi lớp KHÔNG tham số. Đúng
+    # tình cờ: tám trong chín rổ cũ không nhận tham số nào. Thêm một rổ CÓ tham số
+    # (`EmaCrossUniverseSelectionModel`) là sinh ra lời gọi rỗng, chạy ở mặc định
+    # của LEAN, không một lời nào. Nay mỗi rổ tự khai câu của mình.
     ra = ["# RỔ ĐỘNG: không gõ mã nào, LEAN tự quyết hôm nay rổ gồm những gì.",
           f"self.universe_settings.resolution = {nc.res}"]
-    lop = nc.ro[2]
-    if nc.ro[0] != "etf":
-        ra.append(f"self.set_universe_selection({lop}())")
-        return ra
-
-    ma_etf = str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper()
-    lay = core._f(bat_dau.gt_ro(gt_ma, "lay")) or 0
-    if lay > 0:
-        ra.append(f"self.set_universe_selection({lop}({ma_etf!r}, "
-                  f"self.universe_settings, self._loc_ro))")
-    else:
-        ra.append(f"self.set_universe_selection({lop}({ma_etf!r}, "
-                  f"self.universe_settings))")
+    ra.append("self." + bat_dau.lean_ro(gt_ma))
     return ra
 
 

@@ -420,9 +420,9 @@ kiem("bỏ model thì ô ngưỡng cũng thôi hiện",
 # ================= 7. RỔ ĐỘNG — kiểu thứ hai của ô «Chạy trên mã nào» ==========
 print(NL + "▸ Rổ động — mỗi rổ phải là MỘT lớp có thật của LEAN")
 kiem("mỗi rổ khai một lớp LEAN",
-     all(lop for _m, _n, lop, _t in bat_dau.RO), f"— {len(bat_dau.RO)} rổ")
+     all(lop for _m, _n, lop, *_ in bat_dau.RO), f"— {len(bat_dau.RO)} rổ")
 kiem("không lớp nào trùng",
-     len({lop for _m, _n, lop, _t in bat_dau.RO}) == len(bat_dau.RO),
+     len({lop for _m, _n, lop, *_ in bat_dau.RO}) == len(bat_dau.RO),
      "— hai rổ cùng một lớp là một rổ bịa")
 kiem("không mã rổ nào trùng",
      len({m for m, *_ in bat_dau.RO}) == len(bat_dau.RO))
@@ -430,7 +430,7 @@ kiem("không mã rổ nào trùng",
 # gõ sẵn, tức đúng câu mà kiểu LIST của ô `ma` đã nói. Bày cả hai là bày hai cách nói
 # một thứ. Canh ở đây để lần sau ai thấy "thiếu" thì đọc được lý do.
 kiem("cố ý KHÔNG có ManualUniverseSelectionModel",
-     not any("Manual" in lop for _m, _n, lop, _t in bat_dau.RO)
+     not any("Manual" in lop for _m, _n, lop, *_ in bat_dau.RO)
      and "ManualUniverseSelectionModel" in inspect.getsource(bat_dau),
      "— và lý do ghi ngay cạnh `RO`, chỗ người sửa sẽ đọc")
 
