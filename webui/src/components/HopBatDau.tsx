@@ -1,254 +1,28 @@
-import { Fragment, useEffect, useState } from 'react'
+import { useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
-import { DocThem, Hang, KhaiLean, OTheoKieu } from './ORuot'
+import { KhaiLean } from './ORuot'
 import { py } from '../api'
-import type {
-  BangCoOThem, KhoangNgay, MaChay, OLam, RoChay, Step, TuDienBatDau,
-} from '../types'
+import RuotBatDau, { locOAnHien } from './RuotBatDau'
+import { useEffect } from 'react'
+import type { Step, TuDienBatDau } from '../types'
 
-/** MỘT Ô NHỚ đã khai: mã của từ điển + tên người dùng đặt + giá trị ban đầu. */
-type ONhoKhai = { ma: string; nhan: string; ban_dau?: unknown }
-
-/** Ô «Cỗ máy nhớ những gì» — khai mấy ô nhớ, mỗi ô một TÊN.
+/** HỘP KHỐI BẮT ĐẦU — sơ đồ này chạy trên cái gì, bao giờ, bằng bao nhiêu tiền.
  *
- *  ⚠ MÃ Ô NHỚ LÀ CỦA TỪ ĐIỂN, TÊN LÀ CỦA NGƯỜI DÙNG. Mười hai mã cố định khai bên
- *  Python (`hoi.TRI_NHO`); chỗ này chỉ cho chọn một mã còn trống rồi đặt tên. Cho
- *  người dùng tự khai tên biến thì từ điển hết là từ điển, và mọi hàng rào lặp qua
- *  nó mất chỗ đứng. */
-function ODsNho({ ds, td, onDoi }: {
-  ds: ONhoKhai[]
-  td: TuDienBatDau
-  onDoi: (v: ONhoKhai[]) => void
-}) {
-  const daDung = new Set(ds.map(x => x.ma))
-  const conTrong = td.o_nho.filter(o => !daDung.has(o.ma))
-  const kieuCua = (ma: string) => td.o_nho.find(o => o.ma === ma)?.kieu
-  return (
-    <div className="ds-nho">
-      {ds.map((x, i) => {
-        const o = td.o_nho.find(y => y.ma === x.ma)
-        const doi = (v: Partial<ONhoKhai> | null) => onDoi(v === null
-          ? ds.filter((_, k) => k !== i)
-          : ds.map((y, k) => (k === i ? { ...y, ...v } : y)))
-        return (
-          <div className="dong-nho" key={x.ma || i}>
-            <input className="o day" value={x.nhan ?? ''} spellCheck={false}
-                   placeholder="tên ô nhớ — «đang chờ mua lại»"
-                   onChange={e => doi({ nhan: e.target.value })} />
-            <select className="o" value={x.ma}
-                    onChange={e => doi({ ma: e.target.value,
-                      ban_dau: kieuCua(e.target.value) === 'co_khong'
-                        ? false : 0 })}>
-              {/* Ô đang chọn luôn có mặt, không thì đổi tên là mất chỗ. */}
-              {[...(o ? [o] : []), ...conTrong].map(y => (
-                <option key={y.ma} value={y.ma}>{y.nhan}</option>
-              ))}
-            </select>
-            {/* GIÁ TRỊ BAN ĐẦU — bắt buộc có, vì nhịp đầu tiên đã đọc ô này rồi. */}
-            {o?.kieu === 'co_khong'
-              ? <select className="o" value={x.ban_dau ? '1' : ''}
-                        onChange={e => doi({ ban_dau: !!e.target.value })}>
-                  <option value="">ban đầu: SAI</option>
-                  <option value="1">ban đầu: ĐÚNG</option>
-                </select>
-              : <input className="o so" inputMode="decimal"
-                       defaultValue={String(x.ban_dau ?? 0)}
-                       onChange={e => doi({
-                         ban_dau: e.target.value as unknown as number })} />}
-            <button className="nut-nho" title="Bỏ ô nhớ này"
-                    onClick={() => doi(null)}>✕</button>
-          </div>
-        )
-      })}
-      {conTrong.length > 0 && (
-        <button className="nut-nho" onClick={() => onDoi([...ds, {
-          ma: conTrong[0].ma, nhan: '',
-          ban_dau: conTrong[0].kieu === 'co_khong' ? false : 0 }])}>
-          + Thêm một ô nhớ
-        </button>
-      )}
-      <div className="ro-nhac">
-        Ô nhớ giữ một quyết định cỗ máy đã ra, để nhịp sau đọc lại. Thứ LEAN đã lo —
-        đỉnh giá từ lúc vào, cửa sổ N giá đóng, đang giữ mã nào — thì đừng nhớ lại
-        ở đây.
-      </div>
-    </div>
-  )
-}
-
-/** Ô «Chạy trên mã nào» đang nói kiểu nào — MỘT CHỖ DUY NHẤT quyết định.
+ *  ⚠ CHỈ CÓ NGẦN ẤY, và đó là một quyết định chứ không phải tình cờ. Hộp này từng
+ *  mang hơn hai mươi ô chia bảy nhóm — dây chuyền LEAN, phí sàn, ô nhớ, mốc so
+ *  sánh — vì mỗi lần cần thêm một khả năng thì gắn thêm một ô vào đây là tiện nhất.
+ *  Chủ dự án chốt ngày 18/10/2026: *"ta đang lạm dụng khối Bắt đầu để gài logic vào
+ *  chứ không thực sự tạo ra khối mới để vẽ… nên hạn chế nhất khả năng trong 1 khối,
+ *  giữ sự đơn giản sạch, từ đó mới build những thứ to lớn được."*
+ *      Mười một ô kia nay ở hộp «Cỗ máy LEAN» (`HopCoMay`), và chúng không còn nằm
+ *  trong khối Bắt đầu nữa — cả trên giao diện lẫn trong file lưu.
  *
- *  Phân biệt bằng HÌNH DẠNG, y như Python (`bat_dau.ro_cua`): mảng là mấy mã gõ sẵn,
- *  object là một rổ. Hai nơi cùng đoán hình dạng là hai nơi để trôi khỏi nhau. */
-export function laRo(v: unknown): v is RoChay {
-  return !!v && typeof v === 'object' && !Array.isArray(v)
-}
-
-/** HỘP THOẠI KHỐI BẮT ĐẦU — nửa «thiết lập» của thuật toán.
- *
- *  Một script QuantConnect có hai nửa: `initialize` nói MỘT LẦN (ngày nào, bao nhiêu
- *  tiền, mã nào, nhịp nào), rồi `on_data` chạy LẠI mỗi nhịp. Sơ đồ nối dây là nửa
- *  dưới; hộp này là nửa trên — trước D-15 nó không có chỗ nào trên canvas.
- *
- *  SÁU Ô, và hai trong số đó cần widget riêng (danh sách mã, khoảng ngày) nên chúng
- *  nằm ở đây chứ không ở `ORuot.tsx`: ô chung phải ở lại chung.
+ *  Ruột vẽ ô dùng chung với hộp Cỗ máy: xem `RuotBatDau`.
  */
-
-/** Danh sách mã — mỗi dòng một mã kèm loại tài sản.
- *
- *  KHÔNG gộp loại tài sản thành MỘT ô cho cả cỗ máy: LEAN có sáu hàm `add_*` khác
- *  nhau vì sáu loại có giờ giao dịch, đơn vị và đòn bẩy khác nhau, nên loại đi theo
- *  TỪNG mã mới đúng. */
-function DanhSachMa({ ds, td, onDoi }: {
-  ds: MaChay[]; td: TuDienBatDau; onDoi: (v: MaChay[]) => void
-}) {
-  const sua = (i: number, d: Partial<MaChay>) =>
-    onDoi(ds.map((m, j) => (j === i ? { ...m, ...d } : m)))
-
-  /** Mã này có dữ liệu đi kèm LEAN không. Biết ngay lúc gõ, chứ đừng để tới lúc
-   *  backtest chạy xong mà không có lệnh nào rồi mới ngồi đoán vì sao. */
-  const coDuLieu = (m: MaChay) => (td.co_san[m.loai] ?? []).includes(m.ma)
-
-  return (
-    <div className="ds-ma">
-      {ds.map((m, i) => (
-        <div className="dong-ma" key={i}>
-          <input className="o ma" spellCheck={false} placeholder="mã"
-                 list={`co-san-${m.loai}`} value={m.ma}
-                 onChange={e => sua(i, { ma: e.target.value.toUpperCase() })} />
-          <select className="o day" value={m.loai}
-                  onChange={e => sua(i, { loai: e.target.value })}>
-            {td.loai_tai_san.map(l => (
-              <option key={l.ma} value={l.ma}>{l.nhan}</option>
-            ))}
-          </select>
-          {/* Không CHẶN — ai có bộ dữ liệu riêng thì mã nào cũng chạy được. Chỉ nói
-              ra, vì bộ miễn phí chỉ có 13 mã. */}
-          {m.ma && !coDuLieu(m) && (
-            <span className="ma-khong-co" title={
-              `Bộ dữ liệu miễn phí đi kèm LEAN không có ${m.ma}. Vẽ vẫn vẽ được, `
-              + 'nhưng backtest trên máy này sẽ không ra lệnh nào — trừ khi bạn tự '
-              + 'tải dữ liệu về.'}>không có dữ liệu</span>
-          )}
-          <button className="nut-nho" title="Bỏ mã này"
-                  onClick={() => onDoi(ds.filter((_x, j) => j !== i))}>✕</button>
-        </div>
-      ))}
-      {/* Gợi ý mã CÓ SẴN trong bộ dữ liệu miễn phí. `datalist` nên nó chỉ gợi ý —
-          ai có dữ liệu riêng thì cứ gõ mã khác, không bị chặn. */}
-      {Object.entries(td.co_san).map(([loai, dsm]) => (
-        <datalist key={loai} id={`co-san-${loai}`}>
-          {dsm.map(x => <option key={x} value={x} />)}
-        </datalist>
-      ))}
-      <button className="nut" onClick={() => onDoi([...ds, { ma: '', loai: 'equity' }])}>
-        <Icon name="plus" /> Thêm mã
-      </button>
-    </div>
-  )
-}
-
-/** Ô «Chạy trên mã nào» — HAI KIỂU, một widget.
- *
- *  Đúng lối vế phải của điều kiện: ở đấy một vế là MỘT SỐ hay MỘT ĐẠI LƯỢNG, và chỉ
- *  có một nút để đổi qua lại. Ở đây là MẤY MÃ GÕ SẴN hay MỘT RỔ.
- *
- *  ⚠ ĐỔI KIỂU THÌ THAY CẢ GIÁ TRỊ, không trộn. Giữ lại danh sách mã cũ bên trong
- *  object rổ là lưu ra một ô mang cả hai câu trả lời, rồi `bat_dau.ro_cua` thấy
- *  object nên chọn nhánh rổ — và danh sách mã kia nằm im trong file, không ai xoá
- *  được vì giao diện không còn chỗ nào bày nó ra. */
-function OChayTrenMa({ gt, td, onDoi }: {
-  gt: unknown; td: TuDienBatDau; onDoi: (v: MaChay[] | RoChay) => void
-}) {
-  const ro = laRo(gt) ? gt : null
-  const muc = ro ? td.ro.find(r => r.ma === String(ro.ro ?? '')) : undefined
-
-  /** Đổi sang một rổ khác thì điền luôn mặc định cho mấy ô con của nó.
-   *
-   *  Không điền thì ô con bày số 0 trong khi Python rơi về mặc định của từ điển —
-   *  thẻ khối và hộp thoại nói hai đằng. Đúng cái bẫy đã gặp ở ô nhịp. */
-  function chonRo(maRo: string) {
-    if (!maRo) { onDoi([{ ma: '', loai: 'equity' }]); return }
-    const v: RoChay = { ro: maRo }
-    for (const o of td.ro.find(r => r.ma === maRo)?.o_them ?? []) {
-      v[o.ten] = o.mac_dinh
-    }
-    onDoi(v)
-  }
-
-  return (
-    <div className="o-chay-ma">
-      <select className="o day" value={ro ? String(ro.ro ?? '') : ''}
-              onChange={e => chonRo(e.target.value)}>
-        <option value="">Mấy mã gõ sẵn</option>
-        {td.ro.map(r => (
-          <option key={r.ma} value={r.ma}>Rổ — {r.nhan}</option>
-        ))}
-      </select>
-
-      {!ro ? (
-        <DanhSachMa ds={Array.isArray(gt) ? (gt as MaChay[]) : []} td={td}
-                    onDoi={onDoi} />
-      ) : (<>
-        {/* Ô CON của rổ — ĐƯA THẲNG `o` CỦA PYTHON VÀO, không dựng lại. Bày lại một
-            object `kieu: 'so'` đóng cứng là đúng cái bệnh dự án này săn: ô «Mã ETF»
-            sẽ thành ô số, và câu gợi ý thật mà Python đã viết thì mất.
-
-            Dùng `OTheoKieu` chứ KHÔNG dùng `Hang`: `Hang` dựng một `<label>`, mà cả
-            khối này đã nằm trong `<label>` của hàng «Chạy trên mã nào» — label lồng
-            label thì bấm vào nhãn con nhảy focus sang ô cha, lặng lẽ. */}
-        {(muc?.o_them ?? []).map(o => (
-          <div className="ro-o" key={o.ten}>
-            <div className="ro-hang">
-              <span className="ro-nhan">{o.nhan}</span>
-              <OTheoKieu o={o} gt={ro[o.ten] ?? o.mac_dinh}
-                         onDoi={v => onDoi({ ...ro, [o.ten]: v })} />
-              <DocThem o={o} gt={ro[o.ten] ?? o.mac_dinh} />
-            </div>
-            {/* Gợi ý hiện THÀNH DÒNG, không chỉ nằm trong `title`. Câu của ô «Mã
-                ETF» nói bộ dữ liệu miễn phí có rổ của ETF nào — giấu nó sau một cái
-                hover là để người chơi gõ một mã không có dữ liệu rồi ngồi đoán vì
-                sao backtest không ra lệnh nào. */}
-            {o.goi_y && <div className="ro-goi-y">{o.goi_y}</div>}
-          </div>
-        ))}
-        {/* Rổ gồm mã nào là chuyện LEAN quyết lại mỗi ngày, nên không khối nào gõ
-            được tên mã. Nói ra Ở ĐÂY, lúc chọn — chứ đừng để tới lúc bấm Build mới
-            hiện một bảng Vấn đề dài. */}
-        <div className="ro-nhac">
-          Rổ đổi theo ngày, nên không khối nào gõ được tên mã — mọi khối chạy cho
-          «mã đang xét». Cần khối «Phát tín hiệu» để LEAN chia vốn.
-        </div>
-      </>)}
-    </div>
-  )
-}
-
-/** Khoảng backtest. Hai ô ngày gốc của trình duyệt — chúng tự lo lịch và khuôn ngày. */
-function OKhoangNgay({ k, onDoi }: {
-  k: KhoangNgay; onDoi: (v: KhoangNgay) => void
-}) {
-  return (
-    <div className="khoang-ngay">
-      <input className="o" type="date" value={k.tu ?? ''}
-             onChange={e => onDoi({ ...k, tu: e.target.value })} />
-      <span className="mui">→</span>
-      <input className="o" type="date" value={k.den ?? ''}
-             onChange={e => onDoi({ ...k, den: e.target.value })} />
-    </div>
-  )
-}
-
-export default function HopBatDau({ step, tuDien, moNhom, onLuu, onDong }: {
+export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
   step: Step
   tuDien: TuDienBatDau
-  /** Mã NHÓM ô cần cuộn tới ngay khi mở — tag khung ở góc canvas gửi vào.
-   *
-   *  Hộp này nay hơn hai mươi ô chia bảy nhóm, nên mở ra ở đầu danh sách rồi bắt
-   *  người ta tự tìm «Sàn và chi phí» là bắt cuộn — trong khi họ vừa bấm đúng vào
-   *  cái chip phí. */
-  moNhom?: string
   onLuu: (s: Step) => void
   onDong: () => void
 }) {
@@ -256,187 +30,24 @@ export default function HopBatDau({ step, tuDien, moNhom, onLuu, onDong }: {
   // Giữ CẢ khối: `pos`, `mau`, `hat_nhan`… đi theo nguyên vẹn mà hộp thoại không cần
   // biết chúng tồn tại.
   const [gt, setGt] = useState<Record<string, unknown>>(() => ({ ...step }))
-  const doi = (k: string, v: unknown) => setGt(x => ({ ...x, [k]: v }))
-
-  /* Cuộn tới nhóm được chỉ, MỘT LẦN lúc mở.
-   *
-   *  ⚠ Trong `requestAnimationFrame`, không gọi thẳng: lúc hiệu ứng chạy thì Modal
-   *  vừa gắn vào cây DOM mà chưa qua nhịp vẽ nào, nên `scrollIntoView` tính trên một
-   *  khung cao 0 và cuộn về đúng chỗ cũ. Lỗi ấy KHÔNG lộ ra mọi lúc — hộp đã mở sẵn
-   *  một lần rồi thì trình duyệt còn giữ kích thước, và nó cuộn đúng. */
-  useEffect(() => {
-    if (!moNhom) return
-    const id = requestAnimationFrame(() => {
-      document.querySelector(`[data-nhom="${moNhom}"]`)
-        ?.scrollIntoView({ block: 'start' })
-    })
-    return () => cancelAnimationFrame(id)
-  }, [moNhom])
-
-  /* SÁU Ô MANG THEO Ô THÊM — và chúng cùng một luật, nên cùng một đường đi.
-   *
-   * «Nhịp» mở ra Độ phân giải và ô «Lúc nào trong ngày»; ô ấy lại mở ra Giờ/Phút hay
-   * Số phút; «Phòng rủi ro» mở ra ô Ngưỡng; «Phát tín hiệu tự động», «Phí» và «Trượt
-   * giá» mỗi cái mở ra tham số của model nó. Python khai CẢ SÁU bảng cùng hình dạng
-   * `{ma, nhan, o_them}`, nên chỗ này chỉ cần biết TÊN Ô NÀO tra BẢNG NÀO — không
-   * biết trong `o_them` có mấy ô, cũng không biết chúng là ô gõ hay ô chọn.
-   *
-   * ⚠ THÊM MỘT Ô CÓ Ô CON MÀ QUÊN KHAI Ở ĐÂY thì ô ấy chọn xong KHÔNG núm nào hiện
-   * ra, và model chạy ở mặc định của LEAN — nhãn hứa một đằng, mã sinh ra một nẻo.
-   * Bệnh ấy đã gặp ba lần trong một ngày (`StandardDeviationExecutionModel`, rổ
-   * `ema_cheo`, `add_security_initializer` đặt sai chỗ), nên `test_moi_noi` canh:
-   * bảng nào Python gửi có `o_them` thì ở đây phải có một dòng tra. */
-  const bangOThem: Record<string, BangCoOThem[]> = {
-    nhip: tuDien.nhip,
-    quy_tac_gio: tuDien.quy_tac_gio,
-    phong_rui_ro: tuDien.phong_rui_ro,
-    phat_tin_hieu: tuDien.phat_tin_hieu,
-    phi: tuDien.phi,
-    truot_gia: tuDien.truot_gia,
-  }
-
-  /** Ô con ĐANG HIỆN của một ô cha — rỗng nếu ô ấy không mang ô con nào. */
-  function oConCua(ten: string): OLam[] {
-    const bang = bangOThem[ten]
-    if (!bang) return []
-    const muc = bang.find(x => x.ma === String(gt[ten] ?? ''))
-    return muc?.o_them ?? []
-  }
-
-  /** Đổi một ô mang ô thêm thì điền luôn mặc định cho mấy ô mới hiện ra.
-   *
-   *  Không điền thì ô mới bày số 0 trong khi Python rơi về mặc định của từ điển —
-   *  thẻ khối và hộp thoại nói hai đằng. Đúng cái bẫy đã gặp ở hộp Hành động. */
-  function doiCoOThem(ten: string, v: string) {
-    setGt(x => {
-      const ra: Record<string, unknown> = { ...x, [ten]: v }
-      for (const o of bangOThem[ten].find(n => n.ma === v)?.o_them ?? []) {
-        if (!(o.ten in ra)) ra[o.ten] = o.mac_dinh
-      }
-      return ra
-    })
-  }
-
-  /** Lưu, có BỎ ô của lựa chọn không còn hiện — để file không mang theo "giờ 14:30"
-   *  của một cỗ máy chạy mỗi nến ngày, hay một ngưỡng cắt lỗ của trạm đã tắt. */
-  function luu() {
-    const dangHien = new Set(Object.keys(bangOThem)
-      .flatMap(ten => oConCua(ten).map(o => o.ten)))
-    const moi = Object.values(bangOThem).flat()
-      .flatMap(n => n.o_them.map(o => o.ten))
-    const ra: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(gt)) {
-      if (!moi.includes(k) || dangHien.has(k)) ra[k] = v
-    }
-    onLuu({ ...(ra as unknown as Step), id: step.id, kind: step.kind,
-            name: ten.trim() || 'Bắt đầu' })
-  }
 
   /* MẤY CÂU LEAN KHỐI NÀY KHAI RA — HỎI PYTHON, KHÔNG TỰ GHÉP.
    *
    * Dòng khai tồn tại ĐÚNG ĐỂ người dùng đối chiếu với mã sinh ra, nên nó nói sai
-   * thì tệ hơn là không có. Bản trước tự dựng lại câu ấy ở đây bằng TypeScript: tự
-   * quyết lấy `add_*` hay `universe_settings`, tự ghép với tên hàm lịch, tự suy ra
-   * độ phân giải thật. Cả bốn phép ấy `bat_dau.ham_lean` bên Python đã làm rồi —
-   * hai bản ghép chữ nằm hai bên cầu nối, không ai đứng so. Và câu của RỔ ĐỘNG thì
-   * bản ấy không nói được, nên chọn rổ xong hộp chỉ nói về nhịp mà im đúng câu
-   * quan trọng nhất (`bat_dau.lean_ro`, hồi đó không ai gọi).
-   *
-   * Nay một cửa trả về CẢ DANH SÁCH, và chỗ này không biết trong đó có mấy câu —
-   * thêm một câu khai bên Python là hộp thoại có ngay. `tests/test_moi_noi.py`
-   * canh cả họ: không file .tsx nào được gõ cứng một mẩu LEAN.
-   *
-   * ⚠ Gọi theo `gt` nên gõ mỗi phím là một lượt hỏi, và lượt gửi trước có thể về
-   * SAU lượt gửi sau — nên câu trả lời của một `gt` đã cũ phải bị vứt, không thì
-   * dòng khai đứng lại ở một giá trị người dùng vừa xoá. */
-
-  /** Vẽ MỘT ô của khối Bắt đầu. Tách khỏi vòng lặp vì nay vòng lặp đi theo NHÓM, và
-   *  mỗi ô còn phải kéo theo ô con của nó. */
-  function veMotO(o: OLam) {
-    if (o.kieu === 'ds_ma') {
-      return (
-        <Hang o={o}>
-          <OChayTrenMa gt={gt.ma} td={tuDien} onDoi={v => doi('ma', v)} />
-        </Hang>
-      )
-    }
-    if (o.kieu === 'ds_nho') {
-      return (
-        <Hang o={o}>
-          <ODsNho ds={(gt.tri_nho as ONhoKhai[]) ?? []} td={tuDien}
-                  onDoi={v => doi('tri_nho', v)} />
-        </Hang>
-      )
-    }
-    /* MỐC SO SÁNH — Ô CHỌN, không phải ô gõ. Danh sách là mấy mã khối này vừa khai,
-     * cộng mấy mã CÓ DỮ LIỆU MIỄN PHÍ. Gõ tay thì gõ sai, mà mốc sai không làm
-     * backtest hỏng — nó chỉ vẽ một đường so sánh vô nghĩa, tức là hỏng LẶNG. */
-    if (o.ten === 'moc_so_sanh') {
-      /* ⚠ `gt.ma` CÓ THỂ LÀ MỘT RỔ, và object không có `.map` — dòng này từng đổ cả
-         hộp thoại ngay lúc mở. Rổ thì không có mã nào gõ trước được. */
-      const cua = Array.isArray(gt.ma)
-        ? (gt.ma as MaChay[]).map(m => m.ma).filter(Boolean) : []
-      const ds = [...new Set([...cua, ...Object.values(tuDien.co_san).flat()])]
-      return (
-        <Hang o={o}>
-          <select className="o day" value={String(gt.moc_so_sanh ?? '')}
-                  onChange={e => doi('moc_so_sanh', e.target.value)}>
-            <option value="">(để trống — LEAN tự lấy SPY)</option>
-            {ds.map(m => (
-              <option key={m} value={m}>
-                {m}{cua.includes(m) ? ' — mã của cỗ máy này' : ''}
-              </option>
-            ))}
-          </select>
-        </Hang>
-      )
-    }
-    if (o.kieu === 'khoang_ngay') {
-      return (
-        <Hang o={o}>
-          <OKhoangNgay k={(gt.khoang as KhoangNgay) ?? { tu: '', den: '' }}
-                       onDoi={v => doi('khoang', v)} />
-        </Hang>
-      )
-    }
-    return (
-      <Hang o={o} gt={gt[o.ten]}
-            onDoi={v => (o.ten in bangOThem
-              ? doiCoOThem(o.ten, String(v)) : doi(o.ten, v))} />
-    )
-  }
-
-
-  /** Một ô cùng TOÀN BỘ ô con của nó, lồng bao nhiêu tầng cũng được.
-   *
-   *  ⚠ PHẢI ĐỆ QUY. Chuỗi thật sâu hai tầng rồi: « Nhịp » mở ra « Lúc nào trong ngày »,
-   *  và ô ấy lại mở ra « Số phút sau khi mở » hay « Giờ » + « Phút ». Bản vẽ một tầng
-   *  thì tầng thứ hai biến mất, và lịch chạy ở mặc định — không lỗi, không một lời nào. */
-  function veOVaCon(o: OLam, sau = 0) {
-    const con = oConCua(o.ten)
-    return (
-      <>
-        {sau === 0 ? veMotO(o)
-          : <Hang o={o} gt={gt[o.ten] ?? o.mac_dinh}
-                  onDoi={v => (o.ten in bangOThem
-                    ? doiCoOThem(o.ten, String(v)) : doi(o.ten, v))} />}
-        {con.length > 0 && (
-          <div className="o-con">
-            {con.map(c => (
-              <Fragment key={c.ten}>{veOVaCon(c, sau + 1)}</Fragment>
-            ))}
-          </div>
-        )}
-      </>
-    )
-  }
-
+   * thì tệ hơn là không có. `tests/test_moi_noi.py` canh cả họ: không file .tsx nào
+   * được gõ cứng một mẩu LEAN. */
   const [khai, setKhai] = useState<string[]>([])
   useEffect(() => {
     let con = true
     void py.khai_bat_dau(gt).then(r => { if (con && r.ok) setKhai(r.value ?? []) })
     return () => { con = false }
   }, [gt])
+
+  function luu() {
+    const ra = locOAnHien(gt, tuDien)
+    onLuu({ ...(ra as unknown as Step), id: step.id, kind: step.kind,
+            name: ten.trim() || 'Bắt đầu' })
+  }
 
   return (
     <Modal title="Bắt đầu" width={660} onClose={onDong}
@@ -456,31 +67,8 @@ export default function HopBatDau({ step, tuDien, moNhom, onLuu, onDong }: {
                  placeholder="Bắt đầu" onChange={e => setTen(e.target.value)} />
         </label>
 
-        {/* BÀY THEO NHÓM — thứ tự nhóm và nhóm của từng ô đều do PYTHON khai
-          *  (`bat_dau.NHOM_O`, và `nhom=` trên từng `_o`). Chỗ này không biết có
-          *  mấy nhóm, cũng không biết nhóm nào gồm ô nào.
-          *
-          *  ⚠ Ô CON ĐI NGAY SAU Ô CHA. Bản trước dồn hết ô con xuống ĐÁY hộp, nên
-          *  «Giờ» và «Phút» của nhịp nằm cách ô «Nhịp» mười ô, và ô «Ngưỡng» của
-          *  model cắt lỗ thì nằm sau cả «Mốc so sánh». Hồi có sáu ô thì còn thấy
-          *  được; nay hơn hai mươi ô thì người dùng chọn một model rồi không biết
-          *  núm của nó mọc ra ở đâu. */}
-        {[...tuDien.nhom, { ma: tuDien.nhom_khac, nhan: 'Khác', mo_ta: '' }]
-          .map(nh => {
-            const cua = tuDien.o.filter(o => (o.nhom || tuDien.nhom_khac) === nh.ma)
-            if (!cua.length) return null
-            return (
-              <section className="nhom-o" key={nh.ma} data-nhom={nh.ma}>
-                <h4 className="nhom-ten">
-                  {nh.nhan}
-                  {nh.mo_ta && <span className="nhom-mo-ta">{nh.mo_ta}</span>}
-                </h4>
-                {cua.map(o => (
-                  <Fragment key={o.ten}>{veOVaCon(o)}</Fragment>
-                ))}
-              </section>
-            )
-          })}
+        <RuotBatDau dsO={tuDien.o} nhom={tuDien.nhom} gt={gt} setGt={setGt}
+                    tuDien={tuDien} />
 
         <KhaiLean ham={khai} />
       </div>

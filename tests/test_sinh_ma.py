@@ -214,12 +214,13 @@ print("\n▸ ⚠ Nhịp NGÀY + sàn không nhận «khớp lúc đóng cửa» 
 # Đã gặp thật: 111 lệnh, tất cả `invalid`, backtest báo lãi 0%, không một dòng lỗi.
 for san in bat_dau.SAN_KHONG_NHAN_MOC:
     s = core.make_start_step()
-    s["nhip"], s["san"] = "ngay", san
+    s["nhip"] = "ngay"
+    # «Sàn» nay ở HỒ SƠ CỖ MÁY, không ở khối Bắt đầu — nên phép soát nhận nó riêng.
     kiem(f"`{san}` + nhịp ngày → cảnh báo",
          any("MỌI LỆNH BỊ TỪ CHỐI" in p["message"]
-             for p in core.soat_khoi_bat_dau(s)))
+             for p in core.soat_khoi_bat_dau(s, {"san": san})))
 s = core.make_start_step()
-s["nhip"], s["san"] = "ngay", "DEFAULT"
+s["nhip"] = "ngay"
 kiem("sàn Mặc định thì không sao", not core.soat_khoi_bat_dau(s))
 s["nhip"], s["san"] = "gio", "OANDA_BROKERAGE"
 kiem("nhịp giờ thì cũng không sao", not core.soat_khoi_bat_dau(s))
@@ -560,12 +561,15 @@ kiem("chỗ ĐỌC và chỗ GHI dùng cùng một biểu thức ô nhớ",
      and "self._nho_cua(sym)['co_1']" in _doc[0]
      and "self._nho['so_1']" in _ghi[0],
      f"— đọc {_doc[:1]} · ghi {_ghi[:1]}")
-# ⚠ SỐNG QUA LƯU/MỞ — cùng bài học với `ghim` và chuỗi ghép.
+# ⚠ SỐNG QUA LƯU/MỞ — cùng bài học với `ghim` và chuỗi ghép. Ô nhớ nay khai trong
+# HỒ SƠ CỖ MÁY, nên phép này đi qua `normalize_process` (cửa duy nhất của tài liệu)
+# chứ không qua `chuan_hoa_khoi` (chỉ lo một khối).
 _bd = core.make_start_step()
 _bd["tri_nho"] = [{"ma": "nho_co_1", "nhan": "đang chờ", "ban_dau": False}]
-kiem("ô nhớ khai ở khối Bắt đầu SỐNG qua `chuan_hoa_khoi`",
-     len(bat_dau.tri_nho_cua(core.chuan_hoa_khoi(_bd))) == 1,
-     f"— {bat_dau.tri_nho_cua(core.chuan_hoa_khoi(_bd))}")
+kiem("ô nhớ SỐNG qua lưu/mở, và nằm trong hồ sơ cỗ máy",
+     len(bat_dau.tri_nho_cua(core.make_process_template(
+         "x", [_bd], [])[core.KHOA_CO_MAY])) == 1,
+     f"— {core.make_process_template('x', [_bd], [])[core.KHOA_CO_MAY]['tri_nho']}")
 # Hai ô cùng mã là hai cái tên cho MỘT chỗ nhớ — ghi vào cái này, đọc ra ở cái kia.
 _bd2 = core.make_start_step()
 _bd2["tri_nho"] = [{"ma": "nho_co_1", "nhan": "A"}, {"ma": "nho_co_1", "nhan": "B"},

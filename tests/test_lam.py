@@ -533,7 +533,7 @@ for _bang, _ten_o in ((bat_dau.CHIA_VON, "chia_von"),
         if not _m:
             continue
         _gt = {_ten_o: _m}
-        _noi_ra = {_nhan} | {str(o["mac_dinh"]) for o in bat_dau.o_cua(_gt)}
+        _noi_ra = {_nhan} | {str(o["mac_dinh"]) for o in bat_dau.o_co_may(_gt)}
         for _cau in bat_dau.lean_day_chuyen(_gt):
             for _s in _so.findall(_cau):
                 if not any(_s in x for x in _noi_ra):

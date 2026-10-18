@@ -8,10 +8,30 @@
  * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
 import type {
-  Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
-  OLam, Step, StepKind, Strategy,
-  TheLuotChay, TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
-  CaiToiUu, LuotToiUu, NumSoDo, TheMeToiUu, TuDienToiUu,
+  CaiToiUu,
+  CoMay,
+  Edge,
+  KetQuaChay,
+  KetQuaSinh,
+  KetQuaSoat,
+  KhoaQC,
+  KhoDanhMuc,
+  LeanSanSang,
+  LuotToiUu,
+  NumSoDo,
+  OLam,
+  Reply,
+  Step,
+  StepKind,
+  Strategy,
+  TheLuotChay,
+  TheMeToiUu,
+  TienDoChay,
+  TuDienBatDau,
+  TuDienHoi,
+  TuDienLam,
+  TuDienToiUu,
+  VanDe,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -84,15 +104,16 @@ export const py = {
    *  rổ). Giao diện KHÔNG tự ghép câu nào: Python khai, đây chỉ bày lại. */
   khai_bat_dau: (gt: Record<string, unknown>) => goi<string[]>('khai_bat_dau', gt),
   /** Sơ đồ -> thuật toán LEAN Python. `ghi` true thì ghi luôn ra file. */
-  sinh_ma: (ten: string, steps: Step[], edges: Edge[], ghi = false) =>
-    goi<KetQuaSinh>('sinh_ma', ten, steps, edges, ghi),
+  sinh_ma: (ten: string, steps: Step[], edges: Edge[], ghi = false,
+            coMay?: CoMay) =>
+    goi<KetQuaSinh>('sinh_ma', ten, steps, edges, ghi, coMay),
   /** LEAN đã trỏ đúng chỗ chưa — hỏi trước khi bấm Chạy. */
   lean_san_sang: () => goi<LeanSanSang>('lean_san_sang'),
   lean_dat_goc: (duong: string) => goi<LeanSanSang>('lean_dat_goc', duong),
   /** Vẽ -> sinh -> KHỎI ĐỘNG backtest. Trả về NGAY, chưa phải kết quả. */
-  chay_backtest: (ten: string, steps: Step[], edges: Edge[]) =>
+  chay_backtest: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
     goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
-      'chay_backtest', ten, steps, edges),
+      'chay_backtest', ten, steps, edges, coMay),
   // --- cài đặt app. Giao diện KHÔNG tự khai có bao nhiêu ô — hỏi Python. ---
   cai_dat_tu_dien: () => goi<{ nhom: { ma: string; nhan: string; o: OLam[] }[] }>(
     'cai_dat_tu_dien'),
@@ -117,9 +138,10 @@ export const py = {
   tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
   /** Sơ đồ đang ghim những núm nào. ĐỌC TỪ SƠ ĐỒ mỗi lần, không bảng riêng. */
   num_cua_so_do: (steps: Step[]) => goi<NumSoDo[]>('num_cua_so_do', steps),
-  chay_toi_uu: (ten: string, steps: Step[], edges: Edge[], cai: CaiToiUu) =>
+  chay_toi_uu: (ten: string, steps: Step[], edges: Edge[], cai: CaiToiUu,
+               coMay?: CoMay) =>
     goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
-      'chay_toi_uu', ten, steps, edges, cai),
+      'chay_toi_uu', ten, steps, edges, cai, coMay),
   dung_toi_uu: () => goi<boolean>('dung_toi_uu'),
   tien_do_toi_uu: () => goi<Record<string, unknown>>('tien_do_toi_uu'),
   ds_me_toi_uu: () => goi<TheMeToiUu[]>('ds_me_toi_uu'),
@@ -132,7 +154,8 @@ export const py = {
   khoi_moi: (kind: StepKind, loai?: string) =>
     goi<{ step: Step; card: KetQuaSoat['the'][string] }>('khoi_moi', kind, loai),
   /** MỘT cửa soát duy nhất — gọi sau MỖI thay đổi, rồi vẽ lại cái nhận về. */
-  soat: (steps: Step[], edges: Edge[]) => goi<KetQuaSoat>('soat', steps, edges),
+  soat: (steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<KetQuaSoat>('soat', steps, edges, coMay),
   /** Ctrl+G — mấy khối Hành động thành MỘT Nhóm. Lõi ở Python, không ở đây. */
   gom_nhom: (steps: Step[], ten?: string) =>
     goi<{ step: Step; card: KetQuaSoat['the'][string] }>('gom_nhom', steps, ten),
@@ -149,14 +172,15 @@ export const py = {
     goi<{ ten: string }>('doi_ten_strategy', cu, moi),
   nhan_ban_strategy: (ten: string, tenMoi: string) =>
     goi<{ ten: string }>('nhan_ban_strategy', ten, tenMoi),
-  luu_strategy: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<{ ten: string; duong: string }>('luu_strategy', ten, steps, edges),
+  luu_strategy: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<{ ten: string; duong: string }>('luu_strategy', ten, steps, edges, coMay),
   mo_strategy: (ten: string) => goi<Strategy>('mo_strategy', ten),
   xoa_strategy: (ten: string) => goi<boolean>('xoa_strategy', ten),
-  tu_luu_strategy: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<{ ten: string; duong: string } | null>('tu_luu_strategy', ten, steps, edges),
-  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[]) =>
-    goi<string>('luu_ban_nhap', ten, steps, edges),
+  tu_luu_strategy: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<{ ten: string; duong: string } | null>(
+      'tu_luu_strategy', ten, steps, edges, coMay),
+  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<string>('luu_ban_nhap', ten, steps, edges, coMay),
   doc_ban_nhap: () => goi<Strategy | null>('doc_ban_nhap'),
   xoa_ban_nhap: () => goi<boolean>('xoa_ban_nhap'),
 

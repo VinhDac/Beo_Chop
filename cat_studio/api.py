@@ -431,12 +431,12 @@ class Api(NenCuaSo):
         return _ok(hoi.tu_dien())
 
     @_bat_loi
-    def sinh_ma(self, ten, steps, edges=None, ghi=False):
+    def sinh_ma(self, ten, steps, edges=None, ghi=False, co_may=None):
         """Sơ đồ -> thuật toán LEAN Python. `ghi` True thì ghi luôn ra file.
 
         Trả cả `van_de`: có lỗi thì `ok` False và ĐừNG chạy file ấy — nhưng vẫn đưa
         mã ra để người chơi nhìn thấy sơ đồ của mình thành cái gì."""
-        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges, co_may))
         if ghi and kq["ma"]:
             kq["duong"] = luu_tru.ghi_ma(kq["ten_lop"], kq["ma"])
         return _ok(kq)
@@ -477,7 +477,7 @@ class Api(NenCuaSo):
         return _ok({"gia_tri": cai_dat.doc(s), "lean": chay_lean.san_sang()})
 
     @_bat_loi
-    def chay_backtest(self, ten, steps, edges=None):
+    def chay_backtest(self, ten, steps, edges=None, co_may=None):
         """Vẽ -> sinh -> KHỞdI ĐỘNG backtest, rồi trả về NGAY.
 
         KHÔNG chờ chạy xong: một lượt mất từ chục giây tới vài phút, mà cầu nối chặn
@@ -486,15 +486,15 @@ class Api(NenCuaSo):
 
         Sinh mã còn lỗi thì DỪNG LẠI: chạy một file sinh từ sơ đồ đã hỏng chỉ ra một
         thông báo của LEAN khó hiểu hơn hẳn bảng Vấn đề."""
-        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges, co_may))
         if not kq["ok"]:
             return _ok({"ok": False, "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng "
                                             "Vấn đề.", "van_de": kq["van_de"]})
         # TÊN MỐC phải nói thật. LEAN KHÔNG ghi lại nó trong file kết quả, mà để trống
         # thì nó lặng lẽ lấy SPY — biểu đồ ghi "Mốc so sánh" chung chung là giấu mất
         # chuyện cỗ máy vàng đang bị đem so với cổ phiếu Mỹ.
-        bd = next((s for s in (steps or []) if core.is_start_step(s)), None)
-        m = str(core.o_bat_dau(bd, "moc_so_sanh") or "").strip().upper() if bd else ""
+        m = str(core.o_may(core.chuan_hoa_co_may(co_may, steps),
+                           "moc_so_sanh") or "").strip().upper()
         # Những thứ chỉ LÚC SINH mới biết, giữ lại để gắn vào kết quả lúc xong.
         self._kem = {"van_de": kq["van_de"], "ma": kq["ma"],
                      "ten_lop": kq["ten_lop"],
@@ -516,12 +516,12 @@ class Api(NenCuaSo):
             [core.chuan_hoa_khoi(s) for s in (steps or [])]))
 
     @_bat_loi
-    def chay_toi_uu(self, ten, steps, edges=None, cai=None):
+    def chay_toi_uu(self, ten, steps, edges=None, cai=None, co_may=None):
         """Vẽ -> sinh -> KHỞI ĐỘNG một mẻ Optimize, rồi trả về NGAY.
 
         Cùng lý do không chờ như `chay_backtest`, chỉ là nặng hơn hẳn: một mẻ là
         HÀNG TRĂM lượt backtest."""
-        doc = core.make_process_template(ten, steps, edges)
+        doc = core.make_process_template(ten, steps, edges, co_may)
         kq = sinh_ma.sinh(doc)
         if not kq["ok"]:
             return _ok({"ok": False, "van_de": kq["van_de"],
@@ -687,7 +687,7 @@ class Api(NenCuaSo):
         return _ok({"steps": ds, "the": [core.the_buoc(s) for s in ds]})
 
     @_bat_loi
-    def soat(self, steps, edges=None):
+    def soat(self, steps, edges=None, co_may=None):
         """Tất cả những gì giao diện cần để vẽ lại sơ đồ sau một thay đổi.
 
         Gộp làm MỘT cửa chứ không ba: đánh số, soát lỗi và dựng thẻ đều đọc cùng một
@@ -696,13 +696,15 @@ class Api(NenCuaSo):
         edges = core.clean_edges(edges, steps) if edges is not None \
             else core.default_edges(steps)
         kq = core.flow_order(steps, edges)
+        # HỒ SƠ CỖ MÁY — giao diện gửi kèm; thiếu thì lôi từ khối Bắt đầu (file cũ).
+        may = core.chuan_hoa_co_may(co_may, steps)
         # Bảng Vấn đề = lỗi ĐỒ THỊ (nối dây) + lỗi RUỘT từng khối. Gộp ở đây chứ
         # không ở `validate_flow_graph`: cái đó chỉ biết về dây, cố ý vậy.
         van_de = core.validate_flow_graph(steps, edges)
         for s in steps:
             van_de.extend(core.soat_khoi_hoi(s))
             van_de.extend(core.soat_khoi_lam(s))
-            van_de.extend(core.soat_khoi_bat_dau(s))
+            van_de.extend(core.soat_khoi_bat_dau(s, may))
             # Hành động nằm trong một Nhóm cũng phải soát — khối Nhóm không có `type`
             # của riêng nó, nên vòng trên không chạm tới ruột nó.
             for a in core.hanh_dong_cua(s):
@@ -712,27 +714,29 @@ class Api(NenCuaSo):
         # vào chính nó thì không biết khối Bắt đầu đang chạy kiểu nào.
         van_de.extend(core.soat_ca_ro(steps))
         van_de.extend(core.soat_ro_dong(steps))
-        van_de.extend(core.soat_day_chuyen(steps))
+        van_de.extend(core.soat_day_chuyen(steps, may))
         # Bảng TÊN ô nhớ — khai ở khối Bắt đầu, mà thẻ cần vẽ ở khối Ghi nhớ.
-        _tn = core.ten_nho_cua(steps)
+        _tn = core.ten_nho_cua(may)
         return _ok({
             "thu_tu": kq["order"],
             "entry": kq["entry"],
             "the": {s["id"]: core.the_buoc(s, _tn) for s in steps},
-            # KHUNG lượt chạy — mấy chip của tag góc phải canvas. Đi CÙNG cửa soát
-            # chứ không thành một cửa riêng: nó đọc đúng cái khối Bắt đầu mà thẻ vừa
-            # đọc, nên tách ra là mời hai lượt gọi thấy hai trạng thái khác nhau.
-            "khung_chay": core.khung_chay(steps),
+            # CỖ MÁY LEAN — mấy chữ cho viên thuốc ở góc phải canvas, và hồ sơ
+            # đã chuẩn hoá (giao diện dùng nó để mở hộp Cỗ máy, và để lưu). Đi CÙNG
+            # cửa soát chứ không thành cửa riêng: tách ra là mời hai lượt gọi thấy
+            # hai trạng thái khác nhau.
+            "co_may": may,
+            "tom_tat_co_may": core.tom_tat_co_may(may),
             "van_de": van_de,
             "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
             "edges": edges,
         })
 
     @_bat_loi
-    def nhan_ban(self, steps, edges=None, giu_hat_nhan=False):
+    def nhan_ban(self, steps, edges=None, giu_hat_nhan=False, co_may=None):
         """Chép một mảng khối, cấp id mới. Đích Quay về trỏ ra ngoài mảng bị để TRỐNG."""
         moi, day, bang = core.clone_steps(steps, edges, giu_hat_nhan)
-        _tn = core.ten_nho_cua(steps)
+        _tn = core.ten_nho_cua(core.chuan_hoa_co_may(co_may, steps))
         return _ok({"steps": moi, "edges": day, "map": bang,
                     "the": {s["id"]: core.the_buoc(s, _tn) for s in moi}})
 
@@ -787,8 +791,8 @@ class Api(NenCuaSo):
         return _ok({"ten": ten_moi})
 
     @_bat_loi
-    def luu_strategy(self, ten, steps, edges=None):
-        doc = core.make_process_template(ten, steps, edges)
+    def luu_strategy(self, ten, steps, edges=None, co_may=None):
+        doc = core.make_process_template(ten, steps, edges, co_may)
         p = luu_tru.ghi_strategy(doc["name"], doc)
         # Lưu thật xong thì bản tự lưu hết việc — việc dở đã thành việc lưu.
         luu_tru.xoa_strategy(luu_tru.ten_tu_luu(doc["name"]))
@@ -803,13 +807,13 @@ class Api(NenCuaSo):
         return _ok(luu_tru.xoa_strategy(ten))
 
     @_bat_loi
-    def tu_luu_strategy(self, ten, steps, edges=None):
+    def tu_luu_strategy(self, ten, steps, edges=None, co_may=None):
         """Bản tự lưu nằm cạnh Strategy gốc. CHỈ đẻ ra khi nội dung thật sự khác bản trên
         đĩa — mở ra xem mà không sửa gì thì không đẻ ra file nào."""
         ten = luu_tru.ten_goc_cua(ten)
         if not ten:
             return _ok(None)          # chưa lưu lần nào: bản nháp lo, không phải chỗ này
-        doc = core.make_process_template(ten, steps, edges)
+        doc = core.make_process_template(ten, steps, edges, co_may)
         try:
             cu = core.normalize_process(luu_tru.doc_strategy(ten))
             if cu["steps"] == doc["steps"] and cu["edges"] == doc["edges"]:
@@ -821,9 +825,9 @@ class Api(NenCuaSo):
 
     # ------------------------------------------------------------- bản nháp
     @_bat_loi
-    def luu_ban_nhap(self, ten, steps, edges=None):
+    def luu_ban_nhap(self, ten, steps, edges=None, co_may=None):
         """Việc đang dở của cửa sổ — kể cả cỗ máy chưa từng lưu. Không đụng file cỗ máy."""
-        doc = core.make_process_template(ten or "", steps, edges)
+        doc = core.make_process_template(ten or "", steps, edges, co_may)
         return _ok(luu_tru.ghi_ban_nhap(doc))
 
     @_bat_loi

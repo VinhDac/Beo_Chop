@@ -103,7 +103,24 @@ NHOM_O = (
     ("chi_phi", "Sàn và chi phí", "phí và trượt giá tính theo kiểu nào"),
     ("tri_nho", "Trí nhớ", "cỗ máy nhớ lại quyết định của chính nó ở nhịp trước"),
     ("do_luong", "Đo lường", "so cỗ máy này với cái gì"),
+    ("du_lieu", "Dữ liệu và sức mua", "LEAN đưa giá vào kiểu nào, và chừa lại bao "
+                                      "nhiêu tiền mặt"),
 )
+
+#: ⭐ ĐƯỜNG RANH: nhóm nào thuộc CỖ MÁY LEAN, không thuộc khối Bắt đầu.
+#:
+#: Luật đặt ra ngày 18/10/2026, do chính chủ dự án chốt: *"ta đang lạm dụng khối Bắt
+#: đầu để gài logic vào chứ không thực sự tạo ra khối mới để vẽ… nên hạn chế nhất khả
+#: năng trong 1 khối, giữ sự đơn giản sạch, từ đó mới build những thứ to lớn được."*
+#:
+#: Đọc lên thành một câu: **khối Bắt đầu là SƠ ĐỒ CỦA NGƯỜI DÙNG** — chạy trên cái gì,
+#: bao giờ, bằng bao nhiêu tiền, rẽ nhánh ra sao. **Cỗ máy LEAN là thứ LEAN LO HỘ** —
+#: bốn trạm dây chuyền, phí sàn, ô nhớ, mốc so sánh, cách đưa giá vào.
+#:
+#: ⚠ THÊM Ô MỚI THÌ HỎI CÂU NÀY TRƯỚC: nó vẽ được thành một KHỐI không? Vẽ được thì
+#: làm khối. Không vẽ được mà là việc của LEAN thì vào đây. Chỉ khi nó thật sự là
+#: "sơ đồ này chạy trên cái gì" mới để lại khối Bắt đầu.
+NHOM_CO_MAY = ("day_chuyen", "chi_phi", "du_lieu", "tri_nho", "do_luong")
 
 #: Ô nào KHÔNG khai nhóm thì rơi về nhóm này — bày ra cuối cùng. Rơi về êm thì một ô
 #: mới quên khai nhóm sẽ biến mất khỏi hộp thoại mà không ai thấy; rơi về đây thì nó
@@ -1217,7 +1234,7 @@ O_BAT_DAU = [
     _o("dem_tien_mat", "Đệm tiền mặt", O_SO, 0.0025,
        "self.settings.free_portfolio_value_percentage = dem_tien_mat",
        don_vi="phần",
-       goi_y="0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025.", nhom="tien"),
+       goi_y="0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025.", nhom="du_lieu"),
 
     _o("nhip", "Nhịp", O_CHON, "ngay",
        "Resolution.* · on_data hoặc schedule.on",
@@ -1301,7 +1318,7 @@ O_BAT_DAU = [
        goi_y="Cổ tức và chia tách tính vào giá thế nào. Để trống thì LEAN dùng "
              "ADJUSTED. Chỉ có tác dụng với CỔ PHIẾU, HĐ tương lai và rổ động — "
              "ngoại hối / tiền mã hoá / CFD / chỉ số không nhận tham số này.",
-       bat_buoc=False, nhom="chay_gi"),
+       bat_buoc=False, nhom="du_lieu"),
 
     # --- BA CHÍNH SÁCH CỦA DÂY CHUYỀN LEAN ---
     #
@@ -1351,15 +1368,32 @@ def alpha_cua(ma):
     return next((x for x in PHAT_TIN_HIEU if x[0] and x[0] == m), None)
 
 
-def o_cua(gia_tri=None):
-    """Mọi ô của khối Bắt đầu, KỂ CẢ ô chỉ hiện theo nhịp hay theo model đã chọn.
+def _o_day_du(gia_tri=None):
+    """Mọi ô KHAI TRONG FILE NÀY, cả của khối lẫn của cỗ máy, kể cả ô con.
 
     Cùng lối với `lam.o_cua`: chọn "Mỗi ngày đúng giờ" thì ô Giờ/Phút mới hiện ra,
-    chọn một model phòng rủi ro thì ô Ngưỡng mới hiện ra."""
+    chọn một model phòng rủi ro thì ô Ngưỡng mới hiện ra.
+
+    ⚠ KHÔNG AI NGOÀI FILE NÀY GỌI NÓ. Hai cửa ra là `o_cua` (ô của KHỐI) và
+    `o_co_may` (ô của CỖ MÁY) — xem `NHOM_CO_MAY`. Để một cửa chung là mời người ta
+    đọc ô cỗ máy ra từ khối Bắt đầu, đúng chỗ vừa tách ra."""
     ra = list(O_BAT_DAU)
+
+    def them(ds, cha):
+        """Ô CON mang NHÀ CỦA Ô CHA.
+
+        ⚠ Không có dòng này thì ô con khai `nhom=""` và rơi hết về khối Bắt đầu —
+        tức ô «Ngưỡng» của model phòng rủi ro và ô «Phí mỗi lệnh» mọc ra trong hộp
+        Bắt đầu, cách ô cha của chúng cả một hộp thoại. Người dùng chọn model trong
+        hộp Cỗ máy rồi đi tìm cái núm của nó ở đâu không thấy.
+            CHÉP ô ra trước khi đóng dấu: mấy dict này là của BẢNG DÙNG CHUNG, sửa
+        tại chỗ là sửa luôn cho mọi sơ đồ mở sau."""
+        ho = O_THEO_TEN.get(cha, {}).get("nhom") or ""
+        ra.extend(dict(o, nhom=o.get("nhom") or ho) for o in ds)
+
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if n:
-        ra.extend(n[4])
+        them(n[4], "nhip")
         # Ô «Lúc nào trong ngày» nay nằm NGAY TRONG `o_them` của từng nhịp hẹn giờ,
         # nên dòng trên đã lấy nó rồi. Chỉ còn ô con của chính quy tắc giờ (số phút,
         # hay giờ+phút) — một tầng nữa.
@@ -1371,18 +1405,36 @@ def o_cua(gia_tri=None):
         # đo bằng JS thì ô ấy vẫn có trong `o_cua`, vẫn lưu được, vẫn sinh mã đúng.
         g = gio_da_chon(gia_tri)
         if g:
-            ra.extend(g[4])
+            them(g[4], "nhip")
     r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
     if r:
-        ra.extend(r[2])
+        them(r[2], "phong_rui_ro")
     a = alpha_cua((gia_tri or {}).get("phat_tin_hieu"))
     if a:
-        ra.extend(a[2])
+        them(a[2], "phat_tin_hieu")
     for tim, khoa in ((phi_cua, "phi"), (truot_cua, "truot_gia")):
         m = tim((gia_tri or {}).get(khoa))
         if m:
-            ra.extend(m[2])
+            them(m[2], khoa)
     return ra
+
+
+def la_o_co_may(o):
+    """Ô này thuộc CỖ MÁY LEAN hay thuộc khối Bắt đầu."""
+    return (o.get("nhom") or "") in NHOM_CO_MAY
+
+
+def o_cua(gia_tri=None):
+    """Ô của KHỐI BẮT ĐẦU — sơ đồ chạy trên cái gì, bao giờ, bằng bao nhiêu tiền."""
+    return [o for o in _o_day_du(gia_tri) if not la_o_co_may(o)]
+
+
+def o_co_may(gia_tri=None):
+    """Ô của CỖ MÁY LEAN — bốn trạm, phí sàn, dữ liệu, ô nhớ, mốc so sánh.
+
+    `gia_tri` là hồ sơ cỗ máy (không phải khối Bắt đầu), vì ô con ở đây mọc theo
+    chính mấy ô của nó: chọn một model phòng rủi ro thì ô «Ngưỡng» mới hiện."""
+    return [o for o in _o_day_du(gia_tri) if la_o_co_may(o)]
 
 
 def cau_phi_truot(gia_tri=None):
@@ -1519,13 +1571,18 @@ def gt_o(gia_tri, ten):
     """Giá trị một ô của khối Bắt đầu, rơi về mặc định nếu khối CHƯA CÓ KHOÁ ấy.
 
     Ô THÊM (của nhịp, của model phòng rủi ro) không nằm trong `O_THEO_TEN`, nên phải
-    tìm qua `o_cua` — chính danh sách ô ĐANG hiện.
+    tìm qua danh sách ô ĐANG hiện.
+
+    ⚠ TÌM TRONG CẢ HAI NHÀ (`_o_day_du`), không riêng ô của khối. Hàm này là lối đọc
+    CHUNG: `lean_day_chuyen` và `cau_phi_truot` gọi nó trên HỒ SƠ CỖ MÁY, nơi ô
+    `nguong` và `phi_moi_lenh` sống. Hẹp lại thành `o_cua` là mấy ô ấy không tra ra,
+    và câu LEAN sinh ra mang số 0 — người dùng gõ ngưỡng 17% mà cỗ máy cắt lỗ ở 0.
 
     ⚠ CHỈ rơi về mặc định khi khoá VẮNG, không khi nó RỖNG — đúng luật `gt_ro` và
     `core.o_bat_dau`. Coi `""` như vắng là xoá trắng ô «Ngưỡng» rồi cỗ máy lặng lẽ
     cắt lỗ ở 5%: hộp thoại trống trơn mà mã sinh ra mang một con số, và phép soát
     không có gì để bắt. Rỗng là rỗng, và `soat_khoi_bat_dau` báo lỗi vì nó rỗng."""
-    for o in o_cua(gia_tri):
+    for o in _o_day_du(gia_tri):
         if o["ten"] == ten:
             v = (gia_tri or {}).get(ten)
             return o["mac_dinh"] if v is None else v
@@ -1562,9 +1619,20 @@ def khai(gia_tri=None):
 def tu_dien():
     """Cả từ điển, dạng gửi được qua cầu nối."""
     return {
-        "o": O_BAT_DAU,
+        # HAI BỘ Ô, HAI HỘP THOẠI — xem `NHOM_CO_MAY`. `o` là của khối Bắt đầu
+        # (sơ đồ chạy trên cái gì, bao giờ, bằng bao nhiêu tiền); `o_co_may` là của
+        # hộp Cỗ máy LEAN (bốn trạm, phí sàn, dữ liệu, ô nhớ, mốc so sánh).
+        #
+        # ⚠ CHIA Ở ĐÂY, KHÔNG CHIA BÊN TYPESCRIPT. Giao diện mà tự lọc theo tên nhóm
+        # là nó giữ một bản thứ hai của đường ranh, và hôm thêm một nhóm thì ô mới
+        # rơi vào hộp nào là do bản nào thắng — lặng thinh.
+        "o": [o for o in O_BAT_DAU if not la_o_co_may(o)],
+        "o_co_may": [o for o in O_BAT_DAU if la_o_co_may(o)],
         # NHÓM — giao diện xếp ô theo đây. Thứ tự trong bảng là thứ tự bày.
-        "nhom": [{"ma": m, "nhan": n, "mo_ta": d} for m, n, d in NHOM_O],
+        "nhom": [{"ma": m, "nhan": n, "mo_ta": d} for m, n, d in NHOM_O
+                 if m not in NHOM_CO_MAY],
+        "nhom_co_may": [{"ma": m, "nhan": n, "mo_ta": d} for m, n, d in NHOM_O
+                        if m in NHOM_CO_MAY],
         "nhom_khac": NHOM_KHAC,
         # Mười hai ô nhớ CỐ ĐỊNH — giao diện bày danh sách này cho người dùng chọn,
         # rồi đặt TÊN cho ô nào họ muốn dùng. Không sinh mã mới.

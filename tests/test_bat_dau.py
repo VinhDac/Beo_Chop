@@ -178,8 +178,11 @@ kiem("nhịp theo nến thì nhịp CHÍNH LÀ độ phân giải",
 
 print("\n▸ Ô thêm chỉ hiện theo nhịp đã chọn")
 st = core.make_start_step()
+# `o_cua` nay CHỈ trả ô của KHỐI (xem `bat_dau.NHOM_CO_MAY`) — nên đếm theo đúng
+# phần ấy của `O_BAT_DAU`, không đếm cả bảng.
+_o_khoi = [o for o in bat_dau.O_BAT_DAU if not bat_dau.la_o_co_may(o)]
 kiem("nhịp theo nến: không thêm ô nào",
-     len(bat_dau.o_cua(st)) == len(bat_dau.O_BAT_DAU))
+     len(bat_dau.o_cua(st)) == len(_o_khoi), f"— {len(bat_dau.o_cua(st))}/{len(_o_khoi)}")
 st["nhip"] = "moi_ngay_luc"
 ten_o = [o["ten"] for o in bat_dau.o_cua(st)]
 kiem("«mỗi ngày đúng giờ» thêm ô Giờ và Phút",
@@ -223,13 +226,20 @@ kiem("một mã thì nói luôn loại tài sản",
 kiem("huy hiệu nói NHỊP", core.the_buoc(st)["badges"] == ["Mỗi nến ngày"],
      f"— {core.the_buoc(st)['badges']}")
 
-# ⚠ THẺ CHỈ NÓI «CHẠY TRÊN CÁI GÌ». Khoảng ngày · vốn · mốc so sánh là KHUNG của lượt
-# chạy, đúng với cả sơ đồ — in chúng vào một khối thì khối ấy phình ra năm sáu dòng vì
-# mấy thứ chẳng dính gì tới dòng chảy ngay dưới nó. Nay chúng là chip ở góc phải
-# canvas (`core.khung_chay`), và phép dưới đây canh đúng đường ranh ấy.
+# ⚠ ĐƯỜNG RANH CỦA THẺ, và nó đã dời MỘT LẦN nên đáng ghi rõ. Ngày và vốn thì CÓ ở
+# lại thẻ: chúng là «sơ đồ này chạy từ bao giờ, bằng bao nhiêu tiền» — của NGƯỜI DÙNG.
+# Còn dây chuyền LEAN, phí sàn, ô nhớ, mốc so sánh thì KHÔNG: chúng là việc LEAN lo,
+# nay nằm trong hộp Cỗ máy LEAN (`bat_dau.NHOM_CO_MAY`), và thẻ in chúng là làm một
+# khối phình ra vì mấy thứ chẳng dính gì tới dòng chảy ngay dưới nó.
 _ca = " ".join(d)
-kiem("thẻ KHÔNG in khoảng ngày", "2010" not in _ca and "→" not in _ca, f"— {d}")
-kiem("thẻ KHÔNG in vốn", "vốn" not in _ca, f"— {d}")
+kiem("ngày hiện kiểu Việt, không phải kiểu file", "01/01/2010 → 01/01/2019" in _ca,
+     f"— {d}")
+kiem("tiền có dấu phân nhóm", "vốn 100.000$" in _ca, f"— {d}")
+_st_may = core.make_start_step()
+_st_may["moc_so_sanh"] = "SPY"          # file CŨ: ô cỗ máy còn nằm trong khối
+kiem("thẻ KHÔNG in ô của CỖ MÁY, kể cả khi file cũ còn để nó trong khối",
+     not any("SPY" in x for x in core.mo_ta_bat_dau(_st_may)[1:]),
+     f"— {core.mo_ta_bat_dau(_st_may)}")
 
 st["ma"] = [{"ma": "SPY", "loai": "equity"}, {"ma": "QQQ", "loai": "equity"},
             {"ma": "IWM", "loai": "equity"}]
@@ -238,49 +248,63 @@ kiem("nhiều mã thì đếm rồi kể tên",
 st["ma"] = []
 kiem("không mã thì nói rõ", dong_the(st)[0] == "chưa chọn mã nào")
 
-# ================= 4b. KHUNG lượt chạy =================
-print("\n▸ Khung lượt chạy — chip ở góc phải canvas")
-_st = core.make_start_step()
-_c = core.khung_chay([_st])
-_tra = {x["nhan"]: x for x in _c}
-kiem("sơ đồ thường chỉ có NGÀY và VỐN", len(_c) == 2, f"— {[x['nhan'] for x in _c]}")
-kiem("ngày hiện kiểu Việt, không phải kiểu file",
-     _tra["Khoảng ngày"]["gia_tri"] == "01/01/2010 → 01/01/2019",
-     f"— {_tra['Khoảng ngày']['gia_tri']!r}")
-kiem("tiền có dấu phân nhóm", _tra["Vốn"]["gia_tri"] == "100.000$",
-     f"— {_tra['Vốn']['gia_tri']!r}")
-kiem("mỗi chip mang NHÓM để bấm vào là mở đúng chỗ",
-     all(x["nhom"] in {n[0] for n in bat_dau.NHOM_O} for x in _c),
-     f"— {[x['nhom'] for x in _c]}")
+# ================= 4b. CỖ MÁY LEAN =================
+# Viên thuốc ở góc phải canvas là CỬA DUY NHẤT vào hộp Cỗ máy, nên nó luôn có mặt —
+# nhưng chữ trên nó chỉ kể thứ ĐÃ ĐỔI. Kể cả mặc định thì nó dài bằng cả hộp thoại, và
+# ta chỉ dời đống lộn xộn từ khối Bắt đầu sang góc màn hình.
+print("\n▸ Cỗ máy LEAN — viên thuốc góc phải chỉ kể thứ ĐÃ ĐỔI")
+kiem("chưa đặt gì thì không kể gì", core.tom_tat_co_may({}) == [],
+     f"— {core.tom_tat_co_may({})}")
+kiem("hồ sơ mặc định cũng vậy", core.tom_tat_co_may(core.co_may_mac_dinh()) == [],
+     f"— {core.tom_tat_co_may(core.co_may_mac_dinh())}")
 
-# ⚠ MẶC ĐỊNH THÌ IM. Không có luật ấy thì tag mọc đủ mười mấy chip và ta chỉ dời đống
-# lộn xộn từ khối sang góc màn hình. Lặp qua CHÍNH từ điển: ô mới nào rơi vào một nhóm
-# khung mà mặc định của nó lại thành chip thì phép này đỏ.
-_khung_o = [o for o in bat_dau.o_cua(_st)
-            if (o.get("nhom") or "") in core.NHOM_KHUNG
-            and o["ten"] not in ("khoang", "von")]
-kiem(f"{len(_khung_o)} ô khung khác đều IM khi để mặc định",
-     len(core.khung_chay([_st])) == 2,
-     f"— {[x['nhan'] for x in core.khung_chay([_st])]}")
+_may = dict(core.co_may_mac_dinh(), moc_so_sanh="SPY")
+kiem("đổi một ô -> kể đúng một thứ", core.tom_tat_co_may(_may) == ["mốc so sánh SPY"],
+     f"— {core.tom_tat_co_may(_may)}")
+# Ô CHỌN phải hiện NHÃN, không hiện tên lớp LEAN: "InsightWeighting…" đọc trên canvas
+# thì không ai biết nó chia vốn kiểu gì.
+_may2 = dict(core.co_may_mac_dinh(),
+             chia_von="InsightWeightingPortfolioConstructionModel")
+kiem("ô CHỌN kể bằng nhãn tiếng Việt, không bằng tên lớp LEAN",
+     all("PortfolioConstruction" not in x for x in core.tom_tat_co_may(_may2)),
+     f"— {core.tom_tat_co_may(_may2)}")
+# Ô nhớ là một DANH SÁCH, kể bằng số chứ đừng đổ cả danh sách ra viên thuốc.
+_may3 = dict(core.co_may_mac_dinh(),
+             tri_nho=[{"ma": "nho_so_1", "nhan": "a", "ban_dau": 0},
+                      {"ma": "nho_so_2", "nhan": "b", "ban_dau": 0}])
+kiem("ô nhớ kể bằng SỐ", core.tom_tat_co_may(_may3) == ["2 ô nhớ"],
+     f"— {core.tom_tat_co_may(_may3)}")
 
-# Đổi một ô khác mặc định -> đúng MỘT chip mọc thêm, và nó mang nhãn của từ điển.
-_st2 = dict(_st, moc_so_sanh="SPY")
-_them = [x for x in core.khung_chay([_st2]) if x["nhan"] not in ("Khoảng ngày", "Vốn")]
-kiem("đổi «Mốc so sánh» -> mọc đúng một chip",
-     len(_them) == 1 and _them[0]["gia_tri"] == "SPY", f"— {_them}")
-kiem("và chip ấy mang đúng nhóm của ô",
-     _them and _them[0]["nhom"] == "do_luong", f"— {_them}")
-
-# Ô CHỌN phải hiện NHÃN, không hiện mã lớp LEAN: "InsightWeighting…" là tên lớp, đọc
-# trên canvas thì không ai biết nó chia vốn kiểu gì.
-_st3 = dict(_st, chia_von="InsightWeightingPortfolioConstructionModel")
-_them3 = [x for x in core.khung_chay([_st3])
-          if x["nhan"] not in ("Khoảng ngày", "Vốn")]
-kiem("ô CHỌN hiện nhãn tiếng Việt, không hiện tên lớp LEAN",
-     len(_them3) == 1 and "PortfolioConstruction" not in _them3[0]["gia_tri"],
-     f"— {_them3}")
-
-kiem("sơ đồ không có khối Bắt đầu thì khung rỗng", core.khung_chay([]) == [])
+# ---- Hồ sơ cỗ máy: FILE CŨ phải lôi lên được ----
+# ⚠ Trước 18/10/2026 mười một ô này nằm ngay trong khối Bắt đầu. File lưu hồi ấy mở ra
+# mà không ai lôi lên thì cỗ máy rơi hết về mặc định — sơ đồ vẫn vẽ, vẫn chạy, chỉ là
+# chạy bằng một DÂY CHUYỀN KHÁC với hôm người ta lưu nó. Hỏng lặng, và hỏng vào đúng
+# thứ người ta đã chỉnh tay.
+print("\n▸ File CŨ — ô cỗ máy nằm trong khối Bắt đầu thì phải lôi lên")
+_cu = core.make_start_step()
+_cu["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+_cu["phi"], _cu["phi_moi_lenh"] = "ConstantFeeModel", 2.5
+_cu["moc_so_sanh"] = "QQQ"
+_d = core.normalize_process({"name": "cũ", "steps": [_cu], "edges": []})
+_m = _d[core.KHOA_CO_MAY]
+kiem("lôi được ô thường", _m["chia_von"] == "EqualWeightingPortfolioConstructionModel",
+     f"— {_m['chia_von']!r}")
+kiem("lôi được cả Ô CON (chỉ mọc khi đã chọn model)", _m.get("phi_moi_lenh") == 2.5,
+     f"— {_m.get('phi_moi_lenh')!r}")
+kiem("lôi được ô gõ chữ", _m["moc_so_sanh"] == "QQQ")
+kiem("và khối Bắt đầu SẠCH sau đó — một nhà, không hai",
+     not any(k in _d["steps"][0]
+             for k in ("chia_von", "phi", "phi_moi_lenh", "moc_so_sanh")),
+     f"— {sorted(_d['steps'][0])}")
+# Có hồ sơ mới rồi thì ĐỪNG lôi nữa: lôi thì giá trị cũ đè giá trị mới, và người dùng
+# sửa xong lưu lại thấy nó bật về như cũ.
+_d2 = core.normalize_process(dict(
+    _d, co_may=dict(_m, chia_von="RiskParityPortfolioConstructionModel")))
+kiem("có hồ sơ mới thì file cũ KHÔNG đè lên",
+     _d2[core.KHOA_CO_MAY]["chia_von"] == "RiskParityPortfolioConstructionModel",
+     f"— {_d2[core.KHOA_CO_MAY]['chia_von']!r}")
+kiem("tài liệu nào cũng mang hồ sơ cỗ máy",
+     isinstance(core.make_process_template("x", [], [])[core.KHOA_CO_MAY], dict))
 
 # ================= 4c. Rổ kén ngày =================
 # ⚠ CÂU CẢNH BÁO NÀY TỪNG LÀ MỘT CÁI NHÃN. Nó dán cứng trong tên rổ — *"(cần dữ liệu
@@ -386,8 +410,15 @@ kiem("khoảng ngày còn", (ra.get("khoang") or {}).get("tu") == "2015-06-01")
 kiem("vốn còn", ra.get("von") == 5000)
 kiem("nhịp còn", ra.get("nhip") == "moi_ngay_luc")
 kiem("ô thêm của nhịp còn", ra.get("gio") == 14 and ra.get("phut") == 30)
-kiem("mốc so sánh còn", ra.get("moc_so_sanh") == "SPY")
-kiem("sàn còn", ra.get("san") == "OANDA_BROKERAGE")
+# ⚠ HAI Ô NÀY KHÔNG CÒN Ở TRONG KHỐI, và đó mới là điều phải canh: chúng SANG hồ sơ
+# cỗ máy, không BIẾN MẤT. Chỉ canh "khối sạch" thì một lượt chuyển nhà làm rơi mất
+# giá trị vẫn qua tuốt — người dùng mở lại thấy mốc so sánh trống mà chẳng gì báo.
+kiem("mốc so sánh RỜI khối", "moc_so_sanh" not in ra)
+kiem("sàn RỜI khối", "san" not in ra)
+kiem("...và SANG hồ sơ cỗ máy, không rơi mất",
+     doc[core.KHOA_CO_MAY]["moc_so_sanh"] == "SPY"
+     and doc[core.KHOA_CO_MAY]["san"] == "OANDA_BROKERAGE",
+     f"— {doc[core.KHOA_CO_MAY]['moc_so_sanh']!r} · {doc[core.KHOA_CO_MAY]['san']!r}")
 
 print("\n▸ Và khoá rác thì KHÔNG sống sót")
 g["rac_tu_file_sua_tay"] = 123
@@ -399,7 +430,16 @@ kiem("khoá lạ bị bỏ", "rac_tu_file_sua_tay" not in ra2,
 print("\n▸ Từ điển gửi được qua cầu nối")
 td = bat_dau.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("gửi đủ ô", len(td["o"]) == len(bat_dau.O_BAT_DAU))
+# ⚠ HAI BỘ Ô, và PHẢI ĐỦ CẢ HAI. Từ điển chia `o` (khối Bắt đầu) với `o_co_may`
+# (hộp Cỗ máy LEAN) — xem `NHOM_CO_MAY`. Chỉ đếm một bộ thì hôm một ô đi lạc sang
+# bộ kia, hay rơi khỏi cả hai, phép này vẫn xanh.
+kiem("gửi đủ ô, chia đúng HAI bộ",
+     len(td["o"]) + len(td["o_co_may"]) == len(bat_dau.O_BAT_DAU)
+     and not ({o["ten"] for o in td["o"]} & {o["ten"] for o in td["o_co_may"]}),
+     f"— {len(td[chr(111)])} + {len(td[chr(111)+chr(95)+chr(99)+chr(111)+chr(95)+chr(109)+chr(97)+chr(121)])} / {len(bat_dau.O_BAT_DAU)}")
+kiem("và nhóm cũng chia đôi, không nhóm nào ở cả hai bên",
+     not ({n["ma"] for n in td["nhom"]} & {n["ma"] for n in td["nhom_co_may"]})
+     and len(td["nhom"]) + len(td["nhom_co_may"]) == len(bat_dau.NHOM_O))
 kiem("có bảng loại tài sản", len(td["loai_tai_san"]) == len(bat_dau.LOAI_TAI_SAN))
 kiem("có bảng nhịp", len(td["nhip"]) == len(bat_dau.NHIP))
 kiem("gợi ý mã miễn phí có XAUUSD", "XAUUSD" in td["co_san"]["cfd"])
@@ -477,18 +517,19 @@ def _nang(ds):
 kiem("phát tín hiệu mà chưa chọn Chia vốn → LỖI",
      len(_nang(core.soat_day_chuyen([_bd, _th]))) == 1,
      "— insight bay vào hư không, backtest chạy xong không một lệnh nào")
-_bd["chia_von"] = "EqualWeightingPortfolioConstructionModel"
-kiem("chọn rồi thì sạch", not core.soat_day_chuyen([_bd, _th]))
+# Dây chuyền nay nằm ở HỒ SƠ CỖ MÁY, nên phép soát nhận nó làm tham số thứ hai.
+_may_chia = {"chia_von": "EqualWeightingPortfolioConstructionModel"}
+kiem("chọn rồi thì sạch", not core.soat_day_chuyen([_bd, _th], _may_chia))
 kiem("chọn Chia vốn mà không khối tín hiệu nào → CẢNH BÁO",
-     [v["severity"] for v in core.soat_day_chuyen([_bd])] == ["warning"])
+     [v["severity"] for v in core.soat_day_chuyen([_bd], _may_chia)] == ["warning"])
 kiem("trộn tín hiệu với lệnh tay → LỖI",
      len(_nang(core.soat_day_chuyen(
-         [_bd, _th, core.make_lam_step(lam.LAM_DAT_TY_TRONG)]))) == 1,
+         [_bd, _th, core.make_lam_step(lam.LAM_DAT_TY_TRONG)], _may_chia))) == 1,
      "— model chia vốn cân lại danh mục, lệnh tay bị gỡ ngay nhịp sau")
-_bd2 = core.make_start_step()
-_bd2["phong_rui_ro"] = "TrailingStopRiskManagementModel"
 kiem("phòng rủi ro mà không có chia vốn → CẢNH BÁO",
-     any(v["severity"] == "warning" for v in core.soat_day_chuyen([_bd2])),
+     any(v["severity"] == "warning" for v in core.soat_day_chuyen(
+         [core.make_start_step()],
+         {"phong_rui_ro": "TrailingStopRiskManagementModel"})),
      "— nó chạy SAU chia vốn, không có chia vốn thì không tới lượt")
 
 print("\n▸ ⚠ Ô NGƯỠNG của trạm phòng rủi ro — có mới hiện, và 0 là CẮT NGAY")
@@ -504,27 +545,27 @@ for _m, _nhan, _th2 in bat_dau.PHONG_RUI_RO:
     if not _m:
         continue
     _bdn["phong_rui_ro"] = _m
-    _hien = {o["ten"]: o for o in bat_dau.o_cua(_bdn)}
+    _hien = {o["ten"]: o for o in bat_dau.o_co_may(_bdn)}
     kiem(f"«{_nhan}» → ô ngưỡng hiện ra", "nguong" in _hien)
     # Nhãn phải nói ĐÚNG PHANH NÀO: cùng một con số 0.05 nghĩa «lỗ 5%» ở model này
     # và «lãi 5%» ở model kia. Một nhãn chung cho cả bốn là một nhãn nói sai ba lần.
     kiem("  và nhãn ô nói đúng model ấy đo cái gì",
          _hien["nguong"]["nhan"] == _th2[0]["nhan"])
 _bdn["phong_rui_ro"] = "MaximumDrawdownPercentPerSecurity"
-kiem("mặc định sạch", not [v for v in core.soat_khoi_bat_dau(_bdn)
+kiem("mặc định sạch", not [v for v in core.soat_khoi_bat_dau(core.make_start_step(), _bdn)
                           if v["severity"] == "error"])
 _bdn["nguong"] = 0
 kiem("ngưỡng 0 → LỖI", any(v["severity"] == "error" and "ngưỡng" in v["message"]
-                           for v in core.soat_khoi_bat_dau(_bdn)),
+                           for v in core.soat_khoi_bat_dau(core.make_start_step(), _bdn)),
      "— LEAN lấy `-abs(0)` = 0 rồi so `pnl < 0`: cắt ngay khi mã chớm lỗ một xu")
 _bdn["nguong"] = ""
 kiem("ngưỡng để trống → LỖI, không lặng rơi về 5%",
-     any(v["severity"] == "error" for v in core.soat_khoi_bat_dau(_bdn)),
+     any(v["severity"] == "error" for v in core.soat_khoi_bat_dau(core.make_start_step(), _bdn)),
      "— hộp trống trơn mà mã sinh ra mang một con số là hai đằng nói khác nhau")
 _bdn["nguong"] = 5
 kiem("gõ 5 (tưởng là 5%) → CẢNH BÁO",
      any(v["severity"] == "warning" and "PHẦN" in v["message"]
-         for v in core.soat_khoi_bat_dau(_bdn)),
+         for v in core.soat_khoi_bat_dau(core.make_start_step(), _bdn)),
      "— 5 nghĩa là 500%, tức trạm ấy gần như không bao giờ cắn")
 _bdn["nguong"] = 0.08
 kiem("ngưỡng hợp lệ đi THẲNG vào câu LEAN",

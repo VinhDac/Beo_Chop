@@ -185,6 +185,10 @@ class _Nc:
         self.res = "Resolution.DAILY"
         #: True = chạy MỘT LƯỢT cho cả rổ (chia danh mục), nên KHÔNG có biến `sym`.
         self.ca_danh_muc = False
+        #: HỒ SƠ CỖ MÁY LEAN — bốn trạm, phí sàn, ô nhớ, mốc so sánh, dữ liệu.
+        #: KHÔNG còn nằm trong khối Bắt đầu (18/10/2026, luật "một khối một việc"):
+        #: `core.chuan_hoa_co_may` dựng nó từ tài liệu, và lôi file cũ lên hộ.
+        self.may = {}
         #: Nhánh CHẠY HẾT (`if/if`) thay vì lần lượt (`if/elif`) — ô «Nhánh chạy thế
         #: nào» của khối Bắt đầu. Đặt một lần ở `_khai_mo`, y lối `ca_danh_muc`.
         self.nhanh_het = False
@@ -529,7 +533,7 @@ def _khai_ro(nc, gt_ma, st):
     # ⚠ CŨNG PHẢI ĐỨNG TRƯỚC `set_universe_selection`, cùng lý do với `resolution`:
     # model chụp lấy `universe_settings` ở ngay lúc dựng, nên đặt sau là đặt vào hư
     # không — rổ vẫn chạy, vẫn ra số, chỉ là chạy ở mặc định.
-    ch = str(core.o_bat_dau(st, "chuan_hoa_gia") or "").strip().upper()
+    ch = str(core.o_may(nc.may, "chuan_hoa_gia") or "").strip().upper()
     if ch:
         ra.append("self.universe_settings.data_normalization_mode = "
                   f"DataNormalizationMode.{ch}")
@@ -555,9 +559,9 @@ def _ham_loc_ro(nc, st):
 
 
 
-def _than_nho(st, theo_ma):
+def _than_nho(may, theo_ma):
     """Thân dict một bộ ô nhớ: `{'co_1': False, 'so_1': 0, …}`. -> chuỗi Python."""
-    nho = {x["ma"]: x for x in bat_dau.tri_nho_cua(st)}
+    nho = {x["ma"]: x for x in bat_dau.tri_nho_cua(may)}
     cap = []
     for d in hoi.TRI_NHO:
         if d["ma"].startswith("nho_ma_") != theo_ma:
@@ -570,7 +574,7 @@ def _than_nho(st, theo_ma):
     return "{" + ", ".join(cap) + "}"
 
 
-def _khai_tri_nho(st):
+def _khai_tri_nho(may):
     """Dòng dựng trí nhớ trong `initialize`. -> [dòng], rỗng nếu sơ đồ không nhớ gì.
 
     ⚠ DỰNG SẴN ĐỦ MƯỜI HAI Ô, kể cả ô chưa đặt tên. Đọc một ô trước khi ghi lần đầu
@@ -585,17 +589,17 @@ def _khai_tri_nho(st):
     `self._ma` là dựng một dict RỖNG, rồi `self._nho_ma[sym]` ném `KeyError` ngay mã
     đầu tiên vào rổ. Nên: giữ một MẪU, và `_nho_cua(sym)` tự đẻ bản sao lần đầu gặp
     mã ấy — đúng một chỗ, dùng cho cả hai kiểu ô «Chạy trên mã nào»."""
-    if not bat_dau.tri_nho_cua(st):
+    if not bat_dau.tri_nho_cua(may):
         return []
     return ["", "# TRÍ NHỚ: cất lại quyết định của chính sơ đồ, cho nhịp sau đọc.",
-            f"self._nho = {_than_nho(st, False)}",
-            f"self._nho_mau = {_than_nho(st, True)}",
+            f"self._nho = {_than_nho(may, False)}",
+            f"self._nho_mau = {_than_nho(may, True)}",
             "self._nho_ma = {}"]
 
 
-def _ham_nho_cua(st):
+def _ham_nho_cua(may):
     """Phương thức `_nho_cua` — bộ ô nhớ của MỘT mã, tự đẻ lần đầu gặp. -> [dòng]."""
-    if not bat_dau.tri_nho_cua(st):
+    if not bat_dau.tri_nho_cua(may):
         return []
     return ["", TAB + "def _nho_cua(self, sym):",
             TAB * 2 + '"""Ô nhớ THEO MÃ của một mã — đẻ bản sao lần đầu gặp mã ấy,',
@@ -619,7 +623,7 @@ def _lam_nong(nc, st):
     Lấy `max` chứ không cộng: cả hai cùng đếm NẾN từ lúc bắt đầu, nên chờ đủ cái dài
     hơn là đủ cho cả hai."""
     cb = nc.kho.lam_nong()
-    n = bat_dau.lam_nong_chia_von(st)
+    n = bat_dau.lam_nong_chia_von(nc.may)
     if not n:
         return cb
     # `cb` có thể là một biểu thức `int(max(...))` khi có chu kỳ GHIM làm tham số.
@@ -640,10 +644,10 @@ def _khai_mo(nc, st):
     ra.append(f"self.set_cash({_lit(core.o_bat_dau(st, 'von'))})")
     # Đệm tiền mặt: chỉ viết ra khi KHÁC mặc định của LEAN. Viết thừa một dòng bằng
     # đúng mặc định chỉ tổ làm người đọc tưởng ta đang đổi một thứ gì đó.
-    dem = core._f(core.o_bat_dau(st, "dem_tien_mat"))
+    dem = core._f(core.o_may(nc.may, "dem_tien_mat"))
     if dem is not None and abs(dem - 0.0025) > 1e-12:
         ra.append(f"self.settings.free_portfolio_value_percentage = {_lit(dem)}")
-    san = str(core.o_bat_dau(st, "san") or "DEFAULT")
+    san = str(core.o_may(nc.may, "san") or "DEFAULT")
     ra.append(f"self.set_brokerage_model(BrokerageName.{san})")
 
     # ⚠ TRÍ NHỚ DỰNG SẴN ĐỦ MƯỜI HAI Ô, kể cả ô chưa khai tên. Đọc một ô trước khi
@@ -654,7 +658,7 @@ def _khai_mo(nc, st):
     #
     # Giá trị ban đầu lấy từ ô người dùng khai; ô chưa khai thì 0 (số) / False
     # (đúng-sai) — hai giá trị «chưa có gì xảy ra», đúng nghĩa của một trí nhớ trống.
-    ra += _khai_tri_nho(st)
+    ra += _khai_tri_nho(nc.may)
 
     # ⚠ PHÍ / TRƯỢT GIÁ PHẢI ĐĂNG KÝ Ở ĐÂY — TRƯỚC MỌI `add_*`, SAU `set_brokerage_
     # model`. Bộ khởi tạo mã chỉ chạy cho mã được tạo RA SAU khi nó đăng ký; đặt nó
@@ -669,7 +673,7 @@ def _khai_mo(nc, st):
     #
     # Và sau `set_brokerage_model` vì bộ khởi tạo mặc định gói lấy `BrokerageModel`:
     # đổi sàn sau khi đã gói là gói cái sàn cũ.
-    if bat_dau.cau_phi_truot(st):
+    if bat_dau.cau_phi_truot(nc.may):
         ra.append("self.add_security_initializer(self._khoi_tao_ma)")
 
     nc.ca_danh_muc = str(core.o_bat_dau(st, "chay_cho") or "") == "ca_danh_muc"
@@ -692,7 +696,7 @@ def _khai_mo(nc, st):
         # CHUẨN HOÁ GIÁ chỉ gắn được vào loại tài sản NHẬN được nó — xem
         # `bat_dau.NHAN_CHUAN_HOA`. Sinh cho forex/crypto/cfd/index là `TypeError`
         # ngay dòng `initialize`.
-        ch = str(core.o_bat_dau(st, "chuan_hoa_gia") or "").strip().upper()
+        ch = str(core.o_may(nc.may, "chuan_hoa_gia") or "").strip().upper()
         for m in gt_ma or []:
             k2 = str((m or {}).get("ma") or "").strip().upper()
             loai = (m or {}).get("loai")
@@ -706,7 +710,7 @@ def _khai_mo(nc, st):
                       f"self.{h}({k2!r}, {nc.res}{them}).symbol")
         ra.append("self._ma = list(self._ten.values())")
 
-    moc = str(core.o_bat_dau(st, "moc_so_sanh") or "").strip().upper()
+    moc = str(core.o_may(nc.may, "moc_so_sanh") or "").strip().upper()
     if moc:
         ra.append(f"self.set_benchmark({moc!r})")
 
@@ -719,14 +723,14 @@ def _khai_mo(nc, st):
     # mặc định `Resolution.MINUTE` và chết ngay nến đầu của mọi sơ đồ nhịp ngày, còn
     # bốn model phòng rủi ro thì chạy ở ngưỡng 5% ngầm. `bat_dau.lean_day_chuyen` là
     # một bản sự thật cho cả bộ sinh mã và hộp thoại.
-    ra += [f"self.{c}" for c in bat_dau.lean_day_chuyen(st)]
+    ra += [f"self.{c}" for c in bat_dau.lean_day_chuyen(nc.may)]
 
     return ra
 
 
-def _ham_khoi_tao_ma(st):
+def _ham_khoi_tao_ma(may):
     """Phương thức `_khoi_tao_ma` — đặt phí / trượt giá cho TỪNG mã. -> [dòng]."""
-    cau = bat_dau.cau_phi_truot(st)
+    cau = bat_dau.cau_phi_truot(may)
     if not cau:
         return []
     return ["", "    def _khoi_tao_ma(self, s):",
@@ -747,6 +751,9 @@ def sinh(doc):
     steps = [s for s in (d.get("steps") or []) if isinstance(s, dict)]
     edges = d.get("edges") or core.default_edges(steps)
     nc = _Nc(steps, edges)
+    # HỒ SƠ CỖ MÁY — lấy từ tài liệu, và `chuan_hoa_co_may` lôi file cũ lên hộ (hồi
+    # trước 18/10/2026 mười một ô này nằm trong khối Bắt đầu).
+    nc.may = core.chuan_hoa_co_may(d.get(core.KHOA_CO_MAY), steps)
     lop = ten_lop(d.get("name") or "Co May")
 
     # Lỗi đồ thị và lỗi ruột khối đi TRƯỚC: sinh mã từ một sơ đồ đã hỏng chỉ ra một
@@ -755,10 +762,10 @@ def sinh(doc):
     for s in steps:
         nc.van_de += core.soat_khoi_hoi(s)
         nc.van_de += core.soat_khoi_lam(s)
-        nc.van_de += core.soat_khoi_bat_dau(s)
+        nc.van_de += core.soat_khoi_bat_dau(s, nc.may)
     nc.van_de += core.soat_ca_ro(steps)
     nc.van_de += core.soat_ro_dong(steps)
-    nc.van_de += core.soat_day_chuyen(steps)
+    nc.van_de += core.soat_day_chuyen(steps, nc.may)
     kq = core.flow_order(steps, edges)
     nc.thu_tu = kq["order"]
 
@@ -808,7 +815,7 @@ def sinh(doc):
         dong_mo.append("")
         dong_mo.append("self._cb = {sym: {} for sym in self._ma}")
         # Khong co chi bao nao, NHUNG model chia von van co the doi lich su.
-        n = bat_dau.lam_nong_chia_von(st_bd)
+        n = bat_dau.lam_nong_chia_von(nc.may)
         if n:
             dong_mo.append(f"self.set_warm_up({n})")
 
@@ -833,7 +840,7 @@ def sinh(doc):
             "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
                         nc.ca_danh_muc, nc.ro, dong_doi_ro,
                         _ham_loc_ro(nc, st_bd), bool(nc.kho.ds),
-                        _ham_khoi_tao_ma(st_bd) + _ham_nho_cua(st_bd))}
+                        _ham_khoi_tao_ma(nc.may) + _ham_nho_cua(nc.may))}
 
 
 def _khai_cb_theo_ro(nc):

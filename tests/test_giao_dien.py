@@ -387,7 +387,16 @@ kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("Tran
 
 print("\n▸ Hộp Bắt đầu KHÔNG được khai lại thứ Python đã khai")
 from cat_studio import bat_dau  # noqa: E402
-bd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
+# ⚠ MỘT RUỘT, HAI HỘP. Hộp «Bắt đầu» và hộp «Cỗ máy LEAN» bày ô theo CÙNG một luật
+# (xếp theo nhóm Python khai, ô con đi ngay sau ô cha, đổi ô cha thì điền mặc định cho
+# ô con, lưu thì bỏ ô của lựa chọn đã tắt), nên bộ vẽ ô nằm trong `RuotBatDau.tsx` và
+# cả hai hộp gọi nó. Chép ra hai bản là hai bản sẽ lệch — mà lệch ở đây nghĩa là một
+# hộp mất ô con, model chạy ở mặc định của LEAN trong khi nhãn hứa một đằng.
+bd = bo_chu_thich_ts(doc("components/RuotBatDau.tsx"))
+kiem("hai hộp dùng CHUNG một ruột, không chép ra hai bản",
+     all("RuotBatDau" in doc(f"components/{_x}.tsx")
+         for _x in ("HopBatDau", "HopCoMay")),
+     "— chép ra hai bản thì sớm muộn một bên mất ô con")
 # ⚠ ĐÃ HỎNG THẬT, ba cái một lúc. Hộp thoại dựng lại object cho mấy ô THÊM của nhịp:
 #   kieu: 'so' đóng cứng  -> «Độ phân giải dữ liệu» (ô CHỌN năm mức) hiện ra như ô gõ
 #   chon: []              -> năm lựa chọn bị vứt
@@ -428,13 +437,15 @@ _O_CON_CHO_KHAC = {
     "ro": "ô con của rổ nằm trong widget OChayTrenMa của ô «Chạy trên mã nào»",
 }
 _quen = [k for k in _co_o_con
-         if f"{k}: tuDien.{k}" not in bd and k not in _O_CON_CHO_KHAC]
+         if f"{k}: td.{k}" not in bd and f"{k}: tuDien.{k}" not in bd
+         and k not in _O_CON_CHO_KHAC]
 kiem("bảng nào có ô con thì `bangOThem` phải tra được", not _quen,
      f"— {_quen} gửi sang mà hộp thoại không tra, nên ô con của chúng KHÔNG hiện")
 # Và danh sách ngoại lệ không được mục: tên nào trong đó mà Python không còn gửi,
 # hay nay đã đi qua `bangOThem`, thì phải xoá khỏi đây.
 _muc = [k for k in _O_CON_CHO_KHAC
-        if k not in _co_o_con or f"{k}: tuDien.{k}" in bd]
+        if k not in _co_o_con or f"{k}: td.{k}" in bd
+        or f"{k}: tuDien.{k}" in bd]
 kiem("danh sách ngoại lệ ô con không mục", not _muc, f"— {_muc}")
 
 # Nhãn ô con khác nhau ở từng model («cắt khi lỗ» / «chốt khi lãi» / «tụt khỏi
@@ -447,21 +458,33 @@ kiem("và không gõ cứng nhãn ô con nào", not _go_cung, f"— {_go_cung}")
 # Lưu thì phải BỎ ô của lựa chọn không còn hiện — không thì file mang theo một ngưỡng
 # cắt lỗ của trạm đã tắt, rồi mở lại là nó lặng lẽ sống lại.
 kiem("lưu có lọc ô của lựa chọn đã tắt, cho MỌI bảng",
-     re.search(r"function luu\(\)[\s\S]{0,400}Object\.keys\(bangOThem\)", bd)
+     re.search(r"function locOAnHien\([\s\S]{0,500}bangOThemCua\(", bd)
      is not None,
      "— lọc theo tên bảng gõ tay thì thêm bảng thứ bảy là nó lọt")
+kiem("và CẢ HAI hộp gọi đúng hàm lọc ấy",
+     all("locOAnHien" in doc(f"components/{_x}.tsx")
+         for _x in ("HopBatDau", "HopCoMay")),
+     "— hộp nào tự lọc lấy là hộp ấy quên một bảng")
 # Dòng khai LEAN tồn tại ĐÚNG ĐỂ kiểm lời hứa — nó nói sai thì tệ hơn không có nó.
 # Nên giao diện KHÔNG ghép câu ấy nữa: nó hỏi `bat_dau.khai()` sau MỖI thay đổi rồi
 # bày lại nguyên văn. Trước đây chỗ này tự suy ra độ phân giải thật, tự chọn `add_*`
 # hay `universe_settings`, tự ghép với tên hàm lịch — bốn phép Python đã làm rồi, và
 # bản TypeScript ấy từng in `Resolution.MINUTE` trong khi bộ sinh mã viết DAILY.
-kiem("dòng khai LEAN HỎI Python, không tự ghép", "py.khai_bat_dau(" in bd,
+_hbd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
+kiem("dòng khai LEAN HỎI Python, không tự ghép", "py.khai_bat_dau(" in _hbd,
      "— mọi phép suy ra câu ấy nằm ở `bat_dau.khai`, một bản sự thật")
 kiem("và hỏi lại theo giá trị ĐANG gõ, không hỏi một lần lúc mở hộp",
-     re.search(r"useEffect\([\s\S]{0,300}khai_bat_dau\([\s\S]{0,200}\[gt\]\)", bd)
-     is not None,
+     re.search(r"useEffect\([\s\S]{0,300}khai_bat_dau\([\s\S]{0,200}\[gt\]\)",
+               _hbd) is not None,
      "— đổi nhịp hay đổi rổ mà dòng khai đứng yên là nó nói một câu đã cũ")
 kiem("Mốc so sánh là ô CHỌN", re.search(r"moc_so_sanh[\s\S]{0,400}<select", bd) is not None)
+# ⚠ «Mã» ở hộp Bắt đầu còn «Mốc so sánh» ở hộp Cỗ máy — HAI hồ sơ khác nhau. Nên hộp
+# Cỗ máy phải được TRUYỀN mã của sơ đồ vào; đọc bừa từ hồ sơ của nó thì ô mốc chỉ còn
+# mấy mã có dữ liệu miễn phí, và người dùng mất cách chọn chính mã mình đang chạy.
+kiem("hộp Cỗ máy NHẬN mã của sơ đồ cho ô Mốc so sánh",
+     "maSoDo" in doc("components/HopCoMay.tsx")
+     and "maSoDo={dsMa}" in doc("SoDo.tsx"),
+     "— không truyền thì ô mốc mất đúng mấy dòng đáng chọn nhất, mà vẫn bày ra")
 kiem("mã không có dữ liệu miễn phí thì NÓI ra", "ma-khong-co" in bd,
      "— nói, chứ không chặn: ai có dữ liệu riêng vẫn chạy được")
 

@@ -71,14 +71,17 @@ kiem("thẻ do Python dựng chữ",
 kiem("có bảng vòng", r["vong"] == {steps[2]["id"]: [steps[0]["id"], None]})
 kiem("sơ đồ đúng thì không lỗi", not r["van_de"], f"— {[p['message'][:40] for p in r['van_de']]}")
 kiem("trả lại edges đã dọn", len(r["edges"]) == 2)
-# ⚠ KHUNG LƯỢT CHẠY ĐI CÙNG CỬA NÀY. Tag ở góc phải canvas đọc nó; quên gửi thì tag
-# trống trơn mà không gì kêu — giao diện chỉ thấy một khoá thiếu và vẽ rỗng.
-kiem("có khung lượt chạy", isinstance(r.get("khung_chay"), list)
-     and len(r["khung_chay"]) >= 2,
-     f"— {r.get('khung_chay')}")
-kiem("khung mang ngày và vốn",
-     {c["nhan"] for c in r["khung_chay"]} >= {"Khoảng ngày", "Vốn"},
-     f"— {[c['nhan'] for c in r['khung_chay']]}")
+# ⚠ CỖ MÁY ĐI CÙNG CỬA NÀY. Viên thuốc góc phải canvas đọc nó; quên gửi thì viên
+# thuốc trống trơn mà không gì kêu — giao diện chỉ thấy một khoá thiếu và vẽ rỗng.
+kiem("có hồ sơ cỗ máy", isinstance(r.get("co_may"), dict) and "chia_von" in r["co_may"],
+     f"— {r.get('co_may')}")
+kiem("có tóm tắt cho viên thuốc", isinstance(r.get("tom_tat_co_may"), list),
+     f"— {r.get('tom_tat_co_may')}")
+kiem("sơ đồ chưa đặt gì thì tóm tắt rỗng", r["tom_tat_co_may"] == [],
+     f"— {r['tom_tat_co_may']}")
+_r3 = val(A.soat(steps, edges, {"moc_so_sanh": "SPY"}))
+kiem("gửi hồ sơ vào thì tóm tắt kể ra", _r3["tom_tat_co_may"] == ["mốc so sánh SPY"],
+     f"— {_r3['tom_tat_co_may']}")
 
 print("\n▸ Khối không ai dẫn tới thì KHÔNG có số")
 le = val(A.khoi_moi("action"))["step"]

@@ -11,7 +11,8 @@ import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
 import Ribbon, { type ViecRibbon } from './components/Ribbon'
 import OTimKhoi, { type LocTim } from './components/OTimKhoi'
-import TagKhungChay from './components/TagKhungChay'
+import TagCoMay from './components/TagCoMay'
+import HopCoMay from './components/HopCoMay'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
 import HopDoiTen from './components/HopDoiTen'
@@ -35,7 +36,7 @@ import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
   Card,
-  ChipKhung,
+  CoMay,
   Edge,
   HatNhanTag,
   KetQuaChay,
@@ -213,11 +214,17 @@ function SoDoTrong() {
   const [ten, setTen] = useState('')
   const [thuTu, setThuTu] = useState<Record<string, string>>({})
   const [vanDe, setVanDe] = useState<VanDe[]>([])
-  /** KHUNG lượt chạy — mấy chip nổi ở góc phải canvas. Đến từ cùng lượt `soat` với
-   *  thẻ khối, nên không bao giờ lệch pha với nó. */
-  const [khungChay, setKhungChay] = useState<ChipKhung[]>([])
-  /** Nhóm ô mà hộp Bắt đầu phải cuộn tới khi mở — tag khung đặt, rồi tự xoá. */
-  const [nhomMo, setNhomMo] = useState<string | undefined>(undefined)
+  /** HỒ SƠ CỖ MÁY LEAN của chiến thuật này — bốn trạm, phí sàn, dữ liệu, ô nhớ,
+   *  mốc so sánh. KHÔNG nằm trong khối Bắt đầu nữa (luật "một khối một việc"), nên
+   *  nó là một trạng thái riêng ở đây và đi kèm mọi cửa Python nhận `steps`.
+   *
+   *  ⚠ QUÊN CHUYỀN NÓ VÀO MỘT CỬA là cửa ấy dựng tài liệu KHÔNG có cỗ máy, Python
+   *  rơi về mặc định, và sơ đồ chạy bằng một dây chuyền khác mà chẳng gì báo. */
+  const [coMay, setCoMay] = useState<CoMay>({})
+  /** Mấy chữ trên viên thuốc góc phải — Python dựng, đây chỉ bày. */
+  const [tomTatMay, setTomTatMay] = useState<string[]>([])
+  /** Mở hộp Cỗ máy không? `nhom` là chỗ cần cuộn tới. */
+  const [moCoMay, setMoCoMay] = useState<string | undefined | null>(null)
   const [moKho, setMoKho] = useState(false)
   /** Kho Strategy — hộp chọn file đã lưu. */
   const [moKhoStrategy, setMoKhoStrategy] = useState(false)
@@ -306,20 +313,20 @@ function SoDoTrong() {
     // Giữ 300 dòng gần nhất: dài hơn thì cuộn không ra gì mà ăn bộ nhớ.
     setNhatKy(ds => [...ds, { gio, chu }].slice(-300))
   }, [])
-  const chong = useRef<{ s: Step[]; e: Edge[] }[]>([])
-  const chongLai = useRef<{ s: Step[]; e: Edge[] }[]>([])
+  const chong = useRef<{ s: Step[]; e: Edge[]; m: CoMay }[]>([])
+  const chongLai = useRef<{ s: Step[]; e: Edge[]; m: CoMay }[]>([])
   const [coHoanTac, setCoHoanTac] = useState(false)
   const [coLamLai, setCoLamLai] = useState(false)
 
   const dangChon = useMemo(() => nodes.filter(n => n.selected), [nodes])
 
   const chup = useCallback(() => {
-    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
+    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     if (chong.current.length > 60) chong.current.shift()
     chongLai.current = []
     setCoHoanTac(true)
     setCoLamLai(false)
-  }, [nodes, edges])
+  }, [nodes, edges, coMay])
 
   /* ------------------------------------------------------------- soát
      MỘT CỬA DUY NHẤT, gọi sau MỖI thay đổi. Giao diện không tự tính số thứ tự, không
@@ -354,25 +361,25 @@ function SoDoTrong() {
     const toi = ++luotSoat.current
     clearTimeout(henSoat.current)
     henSoat.current = window.setTimeout(async () => {
-      const r = await py.soat(s, e)
+      const r = await py.soat(s, e, coMay)
       if (toi !== luotSoat.current || !r.ok || !r.value) return
       const kq: KetQuaSoat = r.value
       setThuTu(kq.thu_tu)
       setVanDe(kq.van_de)
-      setKhungChay(kq.khung_chay ?? [])
+      setTomTatMay(kq.tom_tat_co_may ?? [])
       setNodes(ns => ns.map(n => {
         const c = kq.the[n.id]
         return c && c !== (n.data as { card?: Card }).card
           ? { ...n, data: { ...n.data, card: c } } : n
       }))
     }, 60)
-  }, [nodes, edges, sanSang, setNodes])
+  }, [nodes, edges, coMay, sanSang, setNodes])
 
   // Đóng cửa sổ giữa lúc đang hẹn thì bỏ hẹn — chỉ ở đây mới đúng là "dọn".
   useEffect(() => () => clearTimeout(henSoat.current), [])
 
   const nap = useCallback(async (doc: Strategy) => {
-    const r = await py.soat(doc.steps, doc.edges)
+    const r = await py.soat(doc.steps, doc.edges, doc.co_may)
     const the = r.ok && r.value ? r.value.the : {}
     // ⚠ Lượt soát này đã có SẴN số thứ tự và bảng Vấn đề — lấy luôn. Bản trước chỉ
     // nhặt mỗi `the` rồi để hiệu ứng soát lại một lượt nữa: thừa một vòng gọi, mà
@@ -380,7 +387,11 @@ function SoDoTrong() {
     if (r.ok && r.value) {
       setThuTu(r.value.thu_tu)
       setVanDe(r.value.van_de)
-      setKhungChay(r.value.khung_chay ?? [])
+      // ⚠ LẤY HỒ SƠ TỪ ĐÂY, không từ `doc.co_may`: Python vừa chuẩn hoá nó và LÔI
+      // FILE CŨ lên (hồi trước mười một ô này nằm trong khối Bắt đầu). Lấy thẳng từ
+      // `doc` là file cũ mở ra với cỗ máy rỗng, rồi lần lưu sau ghi đè mất luôn.
+      setCoMay(r.value.co_may ?? {})
+      setTomTatMay(r.value.tom_tat_co_may ?? [])
     }
     const { nodes: ns, edges: es } = docSangRf(doc.steps, doc.edges, the)
     setNodes(ns)
@@ -410,7 +421,7 @@ function SoDoTrong() {
     // CHẠY, và chúng cầm luôn cái nút Dừng — đóng hộ là cướp mất lối dừng.
     setMoKho(false); setMoKhoStrategy(false); setMoKhoLuot(false)
     setMoKetQua(false); setMoToiUu(false); setMoCaiDat(false); setMoBangPhim(false)
-    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
+    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     await nap({ schema: 1, type: 'strategy', name: doc.name || 'Strategy',
                 steps: doc.steps, edges: doc.edges ?? [] })
     ghi(doc.dat?.length
@@ -1064,19 +1075,21 @@ function SoDoTrong() {
   const hoanTac = useCallback(async () => {
     const t = chong.current.pop()
     if (!t) return
-    chongLai.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
+    chongLai.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     setCoLamLai(true)
     setCoHoanTac(chong.current.length > 0)
-    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s, edges: t.e })
+    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s,
+                edges: t.e, co_may: t.m })
   }, [nodes, edges, ten, nap])
 
   const lamLai = useCallback(async () => {
     const t = chongLai.current.pop()
     if (!t) return
-    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
+    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     setCoHoanTac(true)
     setCoLamLai(chongLai.current.length > 0)
-    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s, edges: t.e })
+    await nap({ schema: 1, type: 'strategy', name: ten, steps: t.s,
+                edges: t.e, co_may: t.m })
   }, [nodes, edges, ten, nap])
 
   const strategyMoi = useCallback(() => {
@@ -1143,7 +1156,7 @@ function SoDoTrong() {
   useEffect(() => {
     if (!sanSang) return
     const t = setTimeout(() => {
-      void py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges))
+      void py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay)
     }, 1200)
     return () => clearTimeout(t)
   }, [nodes, edges, ten, sanSang])
@@ -1158,7 +1171,7 @@ function SoDoTrong() {
       if (!v?.trim()) return
       t = v.trim()
     }
-    const r = await py.luu_strategy(t, rfSangSteps(nodes), rfSangEdges(edges))
+    const r = await py.luu_strategy(t, rfSangSteps(nodes), rfSangEdges(edges), coMay)
     if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không lưu được' }); return }
     setTen(r.value.ten)
     void py.set_title(r.value.ten)
@@ -1182,7 +1195,7 @@ function SoDoTrong() {
                               nhap: ten ? `${ten} (bản sao)` : 'Strategy mới',
                               nut_ok: 'Lưu' })
     if (!v?.trim()) return
-    const r = await py.luu_strategy(v.trim(), rfSangSteps(nodes), rfSangEdges(edges))
+    const r = await py.luu_strategy(v.trim(), rfSangSteps(nodes), rfSangEdges(edges), coMay)
     if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không lưu được' }); return }
     setTen(r.value.ten)
     void py.set_title(r.value.ten)
@@ -1361,7 +1374,7 @@ function SoDoTrong() {
         }
       }
       const r = await py.chay_backtest(ten || 'Co May', rfSangSteps(nodes),
-                                       rfSangEdges(edges))
+                                       rfSangEdges(edges), coMay)
       if (!r.ok || !r.value) { await bao({ loi: r.error ?? 'không chạy được' }); return }
       if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
 
@@ -1402,7 +1415,7 @@ function SoDoTrong() {
     dangChay,
     sinhMa: () => void (async () => {
       const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
-                                 rfSangEdges(edges), false)
+                                 rfSangEdges(edges), false, coMay)
       if (r.ok && r.value) setMaSinh(r.value)
       else await bao({ loi: r.error ?? 'không sinh được mã' })
     })(),
@@ -1542,18 +1555,10 @@ function SoDoTrong() {
                     goiY={goiYTim} onChon={id => { setDangO(khopTim.indexOf(id));
                                                    toiKhoi(id) }} />
         </div>
-        {/* KHUNG LƯỢT CHẠY nổi ở góc PHẢI trên, đối xứng với ô Tìm bên trái: ngày,
-            vốn, và mọi ô đã chỉnh khác mặc định. Mấy thứ này từng nằm trên thẻ khối
-            Bắt đầu và làm nó phình ra — chúng đúng với CẢ sơ đồ, không phải một
-            bước, nên chỗ của chúng là khung màn hình chứ không phải một cái hộp. */}
-        <div className="tag-khung-noi">
-          <TagKhungChay chip={khungChay} onMo={nhom => {
-            const bd = nodes.find(n => (n.data as { step?: Step }).step?.kind
-                                       === 'start')
-            if (!bd) return
-            setNhomMo(nhom)
-            setDangSua(bd.id)
-          }} />
+        {/* CỖ MÁY LEAN nổi ở góc PHẢI trên, đối xứng với ô Tìm bên trái. Nó là
+            CỬA DUY NHẤT vào hộp Cỗ máy nên luôn có mặt, kể cả khi chưa đặt gì. */}
+        <div className="tag-co-may-noi">
+          <TagCoMay tomTat={tomTatMay} onMo={() => setMoCoMay(undefined)} />
         </div>
         {hnDangO && (
           <div className="thanh-hn">
@@ -1711,13 +1716,8 @@ function SoDoTrong() {
                           onLuu={luu} onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'start' && tuDienBD) {
-          // ⚠ XOÁ `nhomMo` LÚC ĐÓNG. Để lại thì lần sau mở khối Bắt đầu bằng cách
-          // bấm đúp vào nó, hộp vẫn nhảy xuống cái nhóm của lần bấm chip trước —
-          // người dùng không hiểu vì sao hộp mở ra ở giữa chừng.
-          const dong = () => { setDangSua(null); setNhomMo(undefined) }
-          return <HopBatDau step={st} tuDien={tuDienBD} moNhom={nhomMo}
-                            onLuu={s2 => { luu(s2); setNhomMo(undefined) }}
-                            onDong={dong} />
+          return <HopBatDau step={st} tuDien={tuDienBD} onLuu={luu}
+                            onDong={() => setDangSua(null)} />
         }
         if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
           return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}
@@ -1726,6 +1726,12 @@ function SoDoTrong() {
         }
         return null
       })()}
+      {moCoMay !== null && tuDienBD && (
+        <HopCoMay coMay={coMay} tuDien={tuDienBD} maSoDo={dsMa} moNhom={moCoMay}
+                  onLuu={v => { chup(); setCoMay(v); ghi('sửa cỗ máy LEAN')
+                                setMoCoMay(null) }}
+                  onDong={() => setMoCoMay(null)} />
+      )}
       {moCaiDat && <HopCaiDat onDong={() => setMoCaiDat(false)} />}
       {moKhoLuot && <HopKhoLuot onDong={() => setMoKhoLuot(false)} />}
       {tienDo && (
@@ -1750,7 +1756,7 @@ function SoDoTrong() {
                   onChay={cai => void (async () => {
                     setMoToiUu(false)
                     const r = await py.chay_toi_uu(ten || 'Co May',
-                      rfSangSteps(nodes), rfSangEdges(edges), cai)
+                      rfSangSteps(nodes), rfSangEdges(edges), cai, coMay)
                     if (!r.ok || !r.value) {
                       await bao({ loi: r.error ?? 'không chạy được' }); return
                     }
@@ -1789,7 +1795,7 @@ function SoDoTrong() {
         <HopSinhMa kq={maSinh} onDong={() => setMaSinh(null)}
                    onGhi={() => void (async () => {
                      const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),
-                                                rfSangEdges(edges), true)
+                                                rfSangEdges(edges), true, coMay)
                      if (r.ok && r.value) setMaSinh(r.value)
                    })()} />
       )}

@@ -356,15 +356,6 @@ def _tien(n):
     return str(n) if f is None else f"{int(f):,}".replace(",", ".")
 
 
-#: Mấy NHÓM ô của khối Bắt đầu thuộc về KHUNG lượt chạy, không thuộc dòng chảy.
-#: Thứ tự ở đây là thứ tự chip hiện ra.
-NHOM_KHUNG = ("tien", "day_chuyen", "chi_phi", "do_luong", "chay_gi")
-
-#: Ô nào ĐÃ nằm trên thẻ khối rồi thì đừng bày lại thành chip — hai chỗ nói một thứ
-#: là hai chỗ để trôi khỏi nhau, và chip thừa thì tag phình đúng cái bệnh vừa chữa.
-_KHUNG_BO_QUA = {"ma", "nhanh_chay", "chay_cho", "nhip", "tri_nho"}
-
-
 def _nhan_chon(o, v):
     """Giá trị một ô CHỌN -> nhãn người đọc được. Không tra ra thì trả về chính nó."""
     for c in (o.get("chon") or []):
@@ -373,47 +364,31 @@ def _nhan_chon(o, v):
     return str(v)
 
 
-def khung_chay(steps):
-    """KHUNG của lượt chạy -> [{nhan, gia_tri, nhom}] cho tag góc phải canvas.
+def tom_tat_co_may(co_may):
+    """CỖ MÁY LEAN -> mấy chữ cho viên thuốc ở góc phải canvas. -> [chữ]
 
-    Vì sao tách khỏi thẻ khối: mấy thứ này không phải một BƯỚC. Khoảng ngày, vốn, dây
-    chuyền LEAN, phí, mốc so sánh — chúng đúng với cả sơ đồ, nên in chúng vào một khối
-    là vừa làm khối ấy phình vừa nói sai chỗ. Và trên một sơ đồ lớn thì khối Bắt đầu
-    trôi ra ngoài màn hình từ lâu, trong khi câu «đang chạy bằng bao nhiêu tiền» thì
-    lúc nào cũng cần trả lời được.
+    Viên thuốc ấy là CỬA DUY NHẤT vào hộp Cỗ máy, nên nó LUÔN có mặt — kể cả khi
+    chưa ai đặt gì (lúc ấy giao diện ghi «chưa đặt gì»). Cửa vô hình thì không ai mở.
 
-    ⚠ MẶC ĐỊNH THÌ IM. Chỉ NGÀY và VỐN luôn hiện (hai thứ không có chúng thì câu hỏi
-    "lượt này là lượt nào" không trả lời được); mọi ô khác chỉ thành chip khi người
-    dùng đã đổi nó khác mặc định của từ điển. Không có luật ấy thì tag mọc đủ mười mấy
-    chip và ta chỉ dời đống lộn xộn từ khối sang góc màn hình.
+    ⚠ CHỈ KỂ THỨ ĐÃ ĐỔI. Cả bốn trạm dây chuyền mặc định là «— không dùng —»; kể cả
+    mặc định thì viên thuốc dài bằng cả hộp thoại, và ta chỉ dời đống lộn xộn từ khối
+    Bắt đầu sang góc màn hình. So với MẶC ĐỊNH CỦA TỪ ĐIỂN chứ không so với rỗng: ô
+    «Sàn» mặc định là "DEFAULT", so với rỗng là sơ đồ nào cũng mọc một chữ thừa.
 
-    LẶP QUA CHÍNH TỪ ĐIỂN, không liệt kê tay: thêm một ô vào nhóm «Sàn và chi phí» là
-    tag nói luôn, không phải nhớ sửa thêm chỗ này."""
-    bd = next((x for x in (steps or [])
-               if isinstance(x, dict) and is_start_step(x)), None)
-    if not bd:
-        return []
-    k = o_bat_dau(bd, "khoang") or {}
-    ra = [{"nhan": "Khoảng ngày", "nhom": "tien",
-           "gia_tri": f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}"},
-          {"nhan": "Vốn", "nhom": "tien",
-           "gia_tri": f"{_tien(o_bat_dau(bd, 'von'))}$"}]
-    for o in bat_dau.o_cua(bd):
-        ten, nhom = o["ten"], (o.get("nhom") or "")
-        if nhom not in NHOM_KHUNG or ten in _KHUNG_BO_QUA or ten in ("khoang", "von"):
+    LẶP QUA CHÍNH TỪ ĐIỂN: thêm một ô vào nhóm cỗ máy là viên thuốc nói luôn."""
+    d = co_may if isinstance(co_may, dict) else {}
+    ra = []
+    for o in bat_dau.o_co_may(d):
+        v = o_may(d, o["ten"])
+        if v == o["mac_dinh"] or v is None or str(v).strip() == "" or v == []:
             continue
-        v = o_bat_dau(bd, ten)
-        # So với MẶC ĐỊNH CỦA TỪ ĐIỂN, không so với rỗng: ô «Sàn» mặc định là
-        # "DEFAULT" chứ không phải "", nên so với rỗng là mọi sơ đồ đều mọc chip sàn.
-        if v == o["mac_dinh"] or v is None or str(v).strip() == "":
+        if o["ten"] == "tri_nho":
+            n = len(v) if isinstance(v, list) else 0
+            ra.append(f"{n} ô nhớ")
             continue
-        ra.append({"nhan": o["nhan"], "nhom": nhom,
-                   "gia_tri": _nhan_chon(o, v) if o["kieu"] == bat_dau.O_CHON
-                              else str(v)})
-    # Xếp theo NHOM_KHUNG, không theo thứ tự ô trong từ điển: thứ tự ô là thứ tự của
-    # HỘP THOẠI, mà hộp thoại xếp theo lúc người ta điền. Tag thì xếp theo cái người
-    # ta liếc tìm — ngày và tiền trước, mấy thứ chỉnh tay sau.
-    return sorted(ra, key=lambda c: NHOM_KHUNG.index(c["nhom"]))
+        ra.append(_nhan_chon(o, v) if o["kieu"] == bat_dau.O_CHON else
+                  f"{o['nhan'].lower()} {v}")
+    return ra
 
 
 def mo_ta_bat_dau(step):
@@ -423,11 +398,13 @@ def mo_ta_bat_dau(step):
     CHỦ NGỮ của cả sơ đồ — mọi nhánh bên dưới nói về nó, nên nó phải nằm ngay cạnh
     chúng.
 
-    ⚠ KHOẢNG NGÀY · VỐN · DÂY CHUYỀN · PHÍ · MỐC SO SÁNH KHÔNG Ở ĐÂY NỮA. Chúng là
-    KHUNG của lượt chạy, không phải một bước nào cả — thẻ in chúng thì một khối phình
-    ra năm sáu dòng chỉ vì mấy thứ chẳng dính gì tới dòng chảy ngay dưới nó. Nay
-    `khung_chay()` dựng chúng thành mấy chip nổi ở góc phải canvas, nơi chúng LUÔN
-    thấy được kể cả khi khối Bắt đầu đã trôi ra ngoài màn hình."""
+    ⚠ DÂY CHUYỀN · PHÍ · MỐC SO SÁNH · Ô NHỚ KHÔNG Ở ĐÂY NỮA — chúng là việc LEAN
+    lo, không phải một bước của sơ đồ, nên chúng sang hộp Cỗ máy LEAN. Thẻ in chúng
+    thì một khối phình ra năm sáu dòng vì mấy thứ chẳng dính gì tới dòng chảy ngay
+    dưới nó.
+    ⚠ NGÀY VÀ VỐN THÌ CÓ, và chúng ở lại đây có lý do: chúng là «sơ đồ này chạy từ
+    bao giờ, bằng bao nhiêu tiền» — của NGƯỜI DÙNG, không phải của LEAN. Mấy ô kia
+    sang hộp Cỗ máy LEAN (xem `bat_dau.NHOM_CO_MAY`)."""
     gt_ma = o_bat_dau(step, "ma")
     ro = bat_dau.ro_cua(gt_ma)
     ds = [] if ro else (gt_ma or [])
@@ -457,6 +434,9 @@ def mo_ta_bat_dau(step):
         dong = [f"{m.get('ma') or '?'} · {ten_loai.get(m.get('loai'), m.get('loai'))}"]
     else:
         dong = [f"{len(ds)} mã: " + ", ".join(str(m.get("ma") or "?") for m in ds)]
+    k = o_bat_dau(step, "khoang") or {}
+    dong.append(f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}")
+    dong.append(f"vốn {_tien(o_bat_dau(step, 'von'))}$")
     # ⚠ «CHẠY HẾT» PHẢI HIỆN TRÊN THẺ. Nhìn canvas thấy hai nhánh rẽ ra thì người đọc
     # hiểu là một trong hai — đó là nghĩa mặc định, và nó in sẵn trong HÌNH. Bật chạy
     # hết là đổi nghĩa ấy mà hình không đổi gì, nên không nói ra thì cả sơ đồ đọc sai
@@ -892,19 +872,17 @@ def icon_cua(loai):
     return d.get("icon") or ""
 
 
-def ten_nho_cua(steps):
+def ten_nho_cua(co_may):
     """Cả sơ đồ -> {mã ô nhớ: TÊN người dùng đặt}. {} nếu sơ đồ không nhớ gì.
 
-    Tên ô nhớ khai ở khối BẮT ĐẦU, mà thẻ cần vẽ ở khối GHI NHỚ — hai khối khác
-    nhau. Nên bảng tên phải dựng từ cả sơ đồ rồi truyền vào `the_buoc`.
+    Tên ô nhớ khai trong hộp CỖ MÁY LEAN, mà thẻ cần vẽ ở khối GHI NHỚ trên canvas —
+    hai chỗ khác nhau. Nên bảng tên phải dựng sẵn rồi truyền vào `the_buoc`.
 
     ⚠ KHÔNG chép tên sang khối Ghi nhớ lúc người dùng chọn ô. Chép thì đổi tên ở
     khối Bắt đầu xong thẻ kia vẫn đọc tên cũ — thẻ nói dối, đúng cái bệnh
     `mo_ta_lam` sinh ra để chặn."""
-    bd = next((x for x in (steps or []) if is_start_step(x)), None)
-    if not bd:
-        return {}
-    return {x["ma"]: x["nhan"] for x in bat_dau.tri_nho_cua(bd) if x["nhan"]}
+    return {x["ma"]: x["nhan"]
+            for x in bat_dau.tri_nho_cua(co_may or {}) if x["nhan"]}
 
 
 def the_buoc(step, ten_nho=None):
@@ -1865,7 +1843,7 @@ def _soat_ro_du_lieu(step, sid, ten, gt):
     return ra
 
 
-def soat_khoi_bat_dau(step):
+def soat_khoi_bat_dau(step, co_may=None):
     """Soát RUỘT khối Bắt đầu. -> [{severity, step, index, message}]
 
     Mấy chỗ này đều hỏng LẶNG: không có mã thì cỗ máy chạy đủ mọi nến mà không mua bán
@@ -1933,8 +1911,8 @@ def soat_khoi_bat_dau(step):
     # liệu trong ngày để khớp, nên nó đổi lệnh thị trường thành MarketOnClose — mà ba
     # sàn dưới đây không nhận loại ấy. Backtest chạy hết, báo "111 lệnh", lãi 0%, và
     # chỉ mở file order-events ra đọc mới thấy mọi lệnh đều `invalid`.
-    if nhip == "ngay" and str(o_bat_dau(step, "san")) in bat_dau.SAN_KHONG_NHAN_MOC:
-        nhan_san = dict(bat_dau.SAN)[str(o_bat_dau(step, "san"))]
+    if nhip == "ngay" and str(o_may(co_may, "san")) in bat_dau.SAN_KHONG_NHAN_MOC:
+        nhan_san = dict(bat_dau.SAN)[str(o_may(co_may, "san"))]
         _loi(ra, "warning", sid,
              f'"{ten}": nhịp mỗi nến NGÀY cộng sàn {nhan_san} là MỌI LỆNH BỊ TỪ CHỐI. '
              f"Nến ngày không có giá trong ngày để khớp, nên LEAN đổi lệnh thị trường "
@@ -1950,8 +1928,8 @@ def soat_khoi_bat_dau(step):
     # lỗ một xu — cỗ máy mua rồi bán sạch mỗi nến, backtest chạy hết, không một lời
     # nào. Số âm thì `abs` ăn mất dấu, tức người dùng gõ -0.05 lại thành 5%: con số
     # trong hộp và con số LEAN dùng không còn là một.
-    if bat_dau.rui_ro_cua(o_bat_dau(step, "phong_rui_ro")):
-        ng = _f(o_bat_dau(step, "nguong"))
+    if bat_dau.rui_ro_cua(o_may(co_may, "phong_rui_ro")):
+        ng = _f(o_may(co_may, "nguong"))
         if ng is None:
             _loi(ra, "error", sid, f'"{ten}": ngưỡng phòng rủi ro không phải một '
                                    f"con số.")
@@ -1968,7 +1946,7 @@ def soat_khoi_bat_dau(step):
     return ra
 
 
-def soat_day_chuyen(steps):
+def soat_day_chuyen(steps, co_may=None):
     """Soát chéo: DÂY CHUYỀN của LEAN phải khớp đầu khớp đuôi. -> [vấn đề]
 
     Khối «Phát tín hiệu» không tự đặt lệnh — nó đưa một `Insight` cho dây chuyền:
@@ -1999,14 +1977,14 @@ def soat_day_chuyen(steps):
             elif lam.la_loai_lam(t) and lam.LOAI_LAM[t]["nhom"] == lam.NHOM_LENH:
                 co_lenh_tay.append(x)
 
-    chia = str(o_bat_dau(bd, "chia_von") or "").strip()
+    chia = str(o_may(co_may, "chia_von") or "").strip()
     # ⚠ TÍN HIỆU CÓ HAI NGUỒN, KHÔNG MỘT. Khối «Phát tín hiệu» trên sơ đồ là một;
     # model Alpha ở ô «Phát tín hiệu tự động» là nguồn thứ hai, và nó phát cho MỌI
     # mã trong rổ mà không cần một khối nào. Phép soát này trước đó chỉ biết nguồn
     # thứ nhất, nên vừa thêm ô Alpha là nó kêu oan ngay: «chọn chia vốn mà sơ đồ
     # không có khối Phát tín hiệu nào» — đúng chữ, sai nghĩa, vì trạm Alpha đang
     # phát đầy. Và một lời kêu oan thì người dùng học cách bỏ qua cả phép soát.
-    alpha = str(o_bat_dau(bd, "phat_tin_hieu") or "").strip()
+    alpha = str(o_may(co_may, "phat_tin_hieu") or "").strip()
     co_nguon = bool(co_tin_hieu) or bool(alpha)
 
     if co_nguon and not chia:
@@ -2033,7 +2011,7 @@ def soat_day_chuyen(steps):
     # kiểu hỏng LẶNG: sơ đồ ghi vào «Trí nhớ CHUNG — đúng/sai 2» rồi đọc ra ở một
     # chỗ khác, chạy trơn tru, mà người dùng không hề biết họ đang dùng một ô họ
     # chưa đặt tên — và lần sau mở hộp Bắt đầu ra thì không thấy nó đâu.
-    da_khai = {x["ma"] for x in bat_dau.tri_nho_cua(bd)}
+    da_khai = {x["ma"] for x in bat_dau.tri_nho_cua(co_may or {})}
     chua_khai = {}
     for x in (steps or []):
         for a_ in (hanh_dong_cua(x) if is_group_step(x) else [x]):
@@ -2054,7 +2032,7 @@ def soat_day_chuyen(steps):
              f'Sơ đồ dùng ô nhớ «{o["nhan"] if o else m}» mà khối Bắt đầu chưa khai '
              f'nó. Cỗ máy vẫn chạy — ô nhớ nào cũng có sẵn — nhưng ô chưa khai thì '
              f'không có tên, nên mở lại sơ đồ sẽ không biết nó giữ cái gì. Khai nó ở '
-             f'ô «Cỗ máy nhớ những gì».')
+             f'ô «Cỗ máy nhớ những gì» trong hộp Cỗ máy LEAN.')
 
     # RỔ ETF phải có dữ liệu RƠI VÀO khoảng backtest, không thì rổ chọn ra rỗng và
     # cả lượt chạy lặng — chạy xong, không lỗi, không một lệnh nào. Đã dính thật.
@@ -2071,7 +2049,7 @@ def soat_day_chuyen(steps):
 
     # Hai trạm sau cũng cần dây: không có chia vốn thì chúng không bao giờ được gọi.
     for ten_o, nhan in (("phong_rui_ro", "Phòng rủi ro"), ("dat_lenh", "Đặt lệnh")):
-        if str(o_bat_dau(bd, ten_o) or "").strip() and not chia:
+        if str(o_may(co_may, ten_o) or "").strip() and not chia:
             _loi(ra, "warning", bd.get("id"),
                  f"«{nhan}» chỉ chạy sau khi có chia vốn — mà «Chia vốn theo tín "
                  f"hiệu» đang để trống, nên trạm này không bao giờ tới lượt.")
@@ -2433,21 +2411,95 @@ def chuan_hoa_khoi(s):
     return ra
 
 
+#: Khoá của hồ sơ CỖ MÁY trong tài liệu Strategy — ngang hàng `steps` và `edges`.
+KHOA_CO_MAY = "co_may"
+
+
+def co_may_mac_dinh():
+    """Hồ sơ CỖ MÁY khi chưa ai đặt gì — đúng mặc định của từ điển. -> dict"""
+    return {o["ten"]: _chep_sau(o["mac_dinh"]) for o in bat_dau.o_co_may()}
+
+
+def o_may(co_may, ten):
+    """Giá trị một ô của CỖ MÁY, rơi về mặc định của từ điển nếu hồ sơ chưa có.
+
+    Y vai `o_bat_dau` nhưng đọc từ hồ sơ cỗ máy. Nhờ nó mà file lưu trước khi một ô
+    ra đời mở ra vẫn chạy."""
+    d = co_may if isinstance(co_may, dict) else {}
+    if ten in d:
+        return d[ten]
+    for o in bat_dau.o_co_may(d):
+        if o["ten"] == ten:
+            return _chep_sau(o["mac_dinh"])
+    return None
+
+
+def chuan_hoa_co_may(co_may, steps=None):
+    """Hồ sơ CỖ MÁY về hình chuẩn, và LÔI FILE CŨ LÊN. -> dict
+
+    ⚠ ĐÂY LÀ CHỖ DUY NHẤT BIẾT VỀ FILE CŨ. Trước 18/10/2026 mười một ô này nằm ngay
+    trong khối Bắt đầu; nay chúng là một hồ sơ riêng (xem `bat_dau.NHOM_CO_MAY` và
+    luật *"một khối một việc"*). File lưu hồi ấy mở ra mà không ai lôi lên thì cỗ máy
+    rơi hết về mặc định — tức sơ đồ vẫn vẽ, vẫn chạy, chỉ là chạy BẰNG MỘT DÂY CHUYỀN
+    KHÁC với hôm người ta lưu nó. Hỏng lặng, và hỏng vào đúng thứ người ta đã chỉnh.
+
+    Chỉ lôi khi hồ sơ mới CHƯA CÓ: có rồi mà vẫn lôi thì giá trị cũ đè giá trị mới,
+    và người dùng sửa xong lưu lại thấy nó bật về như cũ."""
+    ra = co_may_mac_dinh()
+    if not isinstance(co_may, dict):
+        bd = next((x for x in (steps or [])
+                   if isinstance(x, dict) and is_start_step(x)), None)
+        co_may = {o["ten"]: bd[o["ten"]] for o in bat_dau.o_co_may(bd or {})
+                  if isinstance(bd, dict) and o["ten"] in bd} if bd else {}
+    hop_le = set(ra) | _ten_o_may()
+    ra.update({k: v for k, v in co_may.items() if k in hop_le})
+    return ra
+
+
+def _ten_o_may():
+    """Mọi tên ô có thể thuộc cỗ máy, KỂ CẢ ô con chỉ hiện theo model đã chọn.
+
+    Phải kể cả ô con: `nguong` của model phòng rủi ro chỉ mọc ra khi đã chọn model,
+    nên nó không có trong hồ sơ mặc định — mà bỏ rơi nó là bỏ rơi đúng con số người
+    dùng đặt."""
+    ten = set()
+    for m, *_r in bat_dau.PHONG_RUI_RO:
+        ten |= {o["ten"] for o in bat_dau.o_co_may({"phong_rui_ro": m})}
+    for m, *_r in bat_dau.PHAT_TIN_HIEU:
+        ten |= {o["ten"] for o in bat_dau.o_co_may({"phat_tin_hieu": m})}
+    for bang, khoa in ((bat_dau.PHI, "phi"), (bat_dau.TRUOT_GIA, "truot_gia")):
+        for m, *_r in bang:
+            ten |= {o["ten"] for o in bat_dau.o_co_may({khoa: m})}
+    return ten
+
+
 def normalize_process(data):
     """Một tài liệu cỗ máy về đúng hình dạng lưu được, dù nó đến từ đâu.
 
     Nhận cả file cũ (thiếu `edges` thì nối thành chuỗi thẳng) lẫn file sửa tay."""
     d = data if isinstance(data, dict) else {}
+    # ⚠ LÔI CỖ MÁY LÊN TRƯỚC KHI DỌN KHỐI, và thứ tự ấy là cả phép lôi. `chuan_hoa_
+    # khoi` chỉ giữ mấy khoá có trong `bat_dau.o_cua` — tức nó đã BỎ sạch ô cỗ máy
+    # của file cũ. Lôi sau thì lôi phải một khối đã trống: sơ đồ vẫn vẽ, vẫn chạy,
+    # chỉ là chạy bằng một dây chuyền MẶC ĐỊNH chứ không phải cái người ta đã đặt.
+    # (Đã hỏng đúng thế một lần, và chỉ lộ ra vì có phép thử ép file cũ.)
+    co_may = chuan_hoa_co_may(d.get(KHOA_CO_MAY),
+                              [x for x in (d.get("steps") or [])
+                               if isinstance(x, dict)])
     steps = [x for x in (chuan_hoa_khoi(s) for s in (d.get("steps") or [])) if x]
     ensure_step_ids(steps)
     edges = d.get("edges")
     edges = clean_edges(edges, steps) if edges is not None else default_edges(steps)
+    # CỖ MÁY đi qua ĐÚNG CHỖ NÀY, không chỗ nào khác: mọi đường lưu (lưu thật, tự
+    # lưu, bản nháp, template) đều gọi `make_process_template` -> hàm này, nên nối
+    # vào đây là mọi đường cùng mang nó, và luật file cũ chỉ viết một lần.
     return {
         "schema": SCHEMA,
         "type": LOAI_TAI_LIEU,
         "name": str(d.get("name") or "").strip() or "Strategy mới",
         "steps": steps,
         "edges": edges,
+        KHOA_CO_MAY: co_may,
     }
 
 
@@ -2466,8 +2518,9 @@ SCHEMA = 1
 LOAI_TAI_LIEU = "strategy"
 
 
-def make_process_template(name, steps, edges=None):
+def make_process_template(name, steps, edges=None, co_may=None):
     """Đóng gói cả Strategy thành một tài liệu lưu được."""
-    return normalize_process({"name": name, "steps": steps, "edges": edges})
+    return normalize_process({"name": name, "steps": steps, "edges": edges,
+                              KHOA_CO_MAY: co_may})
 
 

@@ -92,21 +92,24 @@ export interface VanDe {
 }
 
 /** Những gì `api.soat` trả về — tất cả trong MỘT lượt. */
-/** Một chip của tag KHUNG LƯỢT CHẠY ở góc phải canvas (`core.khung_chay`).
- *  `nhom` là mã nhóm ô của khối Bắt đầu — bấm chip thì hộp thoại cuộn tới đó. */
-export interface ChipKhung {
-  nhan: string
-  gia_tri: string
-  nhom: string
-}
+/** HỒ SƠ CỖ MÁY LEAN — bốn trạm, phí sàn, dữ liệu, ô nhớ, mốc so sánh.
+ *
+ *  Nằm trong TÀI LIỆU chiến thuật, ngang hàng `steps` và `edges` — KHÔNG nằm trong
+ *  khối Bắt đầu nữa (luật "một khối một việc", 18/10/2026). Hình dạng do Python
+ *  quyết (`core.co_may_mac_dinh`), nên ở đây là một túi khoá-giá trị chứ không phải
+ *  một interface gõ cứng: gõ cứng là giữ bản thứ hai của từ điển. */
+export type CoMay = Record<string, unknown>
 
 export interface KetQuaSoat {
   /** {id khối: "4A.2"}. Không có khoá = khối không chạy tới. */
   thu_tu: Record<string, string>
   entry: string | null
   the: Record<string, Card>
-  /** Khung của lượt chạy — ngày, vốn, và mọi ô đã chỉnh khác mặc định. */
-  khung_chay: ChipKhung[]
+  /** Hồ sơ cỗ máy ĐÃ CHUẨN HOÁ — giao diện giữ lại để lưu và để mở hộp Cỗ máy.
+   *  File cũ (ô cỗ máy còn trong khối Bắt đầu) được Python lôi lên ở đây. */
+  co_may: CoMay
+  /** Mấy chữ cho viên thuốc góc phải — chỉ kể thứ đã đổi khác mặc định. */
+  tom_tat_co_may: string[]
   van_de: VanDe[]
   /** {id khối cuối vòng: [id khối đầu vòng, số vòng | null]} */
   vong: Record<string, [string, number | null]>
@@ -114,6 +117,8 @@ export interface KetQuaSoat {
 }
 
 export interface Strategy {
+  /** Cỗ máy LEAN của chiến thuật này — xem `CoMay`. */
+  co_may?: CoMay
   schema: number
   type: string
   name: string
@@ -465,6 +470,10 @@ export interface NhipChay {
 export interface BangCoOThem { ma: string; nhan: string; o_them: OLam[] }
 
 export interface TuDienBatDau {
+  /** Ô của HỘP CỖ MÁY. Python chia (`bat_dau.NHOM_CO_MAY`) — giao diện không lọc
+   *  lại, kẻo nó giữ một bản thứ hai của đường ranh. */
+  o_co_may: OLam[]
+  nhom_co_may: { ma: string; nhan: string; mo_ta: string }[]
   /** Mười lăm ô, cùng hình dạng với ô của khối Làm nên dùng chung được widget. */
   o: OLam[]
   /** NHÓM — hộp thoại xếp ô theo đây, thứ tự trong mảng là thứ tự bày ra.
