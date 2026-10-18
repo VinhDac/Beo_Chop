@@ -220,20 +220,103 @@ st = core.make_start_step()
 d = dong_the(st)
 kiem("một mã thì nói luôn loại tài sản",
      d[0] == "XAUUSD · CFD — vàng, dầu, chỉ số", f"— {d[0]!r}")
-kiem("ngày hiện kiểu Việt, không phải kiểu file",
-     d[1] == "01/01/2010 → 01/01/2019", f"— {d[1]!r}")
-kiem("tiền có dấu phân nhóm", d[2] == "vốn 100.000$", f"— {d[2]!r}")
 kiem("huy hiệu nói NHỊP", core.the_buoc(st)["badges"] == ["Mỗi nến ngày"],
      f"— {core.the_buoc(st)['badges']}")
+
+# ⚠ THẺ CHỈ NÓI «CHẠY TRÊN CÁI GÌ». Khoảng ngày · vốn · mốc so sánh là KHUNG của lượt
+# chạy, đúng với cả sơ đồ — in chúng vào một khối thì khối ấy phình ra năm sáu dòng vì
+# mấy thứ chẳng dính gì tới dòng chảy ngay dưới nó. Nay chúng là chip ở góc phải
+# canvas (`core.khung_chay`), và phép dưới đây canh đúng đường ranh ấy.
+_ca = " ".join(d)
+kiem("thẻ KHÔNG in khoảng ngày", "2010" not in _ca and "→" not in _ca, f"— {d}")
+kiem("thẻ KHÔNG in vốn", "vốn" not in _ca, f"— {d}")
 
 st["ma"] = [{"ma": "SPY", "loai": "equity"}, {"ma": "QQQ", "loai": "equity"},
             {"ma": "IWM", "loai": "equity"}]
 kiem("nhiều mã thì đếm rồi kể tên",
      dong_the(st)[0] == "3 mã: SPY, QQQ, IWM", f"— {dong_the(st)[0]!r}")
-st["moc_so_sanh"] = "SPY"
-kiem("mốc so sánh hiện thêm một dòng", "mốc so sánh: SPY" in dong_the(st))
 st["ma"] = []
 kiem("không mã thì nói rõ", dong_the(st)[0] == "chưa chọn mã nào")
+
+# ================= 4b. KHUNG lượt chạy =================
+print("\n▸ Khung lượt chạy — chip ở góc phải canvas")
+_st = core.make_start_step()
+_c = core.khung_chay([_st])
+_tra = {x["nhan"]: x for x in _c}
+kiem("sơ đồ thường chỉ có NGÀY và VỐN", len(_c) == 2, f"— {[x['nhan'] for x in _c]}")
+kiem("ngày hiện kiểu Việt, không phải kiểu file",
+     _tra["Khoảng ngày"]["gia_tri"] == "01/01/2010 → 01/01/2019",
+     f"— {_tra['Khoảng ngày']['gia_tri']!r}")
+kiem("tiền có dấu phân nhóm", _tra["Vốn"]["gia_tri"] == "100.000$",
+     f"— {_tra['Vốn']['gia_tri']!r}")
+kiem("mỗi chip mang NHÓM để bấm vào là mở đúng chỗ",
+     all(x["nhom"] in {n[0] for n in bat_dau.NHOM_O} for x in _c),
+     f"— {[x['nhom'] for x in _c]}")
+
+# ⚠ MẶC ĐỊNH THÌ IM. Không có luật ấy thì tag mọc đủ mười mấy chip và ta chỉ dời đống
+# lộn xộn từ khối sang góc màn hình. Lặp qua CHÍNH từ điển: ô mới nào rơi vào một nhóm
+# khung mà mặc định của nó lại thành chip thì phép này đỏ.
+_khung_o = [o for o in bat_dau.o_cua(_st)
+            if (o.get("nhom") or "") in core.NHOM_KHUNG
+            and o["ten"] not in ("khoang", "von")]
+kiem(f"{len(_khung_o)} ô khung khác đều IM khi để mặc định",
+     len(core.khung_chay([_st])) == 2,
+     f"— {[x['nhan'] for x in core.khung_chay([_st])]}")
+
+# Đổi một ô khác mặc định -> đúng MỘT chip mọc thêm, và nó mang nhãn của từ điển.
+_st2 = dict(_st, moc_so_sanh="SPY")
+_them = [x for x in core.khung_chay([_st2]) if x["nhan"] not in ("Khoảng ngày", "Vốn")]
+kiem("đổi «Mốc so sánh» -> mọc đúng một chip",
+     len(_them) == 1 and _them[0]["gia_tri"] == "SPY", f"— {_them}")
+kiem("và chip ấy mang đúng nhóm của ô",
+     _them and _them[0]["nhom"] == "do_luong", f"— {_them}")
+
+# Ô CHỌN phải hiện NHÃN, không hiện mã lớp LEAN: "InsightWeighting…" là tên lớp, đọc
+# trên canvas thì không ai biết nó chia vốn kiểu gì.
+_st3 = dict(_st, chia_von="InsightWeightingPortfolioConstructionModel")
+_them3 = [x for x in core.khung_chay([_st3])
+          if x["nhan"] not in ("Khoảng ngày", "Vốn")]
+kiem("ô CHỌN hiện nhãn tiếng Việt, không hiện tên lớp LEAN",
+     len(_them3) == 1 and "PortfolioConstruction" not in _them3[0]["gia_tri"],
+     f"— {_them3}")
+
+kiem("sơ đồ không có khối Bắt đầu thì khung rỗng", core.khung_chay([]) == [])
+
+# ================= 4c. Rổ kén ngày =================
+# ⚠ CÂU CẢNH BÁO NÀY TỪNG LÀ MỘT CÁI NHÃN. Nó dán cứng trong tên rổ — *"(cần dữ liệu
+# doanh nghiệp: chỉ có 24/03–07/04/2014)"* — nên chiếm ba dòng của thẻ, mãi mãi, kể cả
+# khi khoảng ngày nằm đúng trong vùng có dữ liệu. Cảnh báo luôn bật thì người ta học
+# cách không nhìn nó. Nay nó kêu ĐÚNG LÚC sắp hỏng, mà hỏng thì hỏng LẶNG: LEAN chạy
+# hết mọi nến, rổ rỗng, 0 lệnh, không báo gì.
+print("\n▸ Rổ đọc dữ liệu doanh nghiệp — kêu ĐÚNG LÚC khoảng ngày trật")
+
+
+def _canh_ro(ro, tu, den):
+    x = core.make_start_step()
+    x["ma"] = {"ro": ro, "giu_n": 10}
+    x["khoang"] = {"tu": tu, "den": den}
+    return [p for p in core.soat_khoi_bat_dau(x)
+            if "dữ liệu doanh nghiệp" in p["message"]]
+
+
+_kh = bat_dau.KHOANG_DOANH_NGHIEP
+for _ro in [r[0] for r in bat_dau.RO if len(r) >= 6 and r[5]]:
+    kiem(f"«{_ro}» trùm đúng khoảng -> IM", not _canh_ro(_ro, _kh[0], _kh[1]))
+    kiem(f"«{_ro}» trật hẳn ra ngoài -> KÊU",
+         len(_canh_ro(_ro, "2015-01-01", "2020-12-31")) == 1)
+    kiem(f"«{_ro}» chỉ chạm MỘT đầu cũng đủ -> IM",
+         not _canh_ro(_ro, "2014-01-01", _kh[0]))
+# Rổ ETF không kén ngày thì đừng kêu — kêu bừa là dạy người ta bỏ qua bảng Vấn đề.
+kiem("rổ KHÔNG kén ngày thì không kêu bao giờ",
+     not _canh_ro("kim_loai", "2015-01-01", "2020-12-31"))
+# Và câu cảnh báo ấy KHÔNG được quay lại làm nhãn.
+kiem("nhãn rổ trên THẺ là tên trần, không kèm câu cảnh báo",
+     all("cần dữ liệu" not in r[1] for r in bat_dau.RO),
+     f"— {[r[1] for r in bat_dau.RO if 'cần dữ liệu' in r[1]]}")
+# Nhưng Ô CHỌN thì vẫn phải nhắc: đó là chỗ người ta đang quyết định chọn rổ nào.
+kiem("ô CHỌN vẫn nhắc, vì đó là lúc người ta chọn rổ",
+     all("cần dữ liệu" in bat_dau.nhan_ro(r)
+         for r in bat_dau.RO if len(r) >= 6 and r[5]))
 
 print("\n▸ Bắt đầu KHÔNG phải cổng rẽ nhánh")
 kiem("không phải cổng", not core.is_branch_gate(core.make_start_step()))

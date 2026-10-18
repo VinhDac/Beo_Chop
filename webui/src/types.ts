@@ -92,11 +92,21 @@ export interface VanDe {
 }
 
 /** Những gì `api.soat` trả về — tất cả trong MỘT lượt. */
+/** Một chip của tag KHUNG LƯỢT CHẠY ở góc phải canvas (`core.khung_chay`).
+ *  `nhom` là mã nhóm ô của khối Bắt đầu — bấm chip thì hộp thoại cuộn tới đó. */
+export interface ChipKhung {
+  nhan: string
+  gia_tri: string
+  nhom: string
+}
+
 export interface KetQuaSoat {
   /** {id khối: "4A.2"}. Không có khoá = khối không chạy tới. */
   thu_tu: Record<string, string>
   entry: string | null
   the: Record<string, Card>
+  /** Khung của lượt chạy — ngày, vốn, và mọi ô đã chỉnh khác mặc định. */
+  khung_chay: ChipKhung[]
   van_de: VanDe[]
   /** {id khối cuối vòng: [id khối đầu vòng, số vòng | null]} */
   vong: Record<string, [string, number | null]>

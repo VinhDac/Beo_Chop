@@ -240,9 +240,15 @@ function OKhoangNgay({ k, onDoi }: {
   )
 }
 
-export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
+export default function HopBatDau({ step, tuDien, moNhom, onLuu, onDong }: {
   step: Step
   tuDien: TuDienBatDau
+  /** Mã NHÓM ô cần cuộn tới ngay khi mở — tag khung ở góc canvas gửi vào.
+   *
+   *  Hộp này nay hơn hai mươi ô chia bảy nhóm, nên mở ra ở đầu danh sách rồi bắt
+   *  người ta tự tìm «Sàn và chi phí» là bắt cuộn — trong khi họ vừa bấm đúng vào
+   *  cái chip phí. */
+  moNhom?: string
   onLuu: (s: Step) => void
   onDong: () => void
 }) {
@@ -251,6 +257,21 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
   // biết chúng tồn tại.
   const [gt, setGt] = useState<Record<string, unknown>>(() => ({ ...step }))
   const doi = (k: string, v: unknown) => setGt(x => ({ ...x, [k]: v }))
+
+  /* Cuộn tới nhóm được chỉ, MỘT LẦN lúc mở.
+   *
+   *  ⚠ Trong `requestAnimationFrame`, không gọi thẳng: lúc hiệu ứng chạy thì Modal
+   *  vừa gắn vào cây DOM mà chưa qua nhịp vẽ nào, nên `scrollIntoView` tính trên một
+   *  khung cao 0 và cuộn về đúng chỗ cũ. Lỗi ấy KHÔNG lộ ra mọi lúc — hộp đã mở sẵn
+   *  một lần rồi thì trình duyệt còn giữ kích thước, và nó cuộn đúng. */
+  useEffect(() => {
+    if (!moNhom) return
+    const id = requestAnimationFrame(() => {
+      document.querySelector(`[data-nhom="${moNhom}"]`)
+        ?.scrollIntoView({ block: 'start' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [moNhom])
 
   /* SÁU Ô MANG THEO Ô THÊM — và chúng cùng một luật, nên cùng một đường đi.
    *
@@ -449,7 +470,7 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
             const cua = tuDien.o.filter(o => (o.nhom || tuDien.nhom_khac) === nh.ma)
             if (!cua.length) return null
             return (
-              <section className="nhom-o" key={nh.ma}>
+              <section className="nhom-o" key={nh.ma} data-nhom={nh.ma}>
                 <h4 className="nhom-ten">
                   {nh.nhan}
                   {nh.mo_ta && <span className="nhom-mo-ta">{nh.mo_ta}</span>}

@@ -71,6 +71,14 @@ kiem("thẻ do Python dựng chữ",
 kiem("có bảng vòng", r["vong"] == {steps[2]["id"]: [steps[0]["id"], None]})
 kiem("sơ đồ đúng thì không lỗi", not r["van_de"], f"— {[p['message'][:40] for p in r['van_de']]}")
 kiem("trả lại edges đã dọn", len(r["edges"]) == 2)
+# ⚠ KHUNG LƯỢT CHẠY ĐI CÙNG CỬA NÀY. Tag ở góc phải canvas đọc nó; quên gửi thì tag
+# trống trơn mà không gì kêu — giao diện chỉ thấy một khoá thiếu và vẽ rỗng.
+kiem("có khung lượt chạy", isinstance(r.get("khung_chay"), list)
+     and len(r["khung_chay"]) >= 2,
+     f"— {r.get('khung_chay')}")
+kiem("khung mang ngày và vốn",
+     {c["nhan"] for c in r["khung_chay"]} >= {"Khoảng ngày", "Vốn"},
+     f"— {[c['nhan'] for c in r['khung_chay']]}")
 
 print("\n▸ Khối không ai dẫn tới thì KHÔNG có số")
 le = val(A.khoi_moi("action"))["step"]

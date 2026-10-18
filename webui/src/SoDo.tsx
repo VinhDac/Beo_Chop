@@ -11,6 +11,7 @@ import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
 import Ribbon, { type ViecRibbon } from './components/Ribbon'
 import OTimKhoi, { type LocTim } from './components/OTimKhoi'
+import TagKhungChay from './components/TagKhungChay'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
 import HopDoiTen from './components/HopDoiTen'
@@ -33,9 +34,24 @@ import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
 import type {
-  Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
-  KetQuaChay, KetQuaSinh, TienDoChay, TuDienBatDau, TuDienLam, VanDe,
-  NumSoDo, TuDienToiUu,
+  Card,
+  ChipKhung,
+  Edge,
+  HatNhanTag,
+  KetQuaChay,
+  KetQuaSinh,
+  KetQuaSoat,
+  KhoaQC,
+  NumSoDo,
+  Step,
+  StepKind,
+  Strategy,
+  TienDoChay,
+  TuDienBatDau,
+  TuDienHoi,
+  TuDienLam,
+  TuDienToiUu,
+  VanDe,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -197,6 +213,11 @@ function SoDoTrong() {
   const [ten, setTen] = useState('')
   const [thuTu, setThuTu] = useState<Record<string, string>>({})
   const [vanDe, setVanDe] = useState<VanDe[]>([])
+  /** KHUNG lượt chạy — mấy chip nổi ở góc phải canvas. Đến từ cùng lượt `soat` với
+   *  thẻ khối, nên không bao giờ lệch pha với nó. */
+  const [khungChay, setKhungChay] = useState<ChipKhung[]>([])
+  /** Nhóm ô mà hộp Bắt đầu phải cuộn tới khi mở — tag khung đặt, rồi tự xoá. */
+  const [nhomMo, setNhomMo] = useState<string | undefined>(undefined)
   const [moKho, setMoKho] = useState(false)
   /** Kho Strategy — hộp chọn file đã lưu. */
   const [moKhoStrategy, setMoKhoStrategy] = useState(false)
@@ -338,6 +359,7 @@ function SoDoTrong() {
       const kq: KetQuaSoat = r.value
       setThuTu(kq.thu_tu)
       setVanDe(kq.van_de)
+      setKhungChay(kq.khung_chay ?? [])
       setNodes(ns => ns.map(n => {
         const c = kq.the[n.id]
         return c && c !== (n.data as { card?: Card }).card
@@ -358,6 +380,7 @@ function SoDoTrong() {
     if (r.ok && r.value) {
       setThuTu(r.value.thu_tu)
       setVanDe(r.value.van_de)
+      setKhungChay(r.value.khung_chay ?? [])
     }
     const { nodes: ns, edges: es } = docSangRf(doc.steps, doc.edges, the)
     setNodes(ns)
@@ -1519,6 +1542,19 @@ function SoDoTrong() {
                     goiY={goiYTim} onChon={id => { setDangO(khopTim.indexOf(id));
                                                    toiKhoi(id) }} />
         </div>
+        {/* KHUNG LƯỢT CHẠY nổi ở góc PHẢI trên, đối xứng với ô Tìm bên trái: ngày,
+            vốn, và mọi ô đã chỉnh khác mặc định. Mấy thứ này từng nằm trên thẻ khối
+            Bắt đầu và làm nó phình ra — chúng đúng với CẢ sơ đồ, không phải một
+            bước, nên chỗ của chúng là khung màn hình chứ không phải một cái hộp. */}
+        <div className="tag-khung-noi">
+          <TagKhungChay chip={khungChay} onMo={nhom => {
+            const bd = nodes.find(n => (n.data as { step?: Step }).step?.kind
+                                       === 'start')
+            if (!bd) return
+            setNhomMo(nhom)
+            setDangSua(bd.id)
+          }} />
+        </div>
         {hnDangO && (
           <div className="thanh-hn">
             <span className="nhan">đang ở trong</span>
@@ -1675,8 +1711,13 @@ function SoDoTrong() {
                           onLuu={luu} onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'start' && tuDienBD) {
-          return <HopBatDau step={st} tuDien={tuDienBD} onLuu={luu}
-                            onDong={() => setDangSua(null)} />
+          // ⚠ XOÁ `nhomMo` LÚC ĐÓNG. Để lại thì lần sau mở khối Bắt đầu bằng cách
+          // bấm đúp vào nó, hộp vẫn nhảy xuống cái nhóm của lần bấm chip trước —
+          // người dùng không hiểu vì sao hộp mở ra ở giữa chừng.
+          const dong = () => { setDangSua(null); setNhomMo(undefined) }
+          return <HopBatDau step={st} tuDien={tuDienBD} moNhom={nhomMo}
+                            onLuu={s2 => { luu(s2); setNhomMo(undefined) }}
+                            onDong={dong} />
         }
         if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
           return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}

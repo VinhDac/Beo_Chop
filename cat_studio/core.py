@@ -356,8 +356,78 @@ def _tien(n):
     return str(n) if f is None else f"{int(f):,}".replace(",", ".")
 
 
+#: Mấy NHÓM ô của khối Bắt đầu thuộc về KHUNG lượt chạy, không thuộc dòng chảy.
+#: Thứ tự ở đây là thứ tự chip hiện ra.
+NHOM_KHUNG = ("tien", "day_chuyen", "chi_phi", "do_luong", "chay_gi")
+
+#: Ô nào ĐÃ nằm trên thẻ khối rồi thì đừng bày lại thành chip — hai chỗ nói một thứ
+#: là hai chỗ để trôi khỏi nhau, và chip thừa thì tag phình đúng cái bệnh vừa chữa.
+_KHUNG_BO_QUA = {"ma", "nhanh_chay", "chay_cho", "nhip", "tri_nho"}
+
+
+def _nhan_chon(o, v):
+    """Giá trị một ô CHỌN -> nhãn người đọc được. Không tra ra thì trả về chính nó."""
+    for c in (o.get("chon") or []):
+        if isinstance(c, (list, tuple)) and len(c) >= 2 and str(c[0]) == str(v):
+            return str(c[1])
+    return str(v)
+
+
+def khung_chay(steps):
+    """KHUNG của lượt chạy -> [{nhan, gia_tri, nhom}] cho tag góc phải canvas.
+
+    Vì sao tách khỏi thẻ khối: mấy thứ này không phải một BƯỚC. Khoảng ngày, vốn, dây
+    chuyền LEAN, phí, mốc so sánh — chúng đúng với cả sơ đồ, nên in chúng vào một khối
+    là vừa làm khối ấy phình vừa nói sai chỗ. Và trên một sơ đồ lớn thì khối Bắt đầu
+    trôi ra ngoài màn hình từ lâu, trong khi câu «đang chạy bằng bao nhiêu tiền» thì
+    lúc nào cũng cần trả lời được.
+
+    ⚠ MẶC ĐỊNH THÌ IM. Chỉ NGÀY và VỐN luôn hiện (hai thứ không có chúng thì câu hỏi
+    "lượt này là lượt nào" không trả lời được); mọi ô khác chỉ thành chip khi người
+    dùng đã đổi nó khác mặc định của từ điển. Không có luật ấy thì tag mọc đủ mười mấy
+    chip và ta chỉ dời đống lộn xộn từ khối sang góc màn hình.
+
+    LẶP QUA CHÍNH TỪ ĐIỂN, không liệt kê tay: thêm một ô vào nhóm «Sàn và chi phí» là
+    tag nói luôn, không phải nhớ sửa thêm chỗ này."""
+    bd = next((x for x in (steps or [])
+               if isinstance(x, dict) and is_start_step(x)), None)
+    if not bd:
+        return []
+    k = o_bat_dau(bd, "khoang") or {}
+    ra = [{"nhan": "Khoảng ngày", "nhom": "tien",
+           "gia_tri": f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}"},
+          {"nhan": "Vốn", "nhom": "tien",
+           "gia_tri": f"{_tien(o_bat_dau(bd, 'von'))}$"}]
+    for o in bat_dau.o_cua(bd):
+        ten, nhom = o["ten"], (o.get("nhom") or "")
+        if nhom not in NHOM_KHUNG or ten in _KHUNG_BO_QUA or ten in ("khoang", "von"):
+            continue
+        v = o_bat_dau(bd, ten)
+        # So với MẶC ĐỊNH CỦA TỪ ĐIỂN, không so với rỗng: ô «Sàn» mặc định là
+        # "DEFAULT" chứ không phải "", nên so với rỗng là mọi sơ đồ đều mọc chip sàn.
+        if v == o["mac_dinh"] or v is None or str(v).strip() == "":
+            continue
+        ra.append({"nhan": o["nhan"], "nhom": nhom,
+                   "gia_tri": _nhan_chon(o, v) if o["kieu"] == bat_dau.O_CHON
+                              else str(v)})
+    # Xếp theo NHOM_KHUNG, không theo thứ tự ô trong từ điển: thứ tự ô là thứ tự của
+    # HỘP THOẠI, mà hộp thoại xếp theo lúc người ta điền. Tag thì xếp theo cái người
+    # ta liếc tìm — ngày và tiền trước, mấy thứ chỉnh tay sau.
+    return sorted(ra, key=lambda c: NHOM_KHUNG.index(c["nhom"]))
+
+
 def mo_ta_bat_dau(step):
-    """Khối BẮT ĐẦU -> mấy dòng chữ trên thẻ."""
+    """Khối BẮT ĐẦU -> mấy dòng chữ trên thẻ.
+
+    CHỈ IN «CHẠY TRÊN CÁI GÌ»: rổ hay mã, mấy con số của rổ, và lối rẽ nhánh. Đó là
+    CHỦ NGỮ của cả sơ đồ — mọi nhánh bên dưới nói về nó, nên nó phải nằm ngay cạnh
+    chúng.
+
+    ⚠ KHOẢNG NGÀY · VỐN · DÂY CHUYỀN · PHÍ · MỐC SO SÁNH KHÔNG Ở ĐÂY NỮA. Chúng là
+    KHUNG của lượt chạy, không phải một bước nào cả — thẻ in chúng thì một khối phình
+    ra năm sáu dòng chỉ vì mấy thứ chẳng dính gì tới dòng chảy ngay dưới nó. Nay
+    `khung_chay()` dựng chúng thành mấy chip nổi ở góc phải canvas, nơi chúng LUÔN
+    thấy được kể cả khi khối Bắt đầu đã trôi ra ngoài màn hình."""
     gt_ma = o_bat_dau(step, "ma")
     ro = bat_dau.ro_cua(gt_ma)
     ds = [] if ro else (gt_ma or [])
@@ -387,12 +457,6 @@ def mo_ta_bat_dau(step):
         dong = [f"{m.get('ma') or '?'} · {ten_loai.get(m.get('loai'), m.get('loai'))}"]
     else:
         dong = [f"{len(ds)} mã: " + ", ".join(str(m.get("ma") or "?") for m in ds)]
-    k = o_bat_dau(step, "khoang") or {}
-    dong.append(f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}")
-    dong.append(f"vốn {_tien(o_bat_dau(step, 'von'))}$")
-    moc = str(o_bat_dau(step, "moc_so_sanh") or "").strip()
-    if moc:
-        dong.append(f"mốc so sánh: {moc}")
     # ⚠ «CHẠY HẾT» PHẢI HIỆN TRÊN THẺ. Nhìn canvas thấy hai nhánh rẽ ra thì người đọc
     # hiểu là một trong hai — đó là nghĩa mặc định, và nó in sẵn trong HÌNH. Bật chạy
     # hết là đổi nghĩa ấy mà hình không đổi gì, nên không nói ra thì cả sơ đồ đọc sai
@@ -1772,6 +1836,35 @@ def _soat_ro(step, sid, ten, gt):
     return ra
 
 
+def _soat_ro_du_lieu(step, sid, ten, gt):
+    """Rổ KÉN NGÀY mà khoảng ngày của sơ đồ không trùm qua -> một dòng Vấn đề.
+
+    ⚠ ĐÂY LÀ CHỖ CÂU CẢNH BÁO ẤY ĐÁNG RA PHẢI Ở. Trước nó là một câu dán cứng trong
+    NHÃN của rổ — *"(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)"* — nên nó
+    chiếm ba dòng của thẻ khối, mãi mãi, kể cả khi khoảng ngày đang nằm đúng trong
+    vùng có dữ liệu và chẳng có gì để cảnh báo. Một lời cảnh báo luôn bật thì người ta
+    học cách không nhìn nó.
+        Nay nó kêu ĐÚNG LÚC sắp hỏng, và hỏng thì hỏng LẶNG: LEAN chạy hết mọi nến,
+    rổ ra rỗng, 0 lệnh, bảng Kết quả không một lời nào."""
+    kh = bat_dau.khoang_du_lieu(gt)
+    if not kh:
+        return []
+    k = o_bat_dau(step, "khoang") or {}
+    tu, den = str(k.get("tu") or ""), str(k.get("den") or "")
+    if not tu or not den:
+        return []
+    # So chuỗi "YYYY-MM-DD" là so ngày — khuôn ấy xếp theo chữ cũng đúng theo ngày.
+    if tu <= kh[1] and den >= kh[0]:
+        return []
+    ra = []
+    _loi(ra, "warning", sid,
+         f'"{ten}": rổ này đọc dữ liệu doanh nghiệp, mà bộ miễn phí kèm LEAN chỉ có '
+         f"{_ngay_vn(kh[0])} → {_ngay_vn(kh[1])}. Khoảng ngày đang đặt "
+         f"({_ngay_vn(tu)} → {_ngay_vn(den)}) không trùm qua đó, nên rổ sẽ RỖNG: "
+         f"backtest chạy hết, 0 lệnh, không báo lỗi gì.")
+    return ra
+
+
 def soat_khoi_bat_dau(step):
     """Soát RUỘT khối Bắt đầu. -> [{severity, step, index, message}]
 
@@ -1788,6 +1881,7 @@ def soat_khoi_bat_dau(step):
     # không có dòng mã nào để mà soát trống hay trùng — nên nó có phép soát riêng.
     if isinstance(ds, dict):
         ra += _soat_ro(step, sid, ten, ds)
+        ra += _soat_ro_du_lieu(step, sid, ten, ds)
         ds = []
     elif not isinstance(ds, list) or not ds:
         _loi(ra, "error", sid,

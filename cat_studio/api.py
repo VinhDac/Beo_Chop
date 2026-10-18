@@ -719,6 +719,10 @@ class Api(NenCuaSo):
             "thu_tu": kq["order"],
             "entry": kq["entry"],
             "the": {s["id"]: core.the_buoc(s, _tn) for s in steps},
+            # KHUNG lượt chạy — mấy chip của tag góc phải canvas. Đi CÙNG cửa soát
+            # chứ không thành một cửa riêng: nó đọc đúng cái khối Bắt đầu mà thẻ vừa
+            # đọc, nên tách ra là mời hai lượt gọi thấy hai trạng thái khác nhau.
+            "khung_chay": core.khung_chay(steps),
             "van_de": van_de,
             "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
             "edges": edges,

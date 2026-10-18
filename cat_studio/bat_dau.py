@@ -960,6 +960,25 @@ LOC_TRONG_SO = (
 #:
 #: Trong câu: `{tên_ô}` thay bằng giá trị ô ấy — ô CHỮ thành chuỗi Python có dấu
 #: nháy, ô SỐ thành số. `{loc_ro}` là chỗ duy nhất có điều kiện, xem `lean_ro`.
+#: Khoảng ngày bộ dữ liệu MIỄN PHÍ kèm LEAN có dữ liệu doanh nghiệp:
+#: `Data/equity/usa/fundamental/coarse/` đúng mười một tệp, 24/03 → 07/04/2014.
+#:
+#: ⚠ KHAI BẰNG NGÀY, KHÔNG BẰNG MỘT CÂU VĂN. Bản trước nhét thẳng câu *"(cần dữ liệu
+#: doanh nghiệp: chỉ có 24/03–07/04/2014)"* vào NHÃN của rổ, nên một lời cảnh báo đi
+#: lạc vào chỗ của một cái tên: thẻ khối in cả câu ấy và phình ra ba dòng, mà câu ấy
+#: thì dán vĩnh viễn — kể cả khi khoảng ngày của sơ đồ nằm đúng trong vùng có dữ liệu
+#: và chẳng có gì để cảnh báo.
+#:     Khai bằng ngày thì một nguồn sinh ra ba thứ: nhãn trong ô chọn, câu cảnh báo
+#: trong bảng Vấn đề (chỉ kêu khi khoảng ngày KHÔNG trùm qua đây), và phép so ngày.
+KHOANG_DOANH_NGHIEP = ("2014-03-24", "2014-04-07")
+
+
+def _dd_mm(s):
+    """"2014-03-24" -> "24/03". Để ghép câu nhắc trong nhãn ô chọn."""
+    p = str(s or "").split("-")
+    return f"{p[2]}/{p[1]}" if len(p) == 3 else str(s or "")
+
+
 RO = (
     ("etf", "Các mã trong một ETF", "ETFConstituentsUniverseSelectionModel",
      (_o_ro("ma_etf", "Mã ETF", O_CHU, "SPY",
@@ -972,7 +991,7 @@ RO = (
             goi_y="Lấy mấy mã NẶNG nhất trong ETF. Để 0 thì lấy cả rổ — SPY là "
                   "hơn 500 mã, nặng máy.")),
      "set_universe_selection(ETFConstituentsUniverseSelectionModel({ma_etf}, "
-     "self.universe_settings{loc_ro}))"),
+     "self.universe_settings{loc_ro}))", None),
     # ⚠ BA RỔ DƯỚI ĐÂY DỰA TRÊN DỮ LIỆU DOANH NGHIỆP, và bộ miễn phí kèm LEAN chỉ
     # có đúng MƯỜI MỘT NGÀY của nó: `Data/equity/usa/fundamental/coarse/` từ
     # 24/03/2014 đến 07/04/2014. Ngoài khoảng ấy, LEAN nói thẳng trong nhật ký
@@ -994,18 +1013,17 @@ RO = (
     # ⚠ VÌ SAO QC500 RA 0 MÃ: tầng một của nó lọc `HasFundamentalData`, mà trường ấy
     # do kho `fine` phục vụ — bộ miễn phí không có `fine` nên nó False sạch. Xem chỗ
     # rổ «gtgd» ngay dưới: cùng một câu lọc, bỏ đúng điều kiện ấy đi thì chạy thật.
-    ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất "
-               "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+    ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất",
      "QC500UniverseSelectionModel", (),
-     "set_universe_selection(QC500UniverseSelectionModel())"),
+     "set_universe_selection(QC500UniverseSelectionModel())",
+     KHOANG_DOANH_NGHIEP),
     # ⚠ ĐÂY LÀ TRẦN CỨNG «CHỈ GIỮ N MÃ» mà soát 11 ví dụ đi tìm suốt — và tôi đã tìm
     # sai tầng. Câu "chấm điểm cả rổ rồi giữ 12 mã tốt nhất" KHÔNG nói được ở trạm
     # chia vốn: model chia cho MỌI mã có tín hiệu, không cắt ở mã thứ 12. Nó nói ở
     # đây, tầng RỔ. `EmaCrossUniverseSelectionModel(nhanh, cham, count)` giữ mã nào
     # EMA nhanh còn trên EMA chậm, rồi lấy `count` mã NẶNG nhất — xếp hạng là việc
     # của LEAN, app không đếm hộ gì.
-    ("ema_cheo", "EMA nhanh TRÊN EMA chậm — giữ N mã nặng nhất "
-                 "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+    ("ema_cheo", "EMA nhanh TRÊN EMA chậm — giữ N mã nặng nhất",
      "EmaCrossUniverseSelectionModel",
      (_o_ro("ema_nhanh", "EMA nhanh", O_SO, 100, don_vi="nến", nguyen=True,
             goi_y="Chu kỳ EMA nhanh. LEAN mặc định 100."),
@@ -1015,7 +1033,8 @@ RO = (
             goi_y="Trong số mã đạt điều kiện, giữ ngần này mã NẶNG nhất. LEAN "
                   "mặc định 500 — để cao thì nặng máy.")),
      "set_universe_selection(EmaCrossUniverseSelectionModel({ema_nhanh}, "
-     "{ema_cham}, {giu_n}))"),
+     "{ema_cham}, {giu_n}))",
+     KHOANG_DOANH_NGHIEP),
     # ⚠ RỔ NÀY DỰNG TRÊN `FundamentalUniverseSelectionModel`, LỚP MÀ BẢNG BỎ ĐÃ CHÊ
     # — và lời chê ấy không sai, nó chỉ hẹp hơn tôi tưởng. Nguyên văn: *"đòi NGƯỜI
     # DÙNG viết hàm lọc bằng Python, trái D-11"*. Đúng, nếu ô ấy là chỗ gõ Python.
@@ -1049,8 +1068,7 @@ RO = (
     # vốn hoá (`market_cap`) đều nằm trong `fine` của Morningstar — thư mục
     # `Data/equity/usa/fundamental/` kèm LEAN chỉ có `coarse/`. Bày ô «Ngành» ra là
     # bày một ô lọc ra RỖNG mọi lúc. Mua bộ fundamental rồi mới thêm được.
-    ("gtgd", "Giao dịch nhiều tiền nhất — giữ N mã "
-             "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+    ("gtgd", "Giao dịch nhiều tiền nhất — giữ N mã",
      "FundamentalUniverseSelectionModel",
      (_o_ro("giu_n", "Giữ mấy mã", O_SO, 20, don_vi="mã", nguyen=True,
             goi_y="Mỗi ngày LEAN xếp cả sàn theo GIÁ TRỊ GIAO DỊCH (giá × khối "
@@ -1059,24 +1077,42 @@ RO = (
      "set_universe_selection(FundamentalUniverseSelectionModel("
      "lambda f: [x.symbol for x in sorted("
      "(y for y in f if y.volume > 0 and y.price > 0), "
-     "key=lambda y: y.dollar_volume, reverse=True)[:{giu_n}]]))"),
+     "key=lambda y: y.dollar_volume, reverse=True)[:{giu_n}]]))",
+     KHOANG_DOANH_NGHIEP),
     ("etf_thanh_khoan", "Rổ ETF thanh khoản — cả sáu nhóm", "LiquidETFUniverse", (),
-     "set_universe_selection(LiquidETFUniverse())"),
+     "set_universe_selection(LiquidETFUniverse())", None),
     ("kim_loai", "ETF kim loại — vàng, bạc, bạch kim", "MetalsETFUniverse", (),
-     "set_universe_selection(MetalsETFUniverse())"),
+     "set_universe_selection(MetalsETFUniverse())", None),
     ("nang_luong", "ETF năng lượng — dầu, khí, mặt trời", "EnergyETFUniverse", (),
-     "set_universe_selection(EnergyETFUniverse())"),
+     "set_universe_selection(EnergyETFUniverse())", None),
     ("cong_nghe", "ETF công nghệ", "TechnologyETFUniverse", (),
-     "set_universe_selection(TechnologyETFUniverse())"),
+     "set_universe_selection(TechnologyETFUniverse())", None),
     ("trai_phieu", "ETF trái phiếu Mỹ", "USTreasuriesETFUniverse", (),
-     "set_universe_selection(USTreasuriesETFUniverse())"),
+     "set_universe_selection(USTreasuriesETFUniverse())", None),
     ("bien_dong", "ETF biến động — VIX", "VolatilityETFUniverse", (),
-     "set_universe_selection(VolatilityETFUniverse())"),
+     "set_universe_selection(VolatilityETFUniverse())", None),
     ("nganh_sp500", "ETF các ngành của S&P 500", "SP500SectorsETFUniverse", (),
-     "set_universe_selection(SP500SectorsETFUniverse())"),
+     "set_universe_selection(SP500SectorsETFUniverse())", None),
 )
 
 RO_THEO_MA = {r[0]: r for r in RO}
+
+
+def nhan_ro(r):
+    """Nhãn ĐẦY ĐỦ của một rổ — tên, kèm câu nhắc dữ liệu nếu rổ ấy kén ngày.
+
+    Dùng cho Ô CHỌN, nơi người ta đang quyết định chọn rổ nào: ở đó câu nhắc đáng
+    giá nhất. THẺ KHỐI thì chỉ in `r[1]`, cái tên trần — xem `core.mo_ta_bat_dau`."""
+    if not r or len(r) < 6 or not r[5]:
+        return r[1]
+    return f"{r[1]} (cần dữ liệu doanh nghiệp: chỉ có " \
+           f"{_dd_mm(r[5][0])}–{_dd_mm(r[5][1])}/{str(r[5][1])[:4]})"
+
+
+def khoang_du_lieu(gia_tri):
+    """Rổ đang chọn kén khoảng ngày nào, hay None nếu nó chạy được mọi lúc."""
+    r = ro_cua(gia_tri)
+    return r[5] if r and len(r) >= 6 else None
 
 
 def ro_cua(gia_tri):
@@ -1541,8 +1577,11 @@ def tu_dien():
                  for m, n, r, c, th, c_ro in NHIP],
         # RỔ — kiểu thứ hai của ô «Chạy trên mã nào». Giao diện CHỈ BÀY: nhãn, lớp
         # LEAN và mấy ô con đều khai ở đây, không khai lại bên TypeScript.
-        "ro": [{"ma": m, "nhan": n, "lop": lop, "o_them": list(th)}
-               for m, n, lop, th, _l in RO],
+        # NHÃN ĐẦY ĐỦ (kèm câu nhắc dữ liệu) — ô chọn là chỗ người ta đang quyết
+        # định chọn rổ nào, nên câu nhắc đáng giá nhất ở đây. Thẻ khối thì in tên
+        # trần, kẻo một dòng cảnh báo dán vĩnh viễn chiếm ba dòng của thẻ.
+        "ro": [{"ma": r[0], "nhan": nhan_ro(r), "lop": r[2],
+                "o_them": list(r[3])} for r in RO],
         # PHÒNG RỦI RO — mỗi model mang ô NGƯỠNG của riêng nó, cùng lối `nhip`/`ro`.
         # Nhãn ô khác nhau ở từng model (lỗ / lãi / tụt khỏi đỉnh), nên giao diện
         # KHÔNG dựng lại ô ấy — nó bày thẳng `o` Python gửi sang.
