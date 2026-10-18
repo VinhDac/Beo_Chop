@@ -113,8 +113,23 @@ GIA = [
     _s("thap", "Giá thấp", "data.bars[sym].low", "giá"),
     _s("dong", "Giá đóng", "data.bars[sym].close", "giá"),
     _s("khoi_luong", "Khối lượng", "data.bars[sym].volume", "lượng"),
-    _s("gia_mua", "Giá mua (bid)", "data.quote_bars[sym].bid.close", "giá"),
-    _s("gia_ban", "Giá bán (ask)", "data.quote_bars[sym].ask.close", "giá"),
+    # ⚠ ĐỌC QUA `securities`, KHÔNG QUA `data.quote_bars` — và đây là lý do.
+    #
+    # `data.quote_bars[sym]` NÉM `KeyNotFoundException` khi nhịp ấy không có nến báo
+    # giá, và bộ dữ liệu miễn phí thì cổ phiếu CHỈ có nến giao dịch, không có nến báo
+    # giá nào. Tức vẽ một điều kiện «Giá mua (bid) > …» là backtest ĐỨT GIỮA CHỪNG —
+    # không phải sai số, mà chết hẳn: *"'SPY' wasn't found in the QuoteBars object"*.
+    #
+    # LEAN có sẵn lối an toàn, và nó CÙNG MỘT CON SỐ:
+    #     Security.BidPrice => Cache.BidPrice == 0 ? Price : Cache.BidPrice
+    # tức có nến báo giá thì lấy bid thật, không có thì rơi về giá đóng. Điều kiện vẫn
+    # có nghĩa, và không nổ.
+    #
+    # Tìm ra bằng cách VẼ THỬ TỪNG ĐẠI LƯỢNG rồi cho LEAN đọc cả 148 cái trong một
+    # lượt chạy — không ví dụ nào trong tập mẫu dùng bid/ask, nên chỗ này nằm im từ
+    # ngày viết. Đúng loại lỗi chỉ lộ khi có người vẽ đúng nó.
+    _s("gia_mua", "Giá mua (bid)", "self.securities[sym].bid_price", "giá"),
+    _s("gia_ban", "Giá bán (ask)", "self.securities[sym].ask_price", "giá"),
 ]
 
 #: CHỈ BÁO. LEAN có 167 cái; đây là bộ ĐANG MỞ, chọn theo mức hay dùng. Thêm một cái
