@@ -538,6 +538,21 @@ def xoa_luot_chay(ma_id):
     return {"ok": True, "loi": ""}
 
 
+def don_kho():
+    """Xoá bớt lượt CŨ NHẤT cho đủ giới hạn ở Cài đặt. -> số lượt đã xoá.
+
+    Gọi SAU KHI một lượt chạy xong, không phải lúc mở app: dọn lúc mở thì người dùng
+    vừa thấy một lượt trong kho, nháy mắt sau nó biến mất mà chẳng vì hành động nào
+    của họ. Dọn sau khi chạy thì đúng nhân quả — thêm một lượt mới, rụng một lượt cũ."""
+    gh = cai_dat.gioi_han_kho(cai_dat.KHOA_KHO_BACKTEST, luu_tru.doc_cai_dat())
+    ds = ds_luot_chay()                      # đã xếp MỚI NHẤT TRƯỚC
+    xoa = 0
+    for t in ds[gh:]:
+        if xoa_luot_chay(t.get("id") or "")["ok"]:
+            xoa += 1
+    return xoa
+
+
 def chay(ma, ten_lop):
     """Chạy một thuật toán đã sinh. -> {ok, loi, ...phần màn Kết quả cần}
 
@@ -645,6 +660,7 @@ def chay(ma, ten_lop):
           "ma_luot": ma_luot, "id": f"{ten_lop}/{ma_luot}",
           **_gon(d, nk or man_hinh)}
     _ghi_the(ra_thu_muc, kq)
+    don_kho()
     return kq
 
 

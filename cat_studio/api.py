@@ -472,6 +472,11 @@ class Api(NenCuaSo):
         return _ok(chay_toi_uu.ds_me())
 
     @_bat_loi
+    def xoa_me_toi_uu(self, ma_id):
+        r = chay_toi_uu.xoa_me(ma_id)
+        return _ok(True) if r["ok"] else _loi(r["loi"])
+
+    @_bat_loi
     def mo_cua_so_toi_uu(self, ma_id):
         """Mở MỘT CỬA SỔ RIÊNG cho một mẻ Optimize. Cùng lối `mo_cua_so_ket_qua`:
         một bundle hai vai, `?tu=<mã mẻ>`, js_api RIÊNG (xem docstring cửa kia —

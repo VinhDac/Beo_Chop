@@ -27,6 +27,7 @@ import subprocess
 import threading
 import time
 
+from . import cai_dat
 from . import chay_lean
 from . import luu_tru
 from . import toi_uu
@@ -250,6 +251,7 @@ def chay(ma, ten_lop, cai):
           "cai": cai, "ket_qua": ket_qua,
           "da_dung": da_dung, "so_luot": _TRANG_THAI["so_luot"]}
     _ghi_the(ra_thu_muc, kq)
+    don_kho()
     return kq
 
 
@@ -290,6 +292,33 @@ def doc_me(ma_id):
         pass
     return {"ok": True, "loi": "", "thu_muc": d, **the,
             "ket_qua": doc_luot(d, ((the.get("cai") or {}).get("tham_so") or {}))}
+
+
+def xoa_me(ma_id):
+    """Xoá hẳn một mẻ đã lưu, kể cả mọi lượt bên trong. -> {ok, loi}"""
+    ten_lop, _, ma_luot = str(ma_id or "").partition("/")
+    d = os.path.join(thu_muc_goc(), ten_lop, ma_luot)
+    if not ten_lop or not ma_luot or not os.path.isdir(d):
+        return {"ok": False, "loi": f'Không có mẻ "{ma_id}".'}
+    import shutil
+    try:
+        shutil.rmtree(d)
+    except OSError as e:
+        return {"ok": False, "loi": f"Không xoá được: {e}"}
+    return {"ok": True, "loi": ""}
+
+
+def don_kho():
+    """Xoá bớt mẻ CŨ NHẤT cho đủ giới hạn ở Cài đặt. -> số mẻ đã xoá.
+
+    Đáng hơn kho backtest nhiều: một mẻ chứa hàng trăm thư mục lượt, mỗi lượt một
+    file kết quả của LEAN. Không dọn thì vài ngày là đĩa đầy."""
+    gh = cai_dat.gioi_han_kho(cai_dat.KHOA_KHO_TOI_UU, luu_tru.doc_cai_dat())
+    xoa = 0
+    for t in ds_me()[gh:]:                   # `ds_me` xếp MỚI NHẤT TRƯỚC
+        if xoa_me(t.get("id") or "")["ok"]:
+            xoa += 1
+    return xoa
 
 
 def bat_dau_chay(ma, ten_lop, cai):

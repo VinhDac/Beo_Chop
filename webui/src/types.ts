@@ -499,6 +499,18 @@ export interface TuDienToiUu {
   giay_moi_luot: number
 }
 
+/** Thẻ tóm tắt một mẻ — Kho đọc thẻ, không mở từng file kết quả: một mẻ có thể
+ *  chứa hàng trăm lượt, mỗi lượt một file của LEAN nặng vài MB. */
+export interface TheMeToiUu {
+  id: string
+  ten_lop?: string
+  ma_luot?: string
+  luc?: number
+  so_luot?: number
+  so_xong?: number
+  cai?: CaiToiUu
+}
+
 /** Một mẻ đã chạy, cho cửa sổ Optimize. */
 export interface LuotToiUu {
   ten_lop?: string

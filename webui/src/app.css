@@ -1938,3 +1938,7 @@ mark.tim-chu {
    khoảng trắng giữa chúng: «5lượt xong · tìmSharpe Ratiolớn nhất». Đã nhìn thấy
    trên ảnh chụp. */
 .tu-cot-nut { float: right; font-size: 11px; margin-top: -2px; }
+/* HAI TAB trong hộp Kho — Backtest và Optimize. Dùng lại đúng `.tab` của bảng dưới
+   (Vấn đề / Nhật ký): một kiểu tab cho cả app, không đẻ kiểu thứ hai. */
+.kho-tab { display: flex; gap: 2px; border-bottom: 1px solid var(--border);
+           margin-bottom: 10px; }

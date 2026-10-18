@@ -11,7 +11,7 @@ import type {
   Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
   OLam, Step, StepKind, Strategy,
   TheLuotChay, TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
-  CaiToiUu, LuotToiUu, NumSoDo, TuDienToiUu,
+  CaiToiUu, LuotToiUu, NumSoDo, TheMeToiUu, TuDienToiUu,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -122,7 +122,8 @@ export const py = {
       'chay_toi_uu', ten, steps, edges, cai),
   dung_toi_uu: () => goi<boolean>('dung_toi_uu'),
   tien_do_toi_uu: () => goi<Record<string, unknown>>('tien_do_toi_uu'),
-  ds_me_toi_uu: () => goi<Record<string, unknown>[]>('ds_me_toi_uu'),
+  ds_me_toi_uu: () => goi<TheMeToiUu[]>('ds_me_toi_uu'),
+  xoa_me_toi_uu: (id: string) => goi<boolean>('xoa_me_toi_uu', id),
   /** Mở CỬA SỔ RIÊNG cho một mẻ — mở ngay lúc bắt đầu, bảng đầy dần. */
   mo_cua_so_toi_uu: (id: string) =>
     goi<{ id: string; moi: boolean }>('mo_cua_so_toi_uu', id),

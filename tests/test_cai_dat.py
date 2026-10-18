@@ -44,6 +44,30 @@ kiem("bảng mặc định DỰNG TỪ `cai_dat`, không gõ tay lần hai",
      all(luu_tru.CAI_DAT_MAC_DINH[t] == o["mac_dinh"]
          for t, o in cai_dat.BANG_O.items()))
 
+print("\n▸ Giới hạn KHO: cái núm phải thật sự xoá lượt cũ")
+# Cùng họ với núm Hạn giờ dưới đây. Một con số "giữ 20 lượt" mà không ai dọn thì
+# nó chỉ là chữ trang trí — và cái hỏng ấy chỉ lộ ra sau vài ngày, khi đĩa đầy.
+for _hang, _mod, _ten in (("KHOA_KHO_BACKTEST", "chay_lean.py", "lượt backtest"),
+                          ("KHOA_KHO_TOI_UU", "chay_toi_uu.py", "mẻ Optimize")):
+    _k = getattr(cai_dat, _hang)
+    kiem(f"có núm giữ mấy {_ten}", _k in cai_dat.BANG_O)
+    _ng = io.open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "cat_studio", _mod), encoding="utf-8").read()
+    kiem(f"`{_mod}` có hàm dọn kho", "def don_kho(" in _ng)
+    # Tìm tên HẰNG, không tìm chuỗi khoá: gõ lại `"kho_backtest"` ra chữ là mở đường
+    # cho một ngày đổi tên khoá ở `cai_dat` mà chỗ này vẫn đọc tên cũ, lặng lẽ.
+    kiem(f"`{_mod}` đọc qua hằng `cai_dat.{_hang}`, không gõ lại chuỗi khoá",
+         f"cai_dat.{_hang}" in _ng and f'"{_k}"' not in _ng)
+    kiem(f"`{_mod}` hỏi `gioi_han_kho`, không gõ số cứng",
+         "gioi_han_kho(" in _ng)
+    kiem(f"`{_mod}` gọi dọn SAU KHI chạy xong", "    don_kho()" in _ng,
+         "— dọn lúc mở app thì lượt vừa thấy biến mất mà chẳng vì hành động nào")
+kiem("mặc định giữ 20", cai_dat.BANG_O[cai_dat.KHOA_KHO_BACKTEST]["mac_dinh"] == 20
+     and cai_dat.BANG_O[cai_dat.KHOA_KHO_TOI_UU]["mac_dinh"] == 20)
+kiem("đặt 0 thì CHẶN còn 1, không xoá sạch",
+     cai_dat.gioi_han_kho(cai_dat.KHOA_KHO_BACKTEST,
+                          {cai_dat.KHOA_KHO_BACKTEST: 0}) == 1)
+
 print("\n▸ Mấy khoá CHẾT đã bị bỏ")
 for k in ("symbol", "accent", "ui"):
     kiem(f"`{k}` không còn trong bảng mặc định", k not in luu_tru.CAI_DAT_MAC_DINH,

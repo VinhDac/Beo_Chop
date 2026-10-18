@@ -24,6 +24,8 @@ O_CO_KHONG = "co_khong"
 KHOA_LEAN = "lean_goc"
 KHOA_HAN_GIO = "han_gio_phut"
 KHOA_MO_KET_QUA = "mo_ket_qua"
+KHOA_KHO_BACKTEST = "kho_backtest"
+KHOA_KHO_TOI_UU = "kho_toi_uu"
 
 
 def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi=""):
@@ -44,6 +46,18 @@ NHOM = (
         _o(KHOA_MO_KET_QUA, "Xong thì mở luôn bảng kết quả", O_CO_KHONG, True,
            "Tắt đi thì chạy xong chỉ ghi một dòng nhật ký — bấm Results khi nào "
            "muốn xem."),
+    )),
+    ("kho", "Kho lượt chạy", (
+        _o(KHOA_KHO_BACKTEST, "Giữ mấy lượt backtest", O_SO, 20,
+           "Quá số này thì lượt CŨ NHẤT bị xoá để nhường chỗ. Mỗi lượt là một thư "
+           "mục vài trăm KB, nhưng chạy cả ngày thì nó dồn lại.",
+           nguyen=True, don_vi="lượt"),
+        # Một MẺ Optimize nặng hơn một lượt backtest cả trăm lần — mỗi lượt trong mẻ
+        # là một thư mục riêng. Nên con số ở đây đếm MẺ, không đếm lượt.
+        _o(KHOA_KHO_TOI_UU, "Giữ mấy mẻ Optimize", O_SO, 20,
+           "Đếm MẺ, không đếm lượt: một mẻ có thể chứa hàng trăm lượt backtest, nên "
+           "nó nặng gấp bội một lượt thường.",
+           nguyen=True, don_vi="mẻ"),
     )),
 )
 
@@ -84,6 +98,20 @@ def han_gio_giay(s=None):
     người dùng tự giăng cho mình."""
     p = doc(s or {}).get(KHOA_HAN_GIO) or BANG_O[KHOA_HAN_GIO]["mac_dinh"]
     return max(60, int(p) * 60)
+
+
+def gioi_han_kho(khoa, s=None):
+    """Giữ tối đa mấy lượt/mẻ. -> int >= 1.
+
+    Chặn dưới 1 chứ không chặn dưới 0: đặt 0 nghĩa là "xoá sạch mọi thứ ngay sau
+    khi chạy xong", và người đặt con số ấy gần như chắc chắn không định thế."""
+    v = doc(s or {}).get(khoa)
+    if v in (None, ""):
+        v = BANG_O[khoa]["mac_dinh"]
+    try:
+        return max(1, int(float(v)))
+    except (TypeError, ValueError):
+        return int(BANG_O[khoa]["mac_dinh"])
 
 
 def tu_dien():

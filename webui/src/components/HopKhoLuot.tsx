@@ -2,17 +2,23 @@ import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import { py } from '../api'
-import type { TheLuotChay } from '../types'
+import type { TheLuotChay, TheMeToiUu } from '../types'
 
-/** KHO LƯỢT BACKTEST — mọi lượt đã chạy, mới nhất trước.
+/** KHO — mọi lượt BACKTEST và mọi mẻ OPTIMIZE đã chạy, mới nhất trước.
  *
  *  Mỗi dòng mở ra một CỬA SỔ RIÊNG, và mở được nhiều cùng lúc: đó là cả lý do kho
  *  này tồn tại. Đổi chu kỳ từ 60 sang 90, chạy lại, rồi xếp hai cửa sổ cạnh nhau —
  *  so hai con số bằng mắt, không phải nhớ cái cũ rồi đoán.
  *
+ *  HAI TAB, KHÔNG PHẢI HAI HỘP. Backtest và Optimize là hai lối chạy của CÙNG một
+ *  sơ đồ, và người ta mở kho ra với cùng một câu hỏi — "lần trước ra bao nhiêu".
+ *  Hai hộp riêng thì phải nhớ cái nào nằm ở đâu, mà mỗi hộp lại là một chỗ để quên
+ *  không cập nhật.
+ *
  *  ⚠ Trước đây mỗi lượt chạy XOÁ SẠCH lượt trước (`ket_qua/<tên lớp>/` ghi đè). Lý
  *  do hồi ấy đúng — còn file cũ thì một lượt hỏng vẫn đọc ra số của lượt trước —
- *  nhưng cách chữa làm mất luôn lịch sử, mà lịch sử chính là thứ cần để so.
+ *  nhưng cách chữa làm mất luôn lịch sử, mà lịch sử chính là thứ cần để so. Nay kho
+ *  giữ lại, và Cài đặt quyết giữ bao nhiêu (mặc định 20); quá thì lượt CŨ NHẤT rụng.
  */
 const CHU: Record<string, string> = {
   'Net Profit': 'Lãi ròng',
@@ -31,41 +37,57 @@ function doc(ma: string) {
 }
 
 export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
+  const [tab, setTab] = useState<'bt' | 'tu'>('bt')
   const [ds, setDs] = useState<TheLuotChay[] | null>(null)
+  const [me, setMe] = useState<TheMeToiUu[] | null>(null)
   const [loi, setLoi] = useState('')
 
   const nap = async () => {
-    const r = await py.ds_luot_chay()
-    if (r.ok && r.value) setDs(r.value)
-    else setLoi(r.error ?? 'không đọc được kho lượt chạy')
+    const [a, b] = await Promise.all([py.ds_luot_chay(), py.ds_me_toi_uu()])
+    if (a.ok && a.value) setDs(a.value)
+    else setLoi(a.error ?? 'không đọc được kho lượt chạy')
+    if (b.ok && b.value) setMe(b.value)
   }
   useEffect(() => { void nap() }, [])
 
-  async function xoa(t: TheLuotChay) {
-    const r = await py.xoa_luot_chay(t.id)
-    if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
-    void nap()
-  }
+  const dangDoc = tab === 'bt' ? !ds : !me
+  const rong = tab === 'bt' ? ds?.length === 0 : me?.length === 0
 
   return (
-    <Modal title="Kho lượt backtest" width={700} onClose={onDong}
+    <Modal title="Kho lượt chạy" width={700} onClose={onDong}
            footer={<>
              <span className="day" />
              <button className="nut" onClick={onDong}>Đóng</button>
            </>}>
       <div className="kho-luot">
         {loi && <div className="mc-bao loi">⚠ {loi}</div>}
+
+        <div className="hang-tab kho-tab">
+          <button className={'tab' + (tab === 'bt' ? ' dang' : '')}
+                  onClick={() => setTab('bt')}>
+            Backtest{ds?.length ? ` (${ds.length})` : ''}
+          </button>
+          <button className={'tab' + (tab === 'tu' ? ' dang' : '')}
+                  onClick={() => setTab('tu')}>
+            Optimize{me?.length ? ` (${me.length})` : ''}
+          </button>
+        </div>
+
         <div className="dau-dk">
           Mỗi dòng mở ra một <b>cửa sổ riêng</b> — mở nhiều cái rồi xếp cạnh nhau để
           so hai phiên bản của cùng một chiến thuật.
         </div>
 
-        {ds && ds.length === 0 && (
-          <div className="kq-cho">chưa có lượt nào — bấm <b>Backtest</b> một lần</div>
+        {dangDoc && !loi && <div className="kq-cho">đang đọc…</div>}
+        {rong && (
+          <div className="kq-cho">
+            {tab === 'bt'
+              ? <>chưa có lượt nào — bấm <b>Backtest</b> một lần</>
+              : <>chưa có mẻ nào — ghim một ô số rồi bấm <b>Optimize</b></>}
+          </div>
         )}
-        {!ds && !loi && <div className="kq-cho">đang đọc…</div>}
 
-        {(ds ?? []).map(t => (
+        {tab === 'bt' && (ds ?? []).map(t => (
           <div className="luot" key={t.id}>
             <button className="luot-mo" onClick={() => void py.mo_cua_so_ket_qua(t.id)}
                     title="Mở trong một cửa sổ riêng">
@@ -78,7 +100,35 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
               </span>
             </button>
             <button className="nut-nho" title="Xoá hẳn lượt này"
-                    onClick={() => void xoa(t)}><Icon name="trash" /></button>
+                    onClick={() => void (async () => {
+                      const r = await py.xoa_luot_chay(t.id)
+                      if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
+                      void nap()
+                    })()}><Icon name="trash" /></button>
+          </div>
+        ))}
+
+        {tab === 'tu' && (me ?? []).map(t => (
+          <div className="luot" key={t.id}>
+            <button className="luot-mo" onClick={() => void py.mo_cua_so_toi_uu(t.id)}
+                    title="Mở trong một cửa sổ riêng">
+              <span className="luot-ten">{t.ten_lop}</span>
+              <span className="luot-luc">{doc(t.ma_luot ?? '')}</span>
+              <span className="luot-so">
+                {/* Một mẻ thì con số đáng đọc KHÁC một lượt: không phải lãi bao
+                    nhiêu, mà QUÉT CÁI GÌ và quét bao nhiêu lượt. Lãi của từng lượt
+                    nằm trong bảng xếp hạng bên trong, mở ra là thấy. */}
+                <i><b>Tìm</b> {t.cai?.muc_tieu ?? '—'}</i>
+                <i><b>Núm</b> {Object.keys(t.cai?.tham_so ?? {}).join(', ') || '—'}</i>
+                <i><b>Lượt</b> {t.so_xong ?? 0}{t.so_luot ? ` / ${t.so_luot}` : ''}</i>
+              </span>
+            </button>
+            <button className="nut-nho" title="Xoá hẳn mẻ này, kể cả mọi lượt bên trong"
+                    onClick={() => void (async () => {
+                      const r = await py.xoa_me_toi_uu(t.id)
+                      if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
+                      void nap()
+                    })()}><Icon name="trash" /></button>
           </div>
         ))}
       </div>
