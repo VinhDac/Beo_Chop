@@ -111,8 +111,19 @@ export function Hang({ o, gt, onDoi, children }: {
  *  Không phải trang trí: cả bộ khối dựng trên một lời hứa — mỗi khối chỉ ra được MỘT
  *  thứ có thật của LEAN, app không tự đẻ backend nào (D-11). Bày cái hàm ra là cách
  *  kiểm được lời hứa ấy, chứ không phải tin suông. */
-export function KhaiLean({ ham }: { ham: string }) {
+/** Dòng «LEAN sẽ gọi» — BÀY LẠI câu Python khai, không ghép lại câu nào.
+ *
+ *  Nhận CẢ MỘT DANH SÁCH vì một khối có thể khai nhiều câu: khối Bắt đầu chạy trên
+ *  rổ động nói một câu về nhịp và một câu `set_universe_selection`, mà bản trước
+ *  chỉ có chỗ cho một — nên câu quan trọng nhất của cái rổ không có chỗ nào để hiện
+ *  ra. Chỗ này không biết trong danh sách có mấy câu, và đó là cả ý: thêm một câu
+ *  khai bên Python là nó hiện ra ngay. */
+export function KhaiLean({ ham }: { ham: string | string[] }) {
+  const ds = (Array.isArray(ham) ? ham : [ham]).filter(Boolean)
   return (
-    <div className="lean-khai"><span>LEAN sẽ gọi</span><code>{ham}</code></div>
+    <div className="lean-khai">
+      <span>LEAN sẽ gọi</span>
+      <div className="lean-cau">{ds.map((c, i) => <code key={i}>{c}</code>)}</div>
+    </div>
   )
 }

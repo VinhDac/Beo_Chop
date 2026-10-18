@@ -78,6 +78,10 @@ export const py = {
   tu_dien_lam: () => goi<TuDienLam>('tu_dien_lam'),
   /** Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập. Cùng lý do như hai cửa trên. */
   tu_dien_bat_dau: () => goi<TuDienBatDau>('tu_dien_bat_dau'),
+  /** Mấy câu LEAN khối Bắt đầu ĐANG khai — hỏi lại sau MỖI thay đổi trong hộp.
+   *  Không nằm trong từ điển vì nó đổi theo giá trị đang gõ (nhịp, độ phân giải,
+   *  rổ). Giao diện KHÔNG tự ghép câu nào: Python khai, đây chỉ bày lại. */
+  khai_bat_dau: (gt: Record<string, unknown>) => goi<string[]>('khai_bat_dau', gt),
   /** Sơ đồ -> thuật toán LEAN Python. `ghi` true thì ghi luôn ra file. */
   sinh_ma: (ten: string, steps: Step[], edges: Edge[], ghi = false) =>
     goi<KetQuaSinh>('sinh_ma', ten, steps, edges, ghi),

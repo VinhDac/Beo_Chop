@@ -278,30 +278,59 @@ kiem("mọi model chia vốn đang bày đều khai nó đọc khe nào", not _k
 print("\n▸ MỐI NỐI 8 — giao diện BÀY LẠI thứ Python khai, không tự ghép lại")
 # Luật nền: Python khai, giao diện chỉ bày. Hai nơi cùng ghép một câu thì sớm muộn
 # chúng nói khác nhau, mà cái khác ấy không gây lỗi nào nên không ai thấy.
-#: ⚠ MỘT CHỖ CÒN NỢ, KHAI RA CHỨ KHÔNG GIẤU. `HopBatDau.tsx` tự dựng lại câu LEAN
-#: bằng TypeScript (`add_*(ma, Resolution.X)` / `universe_settings.resolution = …`),
-#: trong khi `bat_dau.ham_lean()` bên Python làm đúng việc ấy và hiện CHỈ có bài kiểm
-#: gọi. Hai bản một luật, không ai so. Hai hộp kia (Hành động, Xác nhận) lấy thẳng từ
-#: từ điển.
+#: CHỖ CÒN NỢ — khai ra chứ không giấu, vì một hàng rào có lỗ mà không khai thì
+#: chính là thứ cả bài này đang chữa. NAY RỖNG, và nó vừa rỗng xong:
+#: `HopBatDau.tsx` từng tự dựng lại câu LEAN bằng TypeScript (`add_*(ma,
+#: Resolution.X)` / `universe_settings.resolution = …`) trong khi `bat_dau.ham_lean`
+#: bên Python làm đúng việc ấy mà CHỈ có bài kiểm gọi — hai bản một luật, không ai
+#: đứng so. Nay nó hỏi cửa `khai_bat_dau`, nên hàng rào này không còn ngoại lệ nào.
 #:
-#: Nó nằm trong danh sách này chứ không nằm ngoài bài kiểm: một hàng rào có lỗ mà
-#: không khai thì chính là thứ cả bài này đang chữa. Vá xong thì XOÁ dòng dưới — và
-#: nếu không xoá, bài kiểm sẽ kêu, vì nó canh cả chiều ngược lại.
-CON_NO = {"HopBatDau.tsx"}
+#: Thêm tên vào đây thì phải kèm lý do, và chiều ngược lại bên dưới sẽ bắt ngay khi
+#: chỗ ấy sạch mà quên xoá — một lối miễn trừ không ai thu hồi là lối sẽ bị dùng.
+CON_NO = set()
+#: Mẩu LEAN nào gõ vào .tsx cũng là một BẢN SỰ THẬT THỨ HAI. Danh sách này chặn cả
+#: họ chứ không chặn một chỗ: thêm một hộp thoại mới mà ghép câu LEAN trong đó là
+#: bài kiểm kêu ngay, không phải chờ ai đi soi từng file.
+MAU_LEAN = ("set_universe_selection", "emit_insights(", "self.set_holdings",
+            "PortfolioConstructionModel", "Resolution.", "add_*(", "universe_"
+            "settings.", "set_portfolio_construction(", "schedule.on(")
+
+
+def _khong_chu_thich(s):
+    """Bỏ `/* … */` và `// …`.
+
+    NHẮC TÊN một câu LEAN trong chú thích KHÔNG phải là gõ cứng nó — mà chú thích
+    nói rõ vì sao chỗ này không được ghép câu chính là thứ ta muốn người sau đọc
+    được. Quét cả chú thích thì hàng rào này phạt đúng người đang giữ nó.
+    `(?<!:)` để `https://…` trong một chuỗi không bị cắt mất phần sau."""
+    return re.sub(r"(?<!:)//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", s, flags=re.S))
+
+
+_sach = {f: _khong_chu_thich(s) for f, s in moi_tsx()}
 _go_cung = {}
-for _f, _s in moi_tsx():
-    for _dau in ("set_universe_selection", "emit_insights(", "self.set_holdings",
-                 "PortfolioConstructionModel", "Resolution.", "add_*("):
+for _f, _s in _sach.items():
+    for _dau in MAU_LEAN:
         if _dau in _s and _f not in CON_NO:
             _go_cung.setdefault(_f, []).append(_dau)
-kiem("không file giao diện nào gõ cứng câu LEAN", not _go_cung, f"— {_go_cung}")
+kiem("không file giao diện nào gõ cứng một mẩu LEAN", not _go_cung, f"— {_go_cung}")
 # Chiều ngược lại: chỗ nợ phải CÒN nợ. Vá xong mà quên xoá khỏi `CON_NO` thì lần sau
 # ai đó gõ cứng vào đúng file ấy sẽ lọt — một lối miễn trừ không ai thu hồi.
 _no_ao = sorted(f for f in CON_NO
-                if not any(_f == f and ("Resolution." in _s or "add_*(" in _s)
-                           for _f, _s in moi_tsx()))
+                if not any(d in _sach.get(f, "") for d in MAU_LEAN))
 kiem("và chỗ KHAI LÀ NỢ thì phải còn nợ thật", not _no_ao,
      f"— {_no_ao} đã sạch rồi, xoá khỏi `CON_NO` đi")
+# ⚠ CHIỀU CÒN LẠI, và nó mới là chiều dễ mất. "Không gõ cứng" một mình thì XOÁ SẠCH
+# dòng khai đi là qua — mà hộp thoại không nói câu nào còn tệ hơn nói một câu cũ.
+# Nên mỗi hộp phải CÒN chỗ bày, và chỗ ấy phải LẤY TỪ Python.
+#: (file, lấy ở đâu bên Python, bày ra bằng cái gì)
+BAY_LEAN = (("HopBatDau.tsx", "py.khai_bat_dau(", "<KhaiLean"),
+            ("HopHanhDong.tsx", "loai.lean", "<KhaiLean"),
+            ("HopDieuKien.tsx", "dl.lean", "bn-lean"))
+for _hop, _nguon, _bay in BAY_LEAN:
+    _ts = _sach.get(_hop, "")
+    kiem(f"{_hop} lấy câu LEAN từ Python (`{_nguon}`) và bày ra (`{_bay}`)",
+         _nguon in _ts and _bay in _ts,
+         "— bày lại, chứ không ghép lại, và cũng không im")
 
 print(f"\n{'=' * 60}\n  {dung} đúng · {sai} sai\n{'=' * 60}")
 sys.exit(1 if sai else 0)

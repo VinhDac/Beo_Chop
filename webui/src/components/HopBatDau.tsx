@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import { DocThem, Hang, KhaiLean, OTheoKieu } from './ORuot'
+import { py } from '../api'
 import type {
   KhoangNgay, MaChay, OLam, RoChay, Step, TuDienBatDau,
 } from '../types'
@@ -210,34 +211,29 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
             name: ten.trim() || 'Bắt đầu' })
   }
 
-  /* ĐỘ PHÂN GIẢI THẬT SỰ SẼ DÙNG.
+  /* MẤY CÂU LEAN KHỐI NÀY KHAI RA — HỎI PYTHON, KHÔNG TỰ GHÉP.
    *
-   * ⚠ `nhip.res` chỉ đúng với nhịp THEO NẾN (`chay === 'on_data'`) — ở đấy nhịp
-   * CHÍNH LÀ độ phân giải. Với nhịp HẸN GIỜ thì `res` là một chữ "MINUTE" còn sót
-   * từ trước D-15, và người dùng chọn riêng bằng ô «Độ phân giải dữ liệu».
+   * Dòng khai tồn tại ĐÚNG ĐỂ người dùng đối chiếu với mã sinh ra, nên nó nói sai
+   * thì tệ hơn là không có. Bản trước tự dựng lại câu ấy ở đây bằng TypeScript: tự
+   * quyết lấy `add_*` hay `universe_settings`, tự ghép với tên hàm lịch, tự suy ra
+   * độ phân giải thật. Cả bốn phép ấy `bat_dau.ham_lean` bên Python đã làm rồi —
+   * hai bản ghép chữ nằm hai bên cầu nối, không ai đứng so. Và câu của RỔ ĐỘNG thì
+   * bản ấy không nói được, nên chọn rổ xong hộp chỉ nói về nhịp mà im đúng câu
+   * quan trọng nhất (`bat_dau.lean_ro`, hồi đó không ai gọi).
    *
-   * Bản trước dòng này in `Resolution.MINUTE` trong khi ô ghi DAILY và bộ sinh mã
-   * viết ra `Resolution.DAILY` (`sinh_ma` gọi `bat_dau.do_phan_giai`). Dòng khai
-   * LEAN tồn tại ĐÚNG ĐỂ người dùng kiểm lời hứa — nó nói sai thì tệ hơn là không
-   * có nó. Mặc định lấy từ chính ô ấy, không viết lại hằng số ở đây. */
-  const oRes = nhip?.o_them.find(o => o.ten === 'do_phan_giai')
-  const res = !nhip ? ''
-    : nhip.chay === 'on_data' ? nhip.res
-    : String(gt.do_phan_giai ?? oRes?.mac_dinh ?? nhip.res)
-  /* RỔ ĐỘNG đổi CẢ HAI NỬA của câu này, nên dòng khai phải đổi theo (nó tồn tại đúng
-   * để người dùng kiểm lời hứa — nói sai thì tệ hơn là không có):
-   *   · không có `add_*` nào; độ phân giải đi qua `universe_settings`;
-   *   · lịch chạy bằng mấy hàm KHÔNG MÃ (`nhip.chay_ro`), vì rổ lúc `initialize`
-   *     còn rỗng nên `self._ma[0]` ném `IndexError`.
-   * Hai nửa ấy Python đã khai ở `bat_dau.ham_lean`; chỗ này bày lại cùng một câu. */
-  const coRo = laRo(gt.ma)
-  const chay = !nhip ? '' : coRo ? nhip.chay_ro : nhip.chay
-  const dauLean = coRo
-    ? `universe_settings.resolution = Resolution.${res}`
-    : `add_*(ma, Resolution.${res})`
-  const hamLean = nhip
-    ? (chay === 'on_data' ? dauLean : `${dauLean} · ${chay}`)
-    : ''
+   * Nay một cửa trả về CẢ DANH SÁCH, và chỗ này không biết trong đó có mấy câu —
+   * thêm một câu khai bên Python là hộp thoại có ngay. `tests/test_moi_noi.py`
+   * canh cả họ: không file .tsx nào được gõ cứng một mẩu LEAN.
+   *
+   * ⚠ Gọi theo `gt` nên gõ mỗi phím là một lượt hỏi, và lượt gửi trước có thể về
+   * SAU lượt gửi sau — nên câu trả lời của một `gt` đã cũ phải bị vứt, không thì
+   * dòng khai đứng lại ở một giá trị người dùng vừa xoá. */
+  const [khai, setKhai] = useState<string[]>([])
+  useEffect(() => {
+    let con = true
+    void py.khai_bat_dau(gt).then(r => { if (con && r.ok) setKhai(r.value ?? []) })
+    return () => { con = false }
+  }, [gt])
 
   return (
     <Modal title="Bắt đầu" width={660} onClose={onDong}
@@ -320,7 +316,7 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
                 onDoi={v => doi(o.ten, v)} />
         ))}
 
-        <KhaiLean ham={hamLean} />
+        <KhaiLean ham={khai} />
       </div>
     </Modal>
   )

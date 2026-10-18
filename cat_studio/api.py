@@ -424,6 +424,20 @@ class Api(NenCuaSo):
         return _ok(bat_dau.tu_dien())
 
     @_bat_loi
+    def khai_bat_dau(self, gia_tri=None):
+        """Mấy câu LEAN khối Bắt đầu ĐANG khai -> [câu]. Hỏi sau MỖI thay đổi.
+
+        KHÔNG gộp vào `tu_dien_bat_dau`: từ điển là bảng TĨNH, gửi một lần lúc mở
+        app, còn mấy câu này đổi theo đúng thứ người dùng đang gõ trong hộp thoại
+        (nhịp, độ phân giải, rổ nào, lấy mấy mã). Cùng lối với cửa `soat`: gọi sau
+        mỗi thay đổi rồi bày lại cái nhận về.
+
+        Vì sao phải có cửa này: giao diện BÀY LẠI, không tự ghép. Hai nơi cùng ghép
+        một câu thì sớm muộn chúng tả khác nhau, mà cái khác ấy không gây lỗi nào
+        nên không ai thấy — xem docstring `core.mo_ta_lam`."""
+        return _ok(bat_dau.khai(gia_tri))
+
+    @_bat_loi
     def tu_dien_lam(self):
         """Từ điển HÀNH ĐỘNG — tám loại việc, và các ô của từng loại.
 

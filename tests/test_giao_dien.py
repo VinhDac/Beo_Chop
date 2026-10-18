@@ -398,8 +398,16 @@ kiem("không còn đóng cứng `kieu: 'so'`", "kieu: 'so'" not in bd)
 kiem("ô thêm của nhịp đưa thẳng `o` của Python vào",
      re.search(r"o_them[\s\S]{0,200}<Hang[^>]*o=\{o\b", bd) is not None)
 # Dòng khai LEAN tồn tại ĐÚNG ĐỂ kiểm lời hứa — nó nói sai thì tệ hơn không có nó.
-kiem("dòng khai LEAN đọc độ phân giải NGƯỜI DÙNG chọn", "gt.do_phan_giai" in bd,
-     "— không phải cột `res` của nhịp, thứ còn sót lại từ trước D-15")
+# Nên giao diện KHÔNG ghép câu ấy nữa: nó hỏi `bat_dau.khai()` sau MỖI thay đổi rồi
+# bày lại nguyên văn. Trước đây chỗ này tự suy ra độ phân giải thật, tự chọn `add_*`
+# hay `universe_settings`, tự ghép với tên hàm lịch — bốn phép Python đã làm rồi, và
+# bản TypeScript ấy từng in `Resolution.MINUTE` trong khi bộ sinh mã viết DAILY.
+kiem("dòng khai LEAN HỎI Python, không tự ghép", "py.khai_bat_dau(" in bd,
+     "— mọi phép suy ra câu ấy nằm ở `bat_dau.khai`, một bản sự thật")
+kiem("và hỏi lại theo giá trị ĐANG gõ, không hỏi một lần lúc mở hộp",
+     re.search(r"useEffect\([\s\S]{0,300}khai_bat_dau\([\s\S]{0,200}\[gt\]\)", bd)
+     is not None,
+     "— đổi nhịp hay đổi rổ mà dòng khai đứng yên là nó nói một câu đã cũ")
 kiem("Mốc so sánh là ô CHỌN", re.search(r"moc_so_sanh[\s\S]{0,400}<select", bd) is not None)
 kiem("mã không có dữ liệu miễn phí thì NÓI ra", "ma-khong-co" in bd,
      "— nói, chứ không chặn: ai có dữ liệu riêng vẫn chạy được")
@@ -416,12 +424,17 @@ kiem("Mốc so sánh không còn gọi `.map` thẳng trên `gt.ma`",
 kiem("danh sách mã của canvas cũng chặn",
      "Array.isArray(khoiBatDau?.ma)" in bo_chu_thich_ts(doc("SoDo.tsx")),
      "— rổ thì KHÔNG có mã nào để bày, đúng như `sinh_ma._sym_py` chối")
-# Dòng khai LEAN đổi CẢ HAI NỬA khi chọn rổ: không `add_*` nào, và lịch chạy bằng mấy
-# hàm KHÔNG MÃ. Nó tồn tại đúng để kiểm lời hứa — nói sai thì tệ hơn không có.
-kiem("dòng khai LEAN nói `universe_settings` khi chọn rổ",
-     "universe_settings.resolution" in bd)
-kiem("và lấy câu lịch KHÔNG MÃ của Python", "nhip.chay_ro" in bd,
-     "— `self._ma[0]` trên một rổ là IndexError ở dòng đầu `initialize`")
+# Dòng khai LEAN đổi CẢ HAI NỬA khi chọn rổ (không `add_*` nào, lịch chạy bằng mấy
+# hàm KHÔNG MÃ) và mọc thêm một câu `set_universe_selection`. BA phép ấy nay nằm hết
+# bên Python — `test_bat_dau` canh chúng, chỗ này chỉ canh hộp có bày RA MẤY CÂU.
+oruot = doc("components/ORuot.tsx")
+kiem("hộp bày được NHIỀU câu, không chỉ một",
+     re.search(r"KhaiLean\(\{ ham \}[\s\S]{0,200}Array\.isArray\(ham\)", oruot)
+     is not None,
+     "— rổ động khai hai câu; chỉ có chỗ cho một là câu của rổ không hiện ra đâu cả")
+kiem("và mấy câu ấy xếp DỌC",
+     'className="lean-cau"' in oruot and ".lean-cau {" in doc("app.css"),
+     "— để thẳng trong `.lean-khai` là flex xếp ngang, hai câu dính thành một dòng")
 # Ô CON của rổ cũng phải đưa thẳng `o` của Python vào — cùng cái bẫy đã cắn ở ô thêm
 # của nhịp (ô CHỌN hiện ra như ô gõ, câu gợi ý thật bị đè).
 kiem("ô con của rổ đưa thẳng `o` của Python vào",

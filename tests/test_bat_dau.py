@@ -460,5 +460,54 @@ kiem("và `soat` cảnh báo TRƯỚC khi bấm Backtest",
      any(v["severity"] == "warning" and "rỗng" in v["message"]
          for v in core.soat_day_chuyen([_bdr])))
 
+print(NL + "▸ MỘT CỬA khai câu LEAN — hộp thoại BÀY LẠI, không ghép lại")
+# Luật nền: Python khai, giao diện chỉ bày. Hai chỗ cùng ghép một câu thì sớm muộn
+# chúng tả khác nhau, mà cái khác ấy không gây lỗi nào nên không ai thấy.
+# `HopBatDau.tsx` từng tự dựng lại câu này bằng TypeScript (tự quyết `add_*` hay
+# `universe_settings`, tự suy ra độ phân giải thật, tự ghép với tên hàm lịch) trong
+# khi `ham_lean` nằm ngay đây làm đúng bốn phép ấy — và bản TypeScript từng in
+# `Resolution.MINUTE` trong lúc bộ sinh mã viết DAILY. Mấy phép dưới đây là mấy phép
+# bài kiểm giao diện từng canh bên TSX, nay đứng ở ĐÚNG MỘT bên cầu nối.
+_k = core.make_start_step()
+kiem("gõ mã sẵn: đúng MỘT câu", len(bat_dau.khai(_k)) == 1, f"— {bat_dau.khai(_k)}")
+_k["nhip"], _k["do_phan_giai"] = "sau_mo_cua", "MINUTE"
+kiem("câu ấy đọc độ phân giải NGƯỜI DÙNG chọn",
+     "Resolution.MINUTE" in bat_dau.khai(_k)[0],
+     "— không phải cột `res` của nhịp, thứ còn sót lại từ trước D-15")
+_k["do_phan_giai"] = "DAILY"
+kiem("đổi ô là câu đổi theo", "Resolution.DAILY" in bat_dau.khai(_k)[0],
+     f"— {bat_dau.khai(_k)[0]}")
+# RỔ ĐỘNG đổi CẢ BA: không `add_*` nào, lịch chạy bằng hàm KHÔNG MÃ, và mọc thêm một
+# câu `set_universe_selection` — câu quan trọng nhất, mà hộp thoại từng im.
+_k["ma"] = {"ro": "etf", "ma_etf": "SPY", "lay": 8}
+_kr = bat_dau.khai(_k)
+kiem("chọn rổ: HAI câu, không còn một", len(_kr) == 2, f"— {_kr}")
+kiem("câu nhịp bỏ `add_*`, độ phân giải đi qua `universe_settings`",
+     "add_*" not in _kr[0] and _kr[0].startswith("universe_settings.resolution"),
+     f"— {_kr[0]}")
+kiem("và lịch chạy bằng hàm KHÔNG MÃ", "after_market_open(so_phut)" in _kr[0],
+     "— `self._ma[0]` trên một rổ là IndexError ở dòng đầu `initialize`")
+kiem("câu thứ hai là CÂU CỦA RỔ",
+     len(_kr) > 1 and _kr[1].startswith("set_universe_selection("), f"— {_kr}")
+kiem("mà gõ mã sẵn thì KHÔNG có câu rổ nào thừa ra",
+     len(bat_dau.khai(core.make_start_step())) == 1)
+
+print(NL + "▸ ⚠ Hàm viết CHO HỘP THOẠI mà không ai gọi — hỏng LẶNG, bài kiểm vẫn xanh")
+# ĐÃ DÍNH THẬT: `lean_ro` nằm trong file này từ đầu, docstring ghi rõ «để hộp thoại
+# nói thẳng ra», và CHỈ có bài kiểm gọi nó. Không lỗi, không cảnh báo — chỉ là người
+# dùng chọn rổ động xong, dòng khai trong hộp im đúng câu quan trọng nhất. Canh bằng
+# chính câu docstring ấy: khai là viết cho hộp thoại thì phải nối thật tới hộp thoại.
+_cho_hop = sorted(t for t, h in inspect.getmembers(bat_dau, inspect.isfunction)
+                  if "hộp thoại nói thẳng ra" in (h.__doc__ or ""))
+kiem("có hàm tự khai là viết cho hộp thoại", len(_cho_hop) >= 2, f"— {_cho_hop}")
+_nguon_khai = inspect.getsource(bat_dau.khai)
+_bo_roi = [t for t in _cho_hop if f"{t}(" not in _nguon_khai]
+kiem("và cửa `khai()` gọi HẾT, không bỏ sót cái nào", not _bo_roi,
+     f"— {_bo_roi} viết cho hộp thoại mà hộp thoại không có đường nào tới")
+_api = io.open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
+    __file__))), "cat_studio", "api.py"), encoding="utf-8").read()
+kiem("và `api.py` mở đúng một cửa ra cho giao diện", "bat_dau.khai(" in _api,
+     "— hàm đúng mà không có cửa thì giao diện vẫn phải tự ghép lấy")
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

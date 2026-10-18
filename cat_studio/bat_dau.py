@@ -406,16 +406,26 @@ def gt_ro(gia_tri, ten):
 
 
 def lean_ro(gia_tri):
-    """Câu LEAN một rổ sinh ra — để hộp thoại nói thẳng ra. "" nếu không phải rổ."""
+    """Câu LEAN một rổ sinh ra — để hộp thoại nói thẳng ra. "" nếu không phải rổ.
+
+    ⚠ PHẢI LÀ MỘT KHÚC CỦA MÃ THẬT, không phải một câu tả lại nó. Bản đầu bịa ra
+    tham số thứ ba tên «lọc theo trọng số» và bỏ chữ `self.` giữa dòng — đọc thì
+    hiểu, nhưng tìm trong mã sinh ra thì không có, mà dòng khai này tồn tại ĐÚNG ĐỂ
+    người dùng đối chiếu với mã. Nói sai còn tệ hơn không nói. Nay nó khớp từng chữ
+    với `sinh_ma._khai_ro`, trừ chữ `self.` MỞ ĐẦU mà mọi ô `lean` đều bỏ — và
+    `test_sinh_ma` canh đúng chuyện ấy: câu này phải nằm nguyên trong mã sinh ra.
+
+    Mã ETF để trống cũng bày ra đúng `''` chứ không bày một dấu «…» cho đẹp: đó là
+    thứ bộ sinh mã thật sự viết, và `soat_khoi_bat_dau` đã báo lỗi vì nó rỗng."""
     r = ro_cua(gia_tri)
     if not r:
         return ""
     if r[0] != "etf":
         return f"set_universe_selection({r[2]}())"
     lay = _nguyen(gt_ro(gia_tri, "lay"))
-    ma_etf = str(gt_ro(gia_tri, "ma_etf") or "").strip().upper() or "…"
-    return (f"set_universe_selection({r[2]}({ma_etf!r}, universe_settings"
-            + (", lọc theo trọng số))" if lay > 0 else "))"))
+    ma_etf = str(gt_ro(gia_tri, "ma_etf") or "").strip().upper()
+    return (f"set_universe_selection({r[2]}({ma_etf!r}, self.universe_settings"
+            + (", self._loc_ro))" if lay > 0 else "))"))
 
 
 def _nguyen(v):
@@ -565,6 +575,24 @@ def ham_lean(gia_tri=None):
     dau = (f"universe_settings.resolution = Resolution.{r}"
            if ro_cua((gia_tri or {}).get("ma")) else f"add_*(ma, Resolution.{r})")
     return dau if chay == "on_data" else f"{dau} · {chay}"
+
+
+def khai(gia_tri=None):
+    """MỌI câu LEAN khối Bắt đầu khai ra, theo đúng giá trị đang có. -> [câu].
+
+    MỘT CỬA DUY NHẤT cho hộp thoại: nó bày lại nguyên văn danh sách này — không
+    chọn, không ghép, không cần biết có mấy câu. Thêm một câu khai ở đây là hộp
+    thoại có ngay, không phải sửa bên TypeScript.
+
+    ⚠ HAI LỖ ĐÃ VÁ Ở ĐÂY, cùng một họ. `HopBatDau.tsx` TỰ DỰNG LẠI câu nhịp bằng
+    TypeScript (nó tự quyết `add_*` hay `universe_settings`, rồi tự ghép với tên
+    hàm lịch) trong khi `ham_lean` bên Python làm đúng việc ấy — hai bản ghép chữ
+    nằm hai bên cầu nối, không ai đứng so. Còn `lean_ro` thì KHÔNG AI GỌI, nên
+    chọn rổ động xong, dòng khai trong hộp chỉ nói về nhịp mà im đúng câu quan
+    trọng nhất cái rổ sinh ra. Cả hai đều không gây lỗi nào, nên không ai thấy."""
+    ra = [ham_lean(gia_tri)]
+    ra.append(lean_ro((gia_tri or {}).get("ma")))
+    return [c for c in ra if c]
 
 
 def tu_dien():

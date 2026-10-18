@@ -1397,7 +1397,13 @@ mark.tim-chu {
   background: var(--raised); border: 1px solid var(--border-soft);
 }
 .lean-khai > span { flex: 0 0 auto; font-size: 10.5px; color: var(--dim); }
-.lean-khai > code {
+/* MỘT KHỐI CÓ THỂ KHAI NHIỀU CÂU (rổ động: nhịp + `set_universe_selection`), nên
+   mấy câu xếp DỌC. Để chúng nằm thẳng trong `.lean-khai` là flex xếp ngang, hai câu
+   dài dính vào nhau thành một dòng không đọc nổi. */
+.lean-khai > .lean-cau {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.lean-khai code {
   font: 11.5px/1.5 var(--font-mono); color: var(--text);
   word-break: break-word; min-width: 0;
 }

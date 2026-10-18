@@ -303,6 +303,25 @@ r_ca_ro = sinh_ma.sinh(so_do_ro({"ro": "etf", "ma_etf": "SPY", "lay": 0}))
 kiem("«lấy 0» = cả rổ, nên KHÔNG sinh hàm lọc",
      "_loc_ro" not in r_ca_ro["ma"] and r_ca_ro["ok"])
 
+# ⚠ CÂU HỘP THOẠI KHAI PHẢI LÀ MỘT KHÚC CỦA MÃ NÀY, không phải một câu tả lại nó.
+# `bat_dau.lean_ro` là thứ hộp Bắt đầu bày ra khi chọn rổ, và nó tồn tại ĐÚNG ĐỂ
+# người dùng đối chiếu với mã sinh ra — nên nói sai còn tệ hơn không nói. Bản đầu
+# bịa một tham số thứ ba tên «lọc theo trọng số» và bỏ chữ `self.` giữa dòng: đọc
+# thì hiểu, mà tìm trong mã thì không có. Hai bộ chữ, không ai đứng so.
+# LẶP QUA CHÍNH TỪ ĐIỂN: thêm một rổ vào `bat_dau.RO` là phép này canh luôn.
+print(NL + "  (2b) câu hộp thoại khai = một KHÚC của mã thật, từng chữ")
+for _r in bat_dau.RO:
+    _gt = ({"ro": "etf", "ma_etf": "SPY", "lay": 8} if _r[0] == "etf"
+           else {"ro": _r[0]})
+    _ma_ro = sinh_ma.sinh(so_do_ro(_gt))["ma"]
+    _cau = bat_dau.lean_ro(_gt)
+    kiem(f"rổ «{_r[0]}» — câu khai nằm nguyên trong mã sinh ra", _cau in _ma_ro,
+         f"— khai {_cau!r}")
+# «Lấy 0» bỏ hẳn tham số thứ ba, nên câu khai cũng phải bỏ theo.
+kiem("«lấy 0» — câu khai bỏ hàm lọc y như mã",
+     bat_dau.lean_ro({"ro": "etf", "ma_etf": "SPY", "lay": 0}) in r_ca_ro["ma"],
+     f"— khai {bat_dau.lean_ro({'ro': 'etf', 'ma_etf': 'SPY', 'lay': 0})!r}")
+
 print(NL + "  (3) chỉ báo — khai ở `on_securities_changed`, KHÔNG ở `initialize`")
 # Lúc `initialize` chạy, rổ còn RỖNG: `for sym in self._ma` duyệt số không mã, nên
 # chẳng chỉ báo nào được khai, và `self._cb[sym]` ném KeyError ở nến đầu.
