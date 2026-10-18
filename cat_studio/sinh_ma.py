@@ -69,6 +69,31 @@ def _lit(v):
     return repr("" if v is None else str(v))
 
 
+def _ten_ghim(chu, ten_o):
+    """Ô `ten_o` của `chu` đã GHIM làm tham số chưa -> tên tham số, hay "".
+
+    GHIM nằm CẠNH con số, không thay nó: `{"han": 15, "ghim": {"han": "giu_ngay"}}`.
+    Nhờ vậy mọi chỗ đang đọc con số — thẻ khối, bảng soát, giao diện — chạy y như cũ
+    và vẫn thấy một con số thật; chỉ bộ sinh mã mới hỏi tới `ghim`. Đổi con số thành
+    một hình dáng khác thì phải sửa hết mấy chỗ ấy, mà bỏ sót một chỗ là nó lặng lẽ
+    đọc ra số 0."""
+    if not isinstance(chu, dict):
+        return ""
+    return str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+
+
+def _so_py(chu, ten_o, gia_tri):
+    """Con số của ô `ten_o` -> hằng Python, hay `get_parameter` nếu ô ấy đã ghim.
+
+    Con số cũ ở lại làm MẶC ĐỊNH, nên sơ đồ ghim rồi chạy backtest thường vẫn ra đúng
+    kết quả như trước — `QCAlgorithm.GetParameter(name, default)` trả mặc định khi
+    không ai truyền tham số vào."""
+    ten = _ten_ghim(chu, ten_o)
+    if not ten:
+        return _lit(gia_tri)
+    return f"self.get_parameter({ten!r}, {_lit(gia_tri)})"
+
+
 class _Kho:
     """Kho CHỈ BÁO — gom hết chỉ báo của cả sơ đồ, mỗi cái đúng MỘT lần.
 
@@ -81,7 +106,13 @@ class _Kho:
 
     def khoa(self, dl, ve):
         ts = ve.get("tham_so") or {}
-        duoi = "_".join(str(ts[t["ten"]]) for t in dl["tham_so"])
+        # Chu kỳ ĐÃ GHIM thì khoá mang TÊN THAM SỐ, không mang con số: hai khối cùng
+        # ghim `rsi_n` phải dùng chung một chỉ báo, mà lúc sinh mã ta chưa biết nó sẽ
+        # bằng mấy. Lấy con số làm khoá thì mỗi khối một chỉ báo, LEAN nuôi hai bộ
+        # đếm y hệt — và nếu hai khối ghim số mặc định khác nhau thì còn ra hai khoá
+        # cho cùng một tham số, tức một trong hai luôn sai.
+        duoi = "_".join(_ten_ghim(ve, t["ten"]) and "@" + _ten_ghim(ve, t["ten"])
+                        or str(ts[t["ten"]]) for t in dl["tham_so"])
         return f"{dl['ma']}_{duoi}" if duoi else dl["ma"]
 
     def them(self, dl, ve, res):
@@ -89,16 +120,34 @@ class _Kho:
         k = self.khoa(dl, ve)
         if k not in self.ds:
             ts = ve.get("tham_so") or {}
-            cau = _thay(dl["lean"], {"sym": "sym", **{t["ten"]: str(ts[t["ten"]])
-                                                      for t in dl["tham_so"]}})
+            cau = _thay(dl["lean"], {"sym": "sym",
+                                     **{t["ten"]: _so_py(ve, t["ten"], ts[t["ten"]])
+                                        for t in dl["tham_so"]}})
             dk = (dl.get("lean_dk") or "").format(bien="_cb", res=res)
             self.ds[k] = (cau, _thay(dk, {"sym": "sym"}) if dk else "")
             for t in dl["tham_so"]:
+                # LÀM NÓNG giữ BIỂU THỨC chứ không giữ con số: chu kỳ đã ghim thì lúc
+                # sinh mã chưa biết nó bằng mấy, nhưng `get_parameter` gọi được ngay
+                # trong `initialize`, nên để `max(...)` tự tính lúc chạy.
+                if _ten_ghim(ve, t["ten"]):
+                    self.chu_ky.append(_so_py(ve, t["ten"], ts[t["ten"]]))
+                    continue
                 try:
                     self.chu_ky.append(int(ts[t["ten"]]))
                 except (TypeError, ValueError, KeyError):
                     pass
         return k
+
+    def lam_nong(self):
+        """Câu `set_warm_up(...)` — hằng số khi không ghim gì, `max(...)` khi có."""
+        so = [c for c in self.chu_ky if isinstance(c, int)]
+        bieu_thuc = [c for c in self.chu_ky if not isinstance(c, int)]
+        if not bieu_thuc:
+            return str(max(so or [0]))
+        # `int(...)` bọc ngoài vì `set_warm_up` đếm NẾN. Ghim một hệ số thập phân
+        # (Bollinger k = 1,75) mà không ghim chu kỳ nào thì `max` ra số thực, và LEAN
+        # không nhận số thực làm số nến.
+        return "int(max(" + ", ".join([str(max(so or [0]))] + bieu_thuc) + "))"
 
 
 def _thay(mau, gia_tri):
@@ -200,7 +249,7 @@ def _mot_dai_luong(nc, ve, sid):
     if not isinstance(ve, dict):
         return "0"
     if "ma_dl" not in ve:
-        return _lit(ve.get("so", 0))
+        return _so_py(ve, "so", ve.get("so", 0))
     dl = hoi.dai_luong(ve["ma_dl"])
     if not dl:
         nc.loi(sid, f'Không có đại lượng "{ve["ma_dl"]}".')
@@ -210,7 +259,8 @@ def _mot_dai_luong(nc, ve, sid):
         k = nc.kho.them(dl, ve, nc.res)
         duong = f".{ve['duong']}" if ve.get("duong") else ""
         return f"self._cb[{sym}][{k!r}]{duong}.current.value"
-    ts = {t["ten"]: str((ve.get("tham_so") or {}).get(t["ten"], t["mac_dinh"]))
+    ts = {t["ten"]: _so_py(ve, t["ten"],
+                           (ve.get("tham_so") or {}).get(t["ten"], t["mac_dinh"]))
           for t in dl["tham_so"]}
     return _thay(dl["lean"], {"sym": sym, **ts})
 
@@ -251,7 +301,11 @@ def _lam_py(nc, a, sid, mach):
     # `set_holdings(sym, …)` và không chiến thuật chia danh mục nào diễn đạt được.
     gt = {"sym": _sym_py(nc, a, sid) if d["can_ma"] else "sym"}
     for o in lam.o_cua(t, a):
-        gt[o["ten"]] = _lit(core.o_lam(a, o["ten"]))
+        # Ô SỐ ghim được làm tham số; ô chữ / ô chọn thì không — ghim một tên
+        # sàn hay một hướng tín hiệu là vô nghĩa, LEAN chỉ quét SỐ.
+        gt[o["ten"]] = (_so_py(a, o["ten"], core.o_lam(a, o["ten"]))
+                        if o["kieu"] == lam.O_SO
+                        else _lit(core.o_lam(a, o["ten"])))
 
     # Ô `tag` để trống thì ĐIỀN HỘ: số khối + điều kiện vừa khớp. Đó là lời hứa D-11
     # "chữ vì sao do chính đoạn code tự ghi", và LEAN nhận sẵn tham số này.
@@ -562,7 +616,7 @@ def sinh(doc):
             else:
                 dong_mo.append(TAB + f"self._cb[sym][{k!r}] = {cau}")
         dong_mo.append("")
-        dong_mo.append(f"self.set_warm_up({max(nc.kho.chu_ky)})")
+        dong_mo.append(f"self.set_warm_up({nc.kho.lam_nong()})")
     else:
         dong_mo.append("")
         dong_mo.append("self._cb = {sym: {} for sym in self._ma}")

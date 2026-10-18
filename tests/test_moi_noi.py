@@ -350,5 +350,69 @@ for _hop, _nguon, _bay in BAY_LEAN:
          _nguon in _ts and _bay in _ts,
          "— bày lại, chứ không ghép lại, và cũng không im")
 
+print("\n▸ MỐI NỐI 10 — NÚM đã ghim × hộp Optimize thấy × mã sinh ra thật sự đọc")
+# Ghim một con số làm tham số là nối ba chỗ với nhau: ô số trên sơ đồ, danh sách núm
+# hộp Optimize bày, và câu `get_parameter` trong mã sinh ra. Lệch một chỗ là HỎNG
+# LẶNG theo kiểu tốn nhất: optimizer chạy đủ N lượt backtest — hàng giờ — mà thuật
+# toán không hề đọc tham số nó đang quét, nên N kết quả giống hệt nhau và không một
+# dòng lỗi nào. Nên quét CẢ hai đầu: mọi ô số ghim được đều phải đi hết ba chặng.
+_hong_ghim = []
+_dem_o = 0
+for _ma_loai in lam.LOAI_LAM:
+    _st, _ed = _so_do_mot_khoi(_ma_loai)
+    _khoi = _st[-1]
+    for _chu, _ten_o, _nhan, _gt in core._o_so_cua(_khoi):
+        _dem_o += 1
+        _chu["ghim"] = {_ten_o: "num_thu"}
+        _ds = core.ds_tham_so(_st)
+        _kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
+                            "steps": _st, "edges": _ed})
+        if not any(d["ten"] == "num_thu" for d in _ds):
+            _hong_ghim.append(f"{_ma_loai}.{_ten_o}: hộp Optimize KHÔNG thấy")
+        elif "get_parameter('num_thu'" not in _kq["ma"]:
+            _hong_ghim.append(f"{_ma_loai}.{_ten_o}: mã sinh ra KHÔNG đọc")
+        _chu.pop("ghim", None)
+# Và cả hai vế của khối Hỏi: con số, chu kỳ chỉ báo, tham số của đại lượng thường.
+for _ma_dl in ("rsi", "bb", "max", "delay", "gia"):
+    _d = hoi.dai_luong(_ma_dl)
+    _dk = core.make_dieu_kien(_ma_dl, ">", 1)
+    if _d["tham_so"]:
+        _dk["trai"]["tham_so"] = {t["ten"]: t["mac_dinh"] for t in _d["tham_so"]}
+    if _d.get("duong"):
+        _dk["trai"]["duong"] = _d["duong"][0][0]
+    _st, _ed = _so_do_mot_khoi(lam.LAM_TIN_HIEU)
+    _st[1]["dieu_kien"] = [_dk]
+    for _chu, _ten_o, _nhan, _gt in core._o_so_cua(_st[1]):
+        _dem_o += 1
+        _chu["ghim"] = {_ten_o: "num_thu"}
+        _ds = core.ds_tham_so(_st)
+        _kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
+                            "steps": _st, "edges": _ed})
+        if not any(d["ten"] == "num_thu" for d in _ds):
+            _hong_ghim.append(f"{_ma_dl}.{_ten_o}: hộp Optimize KHÔNG thấy")
+        elif "get_parameter('num_thu'" not in _kq["ma"]:
+            _hong_ghim.append(f"{_ma_dl}.{_ten_o}: mã sinh ra KHÔNG đọc")
+        _chu.pop("ghim", None)
+kiem(f"quét {_dem_o} ô số ghim được", _dem_o >= 15)
+kiem("ô nào ghim cũng đi hết ba chặng", not _hong_ghim, f"— {_hong_ghim[:4]}")
+
+print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
+# `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
+# cũ phải ở lại làm mặc định. Mất nó thì ghim một ô là đổi luôn kết quả backtest
+# thường — người dùng ghim để CHUẨN BỊ quét, chứ không phải để đổi chiến thuật.
+_st, _ed = _so_do_mot_khoi(lam.LAM_TIN_HIEU)
+_dk = core.make_dieu_kien("rsi", "<=", 45, tham_so={"n": 14})
+_st[1]["dieu_kien"] = [_dk]
+_truoc = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
+                       "steps": _st, "edges": _ed})["ma"]
+_dk["trai"]["ghim"] = {"n": "chu_ky"}
+_dk["phai"]["ghim"] = {"so": "nguong"}
+_sau = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
+                     "steps": _st, "edges": _ed})["ma"]
+kiem("mặc định 14 ở lại trong câu get_parameter",
+     "get_parameter('chu_ky', 14)" in _sau, f"— {'chu_ky' in _sau}")
+kiem("mặc định 45 cũng thế", "get_parameter('nguong', 45)" in _sau)
+kiem("và ghim làm mã ĐỔI thật, không phải cái ghim trang trí", _truoc != _sau)
+
 print(f"\n{'=' * 60}\n  {dung} đúng · {sai} sai\n{'=' * 60}")
 sys.exit(1 if sai else 0)

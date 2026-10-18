@@ -9,6 +9,7 @@ Xem `tai_lieu/core.md` để hiểu VÌ SAO. File này giữ HÀNH VI.
 """
 import datetime as _dt
 import json
+import re
 import uuid
 
 from . import bat_dau
@@ -494,6 +495,16 @@ def mo_ta_lam(step):
     if ma and dong:
         dong[0] = f"{ma} · {dong[0]}"
 
+    # NÚM ĐÃ GHIM nói ở MỘT dòng chung, không nhét vào từng nhánh. `mo_ta_lam` là
+    # bảng tra chín nhánh; sửa riêng từng nhánh là lại đúng cái bẫy "thêm loại quên
+    # thêm nhánh" đã làm cả ba khối Phát tín hiệu hiện dấu «?».
+    ghim = [f'{o["nhan"]} → {step["ghim"][o["ten"]]}'
+            for o in lam.o_cua(t, step)
+            if o["kieu"] == lam.O_SO
+            and str(((step or {}).get("ghim") or {}).get(o["ten"]) or "").strip()]
+    if ghim:
+        dong.append("núm: " + " · ".join(ghim))
+
     tag = str(g("tag") or "").strip()
     if tag:
         dong.append(f"ghi chú lệnh: «{tag}»")
@@ -543,7 +554,7 @@ def _ve_dieu_kien(ve):
         n = ve["so"]
         # Số nguyên thì đừng in ".0" — "RSI < 30" đọc dễ hơn "RSI < 30.0".
         chu = str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
-        return _ghep_chu(ve, chu)
+        return _ghep_chu(ve, _so_the(ve, "so", chu))
     dl = hoi.dai_luong(ve.get("ma_dl"))
     if not dl:
         return str(ve.get("ma_dl") or "?")
@@ -553,12 +564,21 @@ def _ve_dieu_kien(ve):
     ngan = chu.split(" — ")[0]
     ts = ve.get("tham_so") or {}
     if ts:
-        ngan += "(" + ",".join(str(v) for v in ts.values()) + ")"
+        ngan += "(" + ",".join(_so_the(ve, k, v) for k, v in ts.items()) + ")"
     if ve.get("duong"):
         ngan += "." + str(ve["duong"])
     if ve.get("ma"):
         ngan = f"{ve['ma']}·{ngan}"
     return _ghep_chu(ve, ngan)
+
+
+def _so_the(chu, ten_o, gia_tri):
+    """Con số trên THẺ KHỐI — hay TÊN THAM SỐ nếu ô ấy đã ghim.
+
+    Ghim rồi mà thẻ vẫn đọc "RSI(14)" thì nhìn sơ đồ không biết mình đã ghim cái gì,
+    và lúc Optimize quét `rsi_chu_ky` thì chẳng thấy nó ở đâu trên canvas."""
+    ten = str(((chu or {}).get("ghim") or {}).get(ten_o) or "").strip()
+    return ten or str(gia_tri)
 
 
 def _ghep_chu(ve, ngan):
@@ -608,6 +628,61 @@ def mo_ta_hanh_dong(a):
          if k not in ("type", "kind", "id", "name", "actions", "dieu_kien")
          + KHOA_CANVAS and v not in (None, "", [], {}, False)]
     return f"{t} · {' · '.join(o[:3])}" if o else t
+
+
+#: Tên tham số: chữ thường, số và gạch dưới. Đúng khuôn LEAN nhận trong `parameters`
+#: của config optimizer, và cũng là khuôn đọc được khi nó hiện trên thẻ khối.
+_RE_TEN_THAM_SO = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+
+
+def _o_so_cua(step):
+    """Mọi ô SỐ ghim được của một khối -> [(tên ô, nhãn, giá trị)].
+
+    MỘT chỗ duy nhất trả lời "khối này có những con số nào" — hộp Optimize, phép
+    soát và bộ sinh mã đều hỏi ở đây, nên không có cách nào ghim được một ô mà hộp
+    Optimize không thấy, hay ngược lại."""
+    ra = []
+    t = (step or {}).get("type")
+    if hoi.la_loai_hoi(t):
+        for i, dk in enumerate(step.get("dieu_kien") or []):
+            if not isinstance(dk, dict):
+                continue
+            for ten_ve, ve in (("trái", dk.get("trai")), ("phải", dk.get("phai"))):
+                for chu, dau in ((ve, ""), ((ve or {}).get("ghep"), "ghép ")):
+                    if not isinstance(chu, dict):
+                        continue
+                    nhan_ve = f"dòng {i + 1} vế {ten_ve} {dau}".strip()
+                    if "ma_dl" not in chu:
+                        ra.append((chu, "so", f"{nhan_ve} — con số", chu.get("so", 0)))
+                        continue
+                    dl = hoi.dai_luong(chu.get("ma_dl")) or {}
+                    for ts in dl.get("tham_so") or []:
+                        gt = (chu.get("tham_so") or {}).get(ts["ten"], ts["mac_dinh"])
+                        ra.append((chu, ts["ten"],
+                                   f'{nhan_ve} — {dl["nhan"].split(" — ")[0]} · '
+                                   f'{ts["nhan"]}', gt))
+    elif lam.la_loai_lam(t):
+        for o in lam.o_cua(t, step):
+            if o["kieu"] == lam.O_SO:
+                ra.append((step, o["ten"], o["nhan"], o_lam(step, o["ten"])))
+    return ra
+
+
+def ds_tham_so(steps):
+    """Mọi núm đã GHIM trong sơ đồ -> [{ten, mac_dinh, o_tai}], xếp theo tên.
+
+    Đây là danh sách hộp Optimize bày ra. Nó KHÔNG phải một bảng riêng: nó đọc thẳng
+    từ sơ đồ mỗi lần, nên sửa sơ đồ là nó đúng theo ngay — một bảng riêng thì sớm
+    muộn trỏ vào một ô đã bị xoá, và lặng lẽ quét một tham số không ai đọc."""
+    gom = {}
+    for s in steps or []:
+        for chu, ten_o, nhan, gt in _o_so_cua(s):
+            ten = str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+            if not ten:
+                continue
+            d = gom.setdefault(ten, {"ten": ten, "mac_dinh": gt, "o_tai": []})
+            d["o_tai"].append(f"{step_title(s)} · {nhan}")
+    return [gom[k] for k in sorted(gom)]
 
 
 def icon_cua(loai):
@@ -1668,7 +1743,41 @@ def soat_day_chuyen(steps):
             _loi(ra, "warning", bd.get("id"),
                  f"«{nhan}» chỉ chạy sau khi có chia vốn — mà «Chia vốn theo tín "
                  f"hiệu» đang để trống, nên trạm này không bao giờ tới lượt.")
+
+    _soat_ghim(ra, steps)
     return ra
+
+
+def _soat_ghim(ra, steps):
+    """Soát mấy núm đã GHIM. Cả hai lỗi dưới đây đều hỏng LẶNG lúc Optimize chạy.
+
+    · TÊN SAI KHUÔN — `get_parameter("Chu kỳ RSI", 14)` vẫn là Python chạy được, mà
+      config optimizer của LEAN thì không khai nổi một tên có dấu cách; nó quét một
+      tên khác, thuật toán đọc tên này, và mỗi lượt backtest ra y hệt nhau.
+    · CÙNG TÊN NHƯNG KHÁC MẶC ĐỊNH — hai ô cùng ghim `chu_ky`, một ô mặc định 14 một
+      ô 200. Lúc Optimize thì cả hai cùng nhận một giá trị, nên nó CHẠY ĐƯỢC; nhưng
+      lúc backtest thường, hai ô ấy giữ hai số khác nhau. Cùng một sơ đồ mà hai lối
+      chạy hiểu khác nhau — không gì kêu lên cả."""
+    thay = {}
+    for s in steps or []:
+        for chu, ten_o, nhan, gt in _o_so_cua(s):
+            ten = str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+            if not ten:
+                continue
+            cho = f"{step_title(s)} · {nhan}"
+            if not _RE_TEN_THAM_SO.match(ten):
+                _loi(ra, "error", s.get("id"),
+                     f'Tên tham số "{ten}" ({cho}) không dùng được — chỉ chữ thường '
+                     f"không dấu, số và gạch dưới, bắt đầu bằng chữ.")
+                continue
+            thay.setdefault(ten, []).append((cho, gt))
+    for ten, ds in thay.items():
+        mac_dinh = {str(g) for _c, g in ds}
+        if len(mac_dinh) > 1:
+            _loi(ra, "error", None,
+                 f'Tham số "{ten}" bị ghim ở {len(ds)} ô mà mặc định khác nhau '
+                 f'({", ".join(sorted(mac_dinh))}) — {" · ".join(c for c, _g in ds)}. '
+                 f"Cho chúng cùng một số, hoặc đặt tên khác nhau.")
 
 
 def soat_ro_dong(steps):
