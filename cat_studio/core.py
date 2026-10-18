@@ -2218,6 +2218,77 @@ def _lam_can_ma(a):
     return bool(o_nho and o_nho["can_ma"])
 
 
+#: Khoảng cách đặt khối mờ so với khối đang chọn. Chép từ `Jenifer_Studio/App.tsx`
+#: (`benPhai = x + 420`, mỗi gợi ý xếp dưới cách nhau 72px).
+GOI_Y_SANG_PHAI = 420
+GOI_Y_CACH_DONG = 72
+
+
+def goi_y_ke(steps, edges, chon):
+    """Bước còn thêm được sau khối `chon` -> [{loai, kind, nhan, pos}].
+
+    ⭐ NỐI THÔNG MINH, chép lối `goiY` của Jenifer_Studio: cạnh khối đang chọn hiện
+    mấy KHỐI MỜ nói "sau đây thường là gì". Bấm vào là dựng khối thật đúng chỗ ấy, tự
+    nối dây, mở luôn hộp thoại. Khối mờ là thứ TÍNH RA, không nằm trong `steps`:
+    không lưu, không hoàn tác, không thành một bước.
+
+    ⚠ NGỮ PHÁP Ở ĐÂY, KHÔNG Ở TYPESCRIPT — và đây là chỗ Cat khác Jenifer. Bên ấy
+    ngữ pháp nằm trong `App.tsx` vì nó là ngữ pháp của một trò chơi. Ở Cat, mấy luật
+    này ĐÃ CÓ trong `validate_flow_graph`:
+
+      · mỗi nhánh ở một chỗ rẽ phải mở đầu bằng một CỔNG (khối Hỏi);
+      · cổng khớp rồi mà phía sau trống thì chiến lược dừng ngay tại đó;
+      · khối không ai dẫn tới thì không bao giờ chạy.
+
+    Viết lại chúng bằng TypeScript là đẻ ra bản sự thật thứ hai, và hôm một luật đổi
+    thì khối mờ gợi ý một thứ bảng Vấn đề lập tức kêu là sai. Nên gợi ý SINH TỪ CÙNG
+    MỘT LUẬT: cái gì bảng Vấn đề sẽ khen, khối mờ mới mời.
+
+    `chon` rỗng -> sơ đồ chưa có gì: mời đúng khối Bắt đầu."""
+    ds = [x for x in (steps or []) if isinstance(x, dict)]
+    if not ds:
+        return [{"loai": "", "kind": KIND_START, "nhan": "Khối Bắt đầu",
+                 "pos": [80, 120]}]
+    st = next((x for x in ds if x.get("id") == chon), None)
+    if not st:
+        return []
+    _theo_id, ke = flow_map(ds, edges)
+    con = list(ke.get(chon) or [])
+    x, y = (st.get("pos") or [80, 120])[:2]
+    ben_phai = [x + GOI_Y_SANG_PHAI, y]
+
+    def xep(ds_goi):
+        return [dict(g, pos=[ben_phai[0], ben_phai[1] + GOI_Y_CACH_DONG * i])
+                for i, g in enumerate(ds_goi)]
+
+    # QUAY VỀ là điểm cuối của một nhánh — sau nó không còn gì.
+    if str(st.get("type") or "") == QUAY_VE:
+        return []
+
+    # BẮT ĐẦU -> một nhánh nữa, và nhánh phải mở đầu bằng CỔNG (luật rẽ nhánh).
+    if is_start_step(st):
+        return xep([{"loai": hoi.HOI_THI_TRUONG, "kind": KIND_ACTION,
+                     "nhan": "Hỏi — mở một nhánh"}])
+
+    # CỔNG đã khớp mà phía sau trống: `soat` kêu đúng chuyện này.
+    if is_branch_gate(st) and not con:
+        return xep([{"loai": lam.LAM_DAT_TY_TRONG, "kind": KIND_ACTION,
+                     "nhan": "Hành động — làm gì khi khớp"}])
+
+    # HÀNH ĐỘNG / NHÓM -> làm tiếp, hỏi thêm một câu, hay quay về chờ nến sau.
+    if is_group_step(st) or lam.la_loai_lam(st.get("type")):
+        if con:
+            return []            # đã có đường đi tiếp thì thôi mời
+        return xep([
+            {"loai": lam.LAM_DAT_TY_TRONG, "kind": KIND_ACTION,
+             "nhan": "Hành động — làm tiếp"},
+            {"loai": hoi.HOI_THI_TRUONG, "kind": KIND_ACTION,
+             "nhan": "Hỏi — hỏi thêm một câu"},
+            {"loai": QUAY_VE, "kind": KIND_ACTION, "nhan": "Quay về — chờ nến sau"},
+        ])
+    return []
+
+
 def soat_loai_la(steps):
     """Khối mang LOẠI mà không từ điển nào nhận. -> [vấn đề]
 

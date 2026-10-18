@@ -667,8 +667,24 @@ class Api(NenCuaSo):
         elif lam.la_loai_lam(loai):
             st = core.make_lam_step(loai)
         else:
-            st = core.make_action_step({"type": loai or core.CHECK_COND})
+            # ⚠ KHÔNG RƠI VỀ `CHECK_COND` NỮA — nó là loại của BỘ KHỐI ĐÃ CHẾT (D-12).
+            # «Thêm Khối lẻ» trong menu chuột phải gọi thẳng vào nhánh này, nên mỗi
+            # lần bấm là đẻ ra một khối KHÔNG từ điển nào nhận: bấm đúp vào nó không
+            # mở hộp nào, Build thì sinh ra `pass`. Hỏng ngay từ lúc sinh, mà chẳng
+            # gì báo — `soat_loai_la` nay bắt được, và đây là chỗ chặn từ gốc.
+            #     Rơi về HỎI THỊ TRƯỜNG: `check_cond` xưa nay là CỔNG rẽ nhánh
+            # (`is_branch_gate`), mà cổng của bộ khối đang sống chính là khối Hỏi.
+            st = core.make_hoi_step(hoi.HOI_THI_TRUONG)
         return _ok({"step": st, "card": core.the_buoc(st)})
+
+    @_bat_loi
+    def goi_y_ke(self, steps, edges=None, chon=None):
+        """NỐI THÔNG MINH: sau khối đang chọn thì thường là gì. -> [khối mờ]
+
+        Cửa RIÊNG chứ không đi kèm `soat`: nó đổi theo thứ đang CHỌN, mà chọn thì đổi
+        mỗi cú bấm chuột — nhét vào `soat` là mỗi lần bấm một khối lại chạy cả lượt
+        đánh số, soát lỗi và dựng thẻ cho cả sơ đồ."""
+        return _ok(core.goi_y_ke(steps, edges, chon))
 
     @_bat_loi
     def gom_nhom(self, steps, ten=None):

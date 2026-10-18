@@ -389,6 +389,28 @@ kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("Tran
 # cắt sạch mọi dây chạm tới nó. Trên một chỗ rẽ ba nhánh, muốn bỏ đúng một nhánh thì
 # phải cắt cả ba rồi nối lại hai. Mà `deleteKeyCode={null}` nên chọn dây rồi bấm
 # Delete cũng không ra gì: dây là thứ vẽ ra được, bấm được, mà không gỡ được.
+# ⚠ BA THỨ GIẾT KHỐI MỜ, CẢ BA ĐỀU LẶNG — đã mất một buổi dò từng cái:
+#   · `visibility: hidden`: React Flow ẩn nút nó CHƯA ĐO ĐƯỢC cỡ, mà đã ẩn thì không
+#     có hộp bố cục nên không bao giờ đo được. Khai sẵn `width`/`height` là hết.
+#   · `pointer-events: none`: nút khai `selectable/draggable/connectable: false` thì
+#     React Flow tắt chuột của nó. Phải đặt lại trong `style` của CHÍNH nút — một
+#     luật trong tệp CSS thua, vì React Flow đặt nội tuyến.
+#   · cú bấm nằm ở `mousedown`, không ở `click`: chuột nhấn xuống làm bỏ chọn khối,
+#     khối mờ tính theo khối ấy nên biến mất trước khi `click` kịp bắn.
+# Cả ba đều cho ra CÙNG một triệu chứng: con trỏ là bàn tay, bấm vào không ra gì.
+print("\n▸ Khối mờ của nối thông minh — ba chỗ chết LẶNG")
+_sd_mo = doc("SoDo.tsx")
+kiem("khối mờ khai sẵn CỠ", re.search(r"width: 296, height: \d+", _sd_mo) is not None,
+     "— không khai thì React Flow ẩn nó, mà ẩn rồi thì không bao giờ đo được")
+kiem("và bật lại chuột cho nó", "pointerEvents: 'all'" in _sd_mo,
+     "— nút không chọn/kéo/nối được thì React Flow tắt chuột của nó")
+kiem("cú bấm ở mousedown, không ở click",
+     "onMouseDown" in doc("components/KhoiMo.tsx")
+     and "onClick" not in doc("components/KhoiMo.tsx"),
+     "— click bắn sau khi nhả chuột, lúc ấy khối mờ đã bị gỡ khỏi cây")
+kiem("ngữ pháp gợi ý do PYTHON nói", "py.goi_y_ke(" in _sd_mo,
+     "— viết lại luật rẽ nhánh bằng TS là bản sự thật thứ hai")
+
 print("\n▸ Ngắt được MỘT dây — và có cả lối không cần trúng đích")
 _sd_day = doc("SoDo.tsx")
 kiem("bấm đúp vào dây là ngắt nó", "onEdgeDoubleClick" in _sd_day)

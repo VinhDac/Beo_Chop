@@ -486,6 +486,18 @@ select.o { cursor: pointer; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mx-muc:disabled > .mx-chu > i { color: var(--warn); font-family: var(--font); }
+/* KHỐI MỜ của nối thông minh — CHÉP NGUYÊN từ `Jenifer_Studio/webui/src/app.css`,
+   từng con số. Rộng đúng bằng khối thật (296px) để nó chiếm đúng chỗ khối sẽ mọc ra,
+   mà viền ĐỨT và `opacity .55` thì nhìn ra ngay là chưa có thật. */
+.khoi-goi-y {
+  width: 296px; box-sizing: border-box; padding: 16px 12px; text-align: center;
+  border: 1.5px dashed var(--border); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
+  color: var(--muted); font-size: 13px; cursor: pointer; opacity: .55;
+  transition: opacity .12s, border-color .12s, color .12s;
+}
+.khoi-goi-y b { font-size: 15px; margin-right: 2px; }
+.khoi-goi-y:hover { opacity: 1; border-color: var(--accent); color: var(--text); }
 .react-flow__edge.day-goi-y { pointer-events: none; }
 .react-flow__edge.day-goi-y path { stroke-dasharray: 5 5; opacity: .45; }
 /* ---------------- Hộp (node) ---------------- */

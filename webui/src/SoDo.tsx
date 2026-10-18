@@ -12,6 +12,7 @@ import DuongVong from './components/DuongVong'
 import Ribbon, { type ViecRibbon } from './components/Ribbon'
 import OTimKhoi, { type LocTim } from './components/OTimKhoi'
 import TagCoMay from './components/TagCoMay'
+import KhoiMo from './components/KhoiMo'
 import HopCoMay from './components/HopCoMay'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
@@ -38,6 +39,7 @@ import type {
   Card,
   CoMay,
   Edge,
+  GoiYKe,
   HatNhanTag,
   KetQuaChay,
   KetQuaSinh,
@@ -57,7 +59,9 @@ import type {
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
 
-const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan }
+const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan, khoiMo: KhoiMo }
+/** Tiền tố id của KHỐI MỜ — không trùng được với id khối thật (`s…`). */
+const MO = 'mo:'
 
 /** ĐƯỜNG ↻ QUAY LẠI là một LOẠI DÂY RIÊNG, không phải dây thường tô màu khác: bên
  *  Python nó cũng là một loại cạnh riêng (`core.canh_vong`) mà mọi phép đánh số, tìm
@@ -953,6 +957,30 @@ function SoDoTrong() {
     return ra
   }, [trongHN, hatNhan, nodes, edges, thuTu, khopTimSet])
 
+  /** NỐI THÔNG MINH — mấy KHỐI MỜ cạnh khối đang chọn.
+   *
+   *  ⚠ NGỮ PHÁP DO PYTHON NÓI (`core.goi_y_ke`), không dựng lại ở đây. Mấy luật
+   *  "sau cái này thường là cái gì" ĐÃ nằm trong `validate_flow_graph` — viết lại
+   *  chúng bằng TypeScript là đẻ ra bản sự thật thứ hai, và hôm một luật đổi thì
+   *  khối mờ mời đúng thứ bảng Vấn đề lập tức kêu là sai.
+   *
+   *  Khối mờ là thứ TÍNH RA, không nằm trong `nodes`: không lưu, không hoàn tác,
+   *  không thành một bước. */
+  const [khoiMo, setKhoiMo] = useState<GoiYKe[]>([])
+  /** Cú bấm khối mờ, giữ trong `ref`: `nodesVe` dựng khối mờ TRƯỚC khi `taoTuKhoiMo`
+   *  ra đời (nó cần `themKhoi`). Qua `ref` thì không phải xếp lại cả file vì một hàm,
+   *  và khối mờ luôn gọi bản MỚI NHẤT chứ không giữ một bản đã cũ. */
+  const taoTuKhoiMoRef = useRef<(i: number) => void>(() => {})
+  useEffect(() => {
+    // Chọn nhiều khối thì không gợi ý: "sau cái nào" không có câu trả lời.
+    const mot = dangChon.length === 1 ? dangChon[0].id : null
+    if (!sanSang || trongHN) { setKhoiMo([]); return }
+    let con = true
+    void py.goi_y_ke(rfSangSteps(nodes), rfSangEdges(edges), mot)
+      .then(r => { if (con) setKhoiMo(r.ok ? (r.value ?? []) : []) })
+    return () => { con = false }
+  }, [dangChon, nodes, edges, sanSang, trongHN])
+
   const nodesVe = useMemo(() => {
     const ds = nodes.filter(n => !biGiau(n.id)).map(n => {
       const st = (n.data as { step?: Step }).step
@@ -969,8 +997,37 @@ function SoDoTrong() {
       return { ...n, data: { ...d, thuTu: thuTu[n.id], veNhan, trongVong,
                              timThay, tim: chuTim } }
     })
-    return [...ds, ...nodesHatNhan]
-  }, [nodes, thuTu, vongDangXem, biGiau, nodesHatNhan, khopTimSet, tim])
+    return [...ds, ...nodesHatNhan,
+            ...khoiMo.map((g, i) => ({
+              id: MO + i, type: 'khoiMo',
+              position: { x: g.pos[0], y: g.pos[1] },
+              data: { nhan: g.nhan, onBam: () => taoTuKhoiMoRef.current(i) },
+              // ⚠ PHẢI ĐẶT `pointerEvents` Ở ĐÂY. Khối mờ khai `selectable/draggable/
+              // connectable: false` (đúng như bên Jenifer: nó không phải một bước), và
+              // React Flow cho một nút như thế `pointer-events: none` — nên cái NỀN
+              // canvas nằm đè lên nó. Đo bằng `document.elementFromPoint` ngay giữa
+              // khối mờ: trả về `react-flow__pane`. Người dùng thấy con trỏ là bàn
+              // tay, bấm vào KHÔNG RA GÌ, mà cú bấm ấy còn rơi vào nền nên nó BỎ CHỌN
+              // khối — khối mờ biến mất luôn.
+              //     Một luật trong tệp CSS KHÔNG chữa được: React Flow đặt nó bằng
+              // style NỘI TUYẾN. Mà `node.style` được trải SAU nó (`NodeWrapper`
+              // trong `@xyflow/react`), nên đây mới là chỗ thắng — và chính chú
+              // thích trong mã nguồn ấy bảo làm thế.
+              // ⚠ PHẢI KHAI SẴN CỠ. React Flow đặt `visibility: hidden` cho một nút
+              // nó CHƯA ĐO ĐƯỢC cỡ — mà đã ẩn thì không có hộp bố cục, không có hộp
+              // thì ResizeObserver không bao giờ đo được: khối mờ kẹt ở `hidden`.
+              // Đo tận nơi mới thấy, vì nó lúc hiện lúc không: thuộc tính nội tuyến
+              // là `pointer-events: all; visibility: hidden` — bày ra thì thấy, mà
+              // `elementFromPoint` giữa khối trả về `react-flow__pane`. Người dùng
+              // bấm vào khối mờ và cú bấm rơi xuống NỀN: không ra gì, lại mất chọn.
+              // Khai cỡ sẵn là hết chuyện con-gà-quả-trứng. 296px = đúng bề ngang
+              // khối thật (xem `.khoi-goi-y`), cao 54 = 16+19+16 đệm và một dòng chữ.
+              width: 296, height: 54,
+              style: { pointerEvents: 'all' as const },
+              selectable: false, draggable: false,
+              connectable: false, deletable: false, selected: false,
+            }))]
+  }, [nodes, thuTu, vongDangXem, biGiau, nodesHatNhan, khopTimSet, tim, khoiMo])
 
   /** Dây đem đi vẽ. Ở sơ đồ chính, dây nối tới một khối BỊ GIẤU được cắm vào cái KHUNG
    *  đứng thay nó — nhìn vẫn thấy luồng chạy đi qua hạt nhân. Dây nằm gọn bên trong một
@@ -1005,8 +1062,19 @@ function SoDoTrong() {
                 data: { vong: vongDangXem.so, ao: true }, markerEnd: MUI_TEN,
                 selectable: false } as RfEdge)
     }
+    // DÂY MỜ từ khối đang chọn tới mỗi khối mờ — nét đứt, không bấm được, không
+    // nằm trong `edges` nên không lưu và không hoàn tác.
+    const tu = dangChon.length === 1 ? dangChon[0].id : null
+    if (tu) {
+      for (let i = 0; i < khoiMo.length; i++) {
+        ds.push({ id: MO + i + '-day', source: tu, target: MO + i,
+                  sourceHandle: 'right', targetHandle: 'left',
+                  className: 'day-goi-y', selectable: false, focusable: false,
+                  markerEnd: MUI_TEN } as RfEdge)
+      }
+    }
     return ds
-  }, [edges, thuocHN, trongHN, vongDangXem])
+  }, [edges, thuocHN, trongHN, vongDangXem, khoiMo, dangChon])
 
   /* --------------------------------------------------------------- thao tác */
   const onConnect = useCallback((c: Connection) => {
@@ -1034,18 +1102,26 @@ function SoDoTrong() {
     setEdges(es => addEdge({ ...c, markerEnd: MUI_TEN }, es))
   }, [chup, setEdges, hatNhan])
 
-  const themKhoi = useCallback(async (kind: StepKind, loai?: string) => {
+  const themKhoi = useCallback(async (kind: StepKind, loai?: string,
+                                      cho?: [number, number], noiTu?: string) => {
     const r = await py.khoi_moi(kind, loai)
     if (!r.ok || !r.value) return
     chup()
     const { step, card } = r.value
     ghi(`thêm ${card.title}`)
-    // KHỐI MỚI rơi cạnh khối cuối ĐANG NHÌN THẤY, không rơi ra ngoài khung nhìn.
+    // KHỐI MỚI rơi cạnh khối cuối ĐANG NHÌN THẤY, không rơi ra ngoài khung nhìn —
+    // trừ khi NỐI THÔNG MINH đã chỉ sẵn chỗ (`cho`): khối mờ nằm đâu thì khối thật
+    // mọc đúng đó, không nhảy sang chỗ khác dưới tay người dùng.
     const thay = nodes.filter(n => !biGiau(n.id))
     const cuoi = thay[thay.length - 1]
-    const x = cuoi ? cuoi.position.x + BUOC_X : 80
-    const y = cuoi ? cuoi.position.y : 120
+    const x = cho ? cho[0] : cuoi ? cuoi.position.x + BUOC_X : 80
+    const y = cho ? cho[1] : cuoi ? cuoi.position.y : 120
     step.pos = [x, y]
+    // TỰ NỐI DÂY từ khối đang chọn — cả điểm của nối thông minh là không phải kéo.
+    if (noiTu) setEdges(es => [...es, { id: `${noiTu}->${step.id}:out`,
+                                        source: noiTu, target: step.id,
+                                        sourceHandle: 'right', targetHandle: 'left',
+                                        markerEnd: MUI_TEN } as RfEdge])
     // Thêm lúc đang ở trong một hạt nhân thì nó là một phần của hạt nhân ấy.
     if (tagDangO) step.hat_nhan = tagDangO
     setNodes(ns => [...ns.map(n => ({ ...n, selected: false })),
@@ -1055,7 +1131,18 @@ function SoDoTrong() {
     // đi tìm rồi bấm đúp. Chỉ muốn cái khối thôi thì Esc là xong.
     if (tuDien?.loai.some(l => l.ma === step.type)
         || laHanhDong(tuDienLam, step.type)) setDangSua(step.id)
-  }, [chup, nodes, setNodes, biGiau, tagDangO, ghi, tuDien, tuDienLam])
+  }, [chup, nodes, setNodes, setEdges, biGiau, tagDangO, ghi, tuDien, tuDienLam])
+
+  /** Bấm một khối mờ: dựng khối THẬT đúng chỗ ấy, tự nối dây, mở luôn hộp thoại. */
+  const taoTuKhoiMo = useCallback((i: number) => {
+    const g = khoiMo[i]
+    if (g) void themKhoi(g.kind as StepKind, g.loai || undefined, g.pos,
+                         dangChon.length === 1 ? dangChon[0].id : undefined)
+  }, [khoiMo, themKhoi, dangChon])
+  taoTuKhoiMoRef.current = taoTuKhoiMo
+
+
+
 
   const xoa = useCallback(() => {
     if (!dangChon.length) return

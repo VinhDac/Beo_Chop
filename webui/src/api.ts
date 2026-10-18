@@ -11,6 +11,7 @@ import type {
   CaiToiUu,
   CoMay,
   Edge,
+  GoiYKe,
   KetQuaChay,
   KetQuaSinh,
   KetQuaSoat,
@@ -157,6 +158,10 @@ export const py = {
   soat: (steps: Step[], edges: Edge[], coMay?: CoMay) =>
     goi<KetQuaSoat>('soat', steps, edges, coMay),
   /** Ctrl+G — mấy khối Hành động thành MỘT Nhóm. Lõi ở Python, không ở đây. */
+  /** NỐI THÔNG MINH: sau khối đang chọn thì thường là gì. Cửa riêng chứ không đi
+   *  kèm `soat` — nó đổi theo thứ đang CHỌN, mà chọn thì đổi mỗi cú bấm chuột. */
+  goi_y_ke: (steps: Step[], edges: Edge[], chon: string | null) =>
+    goi<GoiYKe[]>('goi_y_ke', steps, edges, chon),
   gom_nhom: (steps: Step[], ten?: string) =>
     goi<{ step: Step; card: KetQuaSoat['the'][string] }>('gom_nhom', steps, ten),
   /** Ctrl+Shift+G — một Nhóm thành từng khối Hành động. Ngược `gom_nhom`. */

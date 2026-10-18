@@ -100,6 +100,16 @@ export interface VanDe {
  *  một interface gõ cứng: gõ cứng là giữ bản thứ hai của từ điển. */
 export type CoMay = Record<string, unknown>
 
+/** MỘT KHỐI MỜ của nối thông minh (`core.goi_y_ke`) — bước còn thêm được sau khối
+ *  đang chọn. Ngữ pháp do Python nói; giao diện chỉ bày và bấm. */
+export interface GoiYKe {
+  /** Loại khối sẽ dựng. Rỗng với khối Bắt đầu (kind đã đủ nói). */
+  loai: string
+  kind: StepKind
+  nhan: string
+  pos: [number, number]
+}
+
 export interface KetQuaSoat {
   /** {id khối: "4A.2"}. Không có khoá = khối không chạy tới. */
   thu_tu: Record<string, string>
