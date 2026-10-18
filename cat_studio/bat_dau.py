@@ -572,6 +572,36 @@ CHIA_VON_DOC = {
     "BlackLittermanOptimizationPortfolioConstructionModel": "magnitude",
 }
 
+#: Model chia vốn -> SỐ NẾN LỊCH SỬ nó cần trước khi tính được gì.
+#:
+#: ⚠ KHÔNG CÓ BẢNG NÀY THÌ BACKTEST ĐỨT GIỮA CHỪNG. Làm nóng (`set_warm_up`) trước
+#: nay chỉ đếm chu kỳ của CHỈ BÁO. Một sơ đồ không chỉ báo nào thì không làm nóng gì,
+#: nên chặn `if self.is_warming_up: return` luôn mở — và nhịp HẸN GIỜ có thể bắn ngay
+#: nến đầu, lúc chưa có lịch sử nào.
+#:
+#: ĐÃ ÉP TÁI HIỆN: BTCUSD · nhịp THÁNG · RiskParity ->
+#:     ArgumentException: Argument "numberOfVariables" must be a positive integer
+#:     at RiskParityPortfolioOptimizer.RiskParityNewtonMethodOptimization
+#: Cùng sơ đồ ấy đổi sang nhịp NGÀY thì chạy 396 lệnh, vì `on_data` chỉ gọi khi đã có
+#: nến. Tức lỗi không nằm ở model, nó nằm ở chỗ ta để model chạy trước khi có dữ liệu.
+#:
+#: Số lấy từ chữ ký LEAN: `RiskParity(… period=252)`, `MeanVariance(… period=63)`,
+#: `BlackLitterman(… period=63)`, `MeanReversion(… window_size=20)`. Model nào không
+#: đọc lịch sử thì 0.
+CHIA_VON_LAM_NONG = {
+    "RiskParityPortfolioConstructionModel": 252,
+    "MeanVarianceOptimizationPortfolioConstructionModel": 63,
+    "BlackLittermanOptimizationPortfolioConstructionModel": 63,
+    "MeanReversionPortfolioConstructionModel": 20,
+}
+
+
+def lam_nong_chia_von(gia_tri=None):
+    """Số nến làm nóng mà model chia vốn đã chọn đòi. 0 nếu nó không đọc lịch sử."""
+    return CHIA_VON_LAM_NONG.get(
+        str((gia_tri or {}).get("chia_von") or "").strip(), 0)
+
+
 #: Model chia vốn CHƯA BÀY VÌ THIẾU DỮ LIỆU, không vì thiếu khe `Insight`. Tách khỏi
 #: `CHIA_VON_DOC` vì hai bệnh khác nhau cần hai cách chữa khác nhau: khe thiếu thì
 #: thêm ô; dữ liệu thiếu thì phải mua dữ liệu, app không làm gì được.

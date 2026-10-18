@@ -499,6 +499,26 @@ def _ham_loc_ro(nc, st):
             ] + [TAB + d.format(lay=lay) for d in bat_dau.LOC_TRONG_SO]
 
 
+
+def _lam_nong(nc, st):
+    """Số nến làm nóng — LẤY CẢ HAI NGUỒN, không chỉ chỉ báo.
+
+    ⚠ Nguồn thứ hai là MODEL CHIA VỐN. `RiskParity` đọc 252 nến lịch sử,
+    `MeanVariance` và `BlackLitterman` 63, `MeanReversion` 20 — và nếu cỗ máy chạy
+    trước khi có ngần ấy nến thì LEAN không báo "chưa đủ dữ liệu", nó NÉM:
+        ArgumentException: Argument "numberOfVariables" must be a positive integer
+    rồi đứt cả lượt. Đã ép tái hiện bằng BTCUSD · nhịp THÁNG · RiskParity; cùng sơ đồ
+    ấy đổi sang nhịp NGÀY thì chạy 396 lệnh, vì `on_data` chỉ gọi khi đã có nến.
+
+    Lấy `max` chứ không cộng: cả hai cùng đếm NẾN từ lúc bắt đầu, nên chờ đủ cái dài
+    hơn là đủ cho cả hai."""
+    cb = nc.kho.lam_nong()
+    n = bat_dau.lam_nong_chia_von(st)
+    if not n:
+        return cb
+    # `cb` có thể là một biểu thức `int(max(...))` khi có chu kỳ GHIM làm tham số.
+    return str(max(int(cb), n)) if cb.isdigit() else f"max({cb}, {n})"
+
 def _khai_mo(nc, st):
     """Khối Bắt đầu -> các dòng của `initialize`. -> [dòng].
 
@@ -666,10 +686,14 @@ def sinh(doc):
             else:
                 dong_mo.append(TAB + f"self._cb[sym][{k!r}] = {cau}")
         dong_mo.append("")
-        dong_mo.append(f"self.set_warm_up({nc.kho.lam_nong()})")
+        dong_mo.append(f"self.set_warm_up({_lam_nong(nc, st_bd)})")
     else:
         dong_mo.append("")
         dong_mo.append("self._cb = {sym: {} for sym in self._ma}")
+        # Khong co chi bao nao, NHUNG model chia von van co the doi lich su.
+        n = bat_dau.lam_nong_chia_von(st_bd)
+        if n:
+            dong_mo.append(f"self.set_warm_up({n})")
 
     # --- hẹn giờ ---
     # ⚠ CÂU LỊCH ĐỔI THEO KIỂU Ô `ma`, không chỉ theo nhịp. `self._ma[0]` trên một rổ

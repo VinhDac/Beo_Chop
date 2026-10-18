@@ -437,5 +437,56 @@ kiem("và câu báo nói đúng VÌ SAO",
      any("LEAN quyết lại mỗi ngày" in p["message"] for p in r_ma["van_de"]),
      f"— {[p['message'][:60] for p in r_ma['van_de'] if p['severity'] == 'error']}")
 
+# ---------------------------------------------------------------------------
+print(NL + "▸ ⚠ LÀM NÓNG phải tính cả LỊCH SỬ MÀ MODEL CHIA VỐN ĐÒI")
+# ---------------------------------------------------------------------------
+# Làm nóng trước nay chỉ đếm chu kỳ CHỈ BÁO. Một sơ đồ không chỉ báo nào thì không
+# làm nóng gì, nên chặn `if self.is_warming_up: return` luôn mở — và nhịp HẸN GIỜ có
+# thể bắn ngay nến đầu, lúc chưa có lịch sử nào.
+#
+# ĐÃ ÉP TÁI HIỆN: BTCUSD · nhịp THÁNG · RiskParity ném
+#     ArgumentException: Argument "numberOfVariables" must be a positive integer
+# rồi ĐỨT cả lượt. Cùng sơ đồ ấy đổi sang nhịp NGÀY thì chạy 396 lệnh — tức lỗi không
+# nằm ở model, nó nằm ở chỗ ta để model chạy trước khi có dữ liệu.
+#
+# LẶP QUA CHÍNH TỪ ĐIỂN: thêm một model đọc lịch sử vào `CHIA_VON_LAM_NONG` là phép
+# này canh luôn.
+def _so_do_chia_von(model):
+    """Sơ đồ KHÔNG chỉ báo nào, nhịp hẹn giờ — ca mỏng nhất."""
+    b = core.make_start_step()
+    b["ma"] = [{"ma": "SPY", "loai": "equity"}, {"ma": "QQQ", "loai": "equity"}]
+    b["nhip"] = "thang_dau"
+    b["quy_tac_gio"] = "sau_mo"
+    b["so_phut"] = 30
+    b["chay_cho"] = "moi_ma"
+    b["chia_von"] = model
+    b["dat_lenh"] = "ImmediateExecutionModel"
+    h = core.make_hoi_step("hoi_thi_truong")
+    h["name"] = "co gia"
+    h["dieu_kien"] = [core.make_dieu_kien("gia", ">", 0)]
+    t = core.make_lam_step(lam.LAM_TIN_HIEU)
+    t["name"] = "len"
+    t["huong"], t["han"] = "UP", 31
+    st = [b, h, t]
+    for i, x in enumerate(st):
+        x["pos"] = [[-220, 0], [160, 0], [540, 0]][i]
+    return {"schema": 1, "type": "strategy", "name": "lam nong", "steps": st,
+            "edges": [{"from": b["id"], "to": h["id"], "port": "out"},
+                      {"from": h["id"], "to": t["id"], "port": "out"}]}
+
+
+for _m, _n in sorted(bat_dau.CHIA_VON_LAM_NONG.items()):
+    _kq = sinh_ma.sinh(_so_do_chia_von(_m))
+    _w = re.search(r"self\.set_warm_up\((\d+)\)", _kq["ma"] if _kq["ok"] else "")
+    kiem(f"«{_m[:30]}» đòi {_n} nến -> có làm nóng đủ",
+         bool(_w) and int(_w.group(1)) >= _n,
+         f"— {_w.group(0) if _w else 'KHÔNG có set_warm_up'}")
+# Và model KHÔNG đọc lịch sử thì đừng làm nóng thừa: chờ 252 nến cho một sơ đồ chia
+# đều là cắt mất một năm đầu của backtest mà chẳng vì cái gì.
+_kq = sinh_ma.sinh(_so_do_chia_von("EqualWeightingPortfolioConstructionModel"))
+kiem("model không đọc lịch sử thì KHÔNG làm nóng thừa",
+     "set_warm_up" not in _kq["ma"],
+     "— chia đều mà chờ 252 nến là cắt mất một năm đầu")
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)
