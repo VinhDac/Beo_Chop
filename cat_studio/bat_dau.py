@@ -169,61 +169,167 @@ def _o_phut(nhan, mac_dinh=10):
 # ⚠ Khác một chỗ, và chỗ ấy chỉ ảnh hưởng nhịp «Mỗi ngày đúng giờ»: `time_rules.at`
 # là luật ĐỒNG HỒ thuần, không biết sàn đóng hay mở. Nên nhịp ấy cộng rổ động sẽ chạy
 # cả THỨ BẢY, CHỦ NHẬT. Bốn nhịp kia neo vào giờ mở/đóng cửa nên tự bỏ ngày nghỉ.
+#: QUY TẮC GIỜ — `time_rules.*`. Bảng RIÊNG, và đó là cả điểm.
+#:
+#: ⚠ VÌ SAO TÁCH LÀM HAI BẢNG (18/10/2026). Bản trước gộp «ngày nào» và «mấy giờ»
+#: vào MỘT danh sách nhịp: `sau_mo_cua` · `truoc_dong_cua` · `tuan` · `thang_dau`…
+#: Mỗi dòng là một CẶP đã chốt sẵn. Nhưng hai thứ ấy độc lập trong LEAN —
+#: `schedule.on(date_rules.X, time_rules.Y)` nhận mọi X với mọi Y — nên một danh
+#: sách cặp chỉ phủ được đúng những cặp ai đó nghĩ ra để thêm:
+#:
+#:     LEAN có 9 quy tắc ngày lặp lại × 5 quy tắc giờ = 45 cách.
+#:     Bảng cặp cũ có 6 dòng. Và không ai thấy thiếu, vì nó không VỠ.
+#:
+#: Thật ra đã lòi ra hai lần rồi mà tôi vẫn vá theo cặp: thêm `tuan` khi vd2 cần,
+#: thêm `thang_dau`/`thang_cuoi` khi ba ví dụ cần. Lần thứ ba thì phải sửa cái HÌNH,
+#: không vá thêm dòng: nay 9 dòng ngày + 5 dòng giờ khai ra đủ 45 cách.
+#:
+#: (mã, nhãn, câu CÓ mã, câu KHÔNG mã, ô con)
+QUY_TAC_GIO = (
+    ("sau_mo", "sau khi MỞ cửa",
+     "time_rules.after_market_open(ma, so_phut)",
+     "time_rules.after_market_open(so_phut)",
+     (_o_phut("Số phút sau khi mở", 30),)),
+    ("truoc_dong", "trước khi ĐÓNG cửa",
+     "time_rules.before_market_close(ma, so_phut)",
+     "time_rules.before_market_close(so_phut)",
+     (_o_phut("Số phút trước khi đóng", 30),)),
+    ("truoc_mo", "trước khi MỞ cửa",
+     "time_rules.before_market_open(ma, so_phut)",
+     "time_rules.before_market_open(so_phut)",
+     (_o_phut("Số phút trước khi mở", 30),)),
+    ("sau_dong", "sau khi ĐÓNG cửa",
+     "time_rules.after_market_close(ma, so_phut)",
+     "time_rules.after_market_close(so_phut)",
+     (_o_phut("Số phút sau khi đóng", 30),)),
+    # ⚠ `time_rules.at` là luật ĐỒNG HỒ THUẦN — nó không biết sàn mở hay đóng. Cộng
+    # với rổ động thì lịch chạy cả THỨ BẢY và CHỦ NHẬT. Bốn luật trên neo vào giờ
+    # mở/đóng cửa nên tự bỏ ngày nghỉ. Nói ra trong nhãn, vì không nói thì người dùng
+    # thấy lượt chạy có lệnh ngày cuối tuần rồi tưởng dữ liệu sai.
+    ("dung_gio", "đúng giờ (kể cả ngày sàn ĐÓNG)",
+     "time_rules.at(gio, phut)", "time_rules.at(gio, phut)",
+     (_o("gio", "Giờ", O_SO, 10, "", goi_y="Từ 0 đến 23.", nguyen=True),
+      _o("phut", "Phút", O_SO, 0, "", goi_y="Từ 0 đến 59.", nguyen=True))),
+)
+
+QUY_TAC_GIO_THEO_MA = {g[0]: g for g in QUY_TAC_GIO}
+
+
+def gio_cua(ma):
+    """Một mục của `QUY_TAC_GIO` theo mã. None nếu mã lạ."""
+    return QUY_TAC_GIO_THEO_MA.get(str(ma or "").strip())
+
+
+#: Ô chọn quy tắc giờ — chỉ hiện với nhịp HẸN GIỜ, xem `o_cua`.
+_O_QUY_TAC_GIO = _o(
+    "quy_tac_gio", "Lúc nào trong ngày", O_CHON, "sau_mo",
+    "time_rules.*", chon=[(m, n) for m, n, *_ in QUY_TAC_GIO],
+    goi_y="LEAN nhận mọi quy tắc ngày ghép với mọi quy tắc giờ, nên hai ô này độc "
+          "lập với nhau.")
+
+#: NHỊP. Năm dòng đầu là theo NẾN — nhịp chính là độ phân giải, không có lịch nào.
+#: Chín dòng sau là HẸN GIỜ, mỗi dòng ĐÚNG MỘT quy tắc ngày của LEAN; giờ thì ô
+#: `quy_tac_gio` quyết.
+#:
+#: ⚠ Ô THỨ TƯ VÀ THỨ SÁU — CÙNG MỘT NHỊP, HAI CÂU LEAN, vì RỔ ĐỘNG không có mã nào
+#: để neo lịch vào. Mấy câu `schedule.on` đều cần một mã (`every_day(spy)`): giờ mở
+#: cửa là giờ của SÀN mà mã ấy niêm yết. Rổ thì lúc `initialize` còn RỖNG, nên
+#: `self._ma[0]` ném `IndexError` ngay dòng đầu — cỗ máy chết trước khi chạy nến nào.
+#:
+#: LEAN có sẵn đường ra, cùng mấy hàm ấy ở dạng KHÔNG MÃ (đọc `DateRules.cs` và
+#: `TimeRules.cs`): *"Picks, per date, the earliest market open across the
+#: algorithm's securities… Defaults to US equities (SPY) when no eligible security
+#: is subscribed"*, và nó BỎ QUA ngày sàn đóng.
+#:
+#: ⚠ `date_rules.on(...)` và `date_rules.every(...)` KHÔNG có ở đây, cố ý: `on` nhận
+#: một DANH SÁCH NGÀY cụ thể ("chạy đúng 3 ngày này"), `every` nhận một danh sách
+#: THỨ ("chạy thứ Hai và thứ Tư"). Chúng không phải một nhịp lặp đều, nên chúng cần
+#: một ô kiểu khác (chọn nhiều thứ / nhập danh sách ngày) — khai vào `test_du_lean`
+#: kèm lý do, chứ không im.
 NHIP = (
     ("tick", "Mỗi tick", "TICK", "on_data", (), "on_data"),
     ("giay", "Mỗi nến giây", "SECOND", "on_data", (), "on_data"),
     ("phut", "Mỗi nến phút", "MINUTE", "on_data", (), "on_data"),
     ("gio", "Mỗi nến giờ", "HOUR", "on_data", (), "on_data"),
     ("ngay", "Mỗi nến ngày", "DAILY", "on_data", (), "on_data"),
-    ("moi_ngay_luc", "Mỗi ngày đúng giờ", "MINUTE",
-     "schedule.on(date_rules.every_day(ma), time_rules.at(gio, phut))",
-     (_o("gio", "Giờ", O_SO, 10, "", goi_y="Từ 0 đến 23.", nguyen=True),
-      _o("phut", "Phút", O_SO, 0, "", goi_y="Từ 0 đến 59.", nguyen=True),
-      _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.every_day(), time_rules.at(gio, phut))"),
-    ("sau_mo_cua", "Mỗi ngày, sau khi MỞ cửa", "MINUTE",
-     "schedule.on(date_rules.every_day(ma), time_rules.after_market_open(ma, so_phut))",
-     (_o_phut("Số phút sau khi mở"), _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.every_day(), time_rules.after_market_open(so_phut))"),
-    ("truoc_dong_cua", "Mỗi ngày, trước khi ĐÓNG cửa", "MINUTE",
-     "schedule.on(date_rules.every_day(ma), "
-     "time_rules.before_market_close(ma, so_phut))",
-     (_o_phut("Số phút trước khi đóng"), _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.every_day(), "
-     "time_rules.before_market_close(so_phut))"),
-    # Nhịp TUẦN — `date_rules.week_start`. Đây là nhịp của mọi chiến thuật "cân lại
-    # danh mục mỗi tuần", mà bảy nhịp trên không cái nào nói được. Và nó cộng rổ động
-    # chính là chiến thuật kinh điển nhất của LEAN: mỗi tuần sàng lại cả rổ.
-    ("tuan", "Mỗi TUẦN, sau khi MỞ cửa", "MINUTE",
-     "schedule.on(date_rules.week_start(ma), "
-     "time_rules.after_market_open(ma, so_phut))",
-     (_o_phut("Số phút sau khi mở", 30), _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.week_start(), "
-     "time_rules.after_market_open(so_phut))"),
-    # Nhịp THÁNG — `date_rules.month_start` / `month_end`. Thiếu hai nhịp này thì mọi
-    # chiến thuật "cân lại danh mục mỗi tháng" không nói được, mà đó là nhịp phổ biến
-    # nhất của lối đầu tư theo rổ: đếm trong tập ví dụ thì có tới ba cái dùng nó.
-    # Người ta phải lách bằng nhịp NGÀY rồi tự đếm ngày trong khối — tức app lại đi
-    # đếm hộ LEAN đúng thứ LEAN đã có sẵn hàm.
-    ("thang_dau", "Mỗi THÁNG, đầu tháng", "MINUTE",
-     "schedule.on(date_rules.month_start(ma), "
-     "time_rules.after_market_open(ma, so_phut))",
-     (_o_phut("Số phút sau khi mở", 30), _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.month_start(), "
-     "time_rules.after_market_open(so_phut))"),
-    ("thang_cuoi", "Mỗi THÁNG, cuối tháng", "MINUTE",
-     "schedule.on(date_rules.month_end(ma), "
-     "time_rules.before_market_close(ma, so_phut))",
-     (_o_phut("Số phút trước khi đóng", 30), _O_DO_PHAN_GIAI),
-     "schedule.on(date_rules.month_end(), "
-     "time_rules.before_market_close(so_phut))"),
+
+    ("moi_ngay", "Mỗi NGÀY", "MINUTE",
+     "schedule.on(date_rules.every_day(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.every_day(), {gio})"),
+    ("tuan", "Mỗi TUẦN — đầu tuần", "MINUTE",
+     "schedule.on(date_rules.week_start(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.week_start(), {gio})"),
+    ("tuan_cuoi", "Mỗi TUẦN — cuối tuần", "MINUTE",
+     "schedule.on(date_rules.week_end(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.week_end(), {gio})"),
+    ("thang_dau", "Mỗi THÁNG — đầu tháng", "MINUTE",
+     "schedule.on(date_rules.month_start(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.month_start(), {gio})"),
+    ("thang_cuoi", "Mỗi THÁNG — cuối tháng", "MINUTE",
+     "schedule.on(date_rules.month_end(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.month_end(), {gio})"),
+    ("quy_dau", "Mỗi QUÝ — đầu quý", "MINUTE",
+     "schedule.on(date_rules.quarter_start(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.quarter_start(), {gio})"),
+    ("quy_cuoi", "Mỗi QUÝ — cuối quý", "MINUTE",
+     "schedule.on(date_rules.quarter_end(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.quarter_end(), {gio})"),
+    ("nam_dau", "Mỗi NĂM — đầu năm", "MINUTE",
+     "schedule.on(date_rules.year_start(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.year_start(), {gio})"),
+    ("nam_cuoi", "Mỗi NĂM — cuối năm", "MINUTE",
+     "schedule.on(date_rules.year_end(ma), {gio})",
+     (_O_DO_PHAN_GIAI,),
+     "schedule.on(date_rules.year_end(), {gio})"),
 )
+
+#: NHỊP CŨ -> (nhịp mới, quy tắc giờ). Ba mã này từng là ba dòng riêng trong bảng
+#: cặp, nay cả ba đều là `every_day` chỉ khác quy tắc giờ. Giữ bảng này để FILE CŨ
+#: MỞ ĐƯỢC — không có nó thì mọi sơ đồ đã lưu đều thành "nhịp lạ".
+NHIP_CU = {
+    "moi_ngay_luc": ("moi_ngay", "dung_gio"),
+    "sau_mo_cua": ("moi_ngay", "sau_mo"),
+    "truoc_dong_cua": ("moi_ngay", "truoc_dong"),
+}
 
 NHIP_THEO_MA = {n[0]: n for n in NHIP}
 
 
 def nhip_cua(ma):
-    return NHIP_THEO_MA.get(ma)
+    """Một mục của `NHIP` theo mã, HIỂU CẢ MÃ CŨ (xem `NHIP_CU`).
+
+    ⚠ Không có nhánh `NHIP_CU` thì mọi sơ đồ đã lưu đều thành «nhịp lạ»: ô `nhip`
+    của chúng ghi `sau_mo_cua`, mã ấy không còn trong bảng nữa. Và `ham_chay` rơi về
+    `on_data` khi nhịp lạ, nên cái sơ đồ cân lại danh mục mỗi ngày lúc mở cửa sẽ im
+    lặng đổi thành chạy mỗi nến — không lỗi, không một lời nào."""
+    m = str(ma or "").strip()
+    if m in NHIP_CU:
+        m = NHIP_CU[m][0]
+    return NHIP_THEO_MA.get(m)
+
+
+def gio_da_chon(gia_tri=None):
+    """Quy tắc GIỜ của một khối Bắt đầu -> mục của `QUY_TAC_GIO`.
+
+    Nhịp theo nến thì không có giờ nào -> None. Nhịp cũ (`NHIP_CU`) thì lấy quy tắc
+    giờ mà mã cũ ấy từng mang, nên sơ đồ đã lưu sinh ra ĐÚNG câu LEAN như trước."""
+    nhip = str((gia_tri or {}).get("nhip")
+               or O_THEO_TEN["nhip"]["mac_dinh"]).strip()
+    n = nhip_cua(nhip)
+    if not n or n[3] == "on_data":
+        return None
+    v = str((gia_tri or {}).get("quy_tac_gio") or "").strip()
+    if not v and nhip in NHIP_CU:
+        v = NHIP_CU[nhip][1]
+    return gio_cua(v) or gio_cua(_O_QUY_TAC_GIO["mac_dinh"])
 
 
 # ---------------------------------------------------------------------------
@@ -908,6 +1014,13 @@ def o_cua(gia_tri=None):
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if n:
         ra.extend(n[4])
+        # Nhịp HẸN GIỜ thì mới có ô «Lúc nào trong ngày», và ô con của quy tắc giờ
+        # ấy (số phút, hay giờ+phút) đi theo nó — cùng lối nhịp mang ô con của nhịp.
+        if n[3] != "on_data":
+            ra.append(_O_QUY_TAC_GIO)
+            g = gio_da_chon(gia_tri)
+            if g:
+                ra.extend(g[4])
     r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
     if r:
         ra.extend(r[2])
@@ -945,7 +1058,12 @@ def ham_chay(gia_tri=None):
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if not n:
         return "on_data"
-    return n[5] if ro_cua((gia_tri or {}).get("ma")) else n[3]
+    co_ro = bool(ro_cua((gia_tri or {}).get("ma")))
+    cau = n[5] if co_ro else n[3]
+    if "{gio}" not in cau:
+        return cau
+    g = gio_da_chon(gia_tri)
+    return cau.replace("{gio}", (g[3] if co_ro else g[2]) if g else "")
 
 
 def ham_lean(gia_tri=None):

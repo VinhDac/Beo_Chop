@@ -498,7 +498,58 @@ for ho, nhan, bay in BANG:
          f"hoặc khai vào CO_Y_BO kèm lý do.")
 
 print()
-print("④ DANH SÁCH BỎ không được phép MỤC")
+print("④ MẤY MẶT KHÁC CỦA LEAN — không riêng năm bảng Framework")
+# ---------------------------------------------------------------------------
+# ⚠ VÌ SAO CÓ MỤC NÀY. Sáng 18/10 tôi đếm sáu bảng (chỉ báo + năm bảng Framework)
+# rồi kết luận «app đã bày hết LEAN». Sai CÁCH ĐO: sáu bảng ấy là đúng những chỗ tôi
+# tình cờ nhìn vào. Đếm thêm thì ra ngay `date_rules` 4/11 và `time_rules` 3/6 —
+# cùng một bệnh, ở một bảng tôi chưa nghĩ tới. Nên mục này đếm TỪNG MẶT, và mỗi mặt
+# lấy danh sách THẲNG từ mã nguồn.
+
+
+def _ham_lean(mau, *duong):
+    return sorted(set(re.findall(mau, _doc(os.path.join(GOC, *duong)))))
+
+
+def _snake(x):
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()
+
+
+def _mat(nhan, co, bay, bo):
+    thieu = [x for x in co if x not in bay and x not in bo]
+    print(f"  {nhan:<34} LEAN {len(co):>3} · app bày {len(set(co) & bay):>3} · "
+          f"cố ý bỏ {len(set(co) & set(bo)):>2} · THIẾU {len(thieu)}")
+    for t in thieu:
+        print(f"       – {t}")
+    kiem(not thieu, f"{nhan}: thiếu {thieu} — bày ra, hoặc khai lý do bỏ.")
+
+
+#: Cố ý bỏ ở mấy mặt này, mỗi cái một lý do.
+BO_MAT = {
+    "On": "`date_rules.on(...)` nhận một DANH SÁCH NGÀY cụ thể («chạy đúng ba "
+          "ngày này»), không phải một nhịp lặp đều — nó cần một ô kiểu khác (nhập "
+          "danh sách ngày), chưa làm.",
+    "Every": "`date_rules.every(...)` nhận danh sách THỨ («thứ Hai và thứ Tư») và "
+             "`time_rules.every(...)` nhận một khoảng lặp trong ngày. Cả hai cần ô "
+             "chọn-nhiều, chưa làm.",
+}
+
+# ① QUY TẮC NGÀY  ② QUY TẮC GIỜ — bảng `NHIP` × `QUY_TAC_GIO`
+_ngay_lean = _ham_lean(r"public IDateRule ([A-Za-z]+)\(",
+                       "Common", "Scheduling", "DateRules.cs")
+_gio_lean = _ham_lean(r"public ITimeRule ([A-Za-z]+)\(",
+                      "Common", "Scheduling", "TimeRules.cs")
+_ngay_app = {x for x in _ngay_lean
+             if any(f"date_rules.{_snake(x)}(" in (n[3] or "")
+                    for n in bat_dau.NHIP)}
+_gio_app = {x for x in _gio_lean
+            if any(f"time_rules.{_snake(x)}(" in (g[2] or "")
+                   for g in bat_dau.QUY_TAC_GIO)}
+_mat("quy tắc NGÀY · date_rules", _ngay_lean, _ngay_app, BO_MAT)
+_mat("quy tắc GIỜ · time_rules", _gio_lean, _gio_app, BO_MAT)
+
+print()
+print("⑤ DANH SÁCH BỎ không được phép MỤC")
 # ---------------------------------------------------------------------------
 # Một dòng CO_Y_BO mục theo hai lối: LEAN bỏ món ấy đi (thì dòng này thành rác), hay
 # app đã bày nó rồi (thì dòng này nói dối). Cả hai đều phải kêu.

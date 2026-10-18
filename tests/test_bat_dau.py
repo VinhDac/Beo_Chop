@@ -112,10 +112,47 @@ kiem("có nhịp THÁNG — cả đầu tháng lẫn cuối tháng",
      {"thang_dau", "thang_cuoi"} <= {n[0] for n in bat_dau.NHIP},
      f"— {sorted(n[0] for n in bat_dau.NHIP)}")
 # Mỗi nhịp phải trỏ vào một `date_rules` CÓ THẬT của LEAN, không bịa tên quy tắc.
-_quy_tac = ("every_day", "week_start", "month_start", "month_end")
+# ⚠ DANH SÁCH NÀY LÀ MỘT BẢN CHỤP, và nó vừa đổ đúng vì thế: bản trước chỉ kể bốn
+# quy tắc, nên thêm quý/năm là nó kêu "bịa tên" — kêu oan. Giữ phép soát ở đây vì nó
+# rẻ và chạy ở mọi máy, nhưng chuyện ĐỦ hay THIẾU so với kệ LEAN thì `test_du_lean`
+# canh, bằng cách đọc thẳng `Common/Scheduling/DateRules.cs`.
+_quy_tac = ("every_day", "week_start", "week_end", "month_start", "month_end",
+            "quarter_start", "quarter_end", "year_start", "year_end")
 _bia = [n[0] for n in hen_gio
         if not any(f"date_rules.{q}(" in n[3] for q in _quy_tac)]
 kiem("nhịp nào cũng dùng một `date_rules` có thật", not _bia, f"— {_bia}")
+# Và quy tắc GIỜ cũng vậy — bảng riêng từ 18/10/2026.
+_gio_that = ("after_market_open", "before_market_close", "before_market_open",
+             "after_market_close", "at")
+_gio_bia = [g[0] for g in bat_dau.QUY_TAC_GIO
+            if not any(f"time_rules.{q}(" in g[2] for q in _gio_that)]
+kiem("quy tắc giờ nào cũng là một `time_rules` có thật", not _gio_bia,
+     f"— {_gio_bia}")
+# ⚠ HAI BẢNG PHẢI GHÉP ĐƯỢC VỚI NHAU — 9 × 5 = 45 cách, và không cách nào được hụt
+# một nửa. Câu LEAN sinh ra phải có CẢ `date_rules` lẫn `time_rules`; thiếu một bên
+# là `schedule.on` cụt tham số, nổ lúc chạy.
+for _n in hen_gio:
+    for _g in bat_dau.QUY_TAC_GIO:
+        for _ro in (None, {"ro": "qc500"}):
+            _c = bat_dau.ham_chay({"nhip": _n[0], "quy_tac_gio": _g[0],
+                                   "ma": _ro, "so_phut": 30, "gio": 10,
+                                   "phut": 0})
+            if not ("date_rules." in _c and "time_rules." in _c
+                    and "{gio}" not in _c):
+                kiem(f"nhịp «{_n[0]}» × giờ «{_g[0]}» ghép đủ", False, f"— {_c}")
+kiem(f"mọi cặp nhịp × giờ đều ghép đủ ({len(hen_gio)} × "
+     f"{len(bat_dau.QUY_TAC_GIO)} = {len(hen_gio) * len(bat_dau.QUY_TAC_GIO)} cách)",
+     True)
+# ⚠ FILE CŨ PHẢI MỞ ĐƯỢC. Ba mã nhịp cũ từng là ba dòng riêng; nay chúng đều là
+# `every_day` khác quy tắc giờ. Mất bảng `NHIP_CU` thì mọi sơ đồ đã lưu thành "nhịp
+# lạ" và `ham_chay` rơi về `on_data` — sơ đồ cân lại mỗi ngày lúc mở cửa lặng lẽ đổi
+# thành chạy mỗi nến, không lỗi, không một lời.
+for _cu, _mong in (("sau_mo_cua", "after_market_open"),
+                   ("truoc_dong_cua", "before_market_close"),
+                   ("moi_ngay_luc", "time_rules.at(")):
+    _c = bat_dau.ham_chay({"nhip": _cu, "so_phut": 30, "gio": 10, "phut": 0})
+    kiem(f"nhịp cũ «{_cu}» vẫn sinh ra đúng câu như trước",
+         "date_rules.every_day(" in _c and _mong in _c, f"— {_c}")
 # Và câu "không mã" phải khớp câu "có mã": rổ động không gõ được tên mã nào, nên hai
 # câu lệch nhau là rổ chạy một nhịp khác hẳn nhịp người dùng chọn.
 _lech = [n[0] for n in hen_gio
