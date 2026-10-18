@@ -11,19 +11,20 @@ Mỗi dòng dưới đây là một lần CHẠY THẬT, không phải đọc m�
 
 | | dòng | vẽ được | chạy thật | lệnh khớp | chặn ở đâu |
 |---|---|---|---|---|---|
-| **vd1** Nasdaq Bollinger Pullback | 437 | ✅ 10/13 yêu cầu | ✅ | **29** | trần cứng 10 vị thế |
+| **vd1** Nasdaq Bollinger Pullback | 437 | ✅ 10/13 yêu cầu | ✅ | **29** | trần cứng 10 vị thế — *LEAN có, chưa bày* |
 | **vd2** OmniFund Macro Sovereign | 98 | ✅ | ✅ | **63** | bộ dữ liệu thiếu GLD, XLE |
 | **vd3** AI Basket | 59 | ✅ | ✅ | **2** | bộ dữ liệu thiếu 7/8 mã |
 | **vd4** Short Term Reversal | 34 | ❌ | — | — | **thiếu 2 tệp** mã nguồn |
-| **vd5** Hierarchical Risk Parity | 116 | ❌ | — | — | toán ma trận (scipy) |
+| **vd5** Hierarchical Risk Parity | 116 | ❌ | — | — | *LEAN có 3 model làm hộ, chưa bày* |
 | **vd6** Solana Adaptive | 42 | ✅ | ✅ | **0** | không có dữ liệu SOLUSD |
-| **vd7** Top12 US Market Cap | 463 | ❌ | — | — | xếp hạng chéo mã · điểm nhiều thành phần · nhớ qua nến |
-| **vd8** PCA Stat Arbitrage | 71 | ❌ | — | — | toán ma trận (sklearn) |
+| **vd7** Top12 US Market Cap | 463 | ❌ | — | — | xếp hạng chéo mã · điểm nhiều thành phần — *cả hai LEAN đều có* |
+| **vd8** PCA Stat Arbitrage | 71 | ❌ | — | — | **PCA — LEAN không có. Chỗ duy nhất nên dừng** |
 | **vd9** *(gần trùng vd7)* | 466 | ❌ | — | — | như vd7 |
 | **vd10** Growth V3 | 901 | ❌ | — | — | như vd7 + rổ doanh nghiệp + phí/trượt giá |
-| **vd11** Sector Rotation V31 | 299 | ❌ | — | — | điểm nhiều thành phần · nhớ qua nến |
+| **vd11** Sector Rotation V31 | 299 | ❌ | — | — | **máy trạng thái — LEAN không có khái niệm ấy** |
 
-**4 vẽ được · 7 chưa.**
+**4 vẽ được · 7 chưa** — nhưng 5 trong 7 chặn ở model **LEAN đã làm xong mà app
+chưa bày ra**, không phải ở thuật toán ta còn phải viết. Xem mục cuối.
 
 ---
 
@@ -64,18 +65,27 @@ from universe import MostLiquidFundamentalUniverseSelectionModel
 Hai tệp `alpha.py` và `universe.py` **không có trong thư mục**. Không ai dựng lại
 được vd4 từ những gì đang có — kể cả viết tay. Cần copy thêm hai tệp ấy.
 
-### vd5 và vd8 — thật sự cần thư viện toán ngoài
+### vd5 — LEAN có làm hộ, ta chưa bày ra
 
-Hai ví dụ này là hai ví dụ DUY NHẤT trong cả tập làm toán mà LEAN không có sẵn:
+Lần soát đầu tôi xếp vd5 vào "cần scipy, nên dừng". **Xếp sai.** vd5 làm: ma trận
+tương quan → ma trận khoảng cách → phân cụm tầng → chia vốn đệ quy theo cụm, tức
+*chia vốn sao cho mỗi tài sản gánh rủi ro bằng nhau*.
 
-* vd5: ma trận tương quan → ma trận khoảng cách → phân cụm tầng (`scipy.cluster.hierarchy`)
-  → chia vốn đệ quy theo cụm.
-* vd8: phân tích thành phần chính (`sklearn.decomposition.PCA`) → hồi quy OLS
-  (`statsmodels`) → z-score của phần dư.
+LEAN có sẵn đúng việc ấy, ba model, không cần một dòng toán nào của ta:
 
-Đây không phải chỉ báo viết lại bằng tay. Đây là toán ma trận trên cả rổ cùng lúc.
-Vẽ nó bằng khối thì phải có một khối "chạy đoạn Python của tôi" — và cái đó là đi
-ngược D-11, vì nó mở cửa cho bộ máy tính toán thứ hai nằm trong app.
+* `RiskParityPortfolioConstructionModel` — "equalize the risk carried by each asset".
+  LEAN tự lấy history, tự tính biến động, tự ra trọng số.
+* `MeanVarianceOptimizationPortfolioConstructionModel` — ma trận hiệp phương sai.
+* `BlackLittermanOptimizationPortfolioConstructionModel`.
+
+**Cả ba đều chưa được bày trong app.** Xem mục "Ta mới bày một nửa LEAN" ở cuối.
+
+### vd8 — cái duy nhất thật sự cần thư viện ngoài
+
+vd8 làm phân tích thành phần chính (`sklearn.decomposition.PCA`) → hồi quy OLS
+(`statsmodels`) → z-score của phần dư. LEAN không có PCA. Vẽ nó thì phải có một khối
+"chạy đoạn Python của tôi", và cái đó đi ngược D-11: mở cửa cho bộ máy tính toán thứ
+hai nằm trong app. **Đây là chỗ nên dừng, và là chỗ DUY NHẤT nên dừng.**
 
 ### vd7 · vd9 · vd10 · vd11 — ba lỗ hổng, không phải 3.000 dòng toán
 
@@ -134,6 +144,12 @@ vd2 lách bằng cách khác, và nó cho thấy giới hạn rõ nhất: nó c�
 nên **vẽ hẳn 6 nhánh** cho 6 thứ tự có thể. 3 ngành thì 6 nhánh còn vẽ được.
 vd7 xếp hạng ~100 mã. Không vẽ được bằng nhánh.
 
+**Nhưng LEAN có trần cứng ấy — ở tầng RỔ, không phải tầng chia vốn.**
+`EmaCrossUniverseSelectionModel` nhận một tham số `count`: xếp hạng rồi lấy đúng N mã.
+`CoarseFundamentalUniverseSelectionModel` cũng vậy. Tức câu "chỉ giữ 12 mã tốt nhất"
+đúng ra phải nói ở ô **Rổ** của khối Bắt đầu, chứ không phải ở khối chia vốn — và đó
+là chỗ tôi tìm sai suốt lần soát đầu. Không cần viết thuật toán nào; cần một ô.
+
 ### 2 · ĐIỂM NHIỀU THÀNH PHẦN — 4 ví dụ cần (vd7, vd9, vd10, vd11)
 
 vd7 chấm điểm mỗi mã thế này (`vd7:407`):
@@ -147,10 +163,18 @@ Bốn đại lượng, bốn trọng số. Ghép đại lượng hiện nay ch�
 Giới hạn ấy là cố ý (xem `_ve_py` trong `sinh_ma.py`): cây biểu thức lồng nhau thì
 hàng điều kiện lại thành một ô gõ công thức, mất cái sạch của ba ô.
 
-### 3 · NHỚ QUA CÁC NẾN — 3 ví dụ cần (vd7, vd9, vd11)
+### 3 · NHỚ QUA CÁC NẾN — 1 ví dụ cần (vd11), không phải 3
 
-Sơ đồ hiện nay không nhớ gì giữa hai nhịp: mỗi nhịp xét lại từ đầu. vd11 nhớ **bảy**
-thứ (`vd11:59-65`):
+Lần soát đầu tôi tính lỗ hổng này cho cả vd7, vd9, vd11. **Tính thừa hai.** Hai thứ
+cần nhớ thường gặp nhất thì LEAN có model riêng, và **app đã bày cả hai rồi**:
+
+* "giá rụng N% khỏi đỉnh của chính nó → bán" = `TrailingStopRiskManagementModel` ✅ đã bày
+* "đỉnh vốn cao nhất từ đầu lượt" = `MaximumDrawdownPercentPortfolio` ✅ đã bày
+
+Nên phần nhớ của vd7/vd9 (nghỉ 5 ngày sau khi bán, đỉnh vốn) **vẽ được**, chỉ cần
+đổi cách nói: "nghỉ 5 ngày" thì dùng hạn của tín hiệu thay vì tự đếm ngày.
+
+Còn lại một mình vd11. Nó nhớ **bảy** thứ (`vd11:59-65`):
 
 ```
 held_signal · held_trade · is_leveraged · peak_price · last_top
@@ -194,12 +218,49 @@ chỉ cần ô «đại lượng» cho chọn thêm một chỉ báo làm NGUỒ
 
 ---
 
+## Ta mới bày một nửa LEAN
+
+Câu hỏi đúng không phải "còn thiếu tính năng gì", mà **"LEAN có sẵn những gì mà app
+chưa bày ra"**. Đếm thì ra thế này:
+
+| tầng | LEAN có | app bày | chưa bày |
+|---|---|---|---|
+| Chia vốn | 9 | **2** | 7 |
+| Phát tín hiệu (Alpha) | 6 | **0** | 6 |
+| Rổ (Universe) | ~16 | **9** | ~7 |
+| Phòng rủi ro | 5 | **4** | 1 |
+| Đặt lệnh | 4 | **3** | 1 |
+| | **~40** | **18** | **~22** |
+
+Và **nửa chưa bày chính là nửa làm toán hộ ta**:
+
+* `RiskParityPortfolioConstructionModel` — cân bằng rủi ro. LEAN tự lấy history, tự
+  tính biến động. Đây đúng là `_inv_vol_weights` mà vd7 và vd9 viết tay 40 dòng.
+* `MeanVarianceOptimizationPortfolioConstructionModel` · `BlackLittermanOptimizationPortfolioConstructionModel`
+  — ma trận hiệp phương sai. Đúng chỗ vd5 gọi scipy.
+* `SectorWeightingPortfolioConstructionModel` — chia theo ngành. vd10.
+* `MeanReversionPortfolioConstructionModel` — hồi quy trung bình. Đúng kiểu vd1.
+* `ConfidenceWeightedPortfolioConstructionModel` · `AccumulativeInsightPortfolioConstructionModel`
+* 6 model Alpha (`RsiAlphaModel`, `EmaCrossAlphaModel`, `MacdAlphaModel`,
+  `HistoricalReturnsAlphaModel`, `PearsonCorrelationPairsTradingAlphaModel`,
+  `ConstantAlphaModel`) — đây là "ô Alpha" mà vd4 cần.
+* `EmaCrossUniverseSelectionModel` — xếp hạng rồi lấy N mã. **Đây là trần cứng "chỉ
+  lấy 12 mã" mà lỗ hổng 1 đang thiếu**, và nó nằm ở tầng Rổ, không phải tầng chia vốn.
+* `MaximumSectorExposureRiskManagementModel` · `SpreadExecutionModel`
+
+---
+
 ## Kết
 
-Lý thuyết **chưa** xử lý hết. Nhưng khoảng cách nhỏ hơn con số 7/11 gợi ra:
+Lý thuyết **chưa** xử lý hết — nhưng chỗ còn thiếu hầu hết **không phải thuật toán,
+mà là vỏ**. Hơn hai mươi model LEAN đã nằm sẵn trong backend, app chưa có ô nào để
+người dùng chọn chúng.
 
-* 1 ví dụ (vd4) không phải lỗ hổng — thiếu tệp.
-* 2 ví dụ (vd5, vd8) cần toán ma trận, và đó là chỗ nên dừng: làm nó là mở cửa cho
-  bộ máy tính toán thứ hai, trái D-11.
-* 4 ví dụ còn lại (vd7, vd9, vd10, vd11) chặn ở đúng **ba** lỗ hổng trên — và lỗ
-  hổng số 1 (xếp hạng chéo mã) một mình gỡ được phần lõi của cả bốn.
+* 1 ví dụ (vd4) không phải lỗ hổng — thiếu tệp mã.
+* 1 ví dụ (vd8) thật sự cần thư viện ngoài. **Chỗ duy nhất nên dừng.**
+* 1 ví dụ (vd11) cần máy trạng thái, mà LEAN không có khái niệm ấy. Dừng luôn.
+* 5 ví dụ còn lại (vd5, vd7, vd9, vd10, và phần còn thiếu của vd1) chặn ở những
+  model **LEAN đã làm xong** — chỉ chưa có ô để chọn.
+
+Nên việc tiếp theo không phải viết thêm thuật toán. Là **bày thêm bốn bảng model
+LEAN ra giao diện**, bắt đầu từ bảng Chia vốn (2 → 9) và ô Alpha (0 → 6).
