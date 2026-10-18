@@ -46,7 +46,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import bat_dau, chay_lean, hoi, luu_tru
+from cat_studio import bat_dau, chay_lean, hoi, lam, luu_tru
 
 loi = []
 
@@ -173,9 +173,6 @@ CO_Y_BO = {
     "BasePairsTradingAlphaModel":
         "Lớp NỀN cho cặp giao dịch, không tự chạy được. Món dùng được là "
         "PearsonCorrelationPairsTradingAlphaModel kế thừa nó.",
-    "FundamentalUniverseSelectionModel":
-        "Lớp NỀN — đòi người dùng viết hàm lọc bằng Python, trái D-11. Mấy con "
-        "kế thừa nó mà KHÔNG đòi hàm lọc (QC500, EmaCross) thì đã bày.",
     "CoarseFundamentalUniverseSelectionModel":
         "Chữ ký của nó là `(Func<IEnumerable<CoarseFundamental>, "
         "IEnumerable<Symbol>> coarseSelector, …)` — tham số BẮT BUỘC là một HÀM "
@@ -247,9 +244,10 @@ MOC = {
     "chi_bao": 105,
     "chia_von": 8,
     "alpha": 6,
-    "ro": 10,
+    "ro": 11,
     "phong_rui_ro": 4,
     "dat_lenh": 3,
+    "lenh": 10,
 }
 
 
@@ -404,6 +402,14 @@ dang_bay = {
     "ro": len(bat_dau.RO),
     "phong_rui_ro": len(ma_app(bat_dau.PHONG_RUI_RO)),
     "dat_lenh": len(ma_app(bat_dau.DAT_LENH)),
+    # Mấy hàm đặt lệnh khối Hành động THẬT SỰ gọi — đếm từ ô `lean`, không đếm số
+    # khối: một khối «Lệnh chờ» mang bảy kiểu lệnh, nên đếm khối là đếm hụt.
+    "lenh": len({m for m in re.findall(
+        r"self\.([a-z_]+)\(",
+        " ".join([d.get("lean") or "" for d in lam.LOAI_LAM.values()]
+                 + [n.get("lean") or "" for d in lam.LOAI_LAM.values()
+                    for n in (d.get("theo_loai") or {}).values()]))
+        if m.endswith("order") or m in ("set_holdings", "liquidate")}),
 }
 for khoa, moc in sorted(MOC.items()):
     n = dang_bay[khoa]
@@ -624,6 +630,27 @@ _truot_lean = _lop_duoi("Common/Orders/Slippage", "SlippageModel")
 BO_MAT.update({k: v[1] for k, v in bat_dau.PHI_TRUOT_DOC.items() if not v[0]})
 _mat("model TRƯỢT GIÁ · set_slippage_model", _truot_lean,
      {m for m, *_ in bat_dau.TRUOT_GIA if m}, BO_MAT)
+
+# ⑧ ĐẶT LỆNH · QCAlgorithm.Trading.cs
+# ---------------------------------------------------------------------------
+# ⚠ MẶT NÀY THÊM NGÀY 18/10/2026, VÀ VÌ SAO NÓ THIẾU THÌ ĐÁNG GHI LẠI. Bảy mặt trên
+# đếm nhịp, độ phân giải, chuẩn hoá giá, loại tài sản, phí, trượt giá — tức mấy ô của
+# khối BẮT ĐẦU. Còn cái khối Hành động thật sự GỌI thì không ai đếm, nên không ai
+# biết app bày đủ hay thiếu kiểu lệnh. Hôm nay hoá ra là ĐỦ (13/13) — nhưng "hoá ra"
+# mới là chỗ dở: nó đúng do may, không do có ai canh.
+#     Và cái giá đã trả rồi: `tai_lieu/soat_11_vi_du.md` chép rằng khối Hành động
+#     "chưa bày MarketOnOpenOrder", trong khi `lam.LENH_CHO` khai nó từ lâu. Một
+#     bảng không ai đếm thì chính tôi cũng đoán sai về nó.
+_lenh_lean = _ham_lean(
+    r"public (?:OrderTicket|List<OrderTicket>|IEnumerable<OrderTicket>) ([A-Za-z]+)\(",
+    "Algorithm", "QCAlgorithm.Trading.cs")
+_cau_lam = " ".join(
+    [d.get("lean") or "" for d in lam.LOAI_LAM.values()]
+    + [n.get("lean") or "" for d in lam.LOAI_LAM.values()
+       for n in (d.get("theo_loai") or {}).values()])
+_lenh_app = {x for x in _lenh_lean if f"self.{_snake(x)}(" in _cau_lam}
+BO_MAT.update(lam.LENH_KHONG_BAY)
+_mat("đặt lệnh · QCAlgorithm.Trading", _lenh_lean, _lenh_app, BO_MAT)
 
 print()
 print("⑤ DANH SÁCH BỎ không được phép MỤC")

@@ -109,8 +109,14 @@ kiem("HUỶ HẾT của một mã thì CÓ — một câu, không nhớ gì",
 print("\n▸ Cố ý bỏ: lệnh quyền chọn nhiều chân")
 for cam in ("combo", "exerciseoption"):
     kiem(f"không có `{cam}`", cam not in ca_bo)
-kiem("và lý do bỏ được ghi lại trong lam.py",
-     "ComboMarketOrder" in lam.__doc__ and "chủ ý" in lam.__doc__)
+# ⚠ HỎI BẢNG, ĐỪNG HỎI LỜI TỰA. Bản trước tìm chữ "ComboMarketOrder" trong `__doc__`
+# — tức canh một CÂU VĂN, mà câu văn thì không ai so với LEAN. Nay lý do nằm trong
+# `LENH_KHONG_BAY`, và `test_du_lean` đọc đúng bảng ấy rồi đối chiếu với mã nguồn
+# LEAN: thiếu một dòng là cổng đỏ, chứ không phải chờ ai đọc lại lời tựa.
+for _x in ("ComboMarketOrder", "ComboLimitOrder", "ComboLegLimitOrder",
+           "ExerciseOption"):
+    kiem(f"`{_x}` có lý do bỏ viết bằng chữ",
+         len(str(lam.LENH_KHONG_BAY.get(_x) or "").strip()) >= 20)
 
 print("\n▸ Ô `tag` là THAM SỐ CỦA LEAN, không phải sáng kiến của ta")
 # LEAN có `tag` trên mọi hàm ĐẶT LỆNH, nhưng `Debug`/`Plot`/`Notify` thì không.

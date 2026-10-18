@@ -382,21 +382,111 @@ không theo loại, và có bài canh cả hai chiều.
 
 ---
 
+## ④ Rổ DOANH NGHIỆP và lệnh MỞ CỬA — hai mảnh cuối của vd10
+
+### Lệnh mở cửa: đã có sẵn, mà tôi vừa viết là chưa
+
+⚠ **Sửa một câu sai ở ngay trang này.** Mục Kết bản trước viết *"lối đặt lệnh
+`MarketOnOpenOrder` thì khối Hành động chưa bày"*. Sai: `lam.LENH_CHO` khai `moo` và
+`moc` từ lâu, nằm trong bảy kiểu của ô «Loại lệnh».
+
+Nhưng khai không phải là chạy, nên lần này chạy thật — SPY 2015–2016, cùng một sơ đồ,
+đổi đúng ô «Loại lệnh»:
+
+| | lệnh | giá khớp |
+|---|---|---|
+| Khớp lúc MỞ cửa | 86 | đúng giá MỞ cửa, **84/84** ngày đối chiếu được |
+| Khớp lúc ĐÓNG cửa | 86 | đúng giá ĐÓNG cửa, **84/84** |
+
+Khớp tới chữ số cuối, sau khi quy về cùng hệ số chỉnh giá. Đây đúng thứ vd10 gốc cần:
+quyết trên giá đóng cửa hôm nay → lệnh khớp giá mở cửa hôm sau → không nhìn trộm
+tương lai.
+
+### Và vì sao tôi đoán sai: một bảng KHÔNG AI ĐẾM
+
+Bài `test_du_lean` đếm 13 mặt của LEAN, mà **không mặt nào là mấy hàm ĐẶT LỆNH**. Bảy
+mặt "khác" đều là ô của khối Bắt đầu — nhịp, độ phân giải, chuẩn hoá giá, loại tài
+sản, phí, trượt giá. Còn cái khối Hành động thật sự gọi thì không ai so với LEAN.
+
+Hôm nay đếm ra **đủ**: `QCAlgorithm.Trading.cs` có 18 hàm trả `OrderTicket`, app gọi
+10, 8 cái còn lại bỏ có chủ ý. Nhưng "hoá ra là đủ" mới là chỗ dở — nó đúng do may,
+không do có ai canh. Nay nó là **mặt thứ tám**, và lý do bỏ nằm trong
+`lam.LENH_KHONG_BAY` để bài kiểm đọc thẳng, chứ không nằm trong một câu ở lời tựa.
+
+| bỏ | vì sao |
+|---|---|
+| `Buy` · `Sell` · `Order` | chỉ là `MarketOrder` đổi dấu / đổi tên cũ |
+| `SubmitOrderRequest` | cửa tầng dưới, mọi kiểu lệnh qua nó đều đã có hàm riêng |
+| `ComboMarketOrder` · `ComboLimitOrder` · `ComboLegLimitOrder` · `ExerciseOption` | lệnh quyền chọn nhiều chân |
+
+### Rổ doanh nghiệp: thêm một rổ, và nó là rổ ĐẦU TIÊN chọn nổi mã
+
+Bảng Rổ vốn đã kín (mọi model LEAN hoặc bày, hoặc khai rõ lý do bỏ), nên chỗ thiếu
+không phải một model — mà là một **hình**: *"xếp cả sàn rồi giữ N mã đầu bảng"*, đúng
+việc `SectorTopUniverse` của vd10 làm.
+
+Nay có rổ **«Giao dịch nhiều tiền nhất — giữ N mã»**, dựng trên
+`FundamentalUniverseSelectionModel`. Lớp ấy trước đây nằm trong danh sách bỏ với lý do
+*"đòi NGƯỜI DÙNG viết hàm lọc Python"* — lý do đúng, nhưng hẹp hơn tôi tưởng: ở đây
+câu lọc **cố định**, nằm trong từ điển như mọi câu `lean` khác, và chỗ trống duy nhất
+là một CON SỐ. Người dùng không gõ Python, app không tính gì — `dollar_volume` là
+trường LEAN đưa, còn xếp hạng rồi cắt N thì bộ chọn rổ nào cũng phải làm.
+
+#### Và một điều kiện đã giết cả rổ, lặng thinh
+
+Bản đầu chép nguyên tầng một của QC500, kể cả `has_fundamental_data`. Kết quả: 0 lệnh,
+backtest chạy hết, không một lời nào. Soi thẳng bằng một lượt chạy có ghi nhật ký:
+
+```
+DORO nhìn thấy 7111, lọc còn 0, trả về 0: []
+DORO mẫu: price=55.26 volume=1983802 dollar=109624898.0 hasfund=False
+```
+
+Bảy nghìn mã có `price` · `volume` · `dollar_volume` **đúng số của tệp coarse**, mà
+`has_fundamental_data` là False ở **cả 7.111** — vì trường ấy do `FundamentalService`
+phục vụ, tức kho `fine`, chứ không đọc từ tệp coarse. Không có `fine` thì nó False
+sạch, và một điều kiện `and` là đủ.
+
+* Đây chính là lý do **`QC500` chọn 0 mã** trên bộ miễn phí.
+* Và nó **KHÁC** lý do của `ema_cheo`: đọc `EmaCrossUniverseSelectionModel.SelectCoarse`
+  thì model ấy không hề hỏi `HasFundamentalData` — nó chết vì mười một ngày không đủ
+  làm nóng EMA. Hai rổ cùng ra 0, hai bệnh khác nhau, và trang này trước đây gộp cả
+  hai vào một lời giải thích.
+
+Bỏ đúng điều kiện ấy đi thì rổ **chạy thật**: 10 mã mỗi ngày (SPY · IWM · QQQ · AAPL ·
+FB · GOOG · TSLA · NFLX · GILD · EEM…), rổ đổi mã theo ngày, và sơ đồ vẽ ra đặt
+**211 lệnh trên 10 mã**. Đây là rổ doanh nghiệp đầu tiên của app chọn nổi một mã nào.
+
+#### vd10 bản đầy đủ
+
+Cả ba mảnh ghép vào nhau: rổ tự chọn mỗi ngày → ba sleeve chạy song song ghi điểm vào
+ba ô nhớ → một tín hiệu với trọng số `0,34·A + 0,33·B + 0,33·C`. Chạy đúng mười một
+ngày có dữ liệu: **40 lệnh trên 8 mã**. Mười một ngày thì con số lãi lỗ không nói lên
+gì — cái được chứng minh là bộ máy, không phải chiến thuật.
+
+#### Còn thiếu, và thiếu vì DỮ LIỆU
+
+vd10 gốc chia rổ theo **NGÀNH** rồi lấy N mã **vốn hoá** lớn nhất mỗi ngành. Cả hai
+trường ấy (`asset_classification.morningstar_sector_code`, `market_cap`) nằm trong
+`fine` của Morningstar, mà `Data/equity/usa/fundamental/` kèm LEAN chỉ có `coarse/`.
+Bày ô «Ngành» ra là bày một ô lọc ra rỗng mọi lúc — nên để nguyên, và ghi lý do ở đây
+cùng ngay trên dòng rổ ấy trong `bat_dau.py`. Mua bộ fundamental rồi mới thêm.
+
+---
+
 ## Kết
 
-Về phần VỎ thì xong: 177 món của LEAN, 136 bày ra, 41 khai rõ lý do, không còn món
-nào thiếu mà không ai biết. Và từ nay có bài canh đứng ở đó, nên bảng nào tụt lại sau
-LEAN là cổng đỏ chứ không phải chờ một ví dụ lòi ra.
+Về phần VỎ thì xong, và nay đếm trên **14 mặt** chứ không phải 13 — mặt mới là mấy
+hàm ĐẶT LỆNH, thứ trước đây không ai so với LEAN. Mỗi mặt: bày hết, hoặc khai rõ lý
+do bỏ bằng chữ, và có bài canh đứng đó.
 
-Về khả năng VẼ thì **bốn lỗ hổng ban đầu nay hết**. Chỗ còn lại không phải lỗ hổng của
-app:
+Về khả năng VẼ thì **bốn lỗ hổng ban đầu nay hết**, và vd10 vẽ được cả ba mảnh của
+nó. Chỗ còn lại không phải lỗ hổng của app:
 
 * **vd4** — `import` hai tệp không có trong thư mục. Thiếu TỆP, không thiếu tính năng.
 * **vd8** — PCA. LEAN không có, nên làm nó là tự viết thuật toán. Chỗ nên dừng.
-* **vd10 · vd11 bản ĐẦY ĐỦ** — vẽ được cái lõi (netting ba sleeve · nhớ qua nến), còn
-  phần rổ doanh nghiệp thì dữ liệu miễn phí chỉ có 11 ngày (24/03–07/04/2014), và lối
-  đặt lệnh `MarketOnOpenOrder` thì khối Hành động chưa bày. Hai thứ ấy là việc tiếp,
-  và cả hai đều là VỎ.
+* **Chia rổ theo NGÀNH, xếp theo VỐN HOÁ** — cần bộ `fine` của Morningstar. Thiếu
+  DỮ LIỆU, không thiếu tính năng: hôm có `fine` thì thêm một dòng vào bảng `RO`.
 
 Nói gọn: **ba chỗ bí cuối đã bịt, và cái nào cũng bịt bằng vỏ** — không một dòng thuật
 toán nào của LEAN bị app viết lại.

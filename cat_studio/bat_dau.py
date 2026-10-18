@@ -991,6 +991,9 @@ RO = (
     # nhưng chưa chọn nổi một mã nào — mua bộ fundamental của QuantConnect mới dùng
     # thật. Bày kèm câu nhắc còn hơn giấu: giấu thì người dùng không biết là app
     # nói được câu «chỉ giữ N mã», và đó mới là câu họ đi tìm.
+    # ⚠ VÌ SAO QC500 RA 0 MÃ: tầng một của nó lọc `HasFundamentalData`, mà trường ấy
+    # do kho `fine` phục vụ — bộ miễn phí không có `fine` nên nó False sạch. Xem chỗ
+    # rổ «gtgd» ngay dưới: cùng một câu lọc, bỏ đúng điều kiện ấy đi thì chạy thật.
     ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất "
                "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
      "QC500UniverseSelectionModel", (),
@@ -1013,6 +1016,50 @@ RO = (
                   "mặc định 500 — để cao thì nặng máy.")),
      "set_universe_selection(EmaCrossUniverseSelectionModel({ema_nhanh}, "
      "{ema_cham}, {giu_n}))"),
+    # ⚠ RỔ NÀY DỰNG TRÊN `FundamentalUniverseSelectionModel`, LỚP MÀ BẢNG BỎ ĐÃ CHÊ
+    # — và lời chê ấy không sai, nó chỉ hẹp hơn tôi tưởng. Nguyên văn: *"đòi NGƯỜI
+    # DÙNG viết hàm lọc bằng Python, trái D-11"*. Đúng, nếu ô ấy là chỗ gõ Python.
+    # Ở đây câu lọc CỐ ĐỊNH, nằm trong từ điển y như mọi câu `lean` khác, và chỗ
+    # trống duy nhất là một CON SỐ. Người dùng không gõ gì, app không tính gì:
+    # `dollar_volume` là trường LEAN đưa sẵn, còn xếp hạng rồi cắt lấy N thì bộ chọn
+    # rổ NÀO cũng phải làm — đó là định nghĩa của việc chọn rổ.
+    #
+    # ⚠ VÀ ĐÂY LÀ TẦNG MỘT CỦA CHÍNH QC500, chép từ `QC500UniverseSelectionModel.cs`:
+    #       where x.HasFundamentalData && x.Volume > 0 && x.Price > 0
+    #       orderby x.DollarVolume descending
+    # Tầng HAI của QC500 mới cần `fine` (vốn hoá > 500 triệu) — thứ bộ miễn phí không
+    # có. Nên tách tầng một ra bày riêng là bày đúng phần dữ liệu miễn phí CHẠY ĐƯỢC,
+    # chứ không phải vẽ thêm một nút chết.
+    #
+    # ⚠ NHƯNG BỎ ĐI ĐÚNG MỘT ĐIỀU KIỆN: `has_fundamental_data`. Chép nguyên tầng một
+    # của QC500 thì rổ ra RỖNG, và đã soi thẳng bằng một lượt chạy thật: bộ chọn nhìn
+    # thấy 7.111 mã với `price` · `volume` · `dollar_volume` ĐÚNG SỐ trong tệp coarse,
+    # mà `has_fundamental_data` là False ở CẢ 7.111 — vì trường ấy do
+    # `FundamentalService` phục vụ, tức kho `fine`, chứ không đọc từ tệp coarse. Không
+    # có `fine` thì nó False sạch, và một điều kiện `and` là đủ giết cả rổ.
+    #     Đây chính là lý do `QC500` chọn 0 mã trên bộ miễn phí — KHÁC lý do của
+    #     `ema_cheo` (cái kia chết vì mười một ngày không đủ làm nóng EMA, đọc
+    #     `EmaCrossUniverseSelectionModel.SelectCoarse` thì thấy nó không hề hỏi
+    #     `HasFundamentalData`). Hai rổ cùng ra 0, hai bệnh khác nhau.
+    # Bỏ điều kiện ấy đi thì rổ chạy thật: 10 mã mỗi ngày (SPY · IWM · QQQ · AAPL ·
+    # FB · GOOG · TSLA · NFLX · GILD · EEM…) và rổ đổi mã theo ngày.
+    #
+    # ⚠ CÒN THIẾU, VÀ THIẾU VÌ DỮ LIỆU: vd10 chia rổ theo NGÀNH rồi lấy N mã vốn hoá
+    # lớn nhất mỗi ngành. Ngành (`asset_classification.morningstar_sector_code`) và
+    # vốn hoá (`market_cap`) đều nằm trong `fine` của Morningstar — thư mục
+    # `Data/equity/usa/fundamental/` kèm LEAN chỉ có `coarse/`. Bày ô «Ngành» ra là
+    # bày một ô lọc ra RỖNG mọi lúc. Mua bộ fundamental rồi mới thêm được.
+    ("gtgd", "Giao dịch nhiều tiền nhất — giữ N mã "
+             "(cần dữ liệu doanh nghiệp: chỉ có 24/03–07/04/2014)",
+     "FundamentalUniverseSelectionModel",
+     (_o_ro("giu_n", "Giữ mấy mã", O_SO, 20, don_vi="mã", nguyen=True,
+            goi_y="Mỗi ngày LEAN xếp cả sàn theo GIÁ TRỊ GIAO DỊCH (giá × khối "
+                  "lượng) rồi giữ ngần này mã đầu bảng. Đây là tầng một của QC500, "
+                  "tách ra để chạy được bằng bộ dữ liệu miễn phí."),),
+     "set_universe_selection(FundamentalUniverseSelectionModel("
+     "lambda f: [x.symbol for x in sorted("
+     "(y for y in f if y.volume > 0 and y.price > 0), "
+     "key=lambda y: y.dollar_volume, reverse=True)[:{giu_n}]]))"),
     ("etf_thanh_khoan", "Rổ ETF thanh khoản — cả sáu nhóm", "LiquidETFUniverse", (),
      "set_universe_selection(LiquidETFUniverse())"),
     ("kim_loai", "ETF kim loại — vàng, bạc, bạch kim", "MetalsETFUniverse", (),

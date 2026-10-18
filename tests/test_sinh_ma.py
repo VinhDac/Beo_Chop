@@ -324,13 +324,77 @@ kiem("«lấy 0» — câu khai bỏ hàm lọc y như mã",
      bat_dau.lean_ro({"ro": "etf", "ma_etf": "SPY", "lay": 0}) in r_ca_ro["ma"],
      f"— khai {bat_dau.lean_ro({'ro': 'etf', 'ma_etf': 'SPY', 'lay': 0})!r}")
 
+# ---- RỔ DOANH NGHIỆP: chạy THẬT câu lọc, không chỉ đọc nó ----
+# ⚠ CÂU LỌC NÀY KHÔNG GIỐNG MẤY RỔ KHÁC. Chín rổ kia gọi một lớp LEAN và hết; rổ này
+# truyền vào một `lambda`, nên nó có RUỘT — và ruột thì chạy sai được mà vẫn sinh ra
+# mã sạch, vẫn chạy hết backtest, chỉ là rổ RỖNG và 0 lệnh.
+#
+# ⚠ VÀ ĐÃ HỎNG ĐÚNG KIỂU ẤY MỘT LẦN. Bản đầu chép nguyên tầng một của QC500, kể cả
+# `has_fundamental_data` — soi bằng một lượt chạy thật thì bộ chọn nhìn thấy 7.111
+# mã với `price` · `volume` · `dollar_volume` đúng số, mà `has_fundamental_data` là
+# False ở CẢ 7.111: trường ấy do `FundamentalService` (kho `fine`) phục vụ, không
+# đọc từ tệp `coarse`. Một điều kiện `and` giết cả rổ, và không gì kêu.
+print(NL + "  (2c) rổ doanh nghiệp — câu lọc CHẠY ra đúng N mã")
+
+
+class _MaGia:
+    """Một dòng `Fundamental` giả — đúng mấy trường câu lọc đụng tới."""
+
+    def __init__(self, ten, gia, kl, co_fund=False):
+        self.symbol, self.price, self.volume = ten, gia, kl
+        self.dollar_volume = gia * kl
+        self.has_fundamental_data = co_fund
+
+
+def _chay_loc(cau, ds):
+    """Bóc `lambda` trong câu khai rổ rồi chạy nó. -> danh sách mã."""
+    # Gỡ mấy dấu `)` ĐÓNG Ở CUỐI — của `FundamentalUniverseSelectionModel(` và của
+    # `set_universe_selection(`. Cắt bằng `rindex(")")` thì chỉ gỡ được một, mà thân
+    # lambda cũng đầy dấu `)` nên không đếm ngược được: `rstrip` là đúng việc, vì
+    # thân lambda kết thúc bằng `]`.
+    than = cau[cau.index("lambda"):].rstrip(")")
+    return list(eval(than)(ds))            # noqa: S307 — chuỗi của CHÍNH từ điển
+
+
+_ds_gia = ([_MaGia(f"M{i}", 10.0 + i, 1000) for i in range(30)]
+           + [_MaGia("RAC1", 0, 5000), _MaGia("RAC2", 50, 0)])
+_cau_ro = bat_dau.lean_ro({"ro": "gtgd", "giu_n": 5})
+_ra = _chay_loc(_cau_ro, _ds_gia)
+kiem("lấy đúng 5 mã", len(_ra) == 5, f"— ra {len(_ra)}")
+kiem("và đúng 5 mã GIAO DỊCH NHIỀU TIỀN NHẤT",
+     _ra == ["M29", "M28", "M27", "M26", "M25"], f"— {_ra}")
+kiem("mã giá 0 hay khối lượng 0 bị loại",
+     not ({"RAC1", "RAC2"} & set(_chay_loc(
+         bat_dau.lean_ro({"ro": "gtgd", "giu_n": 40}), _ds_gia))))
+# Cái chốt: mọi mã `has_fundamental_data=False` — y như bộ dữ liệu miễn phí — mà rổ
+# vẫn phải đầy. Thêm lại điều kiện ấy vào câu lọc là phép này ra 0 và cổng đỏ.
+kiem("KHÔNG lọc `has_fundamental_data` — bộ miễn phí trả False sạch",
+     "has_fundamental_data" not in _cau_ro and len(_ra) == 5,
+     "— trường ấy do kho `fine` phục vụ, không có `fine` thì nó False hết")
+
+# ---- Thẻ khối phải GHI RA SỐ của rổ ----
+# «giữ 10 mã» với «giữ 200 mã» là hai cỗ máy khác hẳn nhau, mà thẻ chỉ in TÊN rổ thì
+# hai cái trông y hệt nhau trên canvas. Lặp qua chính `bat_dau.RO`, nên thêm một rổ
+# có ô con mà quên cho thẻ nói số là phép này đỏ.
+print(NL + "  (2c-2) thẻ khối Bắt đầu ghi ra SỐ của rổ")
+for _r in bat_dau.RO:
+    _o_con = [x for x in _r[3] if x["ten"] != "ma_etf"]
+    if not _o_con or _r[0] == "etf":
+        continue
+    _bd = core.make_start_step()
+    _bd["ma"] = {"ro": _r[0]}
+    _the = NL.join(core.mo_ta_bat_dau(_bd))
+    kiem(f"rổ «{_r[0]}» — thẻ ghi đủ {len(_o_con)} số",
+         all(str(core._so_gon(core._f(x["mac_dinh"]))) in _the for x in _o_con),
+         f"— {_the.splitlines()[1] if len(_the.splitlines()) > 1 else _the}")
+
 # BA TRẠM CỦA DÂY CHUYỀN — cùng luật ấy, và đây là chỗ nó vừa cứu một lỗi đã chạy
 # thật. Chỗ này từng tự ghép `self.{ham}({lop}())` ngay trong `sinh_ma`, luôn KHÔNG
 # THAM SỐ, nên `StandardDeviationExecutionModel` chạy với `Resolution.MINUTE` mặc
 # định và ném ngoại lệ ở nến đầu mọi sơ đồ nhịp ngày — 0 lệnh, và bảng Kết quả không
 # nói gì. Nay `bat_dau.lean_day_chuyen` là một bản sự thật cho cả hai bên, và phép
 # dưới đây lặp qua CẢ BA BẢNG: thêm một model là nó canh luôn.
-print(NL + "  (2c) ba trạm dây chuyền — câu khai cũng là một KHÚC của mã thật")
+print(NL + "  (2d) ba trạm dây chuyền — câu khai cũng là một KHÚC của mã thật")
 for _ten_o, _bang in (("chia_von", bat_dau.CHIA_VON),
                       ("phong_rui_ro", bat_dau.PHONG_RUI_RO),
                       ("dat_lenh", bat_dau.DAT_LENH)):

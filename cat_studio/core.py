@@ -366,6 +366,15 @@ def mo_ta_bat_dau(step):
         # RỔ phải hiện NGUYÊN câu của nó, kể cả mã ETF và số mã lấy: "rổ ETF" chung
         # chung thì thẻ khối không nói nổi hai cỗ máy khác nhau ở chỗ nào.
         dong = [f"rổ: {ro[1]}"]
+        # ⚠ VÀ PHẢI GHI RA SỐ CỦA RỔ. Rổ nào có ô con thì mấy con số ấy LÀ chiến
+        # thuật: «giữ 10 mã» với «giữ 200 mã» là hai cỗ máy khác hẳn nhau, mà thẻ chỉ
+        # in tên rổ thì hai cái trông y hệt. Lặp qua ô con của CHÍNH từ điển, nên
+        # thêm một rổ có ô là thẻ nói luôn, không phải nhớ sửa thêm chỗ này.
+        o_con = [o for o in bat_dau.o_ro_cua(gt_ma) if o["ten"] != "ma_etf"]
+        if ro[0] != "etf" and o_con:
+            dong.append(" · ".join(
+                f"{o['nhan']}: {_so_gon(_f(bat_dau.gt_ro(gt_ma, o['ten'])))}"
+                for o in o_con))
         if ro[0] == "etf":
             lay = _f(bat_dau.gt_ro(gt_ma, "lay")) or 0
             etf = str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper() or "?"

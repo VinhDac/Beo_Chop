@@ -16,9 +16,10 @@ MỘT ĐƯỜNG RANH ĐÃ VẠCH, và vạch có lý do:
      nến, tức sơ đồ sinh ra trạng thái, tức app lại có backend để mà gỡ lỗi.
   Muốn dời cắt lỗ thì: huỷ hết → đặt lại. Hai khối, không nhớ gì.
 
-CỐ Ý BỎ: `ComboMarketOrder` / `ComboLimitOrder` / `ComboLegLimitOrder` /
-`ExerciseOption` — lệnh quyền chọn nhiều chân, cần cả một bộ chọn chuỗi quyền chọn.
-Ghi lại để biết là bỏ có chủ ý, không phải quên.
+CỐ Ý BỎ mấy hàm đặt lệnh nào, và VÌ SAO: xem `LENH_KHONG_BAY` ở cuối file. Để nó
+thành một BẢNG chứ không phải một câu trong lời tựa, vì `test_du_lean` đọc thẳng bảng
+ấy — lý do viết trong lời tựa thì không ai đứng so với LEAN, và hôm LEAN thêm một hàm
+đặt lệnh mới thì chẳng có gì kêu.
 """
 
 # ---------------------------------------------------------------------------
@@ -562,3 +563,38 @@ def tu_dien():
             for ma, d in LOAI_LAM.items()
         ],
     }
+
+# ---------------------------------------------------------------------------
+# CỐ Ý KHÔNG BÀY — mấy hàm đặt lệnh của LEAN mà khối Hành động không nhận
+# ---------------------------------------------------------------------------
+#: ⚠ BẢNG NÀY LÀ ĐỂ CÓ NGƯỜI ĐẾM. `QCAlgorithm.Trading.cs` có 18 hàm trả về
+#: `OrderTicket`; app gọi 13. Năm cái còn lại bỏ có chủ ý — mà "có chủ ý" chỉ đúng
+#: chừng nào nó viết ra một chỗ máy đọc được. `tests/test_du_lean.py` đọc bảng này
+#: rồi so với mã nguồn LEAN, nên hôm LEAN thêm một kiểu lệnh mới là cổng đỏ ngay,
+#: không phải chờ một ví dụ lòi ra.
+LENH_KHONG_BAY = {
+    "Buy":
+        "Chỉ là `MarketOrder` với số lượng DƯƠNG — khối «Lệnh thị trường» nhận số "
+        "âm/dương nên đã nói được cả hai chiều. Bày thêm là bày hai cách gọi một "
+        "hàm, và mời người dùng nghĩ rằng chúng khác nhau.",
+    "Sell":
+        "Chỉ là `MarketOrder` với số lượng ÂM — cùng lý do với `Buy`.",
+    "Order":
+        "Tên CŨ của `MarketOrder`, LEAN giữ lại cho mã cũ chạy được. Bày ra là bày "
+        "một lối viết đã bỏ.",
+    "SubmitOrderRequest":
+        "Cửa ở TẦNG DƯỚI: nhận một `SubmitOrderRequest` tự dựng (loại lệnh, số "
+        "lượng, giá, cờ… gói trong một đối tượng). Mọi kiểu lệnh đi qua nó đều đã "
+        "có một hàm riêng ở trên, và mấy hàm riêng ấy mới là thứ khai thành ô được.",
+    "ComboMarketOrder":
+        "Lệnh nhiều chân của QUYỀN CHỌN — cần cả một bộ chọn chuỗi quyền chọn (ngày "
+        "đáo hạn, giá thực hiện, số chân), mà sơ đồ chưa có khối nào nói về quyền "
+        "chọn và bộ dữ liệu miễn phí cũng không có quyền chọn.",
+    "ComboLimitOrder":
+        "Lệnh nhiều chân của QUYỀN CHỌN — cùng lý do với `ComboMarketOrder`.",
+    "ComboLegLimitOrder":
+        "Lệnh nhiều chân của QUYỀN CHỌN — cùng lý do với `ComboMarketOrder`.",
+    "ExerciseOption":
+        "THỰC HIỆN một hợp đồng quyền chọn đang giữ — cần khối quyền chọn, và bộ "
+        "dữ liệu miễn phí không có quyền chọn.",
+}
