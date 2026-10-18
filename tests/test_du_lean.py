@@ -246,7 +246,7 @@ CO_Y_BO = {
 MOC = {
     "chi_bao": 105,
     "chia_von": 8,
-    "alpha": 0,
+    "alpha": 6,
     "ro": 10,
     "phong_rui_ro": 4,
     "dat_lenh": 3,

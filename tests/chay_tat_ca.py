@@ -28,6 +28,11 @@ BAI = [
     # với chính nó, bài này soi chỗ hai bảng phải khớp nhau. Dựng lại ví dụ 1 lôi ra
     # tám lỗi trong một buổi, và cả tám đều nằm ở mối nối chứ không nằm trong hộp.
     ("test_moi_noi.py", "MỐI NỐI — hai bảng phải dài bằng nhau, mà không ai đứng so"),
+    # VÀ CUỐI CÙNG, một bậc cao hơn nữa: `test_moi_noi` soi hai bảng CỦA TA với nhau,
+    # bài này soi bảng của ta với KỆ CỦA LEAN. Nó vào danh sách hôm nay, khi đã xanh —
+    # nối một bài biết trước là đỏ thì ba ngày nữa không ai còn đọc cổng.
+    ("test_du_lean.py", "ĐỦ LEAN — app có bày hết những gì LEAN cho, hay chỉ bày "
+                        "theo ví dụ vừa gặp"),
 ]
 
 hong = []

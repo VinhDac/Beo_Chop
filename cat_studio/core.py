@@ -1788,19 +1788,30 @@ def soat_day_chuyen(steps):
                 co_lenh_tay.append(x)
 
     chia = str(o_bat_dau(bd, "chia_von") or "").strip()
+    # ⚠ TÍN HIỆU CÓ HAI NGUỒN, KHÔNG MỘT. Khối «Phát tín hiệu» trên sơ đồ là một;
+    # model Alpha ở ô «Phát tín hiệu tự động» là nguồn thứ hai, và nó phát cho MỌI
+    # mã trong rổ mà không cần một khối nào. Phép soát này trước đó chỉ biết nguồn
+    # thứ nhất, nên vừa thêm ô Alpha là nó kêu oan ngay: «chọn chia vốn mà sơ đồ
+    # không có khối Phát tín hiệu nào» — đúng chữ, sai nghĩa, vì trạm Alpha đang
+    # phát đầy. Và một lời kêu oan thì người dùng học cách bỏ qua cả phép soát.
+    alpha = str(o_bat_dau(bd, "phat_tin_hieu") or "").strip()
+    co_nguon = bool(co_tin_hieu) or bool(alpha)
 
-    if co_tin_hieu and not chia:
-        _loi(ra, "error", co_tin_hieu[0].get("id"),
-             "Sơ đồ có khối «Phát tín hiệu» mà khối Bắt đầu chưa chọn «Chia vốn theo "
-             "tín hiệu» — tín hiệu phát ra KHÔNG ai nhận, và backtest chạy xong sẽ "
-             "không có lệnh nào.")
-    if chia and not co_tin_hieu:
+    if co_nguon and not chia:
+        _loi(ra, "error",
+             (co_tin_hieu[0].get("id") if co_tin_hieu else bd.get("id")),
+             ("Sơ đồ có khối «Phát tín hiệu»" if co_tin_hieu
+              else f'Khối Bắt đầu chọn phát tín hiệu tự động «{alpha}»')
+             + " mà khối Bắt đầu chưa chọn «Chia vốn theo tín hiệu» — tín hiệu phát "
+               "ra KHÔNG ai nhận, và backtest chạy xong sẽ không có lệnh nào.")
+    if chia and not co_nguon:
         _loi(ra, "warning", bd.get("id"),
-             f'Khối Bắt đầu chọn chia vốn «{chia}», mà sơ đồ không có khối «Phát tín '
-             f"hiệu» nào — trạm ấy không có gì để chia.")
-    if co_tin_hieu and co_lenh_tay:
+             f'Khối Bắt đầu chọn chia vốn «{chia}», mà không có nguồn tín hiệu nào — '
+             f'sơ đồ không có khối «Phát tín hiệu», và ô «Phát tín hiệu tự động» '
+             f'cũng để trống. Trạm ấy không có gì để chia.')
+    if co_nguon and co_lenh_tay:
         _loi(ra, "error", co_lenh_tay[0].get("id"),
-             "Sơ đồ vừa «Phát tín hiệu» vừa đặt lệnh tay. Hai thứ giành nhau danh "
+             "Sơ đồ vừa phát tín hiệu vừa đặt lệnh tay. Hai thứ giành nhau danh "
              "mục: model chia vốn cân lại theo tỷ trọng của nó, nên lệnh đặt tay bị "
              "gỡ ngay nhịp sau. Chọn MỘT lối.")
 

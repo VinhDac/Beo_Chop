@@ -341,6 +341,108 @@ CHIA_VON_THIEU_DU_LIEU = {
 }
 
 
+def _o_alpha(ten, nhan, mac_dinh, don_vi="", goi_y="", nguyen=True):
+    """Một ô CON của một model Phát tín hiệu — nằm TRONG bảng `PHAT_TIN_HIEU`.
+
+    Cùng lối `_o_ro` và `_o_nguong`: ô của model nào thì nằm trong dòng model ấy, nên
+    đổi model là ô cũ đi theo, không còn một ô lơ lửng không thuộc câu nào."""
+    return _o(ten, nhan, O_SO, mac_dinh, "", don_vi=don_vi, goi_y=goi_y,
+              nguyen=nguyen)
+
+
+#: TRẠM ALPHA của dây chuyền LEAN — model TỰ phát tín hiệu, không cần khối vẽ nào.
+#:
+#: ⚠ VÌ SAO TRẠM NÀY ĐÁNG CÓ. Sơ đồ của app phát tín hiệu bằng khối «Phát tín hiệu»,
+#: và đó là một cách. LEAN còn một cách thứ hai: cắm một model Alpha, nó tự xem mọi
+#: mã trong rổ rồi tự phát. vd4 trong `tai_lieu/chiến thuật ví dụ/` là đúng hình ấy —
+#: 34 dòng, không một câu if nào, chỉ `add_alpha(...)` cộng ba trạm sau. Không có ô
+#: này thì cả một họ chiến thuật của LEAN không vẽ được, mà lỗ hổng ấy KHÔNG lòi ra
+#: ở đâu cả: sơ đồ vẫn vẽ được, backtest vẫn ra số.
+#:
+#: (mã, nhãn, ô con, CÂU LEAN). Trong câu: `{tên_ô}` thay bằng giá trị ô, `{res}`
+#: thay bằng độ phân giải thật của sơ đồ.
+#:
+#: ⚠ `{res}` KHÔNG PHẢI MỘT Ô, và phải truyền. Bốn model dưới đây dựng chỉ báo rồi
+#: nối consolidator theo tham số `resolution` của chính chúng, mặc định `DAILY`. Đó
+#: đúng là bệnh `StandardDeviationExecutionModel` đã dính: tham số độ phân giải
+#: không ai truyền thì model chạy ở mặc định của LEAN, và `CreateConsolidator` ném
+#: ngoại lệ ngay nến đầu khi độ phân giải xin NHỎ HƠN cái đã đăng ký. Ô «Nhịp» đã
+#: trả lời câu ấy rồi — hỏi lần thứ hai là mời người dùng nói hai câu khác nhau cho
+#: một thứ.
+PHAT_TIN_HIEU = (
+    ("", "— không dùng —", (), ""),
+    ("EmaCrossAlphaModel", "EMA nhanh cắt lên EMA chậm thì LÊN",
+     (_o_alpha("ema_nhanh", "EMA nhanh", 12, don_vi="nến"),
+      _o_alpha("ema_cham", "EMA chậm", 26, don_vi="nến")),
+     "add_alpha(EmaCrossAlphaModel({ema_nhanh}, {ema_cham}, {res}))"),
+    ("RsiAlphaModel", "RSI quá bán thì LÊN, quá mua thì XUỐNG",
+     (_o_alpha("rsi_n", "Chu kỳ RSI", 14, don_vi="nến"),),
+     "add_alpha(RsiAlphaModel({rsi_n}, {res}))"),
+    ("MacdAlphaModel", "MACD vượt đường tín hiệu thì LÊN",
+     (_o_alpha("macd_nhanh", "Chu kỳ nhanh", 12, don_vi="nến"),
+      _o_alpha("macd_cham", "Chu kỳ chậm", 26, don_vi="nến"),
+      _o_alpha("macd_tin_hieu", "Chu kỳ tín hiệu", 9, don_vi="nến")),
+     "add_alpha(MacdAlphaModel({macd_nhanh}, {macd_cham}, {macd_tin_hieu}, "
+     "MovingAverageType.EXPONENTIAL, {res}))"),
+    # ⚠ MODEL NÀY CHỈ ĐỌC KWARGS. `__init__(self, *args, **kwargs)` rồi
+    # `kwargs['lookback'] if 'lookback' in kwargs else 1` — truyền theo VỊ TRÍ là nó
+    # bỏ qua LẶNG LẼ và chạy ở lookback=1. Nên câu dưới đây gọi bằng TÊN, và đó là
+    # chỗ duy nhất trong bảng này gọi bằng tên.
+    ("HistoricalReturnsAlphaModel", "Lợi suất N nến qua còn dương thì LÊN",
+     (_o_alpha("nhin_lai", "Nhìn lại", 1, don_vi="nến"),),
+     "add_alpha(HistoricalReturnsAlphaModel(lookback={nhin_lai}, "
+     "resolution={res}))"),
+    # ⚠ MODEL NÀY LEAN DỰNG CHO NHỊP PHÚT — mặc định của chính nó là
+    # `Resolution.MINUTE`, và ĐÃ THỬ THẬT: bốn bộ tham số trên nhịp NGÀY
+    # (nhìn lại 15/60/250, ngưỡng 0,5–2%, tương quan 0,3–0,5) đều ra 0 lệnh, 0
+    # insight, không một ngoại lệ nào. Nó chỉ không tìm ra cặp nào đáng vào.
+    #
+    # Vẫn bày, và nói ra trong nhãn: app CÓ nhịp phút, nên model này dùng được thật
+    # ở đó. Giấu đi thì người dùng không biết LEAN có lối giao dịch cặp.
+    #
+    # `nguong_lech` là PHẦN TRĂM 0–100, không phải số lần: docstring LEAN ghi rõ
+    # *"The percent [0, 100] deviation of the ratio from the mean"*. Bản đầu tôi khai
+    # đơn vị "lần" — đọc thì vẫn mượt, mà người dùng gõ 2 nghĩ là «gấp đôi» trong khi
+    # LEAN hiểu «2%».
+    ("PearsonCorrelationPairsTradingAlphaModel",
+     "Giao dịch CẶP — hai mã tương quan cao mà giá rời nhau "
+     "(LEAN dựng cho nhịp PHÚT; nhịp ngày thử ra 0 lệnh)",
+     (_o_alpha("nhin_lai", "Nhìn lại", 15, don_vi="nến"),
+      _o_alpha("nguong_lech", "Lệch khỏi trung bình quá", 1, don_vi="%",
+               nguyen=False,
+               goi_y="Tỉ số hai mã rời khỏi trung bình quá ngần này PHẦN TRĂM thì "
+                     "phát tín hiệu. LEAN hiểu 0–100, nên 1 là 1%."),
+      _o_alpha("tuong_quan_toi_thieu", "Tương quan tối thiểu", 0.5,
+               don_vi="phần", nguyen=False,
+               goi_y="Chỉ coi là một cặp đáng giao dịch khi tương quan từ ngần "
+                     "này trở lên. 0.5 = 50%.")),
+     "add_alpha(PearsonCorrelationPairsTradingAlphaModel({nhin_lai}, {res}, "
+     "{nguong_lech}, {tuong_quan_toi_thieu}))"),
+    ("ConstantAlphaModel", "Luôn phát MỘT hướng cho mọi mã trong rổ",
+     (_o_alpha("han_tin", "Giữ tối đa", 15, don_vi="ngày"),),
+     "add_alpha(ConstantAlphaModel(InsightType.PRICE, InsightDirection.UP, "
+     "timedelta(days={han_tin})))"),
+)
+
+#: Model Alpha -> `(app nuôi được không, nó ĐỌC/CẦN cái gì)`. Cùng lối
+#: `PHONG_RUI_RO_DOC`: giữ cả model CHƯA bày kèm lý do, và phần đầu là một CỜ chứ
+#: không phải một câu — hàng rào đọc văn xuôi là hàng rào có lỗ.
+PHAT_TIN_HIEU_DOC = {
+    "EmaCrossAlphaModel": (True, "chỉ báo của chính nó · CẦN truyền độ phân giải"),
+    "RsiAlphaModel": (True, "chỉ báo của chính nó · CẦN truyền độ phân giải"),
+    "MacdAlphaModel": (True, "chỉ báo của chính nó · CẦN truyền độ phân giải"),
+    "HistoricalReturnsAlphaModel":
+        (True, "ROC của chính nó · CHỈ đọc kwargs, truyền theo vị trí là bỏ qua"),
+    # Vẫn `True` — app nuôi được nó (truyền đủ bốn tham số, đúng đơn vị). Chuyện
+    # «nhịp ngày ra 0 lệnh» là giới hạn của CHÍNH MODEL, không phải app thiếu gì, và
+    # nó nói ra trong nhãn chứ không im.
+    "PearsonCorrelationPairsTradingAlphaModel":
+        (True, "history của cả rổ · tự tìm cặp tương quan cao nhất · LEAN dựng cho "
+               "nhịp PHÚT, nhịp ngày đã thử 4 bộ tham số đều 0 lệnh"),
+    "ConstantAlphaModel": (True, "không đọc gì — phát một hướng cố định"),
+}
+
+
 def _o_nguong(nhan):
     """Ô NGƯỠNG của một model phòng rủi ro — nó nằm TRONG bảng `PHONG_RUI_RO`.
 
@@ -759,6 +861,16 @@ O_BAT_DAU = [
     #
     # Cả ba chỉ có tác dụng khi sơ đồ có khối «Phát tín hiệu» — `soat_dây_chuyền`
     # trong `core.py` canh chuyện đó.
+    # ⚠ TRẠM THỨ TƯ, THÊM 18/10/2026 — xem `PHAT_TIN_HIEU`. Trước đây dây chuyền chỉ
+    # có ba trạm ở đây (chia vốn · phòng rủi ro · đặt lệnh) vì tín hiệu luôn do khối
+    # «Phát tín hiệu» trên sơ đồ phát ra. LEAN còn một nguồn nữa: model Alpha tự xem
+    # cả rổ rồi tự phát. Thiếu ô này thì cả họ chiến thuật ấy không vẽ được (vd4), mà
+    # lỗ hổng KHÔNG lòi ra ở đâu — sơ đồ vẫn vẽ được, backtest vẫn ra số.
+    _o("phat_tin_hieu", "Phát tín hiệu tự động", O_CHON, "",
+       "add_alpha(…)", chon=[(m, n) for m, n, *_ in PHAT_TIN_HIEU],
+       goi_y="Model TỰ phát tín hiệu cho mọi mã trong rổ, không cần khối vẽ nào. "
+             "Dùng được CÙNG LÚC với khối «Phát tín hiệu» — LEAN gộp cả hai nguồn.",
+       bat_buoc=False),
     _o("chia_von", "Chia vốn theo tín hiệu", O_CHON, "",
        "set_portfolio_construction(…)", chon=list(CHIA_VON),
        goi_y="Biến tín hiệu thành tỷ trọng. Không chọn thì tín hiệu phát ra "
@@ -781,6 +893,12 @@ def rui_ro_cua(ma):
     return next((x for x in PHONG_RUI_RO if x[0] and x[0] == m), None)
 
 
+def alpha_cua(ma):
+    """Một mục của `PHAT_TIN_HIEU` theo mã lớp. None nếu để trống hay mã lạ."""
+    m = str(ma or "").strip()
+    return next((x for x in PHAT_TIN_HIEU if x[0] and x[0] == m), None)
+
+
 def o_cua(gia_tri=None):
     """Mọi ô của khối Bắt đầu, KỂ CẢ ô chỉ hiện theo nhịp hay theo model đã chọn.
 
@@ -793,6 +911,9 @@ def o_cua(gia_tri=None):
     r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
     if r:
         ra.extend(r[2])
+    a = alpha_cua((gia_tri or {}).get("phat_tin_hieu"))
+    if a:
+        ra.extend(a[2])
     return ra
 
 
@@ -860,6 +981,18 @@ def lean_day_chuyen(gia_tri=None):
     Mỗi câu ở đây PHẢI là một khúc của mã `sinh_ma` sinh ra, trừ chữ `self.` MỞ ĐẦU
     — cùng quy ước `lean_ro`, và `test_sinh_ma` canh đúng chuyện ấy."""
     ra = []
+    # TRẠM ALPHA đứng TRƯỚC chia vốn, đúng thứ tự dữ liệu chảy qua dây chuyền LEAN:
+    # Rổ -> Alpha -> Chia vốn -> Phòng rủi ro -> Đặt lệnh.
+    a = alpha_cua((gia_tri or {}).get("phat_tin_hieu"))
+    if a:
+        cau = a[3]
+        for o in a[2]:
+            v = gt_o(gia_tri, o["ten"])
+            cau = cau.replace("{%s}" % o["ten"],
+                              repr(_nguyen(v) if o.get("nguyen")
+                                   else _phan(v)))
+        ra.append(cau.replace("{res}", f"Resolution.{do_phan_giai(gia_tri)}"))
+
     chia = str((gia_tri or {}).get("chia_von") or "").strip()
     if chia:
         ra.append(f"set_portfolio_construction({chia}())")
