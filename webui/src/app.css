@@ -1509,9 +1509,9 @@ mark.tim-chu {
    LẶNG, build vẫn sạch. (Đã hỏng thật: 1090 và 1250 nằm trong TSX từ đầu mà CSS
    không hề có.) */
 @media (max-width: 859px) { .hien-tu-860 { display: none; } }
-@media (max-width: 1059px) { .hien-tu-1060 { display: none; } }
-@media (max-width: 1199px) { .hien-tu-1200 { display: none; } }
-@media (max-width: 1344px) { .hien-tu-1345 { display: none; } }
+@media (max-width: 999px) { .hien-tu-1000 { display: none; } }
+@media (max-width: 1144px) { .hien-tu-1145 { display: none; } }
+@media (max-width: 1289px) { .hien-tu-1290 { display: none; } }
 
 /* ==========================================================================
    HỘP THOẠI KHỐI BẮT ĐẦU — hai widget riêng của nó

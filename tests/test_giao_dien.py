@@ -408,6 +408,10 @@ kiem("cú bấm ở mousedown, không ở click",
      "onMouseDown" in doc("components/KhoiMo.tsx")
      and "onClick" not in doc("components/KhoiMo.tsx"),
      "— click bắn sau khi nhả chuột, lúc ấy khối mờ đã bị gỡ khỏi cây")
+kiem("và mang `nopan` để bộ KÉO MÀN nhả cú nhấn ra",
+     "className: 'nopan'" in _sd_mo,
+     "— d3-zoom bắt mousedown ở pha capture trên cả vùng vẽ; khối THẬT được React "
+     "Flow tự gắn nopan vì nó kéo được, khối mờ thì không")
 kiem("ngữ pháp gợi ý do PYTHON nói", "py.goi_y_ke(" in _sd_mo,
      "— viết lại luật rẽ nhánh bằng TS là bản sự thật thứ hai")
 

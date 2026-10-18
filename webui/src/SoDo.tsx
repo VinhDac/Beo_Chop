@@ -1024,6 +1024,14 @@ function SoDoTrong() {
               // khối thật (xem `.khoi-goi-y`), cao 54 = 16+19+16 đệm và một dòng chữ.
               width: 296, height: 54,
               style: { pointerEvents: 'all' as const },
+              // ⚠ `nopan` — CÁI CUỐI CÙNG, và là cái chủ dự án bắt được bằng chuột
+              // thật. Khối mờ SÁNG LÊN khi rê chuột (nên chuột tới được nó) mà bấm
+              // vẫn không ra gì: bộ KÉO MÀN của React Flow (d3-zoom) bắt `mousedown`
+              // ở pha CAPTURE trên cả vùng vẽ, nên nó nuốt cú nhấn trước khi React
+              // kịp gọi handler. Khối THẬT không dính vì React Flow tự gắn `nopan`
+              // cho nút KÉO ĐƯỢC — khối mờ khai `draggable: false` nên không được
+              // gắn. Đọc `noPanClassName: 'nopan'` trong `@xyflow/react`.
+              className: 'nopan',
               selectable: false, draggable: false,
               connectable: false, deletable: false, selected: false,
             }))]
@@ -1520,7 +1528,6 @@ function SoDoTrong() {
       })(), 500)
     })(),
     dung: dungChay,
-    caiDat: () => setMoCaiDat(true),
     moKetQua: () => setMoKhoLuot(true),
     coKetQua: true,   // kho lượt chạy luôn mở được, kể cả lượt của hôm trước
     dangChay,
@@ -1542,7 +1549,6 @@ function SoDoTrong() {
     luu: () => void luu(),
     luuThanh: () => void luuThanh(),
     mo,
-    moi: strategyMoi,
   }
 
   const soLoi = vanDe.filter(v => v.severity === 'error').length

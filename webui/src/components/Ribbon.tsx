@@ -15,12 +15,17 @@ import NutMenu from './NutMenu'
  *
  *  SỐ ĐO THẬT, không chọn cho tròn (luật của Jenifer_Studio). Đo bề ngang từng nhóm
  *  trong trình duyệt rồi CỘNG DỒN từ cái luôn hiện:
- *      sàn = Thêm khối 374 + Cỗ máy 332 + lề 8 = 714
- *      + Hạt nhân 137 -> 851   + Strategy 198 -> 1049
- *      + Sửa 147      -> 1196  + Hoàn tác 143 -> 1339
- *  Làm tròn lên một chút cho có chỗ thở. Cả dải là 1339px, vừa cửa sổ mặc định
+ *      sàn = Thêm khối 373 + Cỗ máy 331 + lề 8 = 712
+ *      + Hạt nhân 137 -> 849   + Strategy 136 -> 985
+ *      + Sửa 147      -> 1132  + Hoàn tác 143 -> 1275
+ *  Làm tròn lên một chút cho có chỗ thở. Cả dải là 1275px, vừa cửa sổ mặc định
  *  1360px — nên ở cỡ mặc định KHÔNG nhóm nào phải ẩn. Sàn cửa sổ là 1020px
  *  (`app_web.py min_size`), nên Hạt nhân thực tế chẳng bao giờ ẩn.
+ *
+ *  ⚠ ĐO LẠI NGÀY 18/10/2026, sau khi Strategy bỏ hai nút «Mới» và «Cài đặt»: nhóm ấy
+ *  hẹp đi 62px (198 -> 136), nên BA ngưỡng sau nó đều tụt theo. Không đo lại thì ba
+ *  nhóm ấy ẩn sớm hơn cần thiết — cửa sổ còn thừa cả trăm pixel mà nút đã biến mất,
+ *  và không ai biết vì sao.
  *
  *  THỨ TỰ ẨN theo "còn đường nào khác không", đúng luật *ẩn một nhóm KHÔNG được lấy
  *  mất việc gì*: Hoàn tác đi trước (Ctrl+Z), rồi Sửa (Ctrl+D/Delete + menu chuột
@@ -34,7 +39,7 @@ import NutMenu from './NutMenu'
  *  không lỗi, không cảnh báo, `tsc` sạch, build sạch — chỉ có ribbon tràn ngang và
  *  nhãn các nút đè lên nhau ở cửa sổ hẹp. (Đã hỏng thật với 1090 và 1250, suốt từ đầu.)
  *  `test_giao_dien` đọc đúng bảng này rồi đối chiếu với `app.css`. */
-const HIEN_TU = { hatNhan: 860, strategy: 1060, sua: 1200, hoanTac: 1345 }
+const HIEN_TU = { hatNhan: 860, strategy: 1000, sua: 1145, hoanTac: 1290 }
 
 function Nhom({ ten, children, hienTu, chinh }: {
   ten: string; children: ReactNode; hienTu?: number
@@ -99,11 +104,8 @@ export interface ViecRibbon {
   /** Đang chạy backtest — khoá nút lại. */
   dangChay: boolean
   luu: () => void
-  /** Mở hộp Cài đặt app (Ctrl+,). */
-  caiDat: () => void
   luuThanh: () => void
   mo: () => void
-  moi: () => void
 }
 
 export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }: {
@@ -175,11 +177,14 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
       </Nhom>
 
       <Nhom ten="Strategy" hienTu={HIEN_TU.strategy}>
-        <Nut ten="Mới" icon="file" onClick={v.moi} title="Ctrl+N" />
+        {/* ⚠ CHỈ CÒN KHO VÀ LƯU. «Mới» và «Cài đặt» đã bỏ khỏi ribbon: cả hai còn
+            cửa khác, và ribbon là chỗ của việc làm HÀNG NGÀY.
+              · Mới   -> menu File > «Strategy mới», và Ctrl+N
+              · Cài đặt -> nút bánh răng ở thanh trạng thái, và Ctrl+,
+            Bỏ một nút mà việc của nó mất luôn thì không được — xem luật thứ tự ẩn
+            nhóm ở đầu file. Hai cái này không mất gì. */}
         <Nut ten="Kho" icon="folder" onClick={v.mo}
              title="Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)" />
-        <Nut ten="Cài đặt" icon="gear" onClick={v.caiDat}
-             title="Cài đặt app — thư mục LEAN, hạn giờ chạy (Ctrl+,)" />
         <NutMenu ten="Lưu" icon="save" title="Ctrl+S"
                  muc={[{ nhan: 'Lưu', phu: 'Ctrl+S — ghi đè bản đang mở',
                          icon: 'save', chay: v.luu },
