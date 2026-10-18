@@ -44,13 +44,13 @@ export function OGhim({ chu, tenO, nhan, so, onDoi, children }: {
   /** Ô số thật, hiện khi CHƯA ghim. */
   children: ReactNode
 }) {
-  const ghim = (chu.ghim ?? {}) as Record<string, string>
+  const ghim = (chu.ghim_num ?? {}) as Record<string, string>
   const ten = ghim[tenO] ?? ''
   const dat = (v: string | null) => {
     const m = { ...ghim }
     if (v === null) delete m[tenO]
     else m[tenO] = v
-    onDoi({ ...chu, ghim: Object.keys(m).length ? m : undefined })
+    onDoi({ ...chu, ghim_num: Object.keys(m).length ? m : undefined })
   }
   return (<>
     {ten

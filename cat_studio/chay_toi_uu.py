@@ -183,7 +183,7 @@ def doc_luot(thu_muc, ten_num=None):
     return ra
 
 
-def chay(ma, ten_lop, cai):
+def chay(ma, ten_lop, cai, so_do=None):
     """Chạy một mẻ Optimize. -> {ok, loi, thu_muc, ket_qua}."""
     sb = san_sang()
     if not sb["ok"]:
@@ -248,7 +248,7 @@ def chay(ma, ten_lop, cai):
                 "nhat_ky": "".join(dong)[-20000:]}
     kq = {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
           "ma_luot": ma_luot, "id": f"{ten_lop}/{ma_luot}",
-          "cai": cai, "ket_qua": ket_qua,
+          "cai": cai, "ket_qua": ket_qua, "so_do": so_do or {},
           "da_dung": da_dung, "so_luot": _TRANG_THAI["so_luot"]}
     _ghi_the(ra_thu_muc, kq)
     don_kho()
@@ -256,7 +256,14 @@ def chay(ma, ten_lop, cai):
 
 
 def _ghi_the(thu_muc, kq):
-    the = {k: kq.get(k) for k in ("ten_lop", "ma_luot", "id", "cai", "so_luot")}
+    # GIỮ CẢ SƠ ĐỒ trong thẻ, không chỉ bộ cài đặt.
+    #
+    # Vì bấm đúp một dòng xếp hạng phải mở ra ĐÚNG SƠ ĐỒ ẤY — kể cả khi canvas đang
+    # trống, hay đang vẽ một chiến thuật khác, hay mẻ chạy từ tuần trước. Chỉ nhớ
+    # mấy con số thì không đủ: biết `sma_chu_ky = 240` mà không biết nó nằm trong sơ
+    # đồ nào thì đặt vào đâu. Một sơ đồ chỉ vài KB, rẻ hơn hẳn cái mẻ nó sinh ra.
+    the = {k: kq.get(k)
+           for k in ("ten_lop", "ma_luot", "id", "cai", "so_luot", "so_do")}
     the["luc"] = time.time()
     the["so_xong"] = len(kq.get("ket_qua") or [])
     try:
@@ -321,7 +328,7 @@ def don_kho():
     return xoa
 
 
-def bat_dau_chay(ma, ten_lop, cai):
+def bat_dau_chay(ma, ten_lop, cai, so_do=None):
     """Khởi động một mẻ trong luồng riêng rồi trả về NGAY. Xem `chay_lean`."""
     with _KHOA:
         if _TRANG_THAI["dang_chay"]:
@@ -333,7 +340,7 @@ def bat_dau_chay(ma, ten_lop, cai):
 
     def chay_nen():
         try:
-            kq = chay(ma, ten_lop, cai)
+            kq = chay(ma, ten_lop, cai, so_do)
         except Exception as e:                          # noqa: BLE001
             kq = {"ok": False, "loi": f"{type(e).__name__}: {e}"}
         _dat(dang_chay=False, xong=True, kq=kq)

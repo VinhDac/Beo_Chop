@@ -5,7 +5,7 @@ import {
   useStore,
   type Connection, type Edge as RfEdge, type Node as RfNode, type Viewport,
 } from '@xyflow/react'
-import { cho_cau_noi, py } from './api'
+import { cho_cau_noi, nghe, py } from './api'
 import StepNode from './components/StepNode'
 import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
@@ -366,6 +366,26 @@ function SoDoTrong() {
     setTrongHN(null)
     void py.set_title(doc.name || 'Strategy mới')
   }, [setNodes, setEdges])
+
+  /* BẤM ĐÚP một dòng trong cửa sổ Optimize -> MỞ ĐÚNG SƠ ĐỒ ẤY với bộ số ấy.
+   *
+   *  Cửa sổ Optimize là một CỬA SỔ KHÁC, js_api khác, không với tới React state
+   *  bên này. Nên nó gọi `ApiToiUu.ap_num`, Python lấy sơ đồ ĐÃ LƯU CÙNG MẺ, đặt
+   *  bộ số vào, rồi đẩy sang đây một tài liệu sẵn sàng nạp.
+   *
+   *  Nạp THẲNG, không hỏi canvas đang vẽ gì: canvas có thể đang trống, đang vẽ một
+   *  chiến thuật khác, hay mẻ ấy chạy từ tuần trước — cả ba đều phải ra đúng sơ đồ
+   *  đã sinh ra bảng xếp hạng. Đẩy một bước Hoàn tác trước, nên Ctrl+Z là về chỗ cũ. */
+  useEffect(() => nghe('mo_so_do', (d) => void (async () => {
+    const doc = d as { name?: string; steps?: Step[]; edges?: Edge[]; dat?: string[] }
+    if (!doc?.steps?.length) return
+    chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
+    await nap({ schema: 1, type: 'strategy', name: doc.name || 'Strategy',
+                steps: doc.steps, edges: doc.edges ?? [] })
+    ghi(doc.dat?.length
+      ? `mở sơ đồ từ Optimize · đặt ${doc.dat.length} núm: ${doc.dat.join(', ')}`
+      : 'mở sơ đồ từ Optimize')
+  })()), [nodes, edges, nap, ghi])
 
   useEffect(() => {
     (async () => {

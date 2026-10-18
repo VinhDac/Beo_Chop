@@ -1942,3 +1942,6 @@ mark.tim-chu {
    (Vấn đề / Nhật ký): một kiểu tab cho cả app, không đẻ kiểu thứ hai. */
 .kho-tab { display: flex; gap: 2px; border-bottom: 1px solid var(--border);
            margin-bottom: 10px; }
+/* Dòng xếp hạng BẤM ĐÚP được — lấy bộ số ấy về sơ đồ. Đổi con trỏ để nói ra là nó
+   bấm được: một bảng trông như chỉ để đọc thì không ai nghĩ tới chuyện bấm đúp. */
+.tu-bang tbody tr.co-the-ap { cursor: pointer; }

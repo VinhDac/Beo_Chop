@@ -227,13 +227,40 @@ class ApiToiUu(NenCuaSo):
     để bảng và plot đầy dần. Một mẻ hàng trăm lượt mà bắt nhìn màn trống tới lúc
     xong thì không ai biết nó còn sống hay đã treo."""
 
-    def __init__(self, ma_id):
+    def __init__(self, ma_id, bao_chinh=None):
         super().__init__()
         self._ma_id = str(ma_id)
+        # HÀM GỌI NGƯỢC về cửa sổ chính, KHÔNG phải cả `Api`. Giữ nguyên lý do bề
+        # mặt hẹp: cửa sổ này chỉ cần nói được một câu — "đặt bộ số này vào sơ đồ".
+        self._bao_chinh = bao_chinh
 
     @_bat_loi
     def ping(self):
         return _ok("pong")
+
+    @_bat_loi
+    def ap_num(self, tham_so=None):
+        """Bấm đúp một dòng xếp hạng -> MỞ ĐÚNG SƠ ĐỒ ẤY với bộ số ấy.
+
+        ⚠ Lấy sơ đồ từ CHÍNH MẺ NÀY, không hỏi canvas đang vẽ gì. Canvas có thể
+        đang trống, đang vẽ một chiến thuật khác, hay mẻ này chạy từ tuần trước —
+        cả ba trường hợp đều phải ra đúng sơ đồ đã sinh ra bảng xếp hạng này. Đó là
+        lý do mẻ giữ cả sơ đồ trong thẻ.
+
+        Đặt số xong ở ĐÂY rồi mới đẩy sang: cửa sổ chính chỉ việc nạp một tài liệu
+        đã sẵn sàng, khỏi phải biết luật «con số nằm ở đâu trong khối»."""
+        if not self._bao_chinh:
+            return _loi("Không nối được tới cửa sổ sơ đồ.")
+        me = chay_toi_uu.doc_me(self._ma_id)
+        sd = (me.get("so_do") or {}) if me.get("ok") else {}
+        if not sd.get("steps"):
+            return _loi("Mẻ này không lưu sơ đồ — nó chạy từ bản cũ hơn tính năng "
+                        "này. Chạy lại một mẻ mới thì bấm đúp sẽ mở được.")
+        ds, dat = core.dat_tham_so(sd.get("steps") or [], tham_so or {})
+        self._bao_chinh({"name": sd.get("name") or me.get("ten_lop") or "",
+                         "steps": ds, "edges": sd.get("edges") or [],
+                         "dat": dat})
+        return _ok({"dat": dat})
 
     @_bat_loi
     def doc_me(self, ma_id=None):
@@ -452,11 +479,14 @@ class Api(NenCuaSo):
 
         Cùng lý do không chờ như `chay_backtest`, chỉ là nặng hơn hẳn: một mẻ là
         HÀNG TRĂM lượt backtest."""
-        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        doc = core.make_process_template(ten, steps, edges)
+        kq = sinh_ma.sinh(doc)
         if not kq["ok"]:
             return _ok({"ok": False, "van_de": kq["van_de"],
                         "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề."})
-        return _ok(chay_toi_uu.bat_dau_chay(kq["ma"], kq["ten_lop"], cai or {}))
+        # SƠ ĐỒ đi theo mẻ: bấm đúp một dòng xếp hạng sau này phải mở lại ĐÚNG sơ đồ
+        # ấy, kể cả khi canvas đang trống hay đang vẽ chiến thuật khác.
+        return _ok(chay_toi_uu.bat_dau_chay(kq["ma"], kq["ten_lop"], cai or {}, doc))
 
     @_bat_loi
     def dung_toi_uu(self):
@@ -492,7 +522,16 @@ class Api(NenCuaSo):
                 return _ok({"id": ma_id, "moi": False})
             except Exception:                           # noqa: BLE001
                 self._cua_so_tu.pop(ma_id, None)
-        phu = ApiToiUu(ma_id)
+        def _bao(ts):
+            # Đẩy sang JS của cửa sổ chính, rồi ĐƯA NÓ LÊN TRƯỚC: mở đúng sơ đồ mà
+            # cửa sổ ấy vẫn nằm dưới thì người dùng không thấy gì đổi.
+            self._ban("mo_so_do", ts)
+            try:
+                self._window.restore()
+            except Exception:                           # noqa: BLE001
+                pass
+
+        phu = ApiToiUu(ma_id, _bao)
         w = webview.create_window(
             f"Optimize · {kq.get('ten_lop', '')} · "
             f"{_doc_ma_luot(kq.get('ma_luot') or '')}",

@@ -195,7 +195,12 @@ export default function TrangToiUu({ ma }: { ma: string }) {
               </thead>
               <tbody>
                 {bang.map((r, i) => (
-                  <tr key={r.id}>
+                  /* BẤM ĐÚP = lấy bộ số của dòng này về sơ đồ, rồi đưa canvas lên
+                     trước. Thử một bộ số tìm được mà phải mở từng khối ra gõ lại
+                     sáu con số thì chẳng ai buồn thử. */
+                  <tr key={r.id} className="co-the-ap"
+                      title="Bấm đúp để đặt bộ số này vào sơ đồ"
+                      onDoubleClick={() => void pyTu.ap_num(r.tham_so)}>
                     <td className="tu-stt">{i + 1}</td>
                     {tenNum.map(c => (
                       <td key={c} className="tu-cot-num">{r.tham_so[c] ?? ''}</td>

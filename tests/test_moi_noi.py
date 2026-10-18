@@ -35,6 +35,7 @@ Không mở cửa sổ, không nối mạng -> chạy được ở bất cứ đ
 """
 import io
 import os
+import json
 import re
 import sys
 
@@ -363,7 +364,7 @@ for _ma_loai in lam.LOAI_LAM:
     _khoi = _st[-1]
     for _chu, _ten_o, _nhan, _gt in core._o_so_cua(_khoi):
         _dem_o += 1
-        _chu["ghim"] = {_ten_o: "num_thu"}
+        _chu["ghim_num"] = {_ten_o: "num_thu"}
         _ds = core.ds_tham_so(_st)
         _kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
                             "steps": _st, "edges": _ed})
@@ -371,7 +372,7 @@ for _ma_loai in lam.LOAI_LAM:
             _hong_ghim.append(f"{_ma_loai}.{_ten_o}: hộp Optimize KHÔNG thấy")
         elif "get_parameter('num_thu'" not in _kq["ma"]:
             _hong_ghim.append(f"{_ma_loai}.{_ten_o}: mã sinh ra KHÔNG đọc")
-        _chu.pop("ghim", None)
+        _chu.pop("ghim_num", None)
 # Và cả hai vế của khối Hỏi: con số, chu kỳ chỉ báo, tham số của đại lượng thường.
 for _ma_dl in ("rsi", "bb", "max", "delay", "gia"):
     _d = hoi.dai_luong(_ma_dl)
@@ -384,7 +385,7 @@ for _ma_dl in ("rsi", "bb", "max", "delay", "gia"):
     _st[1]["dieu_kien"] = [_dk]
     for _chu, _ten_o, _nhan, _gt in core._o_so_cua(_st[1]):
         _dem_o += 1
-        _chu["ghim"] = {_ten_o: "num_thu"}
+        _chu["ghim_num"] = {_ten_o: "num_thu"}
         _ds = core.ds_tham_so(_st)
         _kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
                             "steps": _st, "edges": _ed})
@@ -392,7 +393,7 @@ for _ma_dl in ("rsi", "bb", "max", "delay", "gia"):
             _hong_ghim.append(f"{_ma_dl}.{_ten_o}: hộp Optimize KHÔNG thấy")
         elif "get_parameter('num_thu'" not in _kq["ma"]:
             _hong_ghim.append(f"{_ma_dl}.{_ten_o}: mã sinh ra KHÔNG đọc")
-        _chu.pop("ghim", None)
+        _chu.pop("ghim_num", None)
 kiem(f"quét {_dem_o} ô số ghim được", _dem_o >= 15)
 kiem("ô nào ghim cũng đi hết ba chặng", not _hong_ghim, f"— {_hong_ghim[:4]}")
 
@@ -413,7 +414,7 @@ for _ten_khoi in ("Vào", "Ra"):
     _h = core.make_hoi_step("hoi_thi_truong")
     _h["name"] = _ten_khoi
     _d = core.make_dieu_kien("rsi", "<=", 45, tham_so={"n": 14})
-    _d["trai"]["ghim"] = {"n": "rsi_chu_ky"}
+    _d["trai"]["ghim_num"] = {"n": "rsi_chu_ky"}
     _h["dieu_kien"] = [_d]
     _hs.append(_h)
 _st = [_bd] + _hs + [core.make_lam_step(lam.LAM_TIN_HIEU)]
@@ -519,6 +520,112 @@ for _ham in (chay_toi_uu.doc_me, chay_toi_uu.trang_thai):
              inspect.getsource(_ham).count("doc_luot(d,")
              + inspect.getsource(_ham).count('doc_luot(t.get'))
 
+print("\n▸ ⚠ GHIM phải sống qua LƯU/MỞ — ở CẢ HAI chỗ, không chỉ chỗ dễ nhớ")
+# ĐÃ DÍNH THẬT, và dính vì TRÙNG TÊN KHOÁ. `ghim` vốn đã là khoá CŨ của canvas
+# («ghim khối tại chỗ», một BOOLEAN) và nó nằm trong `KHOA_CANVAS`, nên khi ta đặt
+# một DICT cùng tên lên khối thì `chuan_hoa_khoi` gỡ sạch — ghim trên ô số của khối
+# Làm không sống qua lưu/mở, trong khi ghim trong vế điều kiện thì sống (vế không
+# phải khối, `KHOA_CANVAS` không với tới). Hỏng ĐÚNG MỘT NỬA, nên nhìn qua vẫn chạy.
+#
+# Bài kiểm cũ của tôi mù đúng chỗ ấy: nó đặt `ghim` rồi đọc lại NGAY, không đi qua
+# lưu/mở lần nào. Nay quét CẢ HAI chỗ và BẮT BUỘC qua `chuan_hoa_khoi`.
+kiem("khoá ghim KHÔNG trùng khoá canvas", "ghim_num" not in core.KHOA_CANVAS,
+     f"— {core.KHOA_CANVAS}")
+_mat = []
+for _ma_loai in lam.LOAI_LAM:
+    _k = core.make_lam_step(_ma_loai)
+    _o_so = [t for t in core._o_so_cua(_k)]
+    if not _o_so:
+        continue
+    _chu, _ten_o = _o_so[0][0], _o_so[0][1]
+    _chu["ghim_num"] = {_ten_o: "num_thu"}
+    _lai = core.chuan_hoa_khoi(json.loads(json.dumps(_k)))
+    if "num_thu" not in {d["ten"] for d in core.ds_tham_so([_lai])}:
+        _mat.append(f"khối {_ma_loai}")
+_h = core.make_hoi_step("hoi_thi_truong")
+_d = core.make_dieu_kien("rsi", "<=", 45, tham_so={"n": 14})
+_d["trai"]["ghim_num"] = {"n": "num_ve"}
+_d["phai"]["ghim_num"] = {"so": "num_so"}
+_h["dieu_kien"] = [_d]
+_lai_h = core.chuan_hoa_khoi(json.loads(json.dumps(_h)))
+for _t in ("num_ve", "num_so"):
+    if _t not in {d["ten"] for d in core.ds_tham_so([_lai_h])}:
+        _mat.append(f"vế {_t}")
+kiem("ghim sống qua lưu/mở ở MỌI chỗ ghim được", not _mat, f"— mất: {_mat}")
+
+print("\n▸ BẤM ĐÚP một dòng xếp hạng → sơ đồ nhận luôn bộ số ấy")
+# `dat_tham_so` phải là GƯƠNG của `_o_so_cua`: đọc ở đâu thì ghi vào đúng đấy. Lệch
+# một chỗ là đặt số vào hư không — sơ đồ không đổi gì mà cũng chẳng báo gì.
+_st2 = [_lai_h, _lai]
+_truoc = core.ds_tham_so(_st2)
+kiem("sơ đồ thử có núm để đặt", len(_truoc) >= 2, f"— {[d['ten'] for d in _truoc]}")
+_moi, _dat = core.dat_tham_so(_st2, {d["ten"]: "7" for d in _truoc})
+kiem("đặt được ĐÚNG mọi núm đang ghim",
+     set(_dat) == {d["ten"] for d in _truoc}, f"— {_dat}")
+kiem("và đọc lại đúng con số vừa đặt",
+     all(str(d["mac_dinh"]) == "7" for d in core.ds_tham_so(_moi)),
+     f'— {[(d["ten"], d["mac_dinh"]) for d in core.ds_tham_so(_moi)]}')
+kiem("chuỗi của LEAN («7») thành SỐ, không phải chuỗi",
+     all(isinstance(d["mac_dinh"], (int, float))
+         for d in core.ds_tham_so(_moi)),
+     "— nhét chuỗi vào thì thẻ đọc «RSI('7')» và bộ sinh mã viết một chuỗi")
+_moi2, _dat2 = core.dat_tham_so(_st2, {"num_khong_co": "9"})
+kiem("núm sơ đồ KHÔNG còn ghim thì bỏ qua, không đoán bừa", not _dat2)
+
+print("\n▸ MỐI NỐI 12 — cửa sổ Optimize × cửa sổ sơ đồ (hai cửa sổ, hai js_api)")
+# Bấm đúp một dòng xếp hạng phải đi hết ba chặng: cửa sổ Optimize gọi `ap_num` ->
+# Python đẩy sự kiện sang JS của cửa sổ CHÍNH -> cửa sổ chính gọi `dat_num_so_do`.
+# Đứt chặng nào cũng im: bấm đúp, không có gì xảy ra, không lỗi nào.
+#
+# ⚠ Cơ chế đẩy sự kiện (`Api._ban` + `window.__su_kien`) khai từ lâu ở CẢ HAI đầu mà
+# KHÔNG AI gọi, KHÔNG AI nghe — một hàng rào không ai gác, trông như đang chạy cho
+# tới ngày đầu tiên cần tới. Nay nó là đường sống của tính năng này, nên phải canh.
+_api_src = doc("cat_studio", "api.py")
+kiem("`ApiToiUu` có cửa `ap_num`", "def ap_num(" in _api_src)
+kiem("cửa sổ Optimize nhận một HÀM GỌI NGƯỢC, không nhận cả `Api`",
+     "ApiToiUu(ma_id, _bao)" in _api_src,
+     "— đưa cả `Api` là đưa luôn `xoa_strategy` vào một cửa sổ chẳng cần tới nó")
+kiem("`_bao` đẩy sự kiện rồi ĐƯA CANVAS LÊN TRƯỚC",
+     '_ban("mo_so_do"' in _api_src and "self._window.restore()" in _api_src,
+     "— mở đúng sơ đồ mà cửa sổ ấy vẫn nằm dưới thì người dùng không thấy gì đổi")
+
+print("\n▸ ⚠ Mẻ phải NHỚ CẢ SƠ ĐỒ — không chỉ nhớ mấy con số")
+# Bấm đúp một dòng phải mở ra ĐÚNG SƠ ĐỒ ẤY, kể cả khi canvas đang trống, đang vẽ
+# một chiến thuật khác, hay mẻ ấy chạy từ tuần trước. Chỉ nhớ bộ số thì không đủ:
+# biết `sma_chu_ky = 240` mà không biết nó nằm trong sơ đồ nào thì đặt vào đâu.
+_ct_src = doc("cat_studio", "chay_toi_uu.py")
+kiem("thẻ mẻ giữ khoá `so_do`", '"so_do"' in _ct_src)
+kiem("`chay` nhận sơ đồ để lưu", "def chay(ma, ten_lop, cai, so_do=None)" in _ct_src)
+kiem("và `api.chay_toi_uu` TRUYỀN sơ đồ xuống",
+     "cai or {}, doc)" in _api_src,
+     "— không truyền thì thẻ mẻ rỗng và bấm đúp chẳng mở được gì")
+kiem("`ap_num` lấy sơ đồ TỪ MẺ, không hỏi canvas đang vẽ gì",
+     "chay_toi_uu.doc_me(self._ma_id)" in _api_src)
+kiem("và nó ĐẶT SỐ ngay bên Python trước khi đẩy sang",
+     "core.dat_tham_so(" in _api_src,
+     "— cửa sổ chính chỉ việc nạp một tài liệu đã sẵn sàng")
+kiem("mẻ CŨ không có sơ đồ thì NÓI RA, không im",
+     "Mẻ này không lưu sơ đồ" in _api_src)
+kiem("và cửa `dat_num_so_do` đã bỏ — không ai gọi nữa",
+     "def dat_num_so_do(" not in _api_src,
+     "— để lại một cửa không ai gọi là lại một hàng rào không ai gác")
+
+_api_ts = doc("webui", "src", "api.ts")
+kiem("giao diện có hàm `nghe` để nhận sự kiện", "export function nghe(" in _api_ts)
+kiem("và nó giữ DANH SÁCH người nghe, không ghi đè `window.__su_kien`",
+     "_nguoi_nghe" in _api_ts,
+     "— ghi đè thì chỗ gắn sau giết chỗ gắn trước, lặng lẽ")
+_tu_ts = doc("webui", "src", "TrangToiUu.tsx")
+kiem("bảng xếp hạng bấm đúp được", "onDoubleClick" in _tu_ts
+     and "ap_num" in _tu_ts)
+_sd_ts = doc("webui", "src", "SoDo.tsx")
+kiem("cửa sổ sơ đồ NGHE `mo_so_do`", "nghe('mo_so_do'" in _sd_ts)
+kiem("và nó NẠP THẲNG tài liệu nhận được, không tự dò ô trong TypeScript",
+     "await nap({" in _sd_ts and "dat_num_so_do" not in _sd_ts,
+     "— viết lại luật «con số nằm ở đâu» bằng TS là bản sự thật thứ hai")
+kiem("đẩy một bước Hoàn tác trước khi nạp đè lên sơ đồ đang vẽ",
+     "chong.current.push" in _sd_ts.split("nghe('mo_so_do'")[1][:900])
+
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
 # cũ phải ở lại làm mặc định. Mất nó thì ghim một ô là đổi luôn kết quả backtest
@@ -528,8 +635,8 @@ _dk = core.make_dieu_kien("rsi", "<=", 45, tham_so={"n": 14})
 _st[1]["dieu_kien"] = [_dk]
 _truoc = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
                        "steps": _st, "edges": _ed})["ma"]
-_dk["trai"]["ghim"] = {"n": "chu_ky"}
-_dk["phai"]["ghim"] = {"so": "nguong"}
+_dk["trai"]["ghim_num"] = {"n": "chu_ky"}
+_dk["phai"]["ghim_num"] = {"so": "nguong"}
 _sau = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
                      "steps": _st, "edges": _ed})["ma"]
 kiem("mặc định 14 ở lại trong câu get_parameter",

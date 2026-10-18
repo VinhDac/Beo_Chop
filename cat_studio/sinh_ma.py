@@ -72,14 +72,14 @@ def _lit(v):
 def _ten_ghim(chu, ten_o):
     """Ô `ten_o` của `chu` đã GHIM làm tham số chưa -> tên tham số, hay "".
 
-    GHIM nằm CẠNH con số, không thay nó: `{"han": 15, "ghim": {"han": "giu_ngay"}}`.
+    GHIM nằm CẠNH con số, không thay nó: `{"han": 15, "ghim_num": {"han": "giu_ngay"}}`.
     Nhờ vậy mọi chỗ đang đọc con số — thẻ khối, bảng soát, giao diện — chạy y như cũ
     và vẫn thấy một con số thật; chỉ bộ sinh mã mới hỏi tới `ghim`. Đổi con số thành
     một hình dáng khác thì phải sửa hết mấy chỗ ấy, mà bỏ sót một chỗ là nó lặng lẽ
     đọc ra số 0."""
     if not isinstance(chu, dict):
         return ""
-    return str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+    return str((chu.get("ghim_num") or {}).get(ten_o) or "").strip()
 
 
 def _so_py(chu, ten_o, gia_tri):

@@ -189,4 +189,33 @@ export const pyTu = {
   doc_me: () => goi<LuotToiUu>('doc_me'),
   tien_do: () => goi<{ dang_chay?: boolean; xong?: boolean }>('tien_do'),
   tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
+  /** Bấm đúp một dòng: MỞ ĐÚNG SƠ ĐỒ của mẻ này với bộ số ấy. Python lấy sơ đồ đã
+   *  lưu cùng mẻ, đặt số vào, rồi đẩy sang cửa sổ chính — nên nó đúng kể cả khi
+   *  canvas đang trống hay đang vẽ chiến thuật khác. */
+  ap_num: (tham_so: Record<string, string>) =>
+    goi<{ dat: string[] }>('ap_num', tham_so),
+}
+
+/** NGHE SỰ KIỆN Python đẩy sang (`Api._ban`). -> hàm gỡ bỏ.
+ *
+ *  ⚠ Cơ chế này khai từ lâu ở cả hai đầu — `_ban` bên Python và `window.__su_kien`
+ *  trong kiểu bên này — mà KHÔNG AI gọi, KHÔNG AI nghe. Đúng một cái hàng rào không
+ *  ai gác: có sẵn, trông như đang chạy, và lần đầu cần tới mới biết nó rỗng.
+ *
+ *  Nhiều chỗ nghe cùng lúc được, nên nó giữ một danh sách chứ không ghi đè
+ *  `window.__su_kien`: ghi đè thì chỗ gắn sau giết chỗ gắn trước, lặng lẽ. */
+const _nguoi_nghe = new Map<string, Set<(d: unknown) => void>>()
+
+export function nghe(ten: string, fn: (d: unknown) => void): () => void {
+  if (!window.__su_kien) {
+    window.__su_kien = (t: string, d: unknown) => {
+      for (const f of _nguoi_nghe.get(t) ?? []) {
+        try { f(d) } catch { /* một chỗ nghe hỏng không được giết mấy chỗ kia */ }
+      }
+    }
+  }
+  const ds = _nguoi_nghe.get(ten) ?? new Set()
+  ds.add(fn)
+  _nguoi_nghe.set(ten, ds)
+  return () => { ds.delete(fn) }
 }

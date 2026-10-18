@@ -501,7 +501,7 @@ def mo_ta_lam(step):
     ghim = [f'{o["nhan"]} → {_so_the(step, o["ten"], g(o["ten"]))}'
             for o in lam.o_cua(t, step)
             if o["kieu"] == lam.O_SO
-            and str(((step or {}).get("ghim") or {}).get(o["ten"]) or "").strip()]
+            and str(((step or {}).get("ghim_num") or {}).get(o["ten"]) or "").strip()]
     if ghim:
         dong.append("núm: " + " · ".join(ghim))
 
@@ -579,7 +579,7 @@ def _so_the(chu, ten_o, gia_tri):
     Optimize quét `rsi_chu_ky` chẳng thấy nó ở đâu trên canvas. Chỉ cái tên thì mất
     luôn thứ quan trọng không kém: BẢN VẼ NÀY ĐANG CHẠY Ở MỨC NÀO — vì ghim xong,
     backtest thường vẫn chạy bằng con số ấy."""
-    ten = str(((chu or {}).get("ghim") or {}).get(ten_o) or "").strip()
+    ten = str(((chu or {}).get("ghim_num") or {}).get(ten_o) or "").strip()
     return f"{ten}={gia_tri}" if ten else str(gia_tri)
 
 
@@ -670,6 +670,51 @@ def _o_so_cua(step):
     return ra
 
 
+def _dat_o_so(chu, ten_o, gia_tri):
+    """Ghi một con số vào ĐÚNG chỗ `_o_so_cua` đã đọc nó ra.
+
+    Ba chỗ, ba lối: tham số của chỉ báo nằm trong `tham_so`, con số của một vế nằm
+    thẳng ở khoá `so`, ô số của khối Làm nằm thẳng trên khối. Luật ở đây phải là
+    GƯƠNG của luật đọc — lệch một chỗ là đặt số vào hư không, và bài kiểm đặt-rồi-
+    đọc-lại bắt được ngay."""
+    if chu.get("ma_dl") and ten_o != "so":
+        chu.setdefault("tham_so", {})[ten_o] = gia_tri
+    else:
+        chu[ten_o] = gia_tri
+
+
+def _so_hoa(v):
+    """'25' -> 25, '1.75' -> 1.75, còn lại để nguyên.
+
+    LEAN trả giá trị tham số dạng CHUỖI trong file kết quả. Nhét thẳng chuỗi vào sơ
+    đồ thì thẻ khối đọc ra «RSI('25')» và bộ sinh mã viết một chuỗi vào chỗ cần số."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return v
+    return int(f) if f.is_integer() else f
+
+
+def dat_tham_so(steps, tham_so):
+    """Đặt giá trị cho mấy núm đã ghim -> (khối đã sửa, mấy núm đặt được).
+
+    Dùng khi người dùng bấm đúp một dòng trong bảng xếp hạng Optimize: sơ đồ nhận
+    luôn bộ số của dòng ấy, khỏi phải mở từng khối ra gõ lại.
+
+    CHỈ ĐẶT VÀO Ô ĐÃ GHIM. Một núm trong kết quả mà sơ đồ không còn ghim nữa — vì
+    người dùng đã bỏ ghim sau khi chạy — thì bỏ qua và nói ra, chứ đừng đoán xem nó
+    đáng rơi vào ô nào."""
+    ds = [chuan_hoa_khoi(s) for s in (steps or [])]
+    dat = []
+    for s in ds:
+        for chu, ten_o, _nhan, _gt in _o_so_cua(s):
+            ten = str((chu.get("ghim_num") or {}).get(ten_o) or "").strip()
+            if ten and ten in (tham_so or {}):
+                _dat_o_so(chu, ten_o, _so_hoa(tham_so[ten]))
+                dat.append(ten)
+    return ds, sorted(set(dat))
+
+
 def ds_tham_so(steps):
     """Mọi núm đã GHIM trong sơ đồ -> [{ten, mac_dinh, o_tai}], xếp theo tên.
 
@@ -679,7 +724,7 @@ def ds_tham_so(steps):
     gom = {}
     for s in steps or []:
         for chu, ten_o, nhan, gt in _o_so_cua(s):
-            ten = str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+            ten = str((chu.get("ghim_num") or {}).get(ten_o) or "").strip()
             if not ten:
                 continue
             d = gom.setdefault(ten, {"ten": ten, "mac_dinh": gt, "o_tai": []})
@@ -694,7 +739,7 @@ def _num_cua(step):
     cách tìm chuỗi này trong dòng, nên hai bên lệch một chữ là không tô được gì."""
     return {_so_the(chu, ten_o, gt)
             for chu, ten_o, _nhan, gt in _o_so_cua(step)
-            if str((chu.get("ghim") or {}).get(ten_o) or "").strip()}
+            if str((chu.get("ghim_num") or {}).get(ten_o) or "").strip()}
 
 
 def icon_cua(loai):
@@ -1789,7 +1834,7 @@ def _soat_ghim(ra, steps):
     thay = {}
     for s in steps or []:
         for chu, ten_o, nhan, gt in _o_so_cua(s):
-            ten = str((chu.get("ghim") or {}).get(ten_o) or "").strip()
+            ten = str((chu.get("ghim_num") or {}).get(ten_o) or "").strip()
             if not ten:
                 continue
             cho = f"{step_title(s)} · {nhan}"

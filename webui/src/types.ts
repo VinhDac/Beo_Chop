@@ -155,8 +155,12 @@ export interface VeDieuKien {
    *  MỘT tầng, không lồng nhau — xem `sinh_ma._ve_py` để biết vì sao. */
   ghep?: VeDieuKien & { phep: string }
   /** Ô nào của vế này đã GHIM làm tham số Optimize: tên ô -> tên núm. Nằm CẠNH con
-   *  số chứ không thay nó, nên mọi chỗ đang đọc số vẫn thấy một con số thật. */
-  ghim?: Record<string, string>
+   *  số chứ không thay nó, nên mọi chỗ đang đọc số vẫn thấy một con số thật.
+   *  ⚠ `ghim_num`, KHÔNG phải `ghim`: `ghim` đã là khoá CŨ của canvas («ghim khối
+   *  tại chỗ», một boolean) và nó nằm trong `KHOA_CANVAS`, nên dict của ta bị gỡ
+   *  sạch lúc chuẩn hoá khối — ghim trên ô số của khối Làm không sống qua lưu/mở.
+   *  Đã dính thật. */
+  ghim_num?: Record<string, string>
 }
 
 export interface DongDieuKien {
