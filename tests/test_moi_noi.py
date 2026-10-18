@@ -278,13 +278,30 @@ kiem("mọi model chia vốn đang bày đều khai nó đọc khe nào", not _k
 print("\n▸ MỐI NỐI 8 — giao diện BÀY LẠI thứ Python khai, không tự ghép lại")
 # Luật nền: Python khai, giao diện chỉ bày. Hai nơi cùng ghép một câu thì sớm muộn
 # chúng nói khác nhau, mà cái khác ấy không gây lỗi nào nên không ai thấy.
+#: ⚠ MỘT CHỖ CÒN NỢ, KHAI RA CHỨ KHÔNG GIẤU. `HopBatDau.tsx` tự dựng lại câu LEAN
+#: bằng TypeScript (`add_*(ma, Resolution.X)` / `universe_settings.resolution = …`),
+#: trong khi `bat_dau.ham_lean()` bên Python làm đúng việc ấy và hiện CHỈ có bài kiểm
+#: gọi. Hai bản một luật, không ai so. Hai hộp kia (Hành động, Xác nhận) lấy thẳng từ
+#: từ điển.
+#:
+#: Nó nằm trong danh sách này chứ không nằm ngoài bài kiểm: một hàng rào có lỗ mà
+#: không khai thì chính là thứ cả bài này đang chữa. Vá xong thì XOÁ dòng dưới — và
+#: nếu không xoá, bài kiểm sẽ kêu, vì nó canh cả chiều ngược lại.
+CON_NO = {"HopBatDau.tsx"}
 _go_cung = {}
 for _f, _s in moi_tsx():
     for _dau in ("set_universe_selection", "emit_insights(", "self.set_holdings",
-                 "PortfolioConstructionModel"):
-        if _dau in _s:
+                 "PortfolioConstructionModel", "Resolution.", "add_*("):
+        if _dau in _s and _f not in CON_NO:
             _go_cung.setdefault(_f, []).append(_dau)
 kiem("không file giao diện nào gõ cứng câu LEAN", not _go_cung, f"— {_go_cung}")
+# Chiều ngược lại: chỗ nợ phải CÒN nợ. Vá xong mà quên xoá khỏi `CON_NO` thì lần sau
+# ai đó gõ cứng vào đúng file ấy sẽ lọt — một lối miễn trừ không ai thu hồi.
+_no_ao = sorted(f for f in CON_NO
+                if not any(_f == f and ("Resolution." in _s or "add_*(" in _s)
+                           for _f, _s in moi_tsx()))
+kiem("và chỗ KHAI LÀ NỢ thì phải còn nợ thật", not _no_ao,
+     f"— {_no_ao} đã sạch rồi, xoá khỏi `CON_NO` đi")
 
 print(f"\n{'=' * 60}\n  {dung} đúng · {sai} sai\n{'=' * 60}")
 sys.exit(1 if sai else 0)
