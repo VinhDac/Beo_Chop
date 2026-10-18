@@ -220,6 +220,32 @@ class ApiKetQua(NenCuaSo):
         return _ok(kq) if kq["ok"] else _loi(kq["loi"])
 
 
+def _so_do_theo_ten_lop(ten_lop):
+    """Dò trong kho Strategy ra sơ đồ sinh đúng lớp `ten_lop`. -> doc, hay {}.
+
+    Lối CỨU cho mấy mẻ chạy trước khi mẻ biết giữ sơ đồ. Không phải đoán mò: phép
+    tên-chiến-thuật -> tên-lớp là `sinh_ma.ten_lop`, xác định và một chiều, nên dò
+    ngược bằng cách chạy xuôi trên từng chiến thuật đã lưu là ra đúng cái cần.
+
+    Trùng tên lớp thì lấy cái đầu — hai chiến thuật ra cùng một tên lớp vốn đã là
+    chuyện nên tránh, và ở đây lấy nhầm cũng chỉ mở ra một sơ đồ gần giống."""
+    ten_lop = str(ten_lop or "").strip()
+    if not ten_lop:
+        return {}
+    try:
+        ds = luu_tru.liet_ke_strategy()
+    except OSError:
+        return {}
+    for ten in ds:
+        try:
+            doc = core.normalize_process(luu_tru.doc_strategy(ten))
+        except (OSError, ValueError):
+            continue
+        if sinh_ma.ten_lop(doc.get("name") or ten) == ten_lop:
+            return doc
+    return {}
+
+
 class ApiToiUu(NenCuaSo):
     """js_api của MỘT CỬA SỔ OPTIMIZE. Cùng lý do bề mặt hẹp như `ApiKetQua`.
 
@@ -254,9 +280,25 @@ class ApiToiUu(NenCuaSo):
         me = chay_toi_uu.doc_me(self._ma_id)
         sd = (me.get("so_do") or {}) if me.get("ok") else {}
         if not sd.get("steps"):
-            return _loi("Mẻ này không lưu sơ đồ — nó chạy từ bản cũ hơn tính năng "
-                        "này. Chạy lại một mẻ mới thì bấm đúp sẽ mở được.")
+            # MẺ CŨ, chạy trước khi mẻ biết giữ sơ đồ. Vẫn cứu được: tên lớp suy ra
+            # TỪ tên chiến thuật bằng `sinh_ma.ten_lop`, và phép suy ấy xác định —
+            # nên dò ngược trong kho Strategy là tìm đúng sơ đồ, không phải đoán.
+            sd = _so_do_theo_ten_lop(me.get("ten_lop") or "")
+        if not sd.get("steps"):
+            return _loi(f'Mẻ này chạy từ bản cũ nên không lưu sơ đồ, mà kho '
+                        f'Strategy cũng không còn cái nào sinh ra lớp '
+                        f'"{me.get("ten_lop") or "?"}". Chạy lại một mẻ mới thì bấm '
+                        f'đúp sẽ mở được.')
         ds, dat = core.dat_tham_so(sd.get("steps") or [], tham_so or {})
+        if not dat:
+            # ĐẶT ĐƯỢC 0 NÚM = mở ra cũng chẳng đổi gì, mà lại ghi đè sơ đồ đang vẽ.
+            # Gặp khi sơ đồ dò được từ kho Strategy chưa ghim núm nào — bản đã lưu
+            # cũ hơn lúc ghim. Nói thẳng, đừng mở một sơ đồ y hệt rồi để người dùng
+            # ngồi tìm xem con số nào vừa đổi.
+            return _loi(f'Sơ đồ của mẻ này không còn ô nào ghim '
+                        f'{", ".join(sorted(tham_so or {})) or "núm nào"} — bản đã '
+                        f'lưu cũ hơn lúc ghim. Mở sơ đồ ra ghim lại rồi chạy một mẻ '
+                        f'mới, mẻ ấy sẽ bấm đúp được.')
         self._bao_chinh({"name": sd.get("name") or me.get("ten_lop") or "",
                          "steps": ds, "edges": sd.get("edges") or [],
                          "dat": dat})

@@ -639,8 +639,25 @@ kiem("`ap_num` lấy sơ đồ TỪ MẺ, không hỏi canvas đang vẽ gì",
 kiem("và nó ĐẶT SỐ ngay bên Python trước khi đẩy sang",
      "core.dat_tham_so(" in _api_src,
      "— cửa sổ chính chỉ việc nạp một tài liệu đã sẵn sàng")
-kiem("mẻ CŨ không có sơ đồ thì NÓI RA, không im",
-     "Mẻ này không lưu sơ đồ" in _api_src)
+kiem("mẻ CŨ chưa lưu sơ đồ thì DÒ NGƯỢC trong kho Strategy",
+     "_so_do_theo_ten_lop(" in _api_src,
+     "— phép tên-chiến-thuật -> tên-lớp xác định, nên dò ngược là tìm đúng, không đoán")
+kiem("dò không ra thì NÓI RA, không im", "chạy từ bản cũ nên không lưu sơ đồ"
+     in _api_src)
+# ⚠ ĐẶT ĐƯỢC 0 NÚM cũng là HỎNG, chỉ là hỏng êm: mở ra một sơ đồ y hệt rồi để người
+# dùng ngồi tìm xem con số nào vừa đổi — mà chẳng con nào đổi cả. Gặp thật khi sơ đồ
+# dò được từ kho Strategy chưa ghim núm nào.
+kiem("đặt được 0 núm cũng phải nói, và KHÔNG ghi đè sơ đồ đang vẽ",
+     "if not dat:" in _api_src and "không còn ô nào ghim" in _api_src)
+_tu_tsx_bd = doc("webui", "src", "TrangToiUu.tsx")
+# Bỏ dòng COMMENT ra trước khi dò — chính chỗ này vừa kêu oan vì trong file có một
+# comment nhắc lại dạng hỏng. Bài kiểm đọc lời văn rồi báo đỏ là bài kiểm sớm muộn
+# bị bỏ qua, mà bỏ qua thì nó hết canh.
+_tu_ma = " ".join(d for d in _tu_tsx_bd.splitlines()
+                  if not d.strip().startswith(("//", "*", "/*")))
+kiem("và giao diện KHÔNG nuốt câu lỗi ấy",
+     "void pyTu.ap_num(" not in _tu_ma and "setLoi(kq.error" in _tu_ma,
+     "— `void` vứt luôn cả lỗi, nên bấm đúp ra đúng không gì cả")
 kiem("và cửa `dat_num_so_do` đã bỏ — không ai gọi nữa",
      "def dat_num_so_do(" not in _api_src,
      "— để lại một cửa không ai gọi là lại một hàng rào không ai gác")

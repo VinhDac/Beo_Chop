@@ -200,7 +200,14 @@ export default function TrangToiUu({ ma }: { ma: string }) {
                      sáu con số thì chẳng ai buồn thử. */
                   <tr key={r.id} className="co-the-ap"
                       title="Bấm đúp để đặt bộ số này vào sơ đồ"
-                      onDoubleClick={() => void pyTu.ap_num(r.tham_so)}>
+                      onDoubleClick={() => void (async () => {
+                        // ⚠ ĐỪNG NUỐT KẾT QUẢ. `void pyTu.ap_num(...)` vứt luôn cả
+                        // câu lỗi, nên mẻ cũ (chưa lưu sơ đồ) bấm đúp ra ĐÚNG KHÔNG
+                        // GÌ CẢ — không mở, không báo, người dùng tưởng nút hỏng.
+                        const kq = await pyTu.ap_num(r.tham_so)
+                        if (!kq.ok) { setLoi(kq.error ?? 'không mở được sơ đồ'); return }
+                        setLoi('')
+                      })()}>
                     <td className="tu-stt">{i + 1}</td>
                     {tenNum.map(c => (
                       <td key={c} className="tu-cot-num">{r.tham_so[c] ?? ''}</td>
