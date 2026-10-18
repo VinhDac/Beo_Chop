@@ -324,7 +324,9 @@ th = lam.LOAI_LAM[lam.LAM_TIN_HIEU]
 kiem("nằm ở nhóm riêng", th["nhom"] == lam.NHOM_TIN_HIEU,
      "— nó KHÔNG đặt lệnh, nên không thuộc nhóm Lệnh")
 kiem("cần mã", th["can_ma"])
-kiem("có ô hướng và ô hạn", {o["ten"] for o in th["o"]} == {"huong", "han"})
+kiem("có ô hướng và ô hạn",
+     {"huong", "han"} <= {o["ten"] for o in th["o"]},
+     f"— {sorted(o['ten'] for o in th['o'])}")
 # ⚠ HƯỚNG phải đi qua `theo_loai`: mọi ô đều qua `_lit()` thành literal Python, nên
 # nhét `InsightDirection.{huong}` vào mẫu sinh ra `InsightDirection.'UP'` — sai cú
 # pháp, và chỉ lộ ra lúc LEAN nạp file. Đã dính thật.
@@ -363,10 +365,26 @@ _moi = core.make_lam_step(lam.LAM_TIN_HIEU)
 kiem("khối vừa thả ra đã có trọng số 1", _moi.get("gia_tri") == {"so": 1})
 kiem("và khối mới KHÔNG bị soát bắt lỗi", not core.soat_khoi_lam(_moi),
      f"— {[v['message'][:60] for v in core.soat_khoi_lam(_moi)]}")
+# ⚠ CANH VỊ TRÍ KHE, KHÔNG CANH SỐ CHỮ `None`. Dòng cũ chốt `count("None") == 3`,
+# tức nó canh ĐÚNG MỘT hình: ba khe trống rồi tới trọng số. Thế là lần đầu có người
+# điền hai khe ấy (magnitude · confidence, để mở ba model chia vốn) thì nó đổ — đổ
+# vì việc đúng, và lời nó nói («điền tới khe trọng số») thì vẫn đang đúng.
+#
+# Thứ cần canh là TỪNG KHE RƠI ĐÚNG CHỖ theo `INSIGHT_THAM_SO` — chữ ký thật của
+# `Insight.price`. Khe lệch một bậc là LEAN nhận confidence làm magnitude: không nổ,
+# không báo, chỉ ra tỷ trọng sai.
 for _h, _v in _th["theo_loai"].items():
-    kiem(f"câu LEAN hướng {_h} điền tới khe trọng số",
-         "{gia_tri}" in _v["lean"] and _v["lean"].count("None") == 3,
-         f"— {_v['lean'][-60:]}")
+    _args = [x.strip() for x in
+             _v["lean"].split("Insight.price(", 1)[1].rsplit("))", 1)[0].split(",")]
+    _cho = {t: i for i, t in enumerate(lam.INSIGHT_THAM_SO)}
+    kiem(f"câu LEAN hướng {_h} — đủ bảy khe của Insight.price",
+         len(_args) == 7, f"— {len(_args)}: {_args}")
+    for _khe, _dau in (("magnitude", "{do_lon}"), ("confidence", "{do_tin}"),
+                       ("weight", "{gia_tri}")):
+        _i = _cho[_khe]
+        kiem(f"   hướng {_h}: khe {_khe} (thứ {_i + 1}) = {_dau}",
+             _i < len(_args) and _args[_i] == _dau,
+             f"— đang là {_args[_i] if _i < len(_args) else '(thiếu)'}")
 
 print("\n▸ ⚠ Mọi loại việc phải ĐỌC RA ĐƯỢC trên thẻ khối — không loại nào là dấu «?»")
 # ĐÃ DÍNH THẬT, và người dùng thấy trước tôi: `mo_ta_lam` là BẢNG TRA, mỗi loại một

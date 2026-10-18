@@ -306,7 +306,7 @@ TIN_HIEU = {
     "nhom": NHOM_TIN_HIEU,
     "can_ma": True,
     "lean": "self.emit_insights(Insight.price({sym}, timedelta(days={han}), "
-            "InsightDirection.…, None, None, None, {gia_tri}))",
+            "InsightDirection.…, {do_lon}, {do_tin}, None, {gia_tri}))",
     #: TRỌNG SỐ — đây là chỗ LEAN so mã này với mã khác, và nó là tham số CÓ SẴN của
     #: `Insight.Price(symbol, period, direction, magnitude, confidence, sourceModel,
     #: weight, tag)`. Ta vẫn gọi đúng hàm ấy, chỉ là trước đây bỏ trống khe thứ bảy.
@@ -333,6 +333,31 @@ TIN_HIEU = {
         _o("han", "Giữ tối đa", O_SO, 15, "ngày",
            "Hết ngần này ngày, LEAN tự bỏ tín hiệu và chia lại vốn cho mã còn hạn. "
            "Không khối nào phải đếm ngày — đó là việc của LEAN."),
+        # ⚠ HAI Ô NÀY MỞ BA MODEL CHIA VỐN, không phải hai con số cho đẹp.
+        #
+        # Đếm lại kệ LEAN (18/10/2026) ra 10 model chia vốn, app bày 5. Ba trong
+        # năm cái còn thiếu chặn ở ĐÚNG hai khe của `Insight` mà bộ sinh mã đang
+        # truyền `None` — đọc `should_create_target_for_insight` của từng model:
+        #     ConfidenceWeighted  -> `insight.confidence is not None`
+        #     MeanVariance        -> `if insight.magnitude is None: báo lỗi`
+        #     BlackLitterman      -> `insight.magnitude`
+        # Khe rỗng thì model trả False cho MỌI tín hiệu: chạy hết, 0 lệnh, không một
+        # lời. Nên trước nay chúng không được bày — đúng, và nay hai ô này là cách
+        # bày chúng ra cho tử tế.
+        #
+        # ⚠ MỘT CON SỐ CHO MỌI MÃ, CHƯA PHẢI MỘT ĐẠI LƯỢNG. Khác ô «Trọng số» ở
+        # trên: trọng số nhận được cả đại lượng (`co_dai_luong`), nên nó xếp hạng
+        # được mã này so mã kia. Hai ô này chưa. Với MeanVariance/BlackLitterman thì
+        # một con số vẫn có nghĩa thật — chúng dựng ma trận hiệp phương sai TỪ
+        # HISTORY, nên mã nào biến động khác nhau vẫn ra tỷ trọng khác nhau. Với
+        # ConfidenceWeighted thì một con số chung khiến nó chia y hệt «chia đều» —
+        # nhãn của model nói thẳng chuyện đó, không để người dùng tự đoán.
+        _o("do_lon", "Mức kỳ vọng (magnitude)", O_SO, 0.02, "phần",
+           "Kỳ vọng giá đổi ngần này. 0.02 = 2%. Chỉ mấy model tối ưu "
+           "(MeanVariance · Black-Litterman) đọc khe này."),
+        _o("do_tin", "Độ tin (confidence)", O_SO, 1.0, "phần",
+           "Tin tín hiệu này đến mức nào, từ 0 đến 1. Chỉ model "
+           "ConfidenceWeighted đọc khe này."),
     ],
     # ⚠ HƯỚNG viết thẳng vào câu LEAN, nên phải đi qua `theo_loai` chứ KHÔNG nhét
     # vào `{…}` của mẫu: mọi ô đều qua `_lit()` để thành literal Python, nên
@@ -341,7 +366,7 @@ TIN_HIEU = {
     "theo_loai": {
         h: {"lean": "self.emit_insights(Insight.price({sym}, "
                     f"timedelta(days={{han}}), InsightDirection.{h}, "
-                    "None, None, None, {gia_tri}))", "o": []}
+                    "{do_lon}, {do_tin}, None, {gia_tri}))", "o": []}
         for h in ("UP", "DOWN", "FLAT")
     },
 }

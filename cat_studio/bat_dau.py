@@ -296,6 +296,20 @@ CHIA_VON = (
      "HỒI QUY TRUNG BÌNH — dồn vốn vào mã vừa rơi xa trung bình"),
     ("AccumulativeInsightPortfolioConstructionModel",
      "CỘNG DỒN — mỗi tín hiệu thêm 3% vị thế, tín hiệu sau cộng vào tín hiệu trước"),
+    # ⚠ BA MODEL DƯỚI ĐÂY MỞ ĐƯỢC NHỜ HAI Ô MỚI ở khối «Phát tín hiệu» (`do_lon` =
+    # magnitude, `do_tin` = confidence). Trước đó bộ sinh mã truyền `None` vào hai
+    # khe ấy, nên ba model này trả False cho MỌI tín hiệu: chạy hết, 0 lệnh, không
+    # một lời. Luật cũ «chỉ bày model mà khối vẽ được nuôi» vẫn nguyên — nay nuôi
+    # được nên bày.
+    ("MeanVarianceOptimizationPortfolioConstructionModel",
+     "TỐI ƯU TRUNG BÌNH–PHƯƠNG SAI — LEAN dựng ma trận hiệp phương sai từ history"),
+    ("BlackLittermanOptimizationPortfolioConstructionModel",
+     "BLACK-LITTERMAN — trộn kỳ vọng của mình với cân bằng thị trường"),
+    # Nhãn nói THẲNG chuyện nó chia y hệt «chia đều» khi mọi tín hiệu cùng độ tin:
+    # ô «Độ tin» hiện là MỘT con số cho mọi mã, chưa phải đại lượng xếp hạng được.
+    # Không nói ra thì người dùng chọn vào, thấy kết quả y chia đều, rồi ngồi đoán.
+    ("ConfidenceWeightedPortfolioConstructionModel",
+     "Chia theo ĐỘ TIN — cùng độ tin thì y như chia đều (ô «Độ tin» là một số chung)"),
 )
 
 #: Model chia vốn -> khe nào của `Insight` nó ĐỌC ("" = không đọc gì). Giữ cả mấy
