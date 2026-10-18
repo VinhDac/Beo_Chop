@@ -588,6 +588,41 @@ kiem("cửa sổ Optimize nhận một HÀM GỌI NGƯỢC, không nhận cả `
 kiem("`_bao` đẩy sự kiện rồi ĐƯA CANVAS LÊN TRƯỚC",
      '_ban("mo_so_do"' in _api_src and "self._window.restore()" in _api_src,
      "— mở đúng sơ đồ mà cửa sổ ấy vẫn nằm dưới thì người dùng không thấy gì đổi")
+# ⚠ `restore()` CHỈ bỏ thu nhỏ. Cửa sổ sơ đồ nằm DƯỚI cửa sổ Optimize thì nó chẳng
+# đổi gì — bấm đúp, sơ đồ đổi thật, mà người dùng vẫn đang nhìn bảng xếp hạng nên
+# tưởng không có gì xảy ra. Phải nâng bằng Win32.
+kiem("và nâng hẳn bằng Win32, không chỉ `restore()`",
+     "dua_len_truoc(" in _api_src)
+_kcs = doc("cat_studio", "khung_cua_so.py")
+kiem("`dua_len_truoc` gọi cả BringWindowToTop lẫn SetForegroundWindow",
+     "BringWindowToTop" in _kcs and "SetForegroundWindow" in _kcs,
+     "— Windows có thể từ chối cái sau, nên cái trước là lối dự phòng")
+_krong = doc("cat_studio", "khung_rong.py")
+kiem("bản rỗng ngoài Windows cũng có hàm ấy", "def dua_len_truoc(" in _krong,
+     "— thiếu là `api.py` không nạp nổi trên Linux/CI")
+
+print("\n▸ ⚠ Cửa sổ nào tự vẽ thanh tiêu đề thì PHẢI được vá khung")
+# ĐÃ DÍNH HAI LẦN. Cửa sổ Kết quả dính trước; nay cửa sổ Optimize dính lại y hệt,
+# chỉ khác cách: `_va_khung` đòi tham số `chua_chuoi`, mà chỗ mở cửa sổ Optimize gọi
+# `threading.Thread(target=phu._va_khung)` KHÔNG tham số. Luồng nền ném `TypeError`
+# rồi chết IM, nên khung không bao giờ được vá — thanh tiêu đề không kéo, không
+# giãn, không Aero Snap, mà nhìn vào thì y hệt một cửa sổ bình thường.
+kiem("không chỗ nào giao THẲNG `_va_khung` cho một luồng",
+     all("_va_khung(" in d for d in _api_src.splitlines()
+         if "target=" in d and "_va_khung" in d),
+     "— `_va_khung` đòi `chua_chuoi`; giao trần là TypeError chết im trong luồng nền")
+_so_cua = _api_src.count("frameless=True")
+_so_va = _api_src.count("_va_khung(tieu_de)")
+kiem(f"mỗi cửa sổ frameless phụ đều có một lượt vá khung ({_so_va} vá)",
+     _so_va >= 2, f"— {_so_cua} cửa sổ frameless, {_so_va} lượt vá")
+kiem("và VÁ HỤT THÌ NÓI, không im",
+     _api_src.count("KHÔNG vá được khung") >= 2,
+     "— im lặng là để người dùng ngồi thử đi thử lại một dải tiêu đề đã chết")
+_tu_tsx_tb = doc("webui", "src", "TrangToiUu.tsx")
+kiem("trang Optimize tự vẽ `TitleBar`", "<TitleBar" in _tu_tsx_tb)
+_tb = doc("webui", "src", "components", "TitleBar.tsx")
+kiem("và `TitleBar` tự gắn `useKhungCuaSo`", "useKhungCuaSo(" in _tb,
+     "— gắn ở SoDo thôi thì cửa sổ phụ có thanh tiêu đề chết, đã dính thật")
 
 print("\n▸ ⚠ Mẻ phải NHỚ CẢ SƠ ĐỒ — không chỉ nhớ mấy con số")
 # Bấm đúp một dòng phải mở ra ĐÚNG SƠ ĐỒ ẤY, kể cả khi canvas đang trống, đang vẽ

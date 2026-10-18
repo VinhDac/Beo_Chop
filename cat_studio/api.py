@@ -523,25 +523,44 @@ class Api(NenCuaSo):
             except Exception:                           # noqa: BLE001
                 self._cua_so_tu.pop(ma_id, None)
         def _bao(ts):
-            # Đẩy sang JS của cửa sổ chính, rồi ĐƯA NÓ LÊN TRƯỚC: mở đúng sơ đồ mà
-            # cửa sổ ấy vẫn nằm dưới thì người dùng không thấy gì đổi.
+            # Đẩy sang JS của cửa sổ chính, rồi ĐƯA NÓ LÊN TRƯỚC HẲN.
+            #
+            # ⚠ `restore()` KHÔNG ĐỦ: nó chỉ bỏ trạng thái thu nhỏ. Cửa sổ sơ đồ
+            # đang nằm DƯỚI cửa sổ Optimize thì `restore()` chẳng đổi gì — người
+            # dùng bấm đúp, sơ đồ đổi thật, mà họ vẫn đang nhìn bảng xếp hạng nên
+            # tưởng không có gì xảy ra. Phải nâng bằng Win32.
             self._ban("mo_so_do", ts)
             try:
                 self._window.restore()
             except Exception:                           # noqa: BLE001
                 pass
+            # Tiêu đề cửa sổ chính LUÔN kết thúc bằng hậu tố ấy (`set_title`), còn
+            # cửa sổ Kết quả và Optimize thì không — nên chuỗi này chỉ khớp đúng một
+            # cửa sổ: cửa sổ sơ đồ.
+            khung_cua_so.dua_len_truoc(khung_cua_so.tim_hwnd(self._HAU_TO))
 
         phu = ApiToiUu(ma_id, _bao)
+        tieu_de = (f"Optimize · {kq.get('ten_lop', '')} · "
+                   f"{_doc_ma_luot(kq.get('ma_luot') or '')}")
         w = webview.create_window(
-            f"Optimize · {kq.get('ten_lop', '')} · "
-            f"{_doc_ma_luot(kq.get('ma_luot') or '')}",
+            tieu_de,
             url=f"{self._window.get_current_url().split('?')[0]}?tu={ma_id}",
             js_api=phu, width=1180, height=800, min_size=(900, 600),
             background_color="#202020", frameless=True, easy_drag=False)
         phu._gan_window(w)
         self._cua_so_tu[ma_id] = (w, phu)
         w.events.closed += lambda: self._cua_so_tu.pop(ma_id, None)
-        threading.Thread(target=phu._va_khung, daemon=True).start()
+
+        # ⚠ BẢN TRƯỚC GỌI `phu._va_khung` KHÔNG THAM SỐ — mà nó đòi `chua_chuoi`.
+        # Luồng nền ném `TypeError` rồi chết IM, nên khung cửa sổ Optimize không bao
+        # giờ được vá: thanh tiêu đề không kéo, không giãn, không Aero Snap, mà nhìn
+        # vào thì y hệt một cửa sổ bình thường. Đúng lỗi đã dính ở cửa sổ Kết quả.
+        def va_va_bao():
+            if not phu._va_khung(tieu_de):
+                print(f"[cửa sổ Optimize] KHÔNG vá được khung «{tieu_de}» — "
+                      f"cửa sổ này sẽ không kéo/giãn được", file=sys.stderr)
+
+        threading.Thread(target=va_va_bao, daemon=True).start()
         return _ok({"id": ma_id, "moi": True})
 
     @_bat_loi

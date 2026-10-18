@@ -9,6 +9,10 @@ def tim_hwnd(chua_chuoi):
     return None
 
 
+def dua_len_truoc(hwnd):
+    return False
+
+
 class KhungTuVe:
     def dat_vung_cam(self, vung, cao):
         pass
