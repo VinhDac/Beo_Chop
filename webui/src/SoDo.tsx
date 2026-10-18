@@ -23,6 +23,7 @@ import HopSinhMa from './components/HopSinhMa'
 import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
 import HopTienDo from './components/HopTienDo'
+import HopToiUu from './components/HopToiUu'
 import Icon from './components/Icon'
 import HopCaiDat from './components/HopCaiDat'
 import HopKhoLuot from './components/HopKhoLuot'
@@ -33,6 +34,7 @@ import HopKhoa from './qc/HopKhoa'
 import type {
   Card, Edge, HatNhanTag, KetQuaSoat, KhoaQC, Step, StepKind, Strategy, TuDienHoi,
   KetQuaChay, KetQuaSinh, TienDoChay, TuDienBatDau, TuDienLam, VanDe,
+  NumSoDo, TuDienToiUu,
 } from './types'
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
@@ -245,6 +247,9 @@ function SoDoTrong() {
   const [dangChay, setDangChay] = useState(false)
   /** Tiến độ lượt backtest đang chạy — null = không hiện hộp. */
   const [tienDo, setTienDo] = useState<TienDoChay | null>(null)
+  const [moToiUu, setMoToiUu] = useState(false)
+  const [tdToiUu, setTdToiUu] = useState<TuDienToiUu | null>(null)
+  const [numSoDo, setNumSoDo] = useState<NumSoDo[]>([])
   const [moCaiDat, setMoCaiDat] = useState(false)
   /** Kho LƯỢT BACKTEST — khác `moKho` phía trên, cái ấy là kho Strategy. */
   const [moKhoLuot, setMoKhoLuot] = useState(false)
@@ -1257,6 +1262,17 @@ function SoDoTrong() {
     themNhom: () => void themKhoi('group'),
     themKhoiLe: () => void themKhoi('action'),
     themQuayVe: () => void themKhoi('action', 'quay_ve'),
+    toiUu: () => void (async () => {
+      // HỎI PYTHON xem sơ đồ đang ghim những núm nào — KHÔNG tự dò bên này. Một bảng
+      // núm dựng ở giao diện thì sớm muộn trỏ vào một ô đã bị xoá, và optimizer lặng
+      // lẽ quét một tham số chẳng ai đọc.
+      const [td, ns] = await Promise.all([
+        py.tu_dien_toi_uu(), py.num_cua_so_do(rfSangSteps(nodes))])
+      if (!td.ok || !td.value) { await bao({ loi: td.error ?? 'chưa mở được' }); return }
+      setTdToiUu(td.value)
+      setNumSoDo(ns.ok && ns.value ? ns.value : [])
+      setMoToiUu(true)
+    })(),
     chay: () => void (async () => {
       // Hỏi trước xem LEAN đã trỏ đúng chỗ chưa: báo ngay tại đây dễ hiểu hơn hẳn
       // để người dùng chờ một phút rồi nhận một dòng lỗi của tiến trình con.
@@ -1626,6 +1642,37 @@ function SoDoTrong() {
       {moKhoLuot && <HopKhoLuot onDong={() => setMoKhoLuot(false)} />}
       {tienDo && (
         <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
+      )}
+      {moToiUu && tdToiUu && (
+        <HopToiUu td={tdToiUu} num={numSoDo} dangChay={dangChay}
+                  onDong={() => setMoToiUu(false)}
+                  onChay={cai => void (async () => {
+                    setMoToiUu(false)
+                    const r = await py.chay_toi_uu(ten || 'Co May',
+                      rfSangSteps(nodes), rfSangEdges(edges), cai)
+                    if (!r.ok || !r.value) {
+                      await bao({ loi: r.error ?? 'không chạy được' }); return
+                    }
+                    if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
+                    setDangChay(true)
+                    ghi('bắt đầu một mẻ Optimize')
+                    // MỘT MẺ LÀ HÀNG TRĂM LƯỢT, nên mở cửa sổ NGAY chứ đừng đợi
+                    // xong: bảng và plot trong đó đầy dần, người dùng nhìn thấy nó
+                    // còn sống. Đợi hết mẻ mới mở thì có khi chờ hàng tiếng trước
+                    // một màn hình không nói gì.
+                    const nhip = window.setInterval(() => void (async () => {
+                      const t = await py.tien_do_toi_uu()
+                      if (!t.ok || !t.value) return
+                      const v = t.value as { dang_chay?: boolean; xong?: boolean
+                                             kq?: { ok?: boolean; loi?: string
+                                                    id?: string } }
+                      if (!v.xong) return
+                      window.clearInterval(nhip)
+                      setDangChay(false)
+                      if (v.kq?.id) await py.mo_cua_so_toi_uu(v.kq.id)
+                      else if (v.kq && !v.kq.ok) await bao({ loi: v.kq.loi ?? '' })
+                    })(), 1000)
+                  })()} />
       )}
       {moKetQua && ketQua && (
         <HopKetQua kq={ketQua} onDong={() => setMoKetQua(false)}

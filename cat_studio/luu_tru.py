@@ -34,6 +34,9 @@ THU_MUC_NHAT_KY = "nhat_ky"
 THU_MUC_MA = "ma_sinh"
 #: Kết quả backtest LEAN ghi ra — mỗi thuật toán một thư mục con.
 THU_MUC_KET_QUA = "ket_qua"
+#: Mỗi mẻ Optimize một thư mục, cạnh `ket_qua`. Một mẻ gồm hàng trăm lượt backtest
+#: nên để chung với kết quả thường là màn Kho không còn đọc nổi.
+THU_MUC_TOI_UU = "toi_uu"
 
 #: ⚠ DỰNG TỪ `cai_dat.NHOM`, không gõ tay lần thứ hai. `doc_cai_dat` dưới đây CHỈ
 #: GIỮ khoá có trong bảng này, nên một cài đặt khai ở `cai_dat.py` mà quên thêm vào
@@ -105,6 +108,10 @@ def thu_muc_ma():
 
 def thu_muc_ket_qua():
     return _thu_muc(THU_MUC_KET_QUA)
+
+
+def thu_muc_toi_uu():
+    return _thu_muc(THU_MUC_TOI_UU)
 
 
 def ghi_ma(ten_lop, ma):

@@ -1833,3 +1833,95 @@ mark.tim-chu {
   word-break: break-all; min-height: 30px;
 }
 .td-chan { font-size: 10.5px; color: var(--dim); }
+
+/* ==========================================================================
+   OPTIMIZE — hộp cài đặt, và cửa sổ hai phần
+   ==========================================================================
+   Hộp: một mạch từ trên xuống, KHÔNG gập thành khối như màn của QuantConnect.
+   Màn họ gập ba khối cho chừng năm thứ, và khối «chọn mục tiêu» nằm cuối cùng
+   trong khi "tìm cái gì" mới là câu hỏi đầu tiên. */
+.hop-tu .tu-muc {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 2px; padding-top: 9px;
+  border-top: 1px solid var(--border-soft);
+  font: 11.5px var(--font); color: var(--muted); text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.hop-tu .tu-muc .nut-nho { margin-left: auto; text-transform: none; }
+.tu-rong {
+  padding: 6px 2px; font: 11.5px/1.5 var(--font); color: var(--dim);
+}
+/* MỘT NÚM MỘT KHỐI: tên + chỗ nó nằm ở hàng trên, khoảng quét ở hàng dưới. Nhồi
+   hết vào một hàng thì ô số bị bóp còn vài ký tự — đã dính đúng thế ở bảng nổi. */
+.tu-num {
+  padding: 7px 9px; margin-bottom: 6px;
+  background: var(--raised); border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+/* Núm chưa khai nổi một khoảng thì VIỀN ĐỎ ngay tại chỗ, chứ đừng để bấm Chạy mới
+   biết. Màn QC để min 0 / max 0 mà không kêu gì — cả mẻ ra đúng một kết quả. */
+.tu-num.thieu { border-color: var(--err); }
+.tu-ten { display: flex; align-items: baseline; gap: 9px; margin-bottom: 5px; }
+.tu-ten .num-ghim { font: 12px var(--font-mono); }
+.tu-noi {
+  font: 11px var(--font); color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tu-khoang { display: flex; align-items: center; gap: 6px; }
+.tu-khoang > span { font: 11.5px var(--font); color: var(--muted); }
+.tu-khoang .o.so { width: 72px; text-align: right; }
+.tu-dem { margin-left: auto; font-size: 11px; color: var(--dim); }
+.tu-rb { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.tu-rb .o { flex: 1; min-width: 0; }
+.tu-rb .o.so { flex: 0 0 86px; text-align: right; }
+/* ƯỚC LƯỢNG ngay cạnh nút Chạy — thứ đáng chép nhất của màn QC. Ba núm × hai mươi
+   bước là 8000 lượt, hơn ba tiếng; không nói trước thì người ta bấm rồi ngồi đoán. */
+.tu-uoc { flex: 1; font: 11.5px var(--font); color: var(--muted); }
+.tu-uoc b { color: var(--text); }
+.tu-uoc.thieu { color: var(--err); }
+
+/* ---------- CỬA SỔ OPTIMIZE: đúng hai phần, plot trên bảng dưới ---------- */
+.tu-than { flex: 1; display: flex; flex-direction: column; min-height: 0;
+           padding: 10px 14px 0; gap: 10px; }
+.tu-dau { font: 12px var(--font); color: var(--muted); }
+.tu-dau b { color: var(--text); }
+.tu-cham { margin: 0 8px; color: var(--dim); }
+.tu-dang { margin-left: 10px; color: var(--accent); }
+.tu-plot {
+  flex: 0 0 auto; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px 4px;
+}
+.tu-plot svg { width: 100%; height: 200px; display: block; }
+.tu-truc { stroke: var(--border); stroke-width: 1; }
+.tu-so { fill: var(--dim); font: 10px var(--font-mono); }
+.tu-cham-diem { fill: var(--muted); }
+/* Đường TỐT NHẤT ĐẾN GIỜ — nhìn nó leo hay nằm ngang là biết đang tốt lên hay bí.
+   Đây là lý do cái plot tồn tại, nên nó mang màu nhấn còn mấy chấm thì mờ. */
+.tu-duong-tot { fill: none; stroke: var(--accent); stroke-width: 2; }
+.tu-chu-thich {
+  display: flex; align-items: center; gap: 6px;
+  font: 11px var(--font); color: var(--dim); padding: 2px 0 0;
+}
+.tu-ky-hieu { display: inline-block; width: 12px; height: 2px; margin-left: 10px; }
+.tu-ky-hieu.diem { height: 6px; width: 6px; border-radius: 50%;
+                   background: var(--muted); margin-left: 0; }
+.tu-ky-hieu.duong { background: var(--accent); }
+.tu-bang { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
+.tu-bang table { border-collapse: collapse; width: 100%; }
+.tu-bang th, .tu-bang td {
+  padding: 4px 9px; text-align: right; white-space: nowrap;
+  font: 11.5px var(--font-mono); border-bottom: 1px solid var(--border-soft);
+}
+.tu-bang th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--chrome); color: var(--muted); cursor: pointer;
+  font: 11px var(--font); user-select: none;
+}
+.tu-bang th:hover { color: var(--text); }
+.tu-bang th.sap { color: var(--accent); }
+.tu-bang tbody tr:hover { background: var(--raised); }
+/* CỘT GIÁ TRỊ NÚM đứng trước các chỉ tiêu và mang màu của núm: «Sharpe 2.1» mà
+   không biết `rsi_chu_ky` bằng mấy thì xem để làm gì. Màn QC không có mấy cột này. */
+.tu-bang .tu-cot-num { color: var(--accent); }
+.tu-bang .tu-stt { text-align: left; color: var(--dim); }

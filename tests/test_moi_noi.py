@@ -438,6 +438,51 @@ _tsx = doc("webui", "src", "components", "StepNode.tsx")
 kiem("và giao diện ĐỌC `num` của Python chứ không tự dò chữ",
      "d.num" in _tsx and "num-ghim" in _tsx)
 
+print("\n▸ MỐI NỐI 11 — hộp Optimize × config LEAN × bảng kết quả")
+from cat_studio import chay_toi_uu, toi_uu  # noqa: E402
+
+# Mọi núm trong hộp phải thành một khoá LEAN nhận, và ngược lại.
+_cai = dict(toi_uu.MAC_DINH)
+_cai["tham_so"] = {"rsi_chu_ky": {"tu": 10, "den": 30, "buoc": 5}}
+_cai["rang_buoc"] = [{"chi_tieu": "Drawdown", "phep": "lessOrEqual", "gia_tri": 0.2}]
+_sb = {"goc": "G", "lean_dll": "L.dll"}
+_cfg = chay_toi_uu._cau_hinh(_cai, "Lop", "ma.py", "ra", _sb)
+for _k in ("optimization-strategy", "optimization-criterion", "constraints",
+           "parameters", "lean-binaries-location", "optimizer-close-automatically"):
+    kiem(f"config có «{_k}»", _k in _cfg)
+kiem("mục tiêu thành đường dẫn vào file kết quả",
+     _cfg["optimization-criterion"]["target"] == "Statistics.Sharpe Ratio",
+     f'— {_cfg["optimization-criterion"]["target"]}')
+kiem("núm thành đúng khuôn {name,min,max,step}",
+     _cfg["parameters"] == [{"name": "rsi_chu_ky", "min": 10.0, "max": 30.0,
+                             "step": 5.0}], f'— {_cfg["parameters"]}')
+kiem("ràng buộc dùng phép so LEAN hiểu",
+     _cfg["constraints"][0]["operator"] in {m for m, _n in toi_uu.PHEP_SO})
+# ⚠ Optimizer KHÔNG tự chạy backtest, nó đẻ tiến trình LEAN — và gọi qua file .DLL.
+kiem("trỏ vào .dll của launcher backtest, không phải .exe",
+     str(_cfg["lean-binaries-location"]).endswith(".dll"))
+kiem("có cờ đóng tự động — thiếu là cả mẻ đứng chờ một phím",
+     _cfg["optimizer-close-automatically"] is True)
+_mo_ra = {c for c, _n in toi_uu.CACH_TIM}
+kiem("cách tìm là một lớp có thật của LEAN", _cfg["optimization-strategy"] in _mo_ra)
+
+print("\n▸ ⚠ Bảng xếp hạng chỉ được bày NÚM CỦA MẺ, không bày tham số của LEAN")
+# ĐÃ DÍNH THẬT, và chỉ lộ ra khi nhìn ảnh chụp: `algorithmConfiguration.parameters`
+# mang cả `ema-fast` · `ema-slow` · `intrinio-username` · `intrinio-password` của
+# chính LEAN, vì config ta ghi kế thừa từ `config.json` gốc. Mã vẫn chạy, bảng vẫn
+# hiện — chỉ là nó mọc bốn cột vô nghĩa lẫn vào giữa mấy cột núm thật.
+import inspect  # noqa: E402
+_nguon = inspect.getsource(chay_toi_uu.doc_luot)
+kiem("`doc_luot` nhận danh sách núm để lọc", "ten_num" in _nguon)
+kiem("và nó LỌC thật, không chỉ chép cả nắm", "if k in loc" in _nguon,
+     "— comment nói lọc mà mã chép hết thì đúng là cái hàng rào không ai gác")
+for _ham in (chay_toi_uu.doc_me, chay_toi_uu.trang_thai):
+    kiem(f"`{_ham.__name__}` truyền danh sách ấy xuống",
+         "doc_luot(" in inspect.getsource(_ham)
+         and inspect.getsource(_ham).count("doc_luot(") ==
+             inspect.getsource(_ham).count("doc_luot(d,")
+             + inspect.getsource(_ham).count('doc_luot(t.get'))
+
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
 # cũ phải ở lại làm mặc định. Mất nó thì ghim một ô là đổi luôn kết quả backtest

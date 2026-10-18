@@ -88,6 +88,8 @@ export interface ViecRibbon {
   sinhMa: () => void
   /** Sinh rồi chạy backtest luôn. */
   chay: () => void
+  /** Mở hộp Optimize — quét mấy núm đã ghim trên sơ đồ. */
+  toiUu: () => void
   /** Dừng lượt đang chạy — giết thẳng tiến trình LEAN (F6). */
   dung: () => void
   /** Mở lại kết quả lượt vừa chạy. */
@@ -205,8 +207,8 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
                  title="Dừng lượt backtest đang chạy (F6)" />
           : <Nut ten="Backtest" icon="chay" onClick={v.chay}
                  title="Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này" />}
-        <Nut ten="Optimize" icon="branch" tat
-             title="Optimize — quét tham số tìm bộ tốt nhất. CHƯA CÓ: cần mở ô số cho gõ tên tham số trước." />
+        <Nut ten="Optimize" icon="branch" onClick={v.toiUu}
+             title="Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất" />
         <Nut ten="Live" icon="an-lenh" tat
              title="Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn." />
         <Nut ten="Results" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}

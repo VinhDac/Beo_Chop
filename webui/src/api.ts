@@ -11,6 +11,7 @@ import type {
   Edge, KetQuaChay, KetQuaSinh, KetQuaSoat, KhoDanhMuc, KhoaQC, LeanSanSang, Reply,
   OLam, Step, StepKind, Strategy,
   TheLuotChay, TienDoChay, TuDienBatDau, TuDienHoi, TuDienLam, VanDe,
+  CaiToiUu, LuotToiUu, NumSoDo, TuDienToiUu,
 } from './types'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
@@ -112,6 +113,20 @@ export const py = {
   /** Lượt chạy đang tới đâu — hỏi mỗi nửa giây. */
   tien_do_backtest: () => goi<TienDoChay>('tien_do_backtest'),
 
+  // --- OPTIMIZE. Cùng khuôn backtest, chỉ nặng hơn: một mẻ là HÀNG TRĂM lượt. ---
+  tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
+  /** Sơ đồ đang ghim những núm nào. ĐỌC TỪ SƠ ĐỒ mỗi lần, không bảng riêng. */
+  num_cua_so_do: (steps: Step[]) => goi<NumSoDo[]>('num_cua_so_do', steps),
+  chay_toi_uu: (ten: string, steps: Step[], edges: Edge[], cai: CaiToiUu) =>
+    goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
+      'chay_toi_uu', ten, steps, edges, cai),
+  dung_toi_uu: () => goi<boolean>('dung_toi_uu'),
+  tien_do_toi_uu: () => goi<Record<string, unknown>>('tien_do_toi_uu'),
+  ds_me_toi_uu: () => goi<Record<string, unknown>[]>('ds_me_toi_uu'),
+  /** Mở CỬA SỔ RIÊNG cho một mẻ — mở ngay lúc bắt đầu, bảng đầy dần. */
+  mo_cua_so_toi_uu: (id: string) =>
+    goi<{ id: string; moi: boolean }>('mo_cua_so_toi_uu', id),
+
   // --- sơ đồ ---
   khoi_moi: (kind: StepKind, loai?: string) =>
     goi<{ step: Step; card: KetQuaSoat['the'][string] }>('khoi_moi', kind, loai),
@@ -164,3 +179,12 @@ export const py = {
 
 /** ⚠ Giữ tên cũ cho `HopKhoa` khỏi phải sửa — nhưng nó TRỎ VÀO CÙNG một bề mặt. */
 export const pyQC = py
+
+/** Cầu nối của CỬA SỔ OPTIMIZE. Bề mặt HẸP có chủ ý: cửa sổ ấy chỉ đọc một mẻ rồi
+ *  bày ra, nên `js_api` của nó bên Python (`ApiToiUu`) cũng chỉ mở đúng hai cửa.
+ *  Đưa cả `py` vào đó là đưa luôn `xoa_strategy` vào một cửa sổ chẳng có lý do gì
+ *  chạm tới nó. */
+export const pyTu = {
+  doc_me: () => goi<LuotToiUu>('doc_me'),
+  tien_do: () => goi<{ dang_chay?: boolean; xong?: boolean }>('tien_do'),
+}

@@ -25,11 +25,13 @@ import traceback
 
 from . import cai_dat
 from . import chay_lean
+from . import chay_toi_uu
 from . import core
 from . import sinh_ma
 from . import bat_dau
 from . import hoi
 from . import lam
+from . import toi_uu
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -137,6 +139,8 @@ class NenCuaSo:
     #: và phải giữ tham chiếu tới `ApiKetQua` để Python đừng thu gom mất cái js_api
     #: đang sống trong cửa sổ ấy.
     _cua_so_kq: dict = {}
+    #: Cùng vai với `_cua_so_kq`, cho cửa sổ Optimize.
+    _cua_so_tu: dict = {}
 
     def _ban(self, ten, du_lieu):
         """Đẩy sự kiện sang JS của CHÍNH cửa sổ này. Nuốt lỗi: cửa sổ có thể đã đóng
@@ -214,6 +218,37 @@ class ApiKetQua(NenCuaSo):
         không để một cửa sổ đọc sang lượt của cửa sổ khác."""
         kq = chay_lean.doc_luot_chay(self._ma_id)
         return _ok(kq) if kq["ok"] else _loi(kq["loi"])
+
+
+class ApiToiUu(NenCuaSo):
+    """js_api của MỘT CỬA SỔ OPTIMIZE. Cùng lý do bề mặt hẹp như `ApiKetQua`.
+
+    Khác một điểm: cửa sổ này còn mở TRONG LÚC MẺ ĐANG CHẠY, nên nó hỏi `tien_do`
+    để bảng và plot đầy dần. Một mẻ hàng trăm lượt mà bắt nhìn màn trống tới lúc
+    xong thì không ai biết nó còn sống hay đã treo."""
+
+    def __init__(self, ma_id):
+        super().__init__()
+        self._ma_id = str(ma_id)
+
+    @_bat_loi
+    def ping(self):
+        return _ok("pong")
+
+    @_bat_loi
+    def doc_me(self, ma_id=None):
+        """Mẻ của CỬA SỔ NÀY. Bỏ qua mã JS gửi lên — cửa sổ nào thì mẻ ấy."""
+        kq = chay_toi_uu.doc_me(self._ma_id)
+        return _ok(kq) if kq["ok"] else _loi(kq["loi"])
+
+    @_bat_loi
+    def tien_do(self):
+        """Mẻ đang tới đâu — cửa sổ hỏi trong lúc nó còn chạy."""
+        return _ok(chay_toi_uu.trang_thai())
+
+    @_bat_loi
+    def tu_dien_toi_uu(self):
+        return _ok(toi_uu.tu_dien())
 
 
 class Api(NenCuaSo):
@@ -396,6 +431,74 @@ class Api(NenCuaSo):
                      "ten_lop": kq["ten_lop"],
                      "moc_ten": m or "SPY — LEAN tự chọn"}
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
+
+    @_bat_loi
+    def tu_dien_toi_uu(self):
+        """Từ điển Optimize — cách tìm, phép so, 27 chỉ tiêu, mặc định."""
+        return _ok(toi_uu.tu_dien())
+
+    @_bat_loi
+    def num_cua_so_do(self, steps=None):
+        """Mấy núm sơ đồ đang ghim -> hộp Optimize bày đúng danh sách này.
+
+        ĐỌC THẲNG TỪ SƠ ĐỒ, không giữ bảng riêng: bảng riêng thì sớm muộn trỏ vào
+        một ô đã bị xoá, và optimizer lặng lẽ quét một tham số không ai đọc."""
+        return _ok(core.ds_tham_so(
+            [core.chuan_hoa_khoi(s) for s in (steps or [])]))
+
+    @_bat_loi
+    def chay_toi_uu(self, ten, steps, edges=None, cai=None):
+        """Vẽ -> sinh -> KHỞI ĐỘNG một mẻ Optimize, rồi trả về NGAY.
+
+        Cùng lý do không chờ như `chay_backtest`, chỉ là nặng hơn hẳn: một mẻ là
+        HÀNG TRĂM lượt backtest."""
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges))
+        if not kq["ok"]:
+            return _ok({"ok": False, "van_de": kq["van_de"],
+                        "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề."})
+        return _ok(chay_toi_uu.bat_dau_chay(kq["ma"], kq["ten_lop"], cai or {}))
+
+    @_bat_loi
+    def dung_toi_uu(self):
+        r = chay_toi_uu.dung()
+        return _ok(True) if r["ok"] else _loi(r["loi"])
+
+    @_bat_loi
+    def tien_do_toi_uu(self):
+        return _ok(chay_toi_uu.trang_thai())
+
+    @_bat_loi
+    def ds_me_toi_uu(self):
+        return _ok(chay_toi_uu.ds_me())
+
+    @_bat_loi
+    def mo_cua_so_toi_uu(self, ma_id):
+        """Mở MỘT CỬA SỔ RIÊNG cho một mẻ Optimize. Cùng lối `mo_cua_so_ket_qua`:
+        một bundle hai vai, `?tu=<mã mẻ>`, js_api RIÊNG (xem docstring cửa kia —
+        dùng chung `self` đã từng ném `KeyError('child_…')` ra hộp thoại .NET)."""
+        import webview
+        kq = chay_toi_uu.doc_me(ma_id)
+        if not kq["ok"]:
+            return _loi(kq["loi"])
+        cu = self._cua_so_tu.get(ma_id)
+        if cu is not None:
+            try:
+                cu[0].restore()
+                return _ok({"id": ma_id, "moi": False})
+            except Exception:                           # noqa: BLE001
+                self._cua_so_tu.pop(ma_id, None)
+        phu = ApiToiUu(ma_id)
+        w = webview.create_window(
+            f"Optimize · {kq.get('ten_lop', '')} · "
+            f"{_doc_ma_luot(kq.get('ma_luot') or '')}",
+            url=f"{self._window.get_current_url().split('?')[0]}?tu={ma_id}",
+            js_api=phu, width=1180, height=800, min_size=(900, 600),
+            background_color="#202020", frameless=True, easy_drag=False)
+        phu._gan_window(w)
+        self._cua_so_tu[ma_id] = (w, phu)
+        w.events.closed += lambda: self._cua_so_tu.pop(ma_id, None)
+        threading.Thread(target=phu._va_khung, daemon=True).start()
+        return _ok({"id": ma_id, "moi": True})
 
     @_bat_loi
     def dung_backtest(self):

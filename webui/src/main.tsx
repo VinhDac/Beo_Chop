@@ -5,6 +5,7 @@ import './theme.css'
 import './app.css'
 import SoDo from './SoDo'
 import TrangKetQua from './TrangKetQua'
+import TrangToiUu from './TrangToiUu'
 
 /* THỨ TỰ QUAN TRỌNG: stylesheet gốc của React Flow phải nạp TRƯỚC app.css, không thì
    nó đè lên luật của ta mà không báo gì. */
@@ -15,10 +16,13 @@ import TrangKetQua from './TrangKetQua'
 
    Cố ý KHÔNG dựng một trang HTML thứ hai: hai trang thì sớm muộn một bên có thứ bên
    kia không, và cái lệch ấy chỉ lộ ra ở màn ít người mở nhất. */
-const kq = new URLSearchParams(window.location.search).get('kq')
+const tham = new URLSearchParams(window.location.search)
+const kq = tham.get('kq')
+/** `?tu=<mã mẻ>` — cửa sổ OPTIMIZE. Cùng một bundle, vai thứ ba. */
+const tu = tham.get('tu')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {kq ? <TrangKetQua ma={kq} /> : <SoDo />}
+    {kq ? <TrangKetQua ma={kq} /> : tu ? <TrangToiUu ma={tu} /> : <SoDo />}
   </React.StrictMode>,
 )

@@ -455,3 +455,57 @@ export interface KhoaQC {
   duong: string
   loi?: string
 }
+
+/* ------------------------------- OPTIMIZE ---------------------------------- */
+
+/** Một ràng buộc: chỉ tiêu + phép so + giá trị. Đúng khuôn `constraints` của LEAN. */
+export interface RangBuoc {
+  chi_tieu: string
+  phep: string
+  gia_tri: number
+}
+
+/** Cài đặt một mẻ Optimize. Mỗi khoá ánh xạ thẳng sang config optimizer. */
+export interface CaiToiUu {
+  cach_tim: string
+  muc_tieu: string
+  huong: string
+  chia_doan: number
+  cung_luc: number
+  rang_buoc: RangBuoc[]
+  /** tên núm -> khoảng quét. */
+  tham_so: Record<string, { tu: number; den: number; buoc: number }>
+}
+
+/** Một núm sơ đồ đang ghim — `core.ds_tham_so` trả về. KHÔNG phải bảng riêng: nó
+ *  đọc thẳng từ sơ đồ mỗi lần, nên sửa sơ đồ là nó đúng theo ngay. */
+export interface NumSoDo {
+  ten: string
+  mac_dinh: number | string
+  /** Núm này nằm ở những ô nào — thứ màn Optimize của QC không có. */
+  o_tai: string[]
+}
+
+export interface TuDienToiUu {
+  cach_tim: { ma: string; nhan: string }[]
+  phep_so: { ma: string; nhan: string }[]
+  huong: { ma: string; nhan: string }[]
+  /** 27 chỉ tiêu LEAN ghi vào file kết quả — đếm từ file thật. */
+  chi_tieu: string[]
+  /** Mặc định cho một mẻ mới — PYTHON khai, giao diện không tự nghĩ ra con số nào. */
+  mac_dinh: CaiToiUu
+  giay_moi_luot: number
+}
+
+/** Một mẻ đã chạy, cho cửa sổ Optimize. */
+export interface LuotToiUu {
+  ten_lop?: string
+  ma_luot?: string
+  so_luot?: number
+  cai?: CaiToiUu
+  ket_qua: {
+    id: string
+    tham_so: Record<string, string>
+    chi_tieu: Record<string, string>
+  }[]
+}
