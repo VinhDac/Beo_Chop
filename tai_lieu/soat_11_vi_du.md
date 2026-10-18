@@ -218,49 +218,66 @@ chỉ cần ô «đại lượng» cho chọn thêm một chỉ báo làm NGUỒ
 
 ---
 
-## Ta mới bày một nửa LEAN
+## Ta từng mới bày một nửa LEAN — nay đã bày hết
 
 Câu hỏi đúng không phải "còn thiếu tính năng gì", mà **"LEAN có sẵn những gì mà app
-chưa bày ra"**. Đếm thì ra thế này:
+chưa bày ra"**. Đếm lần đầu (18/10/2026 sáng): app bày **18** trong khoảng 40 món của
+năm bảng Framework, và **21** trong 122 chỉ báo.
 
-| tầng | LEAN có | app bày | chưa bày |
-|---|---|---|---|
-| Chia vốn | 9 | **2** | 7 |
-| Phát tín hiệu (Alpha) | 6 | **0** | 6 |
-| Rổ (Universe) | ~16 | **9** | ~7 |
-| Phòng rủi ro | 5 | **4** | 1 |
-| Đặt lệnh | 4 | **3** | 1 |
-| | **~40** | **18** | **~22** |
+Sau một buổi bày thêm:
 
-Và **nửa chưa bày chính là nửa làm toán hộ ta**:
+| bảng | LEAN có | app bày | khai rõ lý do bỏ | THIẾU |
+|---|---|---|---|---|
+| Chỉ báo | 122 | **105** | 17 | **0** |
+| Rổ (Universe) | 23 | **10** | 13 | **0** |
+| Chia vốn | 11 | **8** | 3 | **0** |
+| Phát tín hiệu (Alpha) | 9 | **6** | 3 | **0** |
+| Phòng rủi ro | 7 | **4** | 3 | **0** |
+| Đặt lệnh | 5 | **3** | 2 | **0** |
+| | **177** | **136** | **41** | **0** |
 
-* `RiskParityPortfolioConstructionModel` — cân bằng rủi ro. LEAN tự lấy history, tự
-  tính biến động. Đây đúng là `_inv_vol_weights` mà vd7 và vd9 viết tay 40 dòng.
-* `MeanVarianceOptimizationPortfolioConstructionModel` · `BlackLittermanOptimizationPortfolioConstructionModel`
-  — ma trận hiệp phương sai. Đúng chỗ vd5 gọi scipy.
-* `SectorWeightingPortfolioConstructionModel` — chia theo ngành. vd10.
-* `MeanReversionPortfolioConstructionModel` — hồi quy trung bình. Đúng kiểu vd1.
-* `ConfidenceWeightedPortfolioConstructionModel` · `AccumulativeInsightPortfolioConstructionModel`
-* 6 model Alpha (`RsiAlphaModel`, `EmaCrossAlphaModel`, `MacdAlphaModel`,
-  `HistoricalReturnsAlphaModel`, `PearsonCorrelationPairsTradingAlphaModel`,
-  `ConstantAlphaModel`) — đây là "ô Alpha" mà vd4 cần.
-* `EmaCrossUniverseSelectionModel` — xếp hạng rồi lấy N mã. **Đây là trần cứng "chỉ
-  lấy 12 mã" mà lỗ hổng 1 đang thiếu**, và nó nằm ở tầng Rổ, không phải tầng chia vốn.
-* `MaximumSectorExposureRiskManagementModel` · `SpreadExecutionModel`
+41 món không bày đều có LÝ DO VIẾT BẰNG CHỮ, mỗi cái một dòng — Greeks quyền chọn
+(không có dữ liệu), chỉ báo nhận hai mã (một đại lượng chỉ mang một ô mã), model đòi
+hàm lọc Python (trái D-11), lớp nền, và mấy thứ cần dữ liệu trả tiền. Bài
+`tests/test_du_lean.py` canh cả hai chiều: thiếu mà không khai lý do là ĐỎ, mà khai
+lý do cho một món LEAN không còn có — hay món app đã bày — cũng ĐỎ.
+
+### Mấy thứ lòi ra khi gọi THẬT cả 105 chỉ báo
+
+Cổng chỉ ĐẾM tham số, nên nó bắt được «khai 2 mà LEAN cần 3». Ba thứ dưới đây chỉ nổ
+lúc chạy, và lượt chạy thật thấy cả ba:
+
+* `T3` tên Python là **`t_3`**, không phải `t3`. (Hỏi chính LEAN bằng `hasattr`:
+  trong 125 tên, chỉ 2 cái khác `lower()` — `t_3` và `heikin_ashi`.)
+* **Năm chỉ báo không gọi nổi nếu không truyền độ phân giải**: `SI` `ASI` `RDV` `TP`
+  `VP` khai `Resolution? resolution = Resolution.Daily` — tham số nullable có mặc
+  định khác null — và pythonnet không dựng nổi mặc định ấy.
+* **Donchian Channel không có dải giữa**, và lỗi này có TỪ TRƯỚC: bản cũ chép danh
+  sách đường của Bollinger sang. Ai chọn «Dải giữa» là backtest nổ ngay nến đầu.
 
 ---
 
 ## Kết
 
-Lý thuyết **chưa** xử lý hết — nhưng chỗ còn thiếu hầu hết **không phải thuật toán,
-mà là vỏ**. Hơn hai mươi model LEAN đã nằm sẵn trong backend, app chưa có ô nào để
-người dùng chọn chúng.
+Về phần VỎ thì xong: 177 món của LEAN, 136 bày ra, 41 khai rõ lý do, không còn món
+nào thiếu mà không ai biết. Và từ nay có bài canh đứng ở đó, nên bảng nào tụt lại sau
+LEAN là cổng đỏ chứ không phải chờ một ví dụ lòi ra.
 
-* 1 ví dụ (vd4) không phải lỗ hổng — thiếu tệp mã.
-* 1 ví dụ (vd8) thật sự cần thư viện ngoài. **Chỗ duy nhất nên dừng.**
-* 1 ví dụ (vd11) cần máy trạng thái, mà LEAN không có khái niệm ấy. Dừng luôn.
-* 5 ví dụ còn lại (vd5, vd7, vd9, vd10, và phần còn thiếu của vd1) chặn ở những
-  model **LEAN đã làm xong** — chỉ chưa có ô để chọn.
+Về mười một ví dụ thì **chưa**, và chỗ còn thiếu nay đã gọn lại thành những thứ
+KHÔNG phải vỏ:
 
-Nên việc tiếp theo không phải viết thêm thuật toán. Là **bày thêm bốn bảng model
-LEAN ra giao diện**, bắt đầu từ bảng Chia vốn (2 → 9) và ô Alpha (0 → 6).
+* **vd4** — Alpha slot nay có, nhưng nó `import` hai tệp không có trong thư mục.
+  Thiếu tệp, không thiếu tính năng.
+* **vd5** — nay vẽ được: `RiskParity` / `MeanVariance` / `BlackLitterman` làm đúng
+  việc mà nó gọi scipy để làm.
+* **vd7 · vd9** — phần nghịch đảo biến động nay là `RiskParity`; phần nhớ (cooldown,
+  đỉnh vốn) là `TrailingStop` / `MaximumDrawdownPercentPortfolio`; phần trần cứng N
+  mã là rổ `ema_cheo`. Còn đúng MỘT thứ: **điểm nhiều thành phần**
+  (`0.25×r63 + 0.35×r126 + 0.40×r252 − 0.20×vol`), vì ghép đại lượng chỉ một tầng
+  hai vế. Đó là một câu hỏi về HÌNH của hàng điều kiện, không phải về LEAN.
+* **vd10 · vd11** — cần **máy trạng thái** (vd11 nhớ bảy thứ). LEAN không có khái
+  niệm ấy, nên làm nó là tự viết thuật toán. Đây là chỗ nên dừng.
+* **vd8** — PCA. LEAN không có. Chỗ nên dừng thứ hai.
+
+Nói gọn: **bốn lỗ hổng ban đầu nay còn một** (điểm nhiều thành phần), cộng hai chỗ
+cố ý dừng (máy trạng thái · PCA) và một ví dụ thiếu tệp.
