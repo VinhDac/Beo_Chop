@@ -548,6 +548,83 @@ _gio_app = {x for x in _gio_lean
 _mat("quy tắc NGÀY · date_rules", _ngay_lean, _ngay_app, BO_MAT)
 _mat("quy tắc GIỜ · time_rules", _gio_lean, _gio_app, BO_MAT)
 
+# ③ ĐỘ PHÂN GIẢI · ④ CHUẨN HOÁ GIÁ — hai enum của `Common/Global.cs`
+
+
+def _enum(ten):
+    src = _doc(os.path.join(GOC, "Common", "Global.cs"))
+    m = re.search(r"public enum %s\b" % ten, src)
+    if not m:
+        return []
+    than = src[m.end():]
+    than = than[:than.index("\n    }")] if "\n    }" in than else than
+    return [x for x in re.findall(r"^\s{8}([A-Z][A-Za-z0-9]*)", than, re.M)]
+
+
+_res = _enum("Resolution")
+_mat("độ phân giải · Resolution", _res,
+     {m.title() for m, _n in bat_dau._O_DO_PHAN_GIAI["chon"]}, {})
+
+_dnm = _enum("DataNormalizationMode")
+_dnm_app = {m for m in _dnm
+            if any(x == re.sub(r"(?<!^)(?=[A-Z])", "_", m).upper()
+                   for x, _n in bat_dau.CHUAN_HOA_GIA)}
+_mat("chuẩn hoá giá · DataNormalizationMode", _dnm, _dnm_app, {})
+
+# ⑤ LOẠI TÀI SẢN · ⑥ PHÍ · ⑦ TRƯỢT GIÁ
+BO_MAT.update({
+    "Base": "Lớp NỀN của mọi loại tài sản, không phải một loại để chọn.",
+    "Commodity": "LEAN khai enum này mà KHÔNG có `AddCommodity` — không có cửa nào "
+                 "để thêm nó. Hàng hoá thì vào bằng CFD hay hợp đồng tương lai.",
+    "Option": "Quyền chọn cần khối riêng (chuỗi quyền chọn, ngày đáo hạn, giá thực "
+              "hiện) và bộ dữ liệu miễn phí không có. Chưa làm.",
+    "FutureOption": "Quyền chọn trên HĐ tương lai — như Option, và còn xa hơn.",
+    "IndexOption": "Quyền chọn trên chỉ số — như Option.",
+    "CryptoFuture": "HĐ tương lai tiền mã hoá — bộ dữ liệu miễn phí không có.",
+})
+_ts = _enum("SecurityType")
+_mat("loại tài sản · SecurityType", _ts,
+     {m.title().replace("_", "") for m, _n, _h in bat_dau.LOAI_TAI_SAN}, BO_MAT)
+
+
+def _lop_duoi(thu_muc, duoi):
+    d = os.path.join(GOC, *thu_muc.split("/"))
+    ra = set()
+    for ten in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if ten.endswith(".cs"):
+            ra |= {x for x in re.findall(
+                r"public (?:abstract |sealed )?class ([A-Za-z0-9_]+)",
+                _doc(os.path.join(d, ten))) if x.endswith(duoi)}
+    return sorted(ra)
+
+
+# ⚠ KHAI LÝ DO THEO HỌ, VÀ KHAI BẰNG CÁCH LOẠI TRỪ. Bản đầu tôi dò tên model phí
+# xem có khớp một tên trong `BrokerageName` không — bắt được 4 trong 30, vì LEAN đặt
+# tên không khớp enum (`GDAX` là Coinbase cũ, `India` là một THỊ TRƯỜNG chứ không
+# phải sàn, `dYdX` viết hoa kiểu khác). Dò tên là một hàng rào có lỗ ở đúng chỗ tên
+# lệch.
+#
+# Luật đúng ngắn hơn hẳn: trong họ phí của LEAN, ĐÚNG MỘT model không gắn với sàn
+# nào — `ConstantFeeModel` — cộng lớp nền `FeeModel`. Mọi cái còn lại là phí RIÊNG
+# của một sàn, và ô «Sàn» chọn sàn là LEAN tự lấy đúng model phí ấy.
+_phi_lean = _lop_duoi("Common/Orders/Fees", "FeeModel")
+_KHONG_THEO_SAN = {"ConstantFeeModel", "FeeModel"}
+BO_MAT.setdefault("FeeModel", "Lớp NỀN của họ phí, không phải một model để chọn.")
+for _x in _phi_lean:
+    if _x in _KHONG_THEO_SAN or _x in {m for m, *_ in bat_dau.PHI if m}:
+        continue
+    BO_MAT.setdefault(
+        _x, f"Phí RIÊNG của một sàn ({_x[:-len('FeeModel')]}) — ô «Sàn» chọn sàn là "
+            f"LEAN tự lấy đúng model phí ấy. Bày lại ở ô «Phí» là bày hai cách nói "
+            f"một thứ, và còn mời người dùng gắn phí sàn này cho sơ đồ sàn khác.")
+_mat("model PHÍ · set_fee_model", _phi_lean,
+     {m for m, *_ in bat_dau.PHI if m}, BO_MAT)
+
+_truot_lean = _lop_duoi("Common/Orders/Slippage", "SlippageModel")
+BO_MAT.update({k: v[1] for k, v in bat_dau.PHI_TRUOT_DOC.items() if not v[0]})
+_mat("model TRƯỢT GIÁ · set_slippage_model", _truot_lean,
+     {m for m, *_ in bat_dau.TRUOT_GIA if m}, BO_MAT)
+
 print()
 print("⑤ DANH SÁCH BỎ không được phép MỤC")
 # ---------------------------------------------------------------------------

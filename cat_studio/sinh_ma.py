@@ -449,7 +449,7 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
 # initialize
 # ---------------------------------------------------------------------------
 
-def _khai_ro(nc, gt_ma):
+def _khai_ro(nc, gt_ma, st):
     """Ô `ma` là một RỔ -> mấy dòng khai rổ trong `initialize`. -> [dòng].
 
     ⚠ `universe_settings.resolution` phải đứng TRƯỚC `set_universe_selection`: model
@@ -471,6 +471,13 @@ def _khai_ro(nc, gt_ma):
     # của LEAN, không một lời nào. Nay mỗi rổ tự khai câu của mình.
     ra = ["# RỔ ĐỘNG: không gõ mã nào, LEAN tự quyết hôm nay rổ gồm những gì.",
           f"self.universe_settings.resolution = {nc.res}"]
+    # ⚠ CŨNG PHẢI ĐỨNG TRƯỚC `set_universe_selection`, cùng lý do với `resolution`:
+    # model chụp lấy `universe_settings` ở ngay lúc dựng, nên đặt sau là đặt vào hư
+    # không — rổ vẫn chạy, vẫn ra số, chỉ là chạy ở mặc định.
+    ch = str(core.o_bat_dau(st, "chuan_hoa_gia") or "").strip().upper()
+    if ch:
+        ra.append("self.universe_settings.data_normalization_mode = "
+                  f"DataNormalizationMode.{ch}")
     ra.append("self." + bat_dau.lean_ro(gt_ma))
     return ra
 
@@ -513,6 +520,22 @@ def _khai_mo(nc, st):
     san = str(core.o_bat_dau(st, "san") or "DEFAULT")
     ra.append(f"self.set_brokerage_model(BrokerageName.{san})")
 
+    # ⚠ PHÍ / TRƯỢT GIÁ PHẢI ĐĂNG KÝ Ở ĐÂY — TRƯỚC MỌI `add_*`, SAU `set_brokerage_
+    # model`. Bộ khởi tạo mã chỉ chạy cho mã được tạo RA SAU khi nó đăng ký; đặt nó
+    # ở cuối `initialize` thì mấy mã gõ sẵn đã tạo xong rồi, và lượt chạy ra phí y
+    # như không đặt gì.
+    #
+    # ĐÃ DÍNH THẬT, bản đầu của chính chỗ này: tôi để nó ở cuối `initialize` và viết
+    # chú thích «trong `initialize` thì chỗ nào cũng được». Năm lượt chạy — phí sàn,
+    # phí cố định 0, phí cố định 5$, trượt giá 1%, không phí không trượt — ra ĐÚNG
+    # một kết quả: phí $15,42, 15 lệnh, lãi 16,253%. Không lỗi, không một lời nào.
+    # Sinh mã đúng chữ mà sai CHỖ thì cũng là hỏng lặng.
+    #
+    # Và sau `set_brokerage_model` vì bộ khởi tạo mặc định gói lấy `BrokerageModel`:
+    # đổi sàn sau khi đã gói là gói cái sàn cũ.
+    if bat_dau.cau_phi_truot(st):
+        ra.append("self.add_security_initializer(self._khoi_tao_ma)")
+
     nc.ca_danh_muc = str(core.o_bat_dau(st, "chay_cho") or "") == "ca_danh_muc"
     if not bat_dau.nhip_cua(str(core.o_bat_dau(st, "nhip") or "")):
         # Nhịp lạ = file sửa tay. Báo rồi đi tiếp: `bat_dau.ham_chay` và
@@ -525,17 +548,25 @@ def _khai_mo(nc, st):
     gt_ma = core.o_bat_dau(st, "ma")
     nc.ro = bat_dau.ro_cua(gt_ma)
     if nc.ro:
-        ra += _khai_ro(nc, gt_ma)
+        ra += _khai_ro(nc, gt_ma, st)
     else:
         ra.append("self._ten = {}")
         ten_ham = {m: h for m, _nh, h in bat_dau.LOAI_TAI_SAN}
+        # CHUẨN HOÁ GIÁ chỉ gắn được vào loại tài sản NHẬN được nó — xem
+        # `bat_dau.NHAN_CHUAN_HOA`. Sinh cho forex/crypto/cfd/index là `TypeError`
+        # ngay dòng `initialize`.
+        ch = str(core.o_bat_dau(st, "chuan_hoa_gia") or "").strip().upper()
         for m in gt_ma or []:
             k2 = str((m or {}).get("ma") or "").strip().upper()
-            h = ten_ham.get((m or {}).get("loai"))
+            loai = (m or {}).get("loai")
+            h = ten_ham.get(loai)
             if not k2 or not h:
                 continue
             nc.ma_khai[k2] = True
-            ra.append(f"self._ten[{k2!r}] = self.{h}({k2!r}, {nc.res}).symbol")
+            them = (f", data_normalization_mode=DataNormalizationMode.{ch}"
+                    if ch and loai in bat_dau.NHAN_CHUAN_HOA else "")
+            ra.append(f"self._ten[{k2!r}] = "
+                      f"self.{h}({k2!r}, {nc.res}{them}).symbol")
         ra.append("self._ma = list(self._ten.values())")
 
     moc = str(core.o_bat_dau(st, "moc_so_sanh") or "").strip().upper()
@@ -552,7 +583,18 @@ def _khai_mo(nc, st):
     # bốn model phòng rủi ro thì chạy ở ngưỡng 5% ngầm. `bat_dau.lean_day_chuyen` là
     # một bản sự thật cho cả bộ sinh mã và hộp thoại.
     ra += [f"self.{c}" for c in bat_dau.lean_day_chuyen(st)]
+
     return ra
+
+
+def _ham_khoi_tao_ma(st):
+    """Phương thức `_khoi_tao_ma` — đặt phí / trượt giá cho TỪNG mã. -> [dòng]."""
+    cau = bat_dau.cau_phi_truot(st)
+    if not cau:
+        return []
+    return ["", "    def _khoi_tao_ma(self, s):",
+            '        """Phí và trượt giá cho từng mã — chồng lên mặc định của Sàn."""'
+            ] + [TAB * 2 + c for c in cau]
 
 
 # ---------------------------------------------------------------------------
@@ -649,7 +691,8 @@ def sinh(doc):
     return {"ok": ok, "ten_lop": lop, "van_de": nc.van_de,
             "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
                         nc.ca_danh_muc, nc.ro, dong_doi_ro,
-                        _ham_loc_ro(nc, st_bd), bool(nc.kho.ds))}
+                        _ham_loc_ro(nc, st_bd), bool(nc.kho.ds),
+                        _ham_khoi_tao_ma(st_bd))}
 
 
 def _khai_cb_theo_ro(nc):
@@ -690,7 +733,7 @@ def _khai_cb_theo_ro(nc):
 
 
 def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
-          loc_ro=(), co_cb=False):
+          loc_ro=(), co_cb=False, khoi_tao=()):
     """Ghép thành một file Python hoàn chỉnh."""
     r = [
         '"""Thuật toán sinh bởi Cat_Studio — ' + str(ten or "") + ".",
@@ -708,6 +751,10 @@ def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
     r += [TAB * 2 + d if d else "" for d in dong_mo]
 
     # --- RỔ ĐỘNG: hai phương thức nữa, cả hai là cửa CÓ THẬT của `QCAlgorithm` ---
+    # PHI / TRUOT GIA: mot phuong thuc nua, LEAN goi cho TUNG ma duoc tao ra.
+    if khoi_tao:
+        r += [d if d.startswith(" ") or not d else d
+              for d in khoi_tao]
     if loc_ro:
         r += [""] + [TAB + d if d else "" for d in loc_ro]
     if ro:

@@ -79,6 +79,118 @@ LOAI_TAI_SAN = (
     ("future", "Hợp đồng tương lai", "add_future"),
 )
 
+#: Loại tài sản nào NHẬN được tham số `data_normalization_mode`. Đọc chữ ký trong
+#: `Algorithm/QCAlgorithm.cs`: chỉ `AddEquity` và `AddFuture` có tham số ấy;
+#: `AddForex` / `AddCrypto` / `AddCfd` / `AddIndex` thì KHÔNG.
+#:
+#: ⚠ Sinh nó cho loại không nhận là `TypeError` ngay dòng `initialize` — mà ô «Chuẩn
+#: hoá giá» thì nằm ở khối Bắt đầu, chung cho mọi mã, nên một sơ đồ vàng + cổ phiếu
+#: là nửa số dòng `add_*` sai. Phải lọc theo từng mã.
+NHAN_CHUAN_HOA = ("equity", "future")
+
+def _o_mo_hinh(ten, nhan, mac_dinh, don_vi="", goi_y="", nguyen=False):
+    """Một ô CON của model phí / trượt giá — nằm TRONG bảng của model ấy."""
+    return _o(ten, nhan, O_SO, mac_dinh, "", don_vi=don_vi, goi_y=goi_y,
+              nguyen=nguyen)
+
+
+#: PHÍ — `security.set_fee_model(...)`.
+#:
+#: ⚠ Ô «Sàn» ĐÃ quyết phí rồi, nên bảng này là để GHI ĐÈ nó. vd3 trong tập ví dụ làm
+#: đúng thế: `SetSecurityInitializer(lambda s: s.SetFeeModel(ConstantFeeModel(0)))` —
+#: chạy backtest không phí, để xem chiến thuật tự nó lãi bao nhiêu.
+#:
+#: LEAN có 32 model phí, nhưng 30 trong số đó là phí CỦA TỪNG SÀN
+#: (`BinanceFeeModel`, `KrakenFeeModel`…), và chọn sàn ở ô «Sàn» là đã lấy đúng cái
+#: ấy. Bày lại 30 dòng nữa là bày hai cách nói một thứ, và còn mời người dùng chọn
+#: `BinanceFeeModel` cho một sơ đồ cổ phiếu Mỹ. Nên ở đây chỉ hai dòng KHÔNG gắn với
+#: sàn nào — `test_du_lean` canh chuyện ấy, và 30 model kia khai lý do ở đó.
+#:
+#: (mã, nhãn, ô con, CÂU LEAN)
+PHI = (
+    ("", "— theo Sàn đã chọn —", (), ""),
+    ("ConstantFeeModel", "Phí CỐ ĐỊNH mỗi lệnh",
+     (_o_mo_hinh("phi_moi_lenh", "Phí mỗi lệnh", 0.0, don_vi="$",
+                 goi_y="Để 0 là chạy KHÔNG phí — xem chiến thuật tự nó lãi bao "
+                       "nhiêu trước khi trừ phí."),),
+     "ConstantFeeModel(phi_moi_lenh)"),
+    ("InteractiveBrokersFeeModel", "Theo bảng phí Interactive Brokers", (),
+     "InteractiveBrokersFeeModel()"),
+)
+
+#: TRƯỢT GIÁ — `security.set_slippage_model(...)`. Cùng lối `PHI`.
+TRUOT_GIA = (
+    ("", "— theo Sàn đã chọn —", (), ""),
+    ("ConstantSlippageModel", "Trượt giá CỐ ĐỊNH theo phần",
+     (_o_mo_hinh("truot_phan", "Trượt mỗi lệnh", 0.001, don_vi="phần",
+                 goi_y="0.001 = 0,1% giá. Đây là PHẦN, không phải phần trăm — "
+                       "cùng lối ô «Đệm tiền mặt»."),),
+     "ConstantSlippageModel(truot_phan)"),
+    ("VolumeShareSlippageModel", "Theo tỉ lệ khối lượng mình chiếm",
+     (_o_mo_hinh("gioi_han_kl", "Tối đa chiếm", 0.025, don_vi="phần",
+                 goi_y="Lệnh của mình chiếm tối đa ngần này khối lượng một nến."),
+      _o_mo_hinh("tac_dong", "Hệ số tác động", 0.1, don_vi="lần")),
+     "VolumeShareSlippageModel(gioi_han_kl, tac_dong)"),
+    # Nhận CHÍNH thuật toán làm tham số đầu — đọc chữ ký:
+    # `MarketImpactSlippageModel(IAlgorithm algorithm, …)`.
+    ("MarketImpactSlippageModel", "Mô hình tác động thị trường (Almgren)", (),
+     "MarketImpactSlippageModel(self)"),
+    ("NullSlippageModel", "KHÔNG trượt giá", (), "NullSlippageModel()"),
+)
+
+#: Model phí / trượt giá -> `(app nuôi được không, nó CẦN gì)`. Cùng lối
+#: `PHONG_RUI_RO_DOC`, và `test_du_lean` đọc thẳng bảng này.
+PHI_TRUOT_DOC = {
+    "ConstantFeeModel": (True, "một con số phí, ô «Phí mỗi lệnh»"),
+    "InteractiveBrokersFeeModel": (True, "không tham số"),
+    "ConstantSlippageModel": (True, "một con số phần, ô «Trượt mỗi lệnh»"),
+    "VolumeShareSlippageModel": (True, "giới hạn khối lượng + hệ số tác động"),
+    "MarketImpactSlippageModel": (True, "chính thuật toán làm tham số đầu"),
+    "NullSlippageModel": (True, "không tham số"),
+    "AlphaStreamsSlippageModel":
+        (False, "model dành riêng cho Alpha Streams của QuantConnect — không có "
+                "dữ liệu ấy thì nó chỉ là một hằng số 0 không nói lên gì"),
+}
+
+
+def phi_cua(ma):
+    """Một mục của `PHI` theo mã lớp. None nếu để trống hay mã lạ."""
+    m = str(ma or "").strip()
+    return next((x for x in PHI if x[0] and x[0] == m), None)
+
+
+def truot_cua(ma):
+    """Một mục của `TRUOT_GIA` theo mã lớp. None nếu để trống hay mã lạ."""
+    m = str(ma or "").strip()
+    return next((x for x in TRUOT_GIA if x[0] and x[0] == m), None)
+
+
+#: CHUẨN HOÁ GIÁ — `DataNormalizationMode`, đủ tám cách của LEAN.
+#:
+#: Cổ tức và chia tách làm giá nhảy. LEAN cho tám cách tính chuyện đó vào giá, và
+#: CHỌN SAI thì chiến thuật đọc được một mức giá khác hẳn — không lỗi, chỉ ra số
+#: khác. vd4 khai `RAW`; vd7 · vd9 · vd10 đều gọi `SetDataNormalizationMode`. App
+#: trước nay không có ô nào, tức mọi sơ đồ chạy ở `Adjusted` (mặc định LEAN) mà
+#: không ai nói ra.
+#:
+#: Bốn cách sau chỉ có nghĩa với HỢP ĐỒNG TƯƠNG LAI nối chuỗi (hay chỉ dùng cho
+#: `history`), và nhãn nói thẳng ra — bỏ chúng đi thì người dùng có dữ liệu futures
+#: lại không dùng được đúng thứ LEAN cho.
+CHUAN_HOA_GIA = (
+    ("", "— theo mặc định LEAN (Adjusted) —"),
+    ("RAW", "RAW — giá thật như đã khớp, không chỉnh gì"),
+    ("ADJUSTED", "ADJUSTED — tính cả cổ tức và chia tách vào giá"),
+    ("SPLIT_ADJUSTED", "SPLIT_ADJUSTED — chỉ tính chia tách, bỏ cổ tức"),
+    ("TOTAL_RETURN", "TOTAL_RETURN — giá chia tách cộng dồn cổ tức"),
+    ("FORWARD_PANAMA_CANAL",
+     "FORWARD_PANAMA_CANAL — chỉ cho HĐ tương lai nối chuỗi (hợp đồng đầu giá thật)"),
+    ("BACKWARDS_PANAMA_CANAL",
+     "BACKWARDS_PANAMA_CANAL — chỉ cho HĐ tương lai (hợp đồng cuối giá thật)"),
+    ("BACKWARDS_RATIO",
+     "BACKWARDS_RATIO — chỉ cho HĐ tương lai, nối bằng tỉ số giá"),
+    ("SCALED_RAW", "SCALED_RAW — chỉ dùng cho yêu cầu history"),
+)
+
 #: Bộ dữ liệu MIỄN PHÍ đi kèm LEAN có sẵn mấy thứ này — đếm từ `Data/` trên đĩa.
 #: Để hộp thoại gợi ý, KHÔNG phải để chặn: ai có dữ liệu riêng thì gõ mã khác.
 CO_SAN_MIEN_PHI = {
@@ -957,6 +1069,24 @@ O_BAT_DAU = [
     _o("san", "Sàn", O_CHON, "DEFAULT", "set_brokerage_model(BrokerageName.san)",
        chon=list(SAN), goi_y="Quyết phí và trượt giá tính theo kiểu nào."),
 
+    _o("phi", "Phí (ghi đè Sàn)", O_CHON, "",
+       "security.set_fee_model(…)", chon=[(m, n) for m, n, *_ in PHI],
+       goi_y="Để trống thì phí theo Sàn đã chọn. Đặt phí cố định 0 là cách xem "
+             "chiến thuật tự nó lãi bao nhiêu trước khi trừ phí.", bat_buoc=False),
+    _o("truot_gia", "Trượt giá (ghi đè Sàn)", O_CHON, "",
+       "security.set_slippage_model(…)",
+       chon=[(m, n) for m, n, *_ in TRUOT_GIA],
+       goi_y="Để trống thì trượt giá theo Sàn đã chọn.", bat_buoc=False),
+
+    _o("chuan_hoa_gia", "Chuẩn hoá giá", O_CHON, "",
+       "add_equity(…, data_normalization_mode=…) · universe_settings."
+       "data_normalization_mode",
+       chon=list(CHUAN_HOA_GIA),
+       goi_y="Cổ tức và chia tách tính vào giá thế nào. Để trống thì LEAN dùng "
+             "ADJUSTED. Chỉ có tác dụng với CỔ PHIẾU, HĐ tương lai và rổ động — "
+             "ngoại hối / tiền mã hoá / CFD / chỉ số không nhận tham số này.",
+       bat_buoc=False),
+
     # --- BA CHÍNH SÁCH CỦA DÂY CHUYỀN LEAN ---
     #
     # ⚠ Chúng ở ĐÂY chứ không thành khối, vì cả ba gọi MỘT LẦN trong `initialize`
@@ -1027,6 +1157,37 @@ def o_cua(gia_tri=None):
     a = alpha_cua((gia_tri or {}).get("phat_tin_hieu"))
     if a:
         ra.extend(a[2])
+    for tim, khoa in ((phi_cua, "phi"), (truot_cua, "truot_gia")):
+        m = tim((gia_tri or {}).get(khoa))
+        if m:
+            ra.extend(m[2])
+    return ra
+
+
+def cau_phi_truot(gia_tri=None):
+    """Hai câu `set_fee_model` / `set_slippage_model` của bộ khởi tạo mã. -> [câu].
+
+    ⚠ DÙNG `add_security_initializer`, KHÔNG `set_`. `set_` GHI ĐÈ bộ khởi tạo mặc
+    định, mà mặc định ấy là `BrokerageModelSecurityInitializer(BrokerageModel, …)` —
+    nó đặt đòn bẩy và model phí theo SÀN. Ghi đè là mất cả hai, âm thầm: lượt chạy
+    vẫn ra số, chỉ là đòn bẩy về mặc định của LEAN chứ không còn của sàn đã chọn.
+    `add_` thì LEAN tự gói thành `CompositeSecurityInitializer` (đọc
+    `QCAlgorithm.cs` quanh dòng 1062) — giữ nguyên mặc định rồi chồng cái của ta lên.
+
+    vd3 trong tập ví dụ dùng `SetSecurityInitializer` và vì thế mất mặc định của sàn;
+    ta không copy chỗ ấy."""
+    ra = []
+    for tim, khoa, ham in ((phi_cua, "phi", "set_fee_model"),
+                           (truot_cua, "truot_gia", "set_slippage_model")):
+        m = tim((gia_tri or {}).get(khoa))
+        if not m:
+            continue
+        cau = m[3]
+        for o in m[2]:
+            v = gt_o(gia_tri, o["ten"])
+            cau = cau.replace(o["ten"],
+                              repr(_nguyen(v) if o.get("nguyen") else _phan(v)))
+        ra.append(f"s.{ham}({cau})")
     return ra
 
 
