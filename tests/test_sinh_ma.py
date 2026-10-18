@@ -438,6 +438,77 @@ kiem("và câu báo nói đúng VÌ SAO",
      f"— {[p['message'][:60] for p in r_ma['van_de'] if p['severity'] == 'error']}")
 
 # ---------------------------------------------------------------------------
+print(NL + "▸ ⚠ TRÍ NHỚ — ô nhớ phải DỰNG SẴN, và rổ động cũng phải có")
+# ---------------------------------------------------------------------------
+# Đọc một ô nhớ trước khi ghi lần đầu xảy ra ngay nến ĐẦU TIÊN của mọi sơ đồ có trí
+# nhớ. Dựng thiếu thì `KeyError` giữa lượt chạy, hoặc tệ hơn một `None` lọt vào phép
+# so rồi ném `TypeError` — cả hai đều ĐỨT backtest chứ không phải sai số.
+
+
+def _so_do_nho(ro=False, ban_dau=False):
+    b = core.make_start_step()
+    b["ma"] = {"ro": "qc500"} if ro else [{"ma": "SPY", "loai": "equity"}]
+    b["nhip"] = "ngay"
+    b["chay_cho"] = "moi_ma"
+    b["tri_nho"] = [{"ma": "nho_ma_co_1", "nhan": "đang chờ", "ban_dau": ban_dau},
+                    {"ma": "nho_so_1", "nhan": "đếm", "ban_dau": 7}]
+    h = core.make_hoi_step("hoi_tri_nho")
+    h["name"] = "dang cho?"
+    h["dieu_kien"] = [core.make_dieu_kien("nho_ma_co_1", "la")]
+    a = core.make_lam_step(lam.LAM_GHI_NHO)
+    a["name"] = "cong"
+    a["o_nho"], a["cach"] = "nho_so_1", "cong"
+    a["gia_tri"] = {"so": 1}
+    st = [b, h, a]
+    for i, x in enumerate(st):
+        x["pos"] = [[-220, 0], [160, 0], [540, 0]][i]
+    return sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "nho",
+                         "steps": st,
+                         "edges": [{"from": b["id"], "to": h["id"], "port": "out"},
+                                   {"from": h["id"], "to": a["id"], "port": "out"}]})
+
+
+_kq = _so_do_nho()
+kiem("dựng đủ 6 ô nhớ CHUNG + 6 ô MẪU theo mã",
+     _kq["ma"].count("'co_3':") == 2 and "self._nho_mau = {" in _kq["ma"],
+     "— thiếu là `KeyError` giữa lượt chạy")
+kiem("giá trị ban đầu người dùng khai đi vào mã", "'so_1': 7" in _kq["ma"],
+     f"— {[l.strip() for l in _kq['ma'].splitlines() if '_nho =' in l]}")
+# ⚠ RỔ ĐỘNG: lúc `initialize` chưa mã nào có mặt. Dựng ô nhớ theo `self._ma` là dựng
+# một dict RỖNG, rồi mã đầu tiên vào rổ là `KeyError`. Nên phải qua `_nho_cua`.
+_kq_ro = _so_do_nho(ro=True)
+kiem("rổ ĐỘNG cũng có `_nho_cua` tự đẻ ô nhớ cho mã mới vào rổ",
+     "def _nho_cua(self, sym):" in _kq_ro["ma"]
+     and "self._nho_ma = {}" in _kq_ro["ma"], "— rổ động mà dựng theo `self._ma`"
+     " thì mã đầu tiên vào rổ là KeyError")
+kiem("và KHÔNG dựng ô nhớ theo `self._ma`",
+     "for sym in self._ma}" not in _kq_ro["ma"].split("def _nho_cua")[0],
+     "— `self._ma` lúc initialize của rổ động là RỖNG")
+# Chỗ ĐỌC và chỗ GHI phải trỏ vào CÙNG một biểu thức — hai chuỗi khác nhau thì ghi
+# một nơi đọc một nẻo, và backtest chạy trơn tru với một cờ không bao giờ bật.
+_doc = [l for l in _kq["ma"].splitlines() if "if (" in l and "_nho" in l]
+_ghi = [l for l in _kq["ma"].splitlines() if "_nho" in l and "] =" in l
+        and "self._nho =" not in l and "_nho_mau" not in l and "_nho_ma[sym]" not in l]
+kiem("chỗ ĐỌC và chỗ GHI dùng cùng một biểu thức ô nhớ",
+     bool(_doc) and bool(_ghi)
+     and "self._nho_cua(sym)['co_1']" in _doc[0]
+     and "self._nho['so_1']" in _ghi[0],
+     f"— đọc {_doc[:1]} · ghi {_ghi[:1]}")
+# ⚠ SỐNG QUA LƯU/MỞ — cùng bài học với `ghim` và chuỗi ghép.
+_bd = core.make_start_step()
+_bd["tri_nho"] = [{"ma": "nho_co_1", "nhan": "đang chờ", "ban_dau": False}]
+kiem("ô nhớ khai ở khối Bắt đầu SỐNG qua `chuan_hoa_khoi`",
+     len(bat_dau.tri_nho_cua(core.chuan_hoa_khoi(_bd))) == 1,
+     f"— {bat_dau.tri_nho_cua(core.chuan_hoa_khoi(_bd))}")
+# Hai ô cùng mã là hai cái tên cho MỘT chỗ nhớ — ghi vào cái này, đọc ra ở cái kia.
+_bd2 = core.make_start_step()
+_bd2["tri_nho"] = [{"ma": "nho_co_1", "nhan": "A"}, {"ma": "nho_co_1", "nhan": "B"},
+                   {"ma": "khong_co_that", "nhan": "C"}]
+kiem("mã TRÙNG và mã LẠ bị gạt khỏi danh sách ô nhớ",
+     [x["nhan"] for x in bat_dau.tri_nho_cua(_bd2)] == ["A"],
+     f"— {[x['nhan'] for x in bat_dau.tri_nho_cua(_bd2)]}")
+
+# ---------------------------------------------------------------------------
 print(NL + "▸ ⚠ GHÉP NHIỀU THÀNH PHẦN — tổng có trọng số, nối TRÁI→PHẢI")
 # ---------------------------------------------------------------------------
 # Ba ví dụ trong tập mẫu chấm điểm bằng một TỔNG CÓ TRỌNG SỐ:

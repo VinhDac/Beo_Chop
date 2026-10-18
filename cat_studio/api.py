@@ -713,10 +713,12 @@ class Api(NenCuaSo):
         van_de.extend(core.soat_ca_ro(steps))
         van_de.extend(core.soat_ro_dong(steps))
         van_de.extend(core.soat_day_chuyen(steps))
+        # Bảng TÊN ô nhớ — khai ở khối Bắt đầu, mà thẻ cần vẽ ở khối Ghi nhớ.
+        _tn = core.ten_nho_cua(steps)
         return _ok({
             "thu_tu": kq["order"],
             "entry": kq["entry"],
-            "the": {s["id"]: core.the_buoc(s) for s in steps},
+            "the": {s["id"]: core.the_buoc(s, _tn) for s in steps},
             "van_de": van_de,
             "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
             "edges": edges,
@@ -726,8 +728,9 @@ class Api(NenCuaSo):
     def nhan_ban(self, steps, edges=None, giu_hat_nhan=False):
         """Chép một mảng khối, cấp id mới. Đích Quay về trỏ ra ngoài mảng bị để TRỐNG."""
         moi, day, bang = core.clone_steps(steps, edges, giu_hat_nhan)
+        _tn = core.ten_nho_cua(steps)
         return _ok({"steps": moi, "edges": day, "map": bang,
-                    "the": {s["id"]: core.the_buoc(s) for s in moi}})
+                    "the": {s["id"]: core.the_buoc(s, _tn) for s in moi}})
 
     # -------------------------------------------------------- lưu / mở Strategy
     @_bat_loi

@@ -61,11 +61,37 @@ kiem("bảy loại lệnh là BẢY hàm khác nhau", len(set(ds_lean)) == len(d
 print("\n▸ MẪU `lean` phải CHẠY ĐƯỢC, không phải lời khai cho người đọc")
 # Bộ sinh mã viết ra ĐÚNG chuỗi này, chỉ thay ô bằng giá trị. Nếu nó chỉ là lời khai
 # thì phải có một bộ chuyển đổi ở giữa — và bộ đó sai thì sai ÂM THẦM.
+# ⚠ CANH «CHẠY ĐƯỢC», KHÔNG CANH «LÀ MỘT LỜI GỌI». Bản trước chốt hình dạng —
+# `startswith("self.")` và `endswith(")")` — và hình ấy đúng cho chín loại đầu vì cả
+# chín đều gọi một hàm LEAN. Khối «Ghi nhớ» thì không gọi hàm nào: mẫu của nó là một
+# PHÉP GÁN (`{o_nho} = {gia_tri}`), vẫn là Python chạy được, vẫn đúng tinh thần
+# "không phải lời khai cho người đọc". Chốt hình dạng thì nó đỏ vì một lý do không
+# liên quan gì tới cái đang canh.
+# Nên: thay ô bằng giá trị giả rồi `compile()`. Đó mới là «chạy được» thật.
+def _thay_gia(mau):
+    """Thay mọi `{ô}` bằng một BIỂU THỨC Python, không phải một con số.
+
+    ⚠ Thay bằng `1` thì mẫu của «Ghi nhớ» ra `1 = 1` — `SyntaxError`, mà lỗi ấy là
+    của phép thay chứ không phải của mẫu. Chỗ trống `{o_nho}` đứng cho
+    `self._nho['co_1']`, tức một biểu thức GÁN ĐƯỢC; nên phép thay cũng phải đưa vào
+    một biểu thức gán được."""
+    return re.sub(r"\{(\w+)\}", "self._x", mau)
+
+
 for _ma, _d in lam.LOAI_LAM.items():
     _st = core.make_lam_step(_ma)
     _h = lam.ham_lean(_ma, _st)
-    kiem(f"`{_ma}` có mẫu gọi thật", _h.startswith("self.") and _h.endswith(")"),
-         f"— {_h}")
+    try:
+        compile(_thay_gia(_h), "<mau>", "exec")
+        _chay = True
+    except SyntaxError as _e:
+        _chay = False
+    kiem(f"`{_ma}` có mẫu CHẠY ĐƯỢC", _chay, f"— {_h}")
+    # Dấu hiệu của "lời khai cho người đọc" trong dự án này là dấu BA CHẤM: ô `lean`
+    # ở mức LOẠI viết `self.debug / log / error / quit` hay `self._nho[…] = …` cho
+    # người xem hiểu, còn câu CHẠY ĐƯỢC thì `theo_loai` mới giữ. Mẫu mà `ham_lean`
+    # trả về phải là câu chạy được ấy, nên không được còn dấu nào.
+    kiem(f"`{_ma}` không còn dấu «…» của lời khai", "…" not in _h, f"— {_h}")
     _o_co = {o["ten"] for o in lam.o_cua(_ma, _st)} | {"sym", "gia_tri"}
     _dung = set(re.findall(r"\{(\w+)\}", _h))
     kiem(f"`{_ma}` chỉ điền ô CÓ THẬT", _dung <= _o_co, f"— thừa {_dung - _o_co}")
@@ -110,14 +136,14 @@ kiem("Vẽ lên bảng có ô chọn đại lượng", lam.VE_BANG["co_dai_luong
 # Thứ bài này canh là «ô ấy với tới CẢ NĂM họ», không phải kho dài đúng mấy dòng.
 # Còn chuyện kho bị RÚT NGẮN thì `test_du_lean` canh bằng `MOC`, đúng chỗ của nó.
 kiem("và nó với tới CẢ kho, không riêng một họ",
-     len({d["ho"] for d in hoi.KHO}) == 5 and len(hoi.KHO) >= 68,
+     len({d["ho"] for d in hoi.KHO}) == 6 and len(hoi.KHO) >= 68,
      f"— {len(hoi.KHO)} đại lượng, {len({d['ho'] for d in hoi.KHO})} họ")
 
 # ================= 2. Chín loại =================
 print("\n▸ Chín loại hành động")
 # ⚠ Con số đổi từ 8 lên 9 khi thêm «Phát tín hiệu» — khối mở ra DÂY CHUYỀN của LEAN
 # (Universe → Alpha → Portfolio → Risk → Execution) thay cho lối tự đặt lệnh.
-kiem("đủ chín", len(lam.LOAI_LAM) == 9, f"— {list(lam.LOAI_LAM)}")
+kiem("đủ mười", len(lam.LOAI_LAM) == 10, f"— {list(lam.LOAI_LAM)}")
 kiem("Ghi chú và Báo tin KHÔNG cần mã",
      not lam.GHI_CHU["can_ma"] and not lam.BAO_TIN["can_ma"],
      "— chúng không đụng vào một mã nào")
@@ -341,7 +367,7 @@ kiem("dùng `emit_insights`, không dựng lớp Alpha nào",
 print("\n▸ Từ điển gửi được qua cầu nối")
 td = lam.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("đủ chín loại", len(td["loai"]) == 9)
+kiem("đủ mười loại", len(td["loai"]) == 10)
 kiem("mỗi loại có ô", all(l["o"] for l in td["loai"]))
 kiem("mỗi loại khai luôn hàm LEAN cho hộp thoại nói thẳng ra",
      all(l["lean"] for l in td["loai"]))
@@ -396,7 +422,7 @@ for _ma in lam.LOAI_LAM:
     _d = core.mo_ta_lam(core.make_lam_step(_ma))
     if not _d or _d == ["?"] or any("?" == str(x).strip() for x in _d):
         _cham_hoi.append(_ma)
-kiem(f"quét cả {len(lam.LOAI_LAM)} loại việc", len(lam.LOAI_LAM) == 9)
+kiem(f"quét cả {len(lam.LOAI_LAM)} loại việc", len(lam.LOAI_LAM) == 10)
 kiem("không loại nào ra dấu «?»", not _cham_hoi, f"— {_cham_hoi}")
 # Và mấy ô cầm lái phải ĐỔI được câu, không thì câu ấy chỉ là chữ trang trí.
 _f = core.make_lam_step(lam.LAM_TIN_HIEU)

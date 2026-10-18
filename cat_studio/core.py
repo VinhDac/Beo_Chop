@@ -488,6 +488,27 @@ def mo_ta_lam(step):
         elif isinstance(gt, dict) and _f(gt.get("so")) not in (None, 1):
             dong.append(f"trọng số: {_so_gon(_f(gt.get('so')))}")
 
+    elif t == lam.LAM_GHI_NHO:
+        # ⚠ GỌI Ô NHỚ BẰNG TÊN NGƯỜI DÙNG ĐẶT, không bằng mã. «nho_co_1 = ĐÚNG» thì
+        # chẳng ai đọc nổi thẻ; «đang chờ mua lại = ĐÚNG» thì đọc là hiểu. Tên nằm ở
+        # khối Bắt đầu, mà `mo_ta_lam` chỉ cầm MỘT khối — nên tên được nhét vào khối
+        # lúc dựng thẻ (`the_buoc`), và ở đây chỉ đọc ra.
+        ten = str(step.get("_ten_nho") or "").strip()
+        o = hoi.o_nho_cua(str(g("o_nho") or "").strip())
+        nhan_o = ten or (o["nhan"] if o else "(chưa chọn ô nhớ)")
+        cach = str(g("cach") or "gan")
+        if cach == "bat":
+            dong.append(f"Nhớ «{nhan_o}» = ĐÚNG")
+        elif cach == "tat":
+            dong.append(f"Nhớ «{nhan_o}» = SAI")
+        else:
+            gt = step.get("gia_tri")
+            chu = (_ve_dieu_kien(gt) if isinstance(gt, dict) and
+                   (gt.get("ma_dl") or hoi.ds_ghep(gt))
+                   else _so_gon(_f((gt or {}).get("so")) or 0))
+            dong.append(f"Nhớ «{nhan_o}» "
+                        + ("cộng thêm " if cach == "cong" else "= ") + str(chu))
+
     elif t == lam.LAM_BAO_TIN:
         dich = str(g("dich") or "").strip()
         dong.append(f"{nhan_chon('kenh')} -> {dich or '(chưa có nơi gửi)'}")
@@ -778,10 +799,31 @@ def icon_cua(loai):
     return d.get("icon") or ""
 
 
-def the_buoc(step):
+def ten_nho_cua(steps):
+    """Cả sơ đồ -> {mã ô nhớ: TÊN người dùng đặt}. {} nếu sơ đồ không nhớ gì.
+
+    Tên ô nhớ khai ở khối BẮT ĐẦU, mà thẻ cần vẽ ở khối GHI NHỚ — hai khối khác
+    nhau. Nên bảng tên phải dựng từ cả sơ đồ rồi truyền vào `the_buoc`.
+
+    ⚠ KHÔNG chép tên sang khối Ghi nhớ lúc người dùng chọn ô. Chép thì đổi tên ở
+    khối Bắt đầu xong thẻ kia vẫn đọc tên cũ — thẻ nói dối, đúng cái bệnh
+    `mo_ta_lam` sinh ra để chặn."""
+    bd = next((x for x in (steps or []) if is_start_step(x)), None)
+    if not bd:
+        return {}
+    return {x["ma"]: x["nhan"] for x in bat_dau.tri_nho_cua(bd) if x["nhan"]}
+
+
+def the_buoc(step, ten_nho=None):
     """Một khối -> DỮ LIỆU vẽ hộp trên canvas (không phải HTML).
 
+    `ten_nho` = bảng tên ô nhớ (xem `ten_nho_cua`). Thiếu thì thẻ gọi ô nhớ bằng
+    nhãn mặc định của từ điển — đọc được, chỉ kém thân thiện.
+
     Phía giao diện tự quyết trình bày, nhưng mọi chuỗi mô tả đều do đây sinh ra."""
+    if ten_nho and (step or {}).get("type") == lam.LAM_GHI_NHO:
+        step = {**step, "_ten_nho": ten_nho.get(
+            str(step.get("o_nho") or "").strip(), "")}
     kind = step.get("kind")
     hd = hanh_dong_cua(step)
 
@@ -1831,6 +1873,35 @@ def soat_day_chuyen(steps):
              "Sơ đồ vừa phát tín hiệu vừa đặt lệnh tay. Hai thứ giành nhau danh "
              "mục: model chia vốn cân lại theo tỷ trọng của nó, nên lệnh đặt tay bị "
              "gỡ ngay nhịp sau. Chọn MỘT lối.")
+
+    # TRÍ NHỚ — dùng một ô CHƯA KHAI ở khối Bắt đầu.
+    #
+    # ⚠ Mã sinh ra VẪN CHẠY, vì bộ sinh mã dựng sẵn đủ mười hai ô. Nên đây đúng là
+    # kiểu hỏng LẶNG: sơ đồ ghi vào «Trí nhớ CHUNG — đúng/sai 2» rồi đọc ra ở một
+    # chỗ khác, chạy trơn tru, mà người dùng không hề biết họ đang dùng một ô họ
+    # chưa đặt tên — và lần sau mở hộp Bắt đầu ra thì không thấy nó đâu.
+    da_khai = {x["ma"] for x in bat_dau.tri_nho_cua(bd)}
+    chua_khai = {}
+    for x in (steps or []):
+        for a_ in (hanh_dong_cua(x) if is_group_step(x) else [x]):
+            if not isinstance(a_, dict):
+                continue
+            if a_.get("type") == lam.LAM_GHI_NHO:
+                m = str(o_lam(a_, "o_nho") or "").strip()
+                if m and m not in da_khai:
+                    chua_khai.setdefault(m, x.get("id"))
+        for dk in (x.get("dieu_kien") or []):
+            for ve in (dk.get("trai"), dk.get("phai")):
+                m = str((ve or {}).get("ma_dl") or "")
+                if hoi.la_tri_nho(m) and m not in da_khai:
+                    chua_khai.setdefault(m, x.get("id"))
+    for m, sid in chua_khai.items():
+        o = hoi.o_nho_cua(m)
+        _loi(ra, "warning", sid,
+             f'Sơ đồ dùng ô nhớ «{o["nhan"] if o else m}» mà khối Bắt đầu chưa khai '
+             f'nó. Cỗ máy vẫn chạy — ô nhớ nào cũng có sẵn — nhưng ô chưa khai thì '
+             f'không có tên, nên mở lại sơ đồ sẽ không biết nó giữ cái gì. Khai nó ở '
+             f'ô «Cỗ máy nhớ những gì».')
 
     # RỔ ETF phải có dữ liệu RƠI VÀO khoảng backtest, không thì rổ chọn ra rỗng và
     # cả lượt chạy lặng — chạy xong, không lỗi, không một lệnh nào. Đã dính thật.

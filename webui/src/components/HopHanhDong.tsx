@@ -160,7 +160,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
             {/* Nhãn lấy từ TỪ ĐIỂN: «Giá trị vẽ» với khối Vẽ lên bảng, «Trọng số»
                 với khối Phát tín hiệu. Gõ cứng một nhãn ở đây là mọi khối có ô đại
                 lượng đều bị gọi sai tên. */}
-            <span className="nhan-o">{loai?.nhan_dai_luong ?? 'Giá trị'}</span>
+            <span className="nhan-o">{loai?.nhan_dai_luong}</span>
             <Ve ve={(gt.gia_tri as VeDieuKien) ?? {}} td={tuDienHoi} dsMa={dsMa}
                 coMaDangXet={coMaDangXet} choSo={!!loai?.dai_luong_so}
                 onDoi={v => doi('gia_tri', v)} />

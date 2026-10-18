@@ -491,7 +491,62 @@ LICH = [
 ]
 
 # ---------------------------------------------------------------------------
-# ⑤ HỎI DOANH NGHIỆP — công ty này tốt không
+# ⑤ HỎI TRÍ NHỚ — cỗ máy đã quyết gì ở nhịp trước
+# ---------------------------------------------------------------------------
+# ⚠ ĐÂY LÀ HỌ DUY NHẤT KHÔNG ĐỌC GÌ CỦA LEAN, nên nó phải được biện hộ cẩn thận.
+#
+# D-11 cấm app đẻ ra bộ máy tính toán thứ hai: thứ gì LEAN tính thì để LEAN tính.
+# Trí nhớ KHÔNG vi phạm điều ấy, vì nó không TÍNH gì cả — nó chỉ giữ lại một quyết
+# định mà CHÍNH SƠ ĐỒ vừa ra. LEAN không có khái niệm nào cho chuyện đó (`object_
+# store` là để lưu giữa các LƯỢT CHẠY, không phải giữa hai nến), nên không có gì để
+# mà «để LEAN làm».
+#
+# VÀ RANH GIỚI PHẢI RÕ, không thì họ này nuốt dần mọi thứ. Ba thứ vd10/vd11 nhớ mà
+# KHÔNG được vào đây, vì LEAN đã lo rồi:
+#     peak_price   -> `TrailingStopRiskManagementModel`
+#     close_win    -> chỉ báo (`max` · `min` · `sma`…)
+#     held_trade   -> «Đang giữ mã này» (`portfolio[sym].invested`)
+# Còn lại mới là trí nhớ thật: cờ «đang chờ mua lại», đếm «đã hồi phục mấy tháng»,
+# và giá trị của chính một đại lượng ở nhịp TRƯỚC.
+#
+# ⚠ MƯỜI HAI Ô CỐ ĐỊNH, KHÔNG SINH ĐỘNG. Cho người dùng tự khai tên biến thì từ điển
+# hết là từ điển: `BANG_DAI_LUONG` đổi theo từng sơ đồ, và mọi hàng rào lặp qua từ
+# điển (`test_hoi`, `test_moi_noi`, `test_du_lean`) mất chỗ đứng. Nên: mười hai ô
+# khai sẵn ở đây, còn TÊN thì khối Bắt đầu đặt (xem `bat_dau.TRI_NHO`). Giao diện bày
+# tên người dùng đặt, chỉ những ô đã khai.
+#
+#   CHUNG   — một giá trị cho cả cỗ máy ("đang ở chế độ phòng thủ").
+#   THEO MÃ — mỗi mã một giá trị ("mã này đang chờ mua lại").
+SO_O_NHO = 3        #: mỗi loại (số / đúng-sai) × mỗi phạm vi (chung / theo mã)
+
+TRI_NHO = (
+    [_s(f"nho_so_{i}", f"Trí nhớ CHUNG — số {i}", f"self._nho['so_{i}']", "tuỳ")
+     for i in range(1, SO_O_NHO + 1)]
+    + [_ck(f"nho_co_{i}", f"Trí nhớ CHUNG — đúng/sai {i}", f"self._nho['co_{i}']")
+       for i in range(1, SO_O_NHO + 1)]
+    + [_s(f"nho_ma_so_{i}", f"Trí nhớ THEO MÃ — số {i}",
+          f"self._nho_cua(sym)['so_{i}']", "tuỳ")
+       for i in range(1, SO_O_NHO + 1)]
+    + [_ck(f"nho_ma_co_{i}", f"Trí nhớ THEO MÃ — đúng/sai {i}",
+           f"self._nho_cua(sym)['co_{i}']")
+       for i in range(1, SO_O_NHO + 1)]
+)
+
+HOI_TRI_NHO = "hoi_tri_nho"
+
+
+def la_tri_nho(ma):
+    """Mã này có phải một ô trí nhớ không."""
+    return any(d["ma"] == ma for d in TRI_NHO)
+
+
+def o_nho_cua(ma):
+    """Một ô trí nhớ theo mã, hay None. Dùng để biết nó CHUNG hay THEO MÃ."""
+    return next((d for d in TRI_NHO if d["ma"] == ma), None)
+
+
+# ---------------------------------------------------------------------------
+# ⑥ HỎI DOANH NGHIỆP — công ty này tốt không
 # ---------------------------------------------------------------------------
 # ⚠ DỰNG SAU CÙNG. LEAN có 970 trường (Morningstar), nhưng BỘ DỮ LIỆU MIỄN PHÍ chỉ có
 # `fundamental/coarse` (giá, khối lượng). Mấy trường dưới đây dựng ra thì hộp thoại
@@ -559,6 +614,13 @@ LOAI_HOI = {
         "icon": "lich",
         "tat": False,
         "nhom": [("Thời gian", LICH)],
+    },
+    HOI_TRI_NHO: {
+        "nhan": "Hỏi trí nhớ",
+        "mo_ta": "cỗ máy đã quyết gì ở nhịp trước",
+        "icon": "ghim",
+        "tat": False,
+        "nhom": [("Trí nhớ", TRI_NHO)],
     },
     HOI_DOANH_NGHIEP: {
         "nhan": "Hỏi doanh nghiệp",

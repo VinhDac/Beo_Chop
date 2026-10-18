@@ -404,6 +404,61 @@ BAO_TIN = {
 }
 
 # ---------------------------------------------------------------------------
+# GHI NHỚ — cất một quyết định lại cho nhịp sau
+# ---------------------------------------------------------------------------
+# ⚠ KHỐI NÀY KHÔNG GỌI MỘT HÀM LEAN NÀO, và đó là ngoại lệ DUY NHẤT của luật «mỗi
+# khối khai một thứ có thật của LEAN». Nó phải được biện hộ, không được lặng lẽ.
+#
+# D-11 cấm app đẻ ra bộ máy tính toán thứ hai: thứ gì LEAN tính thì để LEAN tính.
+# Khối này không TÍNH gì — nó cất lại một quyết định mà CHÍNH SƠ ĐỒ vừa ra, để nhịp
+# sau đọc. LEAN không có khái niệm nào cho việc ấy (`object_store` là để lưu giữa các
+# LƯỢT CHẠY, không phải giữa hai nến), nên không có gì để «để LEAN làm».
+#
+# RANH GIỚI: ba thứ vd10/vd11 nhớ mà KHÔNG đi qua khối này, vì LEAN đã lo —
+#     đỉnh giá từ lúc vào  -> `TrailingStopRiskManagementModel`
+#     cửa sổ N giá đóng    -> chỉ báo `max` · `min` · `sma`
+#     đang giữ mã nào      -> «Đang giữ mã này»
+# Thấy mình định ghi nhớ một trong ba thứ ấy thì là đang đi nhầm đường.
+GHI_NHO = {
+    "nhan": "Ghi nhớ",
+    "mo_ta": "cất một quyết định lại cho nhịp sau đọc — «đang chờ mua lại»",
+    "icon": "ghim",
+    "nhom": NHOM_GHI,
+    # `can_ma` SUY TỪ Ô NHỚ, không đóng cứng: ô CHUNG thì không cần mã, ô THEO MÃ thì
+    # cần. Nên để False ở đây và `o_cua` thêm ô mã khi người dùng chọn ô theo mã.
+    "can_ma": False,
+    "lean": "self._nho[…] = … · self._nho_ma[sym][…] = …",
+    #: ⚠ CHỈ NHẬN Ô ĐÃ KHAI Ở KHỐI BẮT ĐẦU. Danh sách `chon` để rỗng ở đây và giao
+    #: diện điền từ `bat_dau.tri_nho_cua(...)`: tên ô là thứ NGƯỜI DÙNG đặt, nên từ
+    #: điển không biết trước, mà mã ô thì từ điển biết hết (`hoi.TRI_NHO`).
+    "o": [
+        _o("o_nho", "Ô nhớ", O_CHON, "", "",
+           "Chỉ mấy ô đã khai ở khối Bắt đầu mới hiện ra đây."),
+        _o("cach", "Đặt thế nào", O_CHON, "gan", "", "", [
+            ("gan", "Gán = giá trị bên dưới"),
+            ("cong", "Cộng thêm giá trị bên dưới"),
+            ("bat", "Đặt là ĐÚNG"),
+            ("tat", "Đặt là SAI"),
+        ]),
+    ],
+    #: Ô «Giá trị» là một ĐẠI LƯỢNG (hay một số) — cùng cơ chế ô «Trọng số» của khối
+    #: Phát tín hiệu, nên nhớ được cả «giá trị của RSI ở nhịp này» chứ không chỉ hằng
+    #: số. Đó chính là `prev_bottom_frac` của vd10.
+    "co_dai_luong": True,
+    "nhan_dai_luong": "Giá trị",
+    "dai_luong_so": True,
+    "gia_tri_mac_dinh": {"so": 1},
+    #: Bốn cách đặt là bốn câu khác nhau, không phải một câu có tham số — cùng lối
+    #: ô «Mức» của khối Ghi chú.
+    "theo_loai": {
+        "gan": {"lean": "{o_nho} = {gia_tri}", "o": []},
+        "cong": {"lean": "{o_nho} = {o_nho} + {gia_tri}", "o": []},
+        "bat": {"lean": "{o_nho} = True", "o": []},
+        "tat": {"lean": "{o_nho} = False", "o": []},
+    },
+}
+
+# ---------------------------------------------------------------------------
 # Bảng tra
 # ---------------------------------------------------------------------------
 LAM_DAT_TY_TRONG = "lam_dat_ty_trong"
@@ -415,6 +470,7 @@ LAM_GHI_CHU = "lam_ghi_chu"
 LAM_VE_BANG = "lam_ve_bang"
 LAM_BAO_TIN = "lam_bao_tin"
 LAM_TIN_HIEU = "lam_tin_hieu"
+LAM_GHI_NHO = "lam_ghi_nho"
 
 LOAI_LAM = {
     LAM_DAT_TY_TRONG: DAT_TY_TRONG,
@@ -426,6 +482,7 @@ LOAI_LAM = {
     LAM_VE_BANG: VE_BANG,
     LAM_BAO_TIN: BAO_TIN,
     LAM_TIN_HIEU: TIN_HIEU,
+    LAM_GHI_NHO: GHI_NHO,
 }
 
 
@@ -455,13 +512,32 @@ def ham_lean(loai, gia_tri=None):
     d = LOAI_LAM.get(loai)
     if not d:
         return ""
-    theo = d.get("theo_loai")
-    if theo:
-        o_chon = next((o for o in d["o"] if o["kieu"] == O_CHON), None)
-        if o_chon:
-            v = (gia_tri or {}).get(o_chon["ten"], o_chon["mac_dinh"])
-            return (theo.get(v) or {}).get("lean", d["lean"])
+    o_chon = o_lai(loai)
+    if o_chon:
+        v = (gia_tri or {}).get(o_chon["ten"], o_chon["mac_dinh"])
+        return (d["theo_loai"].get(v) or {}).get("lean", d["lean"])
     return d["lean"]
+
+
+def o_lai(loai):
+    """Ô CHỌN cầm lái của một loại việc — ô quyết câu LEAN nào được dùng. None nếu
+    loại ấy không có `theo_loai`.
+
+    ⚠ LÀ Ô CHỌN KHỚP VỚI `theo_loai`, KHÔNG PHẢI Ô CHỌN ĐẦU TIÊN. Khối «Ghi nhớ» có
+    HAI ô chọn — «Ô nhớ» đứng trước, «Đặt thế nào» mới cầm lái. Lấy cái đầu thì
+    `theo_loai.get("nho_co_1")` ra None, rơi về `d["lean"]` — mà `d["lean"]` của khối
+    ấy là câu KHAI cho người đọc (`self._nho[…] = …`), không phải mã chạy được.
+
+    ⚠ VÀ MỘT HÀM, KHÔNG HAI BẢN. Luật này `ham_lean` cần, mà `test_moi_noi` cũng cần
+    (nó dò «núm giả» bằng cách bỏ qua đúng ô cầm lái). Hai bản của một luật là hai
+    bản sẽ trôi khỏi nhau — bài kiểm ấy từng báo oan `lam_ghi_nho.cach` là núm giả,
+    vì bản của nó vẫn lấy ô chọn đầu tiên."""
+    d = LOAI_LAM.get(loai)
+    theo = (d or {}).get("theo_loai")
+    if not theo:
+        return None
+    return next((o for o in d["o"] if o["kieu"] == O_CHON
+                 and {v for v, _n in o["chon"]} == set(theo)), None)
 
 
 def tu_dien():

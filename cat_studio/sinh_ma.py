@@ -353,6 +353,17 @@ def _lam_py(nc, a, sid, mach):
     # thêm ô «Trọng số» mà mẫu LEAN của nó vẫn không được điền.
     if d.get("co_dai_luong"):
         gt["gia_tri"] = _ve_py(nc, a.get("gia_tri"), sid)
+    # Ô NHỚ -> biểu thức đọc/ghi của chính nó. Lấy THẲNG ô `lean` của đại lượng
+    # tương ứng trong `hoi.TRI_NHO`, nên chỗ ĐỌC (khối Hỏi) và chỗ GHI (khối này)
+    # không thể trỏ vào hai chỗ khác nhau — chúng là cùng một chuỗi.
+    if t == lam.LAM_GHI_NHO:
+        o = hoi.o_nho_cua(str(core.o_lam(a, "o_nho") or "").strip())
+        if not o:
+            nc.loi(sid, 'Khối «Ghi nhớ» chưa chọn ô nhớ nào. Khai một ô ở khối '
+                        'Bắt đầu rồi chọn nó ở đây.')
+            return []
+        gt["o_nho"] = _thay(o["lean"], {"sym": _sym_py(nc, a, sid)
+                                        if o["can_ma"] else "sym"})
     try:
         return [mau.format(**gt)]
     except KeyError as e:
@@ -524,6 +535,57 @@ def _ham_loc_ro(nc, st):
 
 
 
+def _than_nho(st, theo_ma):
+    """Thân dict một bộ ô nhớ: `{'co_1': False, 'so_1': 0, …}`. -> chuỗi Python."""
+    nho = {x["ma"]: x for x in bat_dau.tri_nho_cua(st)}
+    cap = []
+    for d in hoi.TRI_NHO:
+        if d["ma"].startswith("nho_ma_") != theo_ma:
+            continue
+        k = d["ma"].split("nho_ma_")[-1].split("nho_")[-1]
+        v = (nho.get(d["ma"]) or {}).get("ban_dau")
+        if v is None:
+            v = False if d["kieu"] == hoi.KIEU_CO_KHONG else 0
+        cap.append(f"{k!r}: {_lit(v)}")
+    return "{" + ", ".join(cap) + "}"
+
+
+def _khai_tri_nho(st):
+    """Dòng dựng trí nhớ trong `initialize`. -> [dòng], rỗng nếu sơ đồ không nhớ gì.
+
+    ⚠ DỰNG SẴN ĐỦ MƯỜI HAI Ô, kể cả ô chưa đặt tên. Đọc một ô trước khi ghi lần đầu
+    là chuyện xảy ra ngay nến ĐẦU TIÊN của mọi sơ đồ có trí nhớ — «chưa chờ mua lại»
+    phải trả lời được trước khi có ai đặt nó. Dựng thiếu thì đó là `KeyError` giữa
+    lượt chạy, hoặc tệ hơn một `None` lọt vào phép so rồi ném `TypeError`; cả hai đều
+    ĐỨT backtest chứ không phải sai số.
+    Ô chưa khai thì 0 (số) / False (đúng-sai) — nghĩa «chưa có gì xảy ra».
+
+    ⚠ VÀ Ô THEO MÃ KHÔNG DỰNG SẴN THEO `self._ma`. Với RỔ ĐỘNG thì lúc `initialize`
+    chưa mã nào có mặt — rổ gồm những gì là chuyện LEAN quyết lại mỗi ngày. Dựng theo
+    `self._ma` là dựng một dict RỖNG, rồi `self._nho_ma[sym]` ném `KeyError` ngay mã
+    đầu tiên vào rổ. Nên: giữ một MẪU, và `_nho_cua(sym)` tự đẻ bản sao lần đầu gặp
+    mã ấy — đúng một chỗ, dùng cho cả hai kiểu ô «Chạy trên mã nào»."""
+    if not bat_dau.tri_nho_cua(st):
+        return []
+    return ["", "# TRÍ NHỚ: cất lại quyết định của chính sơ đồ, cho nhịp sau đọc.",
+            f"self._nho = {_than_nho(st, False)}",
+            f"self._nho_mau = {_than_nho(st, True)}",
+            "self._nho_ma = {}"]
+
+
+def _ham_nho_cua(st):
+    """Phương thức `_nho_cua` — bộ ô nhớ của MỘT mã, tự đẻ lần đầu gặp. -> [dòng]."""
+    if not bat_dau.tri_nho_cua(st):
+        return []
+    return ["", TAB + "def _nho_cua(self, sym):",
+            TAB * 2 + '"""Ô nhớ THEO MÃ của một mã — đẻ bản sao lần đầu gặp mã ấy,',
+            TAB * 2 + 'nên rổ động thêm mã giữa chừng vẫn có đủ ô nhớ."""',
+            TAB * 2 + "d = self._nho_ma.get(sym)",
+            TAB * 2 + "if d is None:",
+            TAB * 3 + "d = self._nho_ma[sym] = dict(self._nho_mau)",
+            TAB * 2 + "return d"]
+
+
 def _lam_nong(nc, st):
     """Số nến làm nóng — LẤY CẢ HAI NGUỒN, không chỉ chỉ báo.
 
@@ -563,6 +625,16 @@ def _khai_mo(nc, st):
         ra.append(f"self.settings.free_portfolio_value_percentage = {_lit(dem)}")
     san = str(core.o_bat_dau(st, "san") or "DEFAULT")
     ra.append(f"self.set_brokerage_model(BrokerageName.{san})")
+
+    # ⚠ TRÍ NHỚ DỰNG SẴN ĐỦ MƯỜI HAI Ô, kể cả ô chưa khai tên. Đọc một ô trước khi
+    # ghi lần đầu là chuyện xảy ra ngay nến ĐẦU TIÊN của mọi sơ đồ có trí nhớ —
+    # «chưa chờ mua lại» phải trả lời được trước khi có ai đặt nó. Dựng thiếu thì đó
+    # là `KeyError` giữa lượt chạy, hoặc tệ hơn một `None` lọt vào phép so rồi ném
+    # `TypeError` — cả hai đều đứt backtest, không phải sai số.
+    #
+    # Giá trị ban đầu lấy từ ô người dùng khai; ô chưa khai thì 0 (số) / False
+    # (đúng-sai) — hai giá trị «chưa có gì xảy ra», đúng nghĩa của một trí nhớ trống.
+    ra += _khai_tri_nho(st)
 
     # ⚠ PHÍ / TRƯỢT GIÁ PHẢI ĐĂNG KÝ Ở ĐÂY — TRƯỚC MỌI `add_*`, SAU `set_brokerage_
     # model`. Bộ khởi tạo mã chỉ chạy cho mã được tạo RA SAU khi nó đăng ký; đặt nó
@@ -740,7 +812,7 @@ def sinh(doc):
             "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
                         nc.ca_danh_muc, nc.ro, dong_doi_ro,
                         _ham_loc_ro(nc, st_bd), bool(nc.kho.ds),
-                        _ham_khoi_tao_ma(st_bd))}
+                        _ham_khoi_tao_ma(st_bd) + _ham_nho_cua(st_bd))}
 
 
 def _khai_cb_theo_ro(nc):

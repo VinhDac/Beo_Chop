@@ -42,6 +42,8 @@ CỐ Ý CHƯA CÓ: cửa vào thứ hai (`schedule.on` riêng, cho kiểu *mỗi
 cuối tháng cân danh mục*). Đó là khối khác, việc khác. Ghi lại để biết là bỏ có chủ ý.
 """
 
+from . import hoi
+
 # ---------------------------------------------------------------------------
 # Kiểu của một ô — ba kiểu đầu dùng chung với `lam.py`, hai kiểu cuối riêng
 # ---------------------------------------------------------------------------
@@ -50,6 +52,7 @@ O_CHU = "chu"
 O_CHON = "chon"
 O_KHOANG_NGAY = "khoang_ngay"   # {"tu": "2010-01-01", "den": "2019-01-01"}
 O_DS_MA = "ds_ma"               # [{"ma": "XAUUSD", "loai": "cfd"}, …]
+O_DS_NHO = "ds_nho"             # [{"ma": "nho_co_1", "nhan": "…", "ban_dau": 0}, …]
 
 
 def _o(ten, nhan, kieu, mac_dinh, lean, don_vi="", goi_y="", chon=(),
@@ -98,6 +101,7 @@ NHOM_O = (
     ("day_chuyen", "Dây chuyền LEAN", "tín hiệu đi qua bốn trạm: phát → chia vốn → "
                                       "phòng rủi ro → đặt lệnh"),
     ("chi_phi", "Sàn và chi phí", "phí và trượt giá tính theo kiểu nào"),
+    ("tri_nho", "Trí nhớ", "cỗ máy nhớ lại quyết định của chính nó ở nhịp trước"),
     ("do_luong", "Đo lường", "so cỗ máy này với cái gì"),
 )
 
@@ -617,6 +621,41 @@ CHIA_VON_THIEU_DU_LIEU = {
 }
 
 
+#: TRÍ NHỚ — mười hai ô nhớ của `hoi.TRI_NHO`, kèm TÊN người dùng đặt.
+#:
+#: ⚠ KHỐI BẮT ĐẦU KHAI, KHÔNG PHẢI KHỐI VẼ. Đúng đường ranh của app: xảy ra MỖI NHỊP
+#: thì thành khối Hành động, đặt MỘT LẦN thì thành ô ở đây. «Cỗ máy này nhớ những
+#: gì» là một câu trả lời một lần cho cả sơ đồ.
+#:
+#: Mỗi ô khai: `{ma, nhan, ban_dau}`. `ma` là một trong mười hai mã CỐ ĐỊNH của
+#: `hoi.TRI_NHO` — không sinh mã mới, nên từ điển vẫn là từ điển và mọi hàng rào lặp
+#: qua nó vẫn đứng được. `nhan` là tên người dùng đặt («đang chờ mua lại»), và đó mới
+#: là thứ hiện trên hàng điều kiện.
+#:
+#: ⚠ `ban_dau` BẮT BUỘC CÓ. Đọc một ô nhớ trước khi ghi lần đầu là chuyện xảy ra ngay
+#: nến đầu tiên của MỌI sơ đồ có trí nhớ. Không có giá trị ban đầu thì đó là
+#: `KeyError` giữa lượt chạy — hoặc tệ hơn, một `None` lọt vào phép so và ném
+#: `TypeError`. Nên bộ sinh mã dựng sẵn cả mười hai ô trong `initialize`.
+def tri_nho_cua(gia_tri=None):
+    """Mấy ô nhớ khối Bắt đầu đã khai -> [{ma, nhan, ban_dau}]. Bỏ ô không có mã."""
+    ds = (gia_tri or {}).get("tri_nho")
+    if not isinstance(ds, list):
+        return []
+    ra, da = [], set()
+    for x in ds:
+        if not isinstance(x, dict):
+            continue
+        m = str(x.get("ma") or "").strip()
+        # Mã lạ hay mã TRÙNG thì bỏ: hai ô cùng mã là hai cái tên cho một chỗ nhớ,
+        # và người dùng sẽ ghi vào một cái rồi đọc ra ở cái kia.
+        if not hoi.la_tri_nho(m) or m in da:
+            continue
+        da.add(m)
+        ra.append({"ma": m, "nhan": str(x.get("nhan") or "").strip(),
+                   "ban_dau": x.get("ban_dau")})
+    return ra
+
+
 def _o_alpha(ten, nhan, mac_dinh, don_vi="", goi_y="", nguyen=True):
     """Một ô CON của một model Phát tín hiệu — nằm TRONG bảng `PHAT_TIN_HIEU`.
 
@@ -1127,6 +1166,15 @@ O_BAT_DAU = [
     _o("san", "Sàn", O_CHON, "DEFAULT", "set_brokerage_model(BrokerageName.san)",
        chon=list(SAN), goi_y="Quyết phí và trượt giá tính theo kiểu nào.", nhom="chi_phi"),
 
+    # ⚠ Ô NÀY KHAI CÁI CỖ MÁY NHỚ ĐƯỢC GÌ, không khai nó nhớ cái gì lúc nào — việc
+    # ấy là của khối «Ghi nhớ». Đặt MỘT LẦN nên nó ở đây, đúng đường ranh của app.
+    _o("tri_nho", "Cỗ máy nhớ những gì", O_DS_NHO, [],
+       "self._nho = {…} · self._nho_ma = {sym: {…}}",
+       goi_y="Mỗi ô nhớ giữ một quyết định cỗ máy đã ra, để nhịp sau đọc lại — "
+             "«đang chờ mua lại», «đã hồi phục mấy tháng». Chỉ ô khai ở đây mới "
+             "hiện ra trong khối Hỏi và khối Ghi nhớ.",
+       bat_buoc=False, nhom="tri_nho"),
+
     _o("phi", "Phí (ghi đè Sàn)", O_CHON, "",
        "security.set_fee_model(…)", chon=[(m, n) for m, n, *_ in PHI],
        goi_y="Để trống thì phí theo Sàn đã chọn. Đặt phí cố định 0 là cách xem "
@@ -1408,6 +1456,10 @@ def tu_dien():
         # NHÓM — giao diện xếp ô theo đây. Thứ tự trong bảng là thứ tự bày.
         "nhom": [{"ma": m, "nhan": n, "mo_ta": d} for m, n, d in NHOM_O],
         "nhom_khac": NHOM_KHAC,
+        # Mười hai ô nhớ CỐ ĐỊNH — giao diện bày danh sách này cho người dùng chọn,
+        # rồi đặt TÊN cho ô nào họ muốn dùng. Không sinh mã mới.
+        "o_nho": [{"ma": d["ma"], "nhan": d["nhan"], "kieu": d["kieu"],
+                   "can_ma": d["can_ma"]} for d in hoi.TRI_NHO],
         "loai_tai_san": [{"ma": m, "nhan": n, "lean": h} for m, n, h in LOAI_TAI_SAN],
         "co_san": {k: list(v) for k, v in CO_SAN_MIEN_PHI.items()},
         "nhip": [{"ma": m, "nhan": n, "res": r, "chay": c,

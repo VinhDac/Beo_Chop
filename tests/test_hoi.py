@@ -61,7 +61,7 @@ kiem("nhìn lại quá khứ bằng CHỈ BÁO của LEAN",
 
 # ================= 2. Năm loại =================
 print("\n▸ Năm loại câu hỏi")
-kiem("đủ năm", len(hoi.LOAI_HOI) == 5, f"— {list(hoi.LOAI_HOI)}")
+kiem("đủ sáu họ", len(hoi.LOAI_HOI) == 6, f"— {list(hoi.LOAI_HOI)}")
 # ⚠ ĐÃ ĐỔI LUẬT, và hai dòng kiểm cũ ở đây từng khoá chặt luật cũ: "chỉ THỊ TRƯỜNG
 # và DOANH NGHIỆP cho so chéo mã" và "TÀI KHOẢN với LỊCH không có ô mã". Cả hai đều
 # là cờ `can_ma`/`hai_ve_ma` viết tay cho CẢ HỌ, mà một cờ cho cả họ thì luôn chỉ là
@@ -170,7 +170,7 @@ print("\n▸ Từ điển gửi được qua cầu nối")
 import json  # noqa: E402
 td = hoi.tu_dien()
 kiem("đóng gói được thành JSON", isinstance(json.dumps(td, ensure_ascii=False), str))
-kiem("đủ năm họ", len(td["loai"]) == 5)
+kiem("đủ sáu họ", len(td["loai"]) == 6)
 
 # ⚠ LỜI HỨA "với tới được TẤT CẢ". Cái bẫy ở đây không phải quên khai một đại lượng —
 # mà khai rồi, nó nằm trong `hoi.py`, bài kiểm nào cũng xanh, nhưng bảng chọn không

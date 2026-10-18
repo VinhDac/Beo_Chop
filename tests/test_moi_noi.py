@@ -199,7 +199,11 @@ for _ma, _d in lam.LOAI_LAM.items():
     _o_phu = {o["ten"] for v in _theo.values() for o in v["o"]}
     # `ma` đi vào mẫu dưới tên `{sym}`; `tag` do bộ sinh mã tự điền; ô CHỌN cầm lái
     # thì chọn luôn cả câu LEAN (`theo_loai`) nên không nằm trong câu.
-    _lai = next((o["ten"] for o in _d["o"] if o["kieu"] == lam.O_CHON), None) if _theo else None
+    # Ô cầm lái hỏi CHÍNH `lam.o_lai`, không dò lại ở đây: khối «Ghi nhớ» có hai ô
+    # chọn và ô cầm lái là ô THỨ HAI, nên bản dò "lấy ô chọn đầu tiên" của bài kiểm
+    # này từng báo oan `lam_ghi_nho.cach` là núm giả. Một luật, một hàm.
+    _o_lai = lam.o_lai(_ma)
+    _lai = _o_lai["ten"] if _o_lai else None
     for _o in _d["o"]:
         _t = _o["ten"]
         if _t in ("tag", "ma") or _t == _lai or _t in _o_phu:
