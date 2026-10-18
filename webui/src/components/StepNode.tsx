@@ -60,6 +60,27 @@ function ChuTim({ text, tim }: { text: string; tim: string }) {
     d.khop ? <mark key={i} className="tim-chu">{d.chu}</mark> : d.chu)}</>
 }
 
+/** Một dòng trên thẻ, có TÔ SÁNG TÊN NÚM.
+ *
+ *  Ghim một con số rồi mà thẻ vẫn vẽ «RSI(chu_ky)» bằng đúng màu chữ thường thì nó
+ *  trông y hệt «RSI(14)» — nhìn cả sơ đồ không biết mình đã ghim những gì.
+ *
+ *  Tên núm do PYTHON gửi sang (`DongThe.num`), giao diện không tự đoán chữ nào là
+ *  tên: đoán thì tô nhầm một chữ trùng tên, hoặc bỏ sót một núm. Cắt theo tên trước,
+ *  rồi mới chạy tô-sáng-tìm-kiếm trên mấy mẩu còn lại — hai bộ tô sáng lồng vào nhau
+ *  thì sinh thẻ `<mark>` trong `<mark>`. */
+function DongChu({ text, num, tim }: {
+  text: string; num?: string[]; tim: string
+}) {
+  if (!num?.length) return <ChuTim text={text} tim={tim} />
+  // Tên dài trước, để `chu_ky` không bị `chu` cắt mất (Python đã xếp sẵn thế).
+  const re = new RegExp(`(${num.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')})`, 'g')
+  return <>{text.split(re).map((m, i) => (num.includes(m)
+    ? <span key={i} className="num-ghim">{m}</span>
+    : <ChuTim key={i} text={m} tim={tim} />))}</>
+}
+
 const SIDES: [string, Position][] = [
   ['top', Position.Top],
   ['right', Position.Right],
@@ -133,7 +154,7 @@ function StepNode({ data, selected }: NodeProps) {
               <div key={i} className="dong" title={d.text}>
                 <span className="danh">{card.kind === 'group' ? '·' : ''}</span>
                 <IconNet name={d.icon ?? ''} size={12} />
-                <span><ChuTim text={d.text} tim={tim} /></span>
+                <span><DongChu text={d.text} num={d.num} tim={tim} /></span>
               </div>
             ))}
             {con > 0 && (

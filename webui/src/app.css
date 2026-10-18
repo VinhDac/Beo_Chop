@@ -541,6 +541,16 @@ mark.tim-chu {
   background: color-mix(in srgb, var(--warn) 45%, transparent);
   color: inherit; border-radius: 2px;
 }
+/* TÊN NÚM trên thẻ khối — ô số này đã ghim làm tham số Optimize.
+   Không tô sáng thì «RSI(chu_ky)» trông y hệt «RSI(14)», và nhìn cả sơ đồ không
+   biết mình đã ghim những gì. Cùng màu nhấn với nút ghim trong hộp thoại, nên con
+   mắt nối được hai chỗ. Nền MỜ chứ không đậm: một sơ đồ ghim chục núm mà chỗ nào
+   cũng chói thì lại chẳng đọc được dòng nào. */
+.num-ghim {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 3px; padding: 0 3px;
+}
 /* Huy hiệu "↻ 4A.2" trên đầu khối Quay về: đọc sơ đồ khỏi phải mở hộp thoại. */
 .hop .dau .ve-nhan {
   flex: 0 0 auto;
@@ -603,22 +613,20 @@ mark.tim-chu {
   color: var(--dim);
   text-align: right;
 }
-/* Cắt chữ phải đặt trên chính phần tử chứa CHỮ. Đặt trên .dong (flex container)
-   thì con flex mặc định min-width:auto nên nó cứ nở ra và tràn khỏi hộp.
-   XUỐNG TỐI ĐA HAI HÀNG rồi mới cắt, thay vì cắt ngay ở hàng đầu.
-   Đo được: một hàng chứa 36 ký tự ở thẻ loop/nhóm/HĐ lẻ.
-   Phần lớn dòng nay đã viết gọn dưới ngưỡng ấy, nhưng có dòng KHÔNG BAO GIỜ bó
-   được — "Chiêu mỗi 1,2s: …" in ra chuỗi chiêu do người dùng tự đặt, dài ngắn tuỳ
-   họ. Với những dòng đó, một hàng là mất chữ LẶNG LẼ, còn hai hàng là đọc được.
-   Vẫn phải có trần: bỏ trần thì một chuỗi chiêu dài kéo cả khối cao gấp mấy lần
-   khối bên cạnh, và sơ đồ hết nhìn ra hình. */
+/* KHỐI CO GIÃN THEO LƯỢNG CHỮ — không kẹp dòng nữa.
+   Trước đây kẹp hai hàng rồi cắt. Luật ấy chép từ Jenifer, nơi một dòng in ra chuỗi
+   chiêu DO NGƯỜI DÙNG TỰ ĐẶT nên dài ngắn không lường được. Ở đây thì khác: chữ trên
+   thẻ do `core.mo_ta_*` sinh ra từ từ điển, nên nó có trần tự nhiên.
+   Và cái giá của việc kẹp thì vừa lộ ra: ghim một ô số xong, «14» thành «chu_ky» —
+   dòng dài thêm, và thứ bị cắt mất chính là cái tên núm vừa ghim. Cắt chữ giữa
+   chừng là MẤT THÔNG TIN LẶNG LẼ, mà thẻ khối tồn tại đúng để đọc mà không phải mở
+   hộp thoại.
+   `overflow-wrap: anywhere` vẫn giữ: một tên mã hay tên núm dài hơn bề ngang thẻ thì
+   bẻ dòng, chứ đừng tràn ra ngoài. Số DÒNG vẫn có trần (`TOI_DA_DONG`), nhưng trần
+   ấy NÓI RA — "… còn 5 hành động" — chứ không im như cắt chữ. */
 .hop .dong > span:last-child {
   flex: 1 1 auto;
   min-width: 0;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
   overflow-wrap: anywhere;
 }
 /* Hành động chạy 1 lần lúc đầu: làm mờ, vì nhìn hộp phải biết ngay Loop thật sự

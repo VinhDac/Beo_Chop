@@ -396,6 +396,48 @@ for _ma_dl in ("rsi", "bb", "max", "delay", "gia"):
 kiem(f"quét {_dem_o} ô số ghim được", _dem_o >= 15)
 kiem("ô nào ghim cũng đi hết ba chặng", not _hong_ghim, f"— {_hong_ghim[:4]}")
 
+print("\n▸ Núm GHIM phải được THẺ KHỐI tô sáng — và cái trùng nhau phải GỘP")
+# Hai việc, cùng một gốc: cái tên.
+# · Thẻ không tô sáng thì «RSI(chu_ky)» trông y hệt «RSI(14)» — ghim xong nhìn cả sơ
+#   đồ không biết mình đã ghim những gì. Python phải NÓI RA tên nào nằm ở dòng nào
+#   (`DongThe.num`); để giao diện tự đoán là nó tô nhầm hoặc bỏ sót.
+# · Gộp theo TÊN: hai chỗ cùng ghim một tên là MỘT núm, và LEAN chỉ dựng MỘT chỉ
+#   báo. Không gộp thì optimizer quét hai cột cho cùng một thứ, số lượt nhân đôi vô
+#   ích, mà hai cột ấy còn có thể nhận hai giá trị khác nhau — cùng một chu kỳ RSI mà
+#   khối Vào dùng 14, khối Ra dùng 30.
+_bd = core.make_start_step()
+_bd["ma"] = [{"ma": "SPY", "loai": "equity"}]
+_bd["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+_hs = []
+for _ten_khoi in ("Vào", "Ra"):
+    _h = core.make_hoi_step("hoi_thi_truong")
+    _h["name"] = _ten_khoi
+    _d = core.make_dieu_kien("rsi", "<=", 45, tham_so={"n": 14})
+    _d["trai"]["ghim"] = {"n": "rsi_chu_ky"}
+    _h["dieu_kien"] = [_d]
+    _hs.append(_h)
+_st = [_bd] + _hs + [core.make_lam_step(lam.LAM_TIN_HIEU)]
+_ed = [{"from": _bd["id"], "to": h["id"], "port": "out"} for h in _hs]
+_ed += [{"from": _hs[0]["id"], "to": _st[-1]["id"], "port": "out"}]
+_ds = core.ds_tham_so(_st)
+kiem("hai chỗ cùng tên gộp thành MỘT núm", len(_ds) == 1,
+     f"— {[d['ten'] for d in _ds]}")
+kiem("và núm ấy nói ra nó nằm ở CẢ HAI chỗ", len(_ds[0]["o_tai"]) == 2,
+     f"— {_ds[0]['o_tai']}")
+_ma = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "G",
+                    "steps": _st, "edges": _ed})["ma"]
+kiem("LEAN chỉ dựng MỘT chỉ báo cho núm ấy", _ma.count("= self.rsi(") == 1,
+     f"— {_ma.count('= self.rsi(')} cái")
+_sot = []
+for _s in _st:
+    _ten_num = core._num_cua(_s)
+    _da_bay = {t for d in core.the_buoc(_s)["lines"] for t in (d.get("num") or [])}
+    _sot += [f"{core.step_title(_s)}.{t}" for t in _ten_num - _da_bay]
+kiem("mọi núm đều được thẻ khối nói ra để tô sáng", not _sot, f"— {_sot}")
+_tsx = doc("webui", "src", "components", "StepNode.tsx")
+kiem("và giao diện ĐỌC `num` của Python chứ không tự dò chữ",
+     "d.num" in _tsx and "num-ghim" in _tsx)
+
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
 # cũ phải ở lại làm mặc định. Mất nó thì ghim một ô là đổi luôn kết quả backtest

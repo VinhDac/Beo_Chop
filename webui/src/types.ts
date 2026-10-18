@@ -68,6 +68,9 @@ export interface DongThe {
   /** Tên icon, do `core.icon_cua` lấy từ TỪ ĐIỂN. Giao diện không tự tra: bảng tra
    *  thứ hai ở đây đã từng lệch khoá và làm mọi dòng mất icon, lặng thinh. */
   icon?: string
+  /** Tên mấy NÚM đã ghim xuất hiện trong dòng này, để thẻ tô sáng chúng lên. Python
+   *  nói ra; giao diện không tự đoán chữ nào là tên núm. Xếp dài-trước. */
+  num?: string[]
 }
 
 /** Thẻ vẽ một khối. Mọi chuỗi trong đây do Python sinh. */

@@ -498,7 +498,7 @@ def mo_ta_lam(step):
     # NÚM ĐÃ GHIM nói ở MỘT dòng chung, không nhét vào từng nhánh. `mo_ta_lam` là
     # bảng tra chín nhánh; sửa riêng từng nhánh là lại đúng cái bẫy "thêm loại quên
     # thêm nhánh" đã làm cả ba khối Phát tín hiệu hiện dấu «?».
-    ghim = [f'{o["nhan"]} → {step["ghim"][o["ten"]]}'
+    ghim = [f'{o["nhan"]} → {_so_the(step, o["ten"], g(o["ten"]))}'
             for o in lam.o_cua(t, step)
             if o["kieu"] == lam.O_SO
             and str(((step or {}).get("ghim") or {}).get(o["ten"]) or "").strip()]
@@ -573,12 +573,14 @@ def _ve_dieu_kien(ve):
 
 
 def _so_the(chu, ten_o, gia_tri):
-    """Con số trên THẺ KHỐI — hay TÊN THAM SỐ nếu ô ấy đã ghim.
+    """Con số trên THẺ KHỐI — hay «tên=số» nếu ô ấy đã ghim.
 
-    Ghim rồi mà thẻ vẫn đọc "RSI(14)" thì nhìn sơ đồ không biết mình đã ghim cái gì,
-    và lúc Optimize quét `rsi_chu_ky` thì chẳng thấy nó ở đâu trên canvas."""
+    PHẢI CÓ CẢ HAI. Chỉ con số thì nhìn sơ đồ không biết mình đã ghim cái gì, và lúc
+    Optimize quét `rsi_chu_ky` chẳng thấy nó ở đâu trên canvas. Chỉ cái tên thì mất
+    luôn thứ quan trọng không kém: BẢN VẼ NÀY ĐANG CHẠY Ở MỨC NÀO — vì ghim xong,
+    backtest thường vẫn chạy bằng con số ấy."""
     ten = str(((chu or {}).get("ghim") or {}).get(ten_o) or "").strip()
-    return ten or str(gia_tri)
+    return f"{ten}={gia_tri}" if ten else str(gia_tri)
 
 
 def _ghep_chu(ve, ngan):
@@ -685,6 +687,16 @@ def ds_tham_so(steps):
     return [gom[k] for k in sorted(gom)]
 
 
+def _num_cua(step):
+    """Mọi núm đã ghim trong MỘT khối, DẠNG HIỆN TRÊN THẺ («chu_ky=14») -> set.
+
+    Trả đúng cái chuỗi `_so_the` viết ra, chứ không trả tên trần: thẻ tô sáng bằng
+    cách tìm chuỗi này trong dòng, nên hai bên lệch một chữ là không tô được gì."""
+    return {_so_the(chu, ten_o, gt)
+            for chu, ten_o, _nhan, gt in _o_so_cua(step)
+            if str((chu.get("ghim") or {}).get(ten_o) or "").strip()}
+
+
 def icon_cua(loai):
     """Tên icon của MỘT loại khối, lấy thẳng từ từ điển. "" nếu loại ấy không có.
 
@@ -742,6 +754,22 @@ def the_buoc(step):
     # Nay chỉ còn MỘT chỗ khai: từ điển. Thêm loại khối là icon có ngay.
     for d in dong:
         d["icon"] = icon_cua(d.get("type"))
+
+    # NÚM NÀO NẰM TRONG DÒNG NÀY — để thẻ tô sáng nó lên.
+    #
+    # ⚠ Python phải NÓI RA, giao diện không được tự đoán chữ nào là tên núm: đoán thì
+    # nó tô nhầm một chữ trùng tên, hoặc bỏ sót một núm — mà bỏ sót thì «RSI(chu_ky)»
+    # trông y hệt «RSI(14)», và nhìn cả sơ đồ không biết mình đã ghim những gì.
+    num = _num_cua(step)
+    for d in dong:
+        d["num"] = sorted((t for t in num if t in (d.get("text") or "")), key=len,
+                          reverse=True)
+    # HUY HIỆU đếm núm. Tô sáng trong dòng là đủ để ĐỌC, nhưng dòng trên thẻ bị kẹp
+    # tối đa mấy hàng rồi cắt — nên một núm nằm cuối dòng dài vẫn có thể khuất. Huy
+    # hiệu thì không bao giờ khuất: liếc một cái là biết khối này có núm hay không,
+    # khỏi phải mở hộp thoại ra dò.
+    if num:
+        nhan.append(f"{len(num)} núm")
 
     return {
         "id": step.get("id"),
