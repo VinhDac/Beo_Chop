@@ -7,6 +7,9 @@ import ChonMa from './ChonMa'
 import { OGhim } from './ORuot'
 import type { DaiLuong, Step, TuDienHoi, VeDieuKien, DongDieuKien } from '../types'
 
+/** MỘT THÀNH PHẦN của chuỗi ghép: một vế, cộng một phép nối vào vế trước. */
+type TPGhep = VeDieuKien & { phep: string }
+
 /** HỘP THOẠI KHỐI XÁC NHẬN — nơi người chơi gõ điều kiện.
  *
  *  MỘT DÒNG = MỘT ĐIỀU KIỆN, các dòng nối bằng VÀ. Muốn HOẶC thì KHÔNG nhét vào đây —
@@ -132,8 +135,12 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
   // làm tham số nhất, mà trước đây nó là chỗ DUY NHẤT không có bánh răng nào.
   const coChinh = laSo || (!!dl && (dl.can_ma || dl.tham_so.length > 0
                                     || !!dl.duong || dl.kieu === 'so'))
-  const ghep = ve.ghep
-  const dlGhep = ghep?.ma_dl ? td.kho.find(d => d.ma === ghep.ma_dl) : undefined
+  /* ⚠ ĐỌC PHẢI NHẬN CẢ HAI HÌNH. File cũ ghi `ghep` là MỘT object; bản này ghi một
+     DANH SÁCH. Mất nhánh gói-thành-danh-sách là mọi sơ đồ đã lưu mất phần ghép —
+     hộp thoại vẫn mở, vẫn sửa được, chỉ là nửa điều kiện biến mất không một lời.
+     Đây là bản sao của `hoi.ds_ghep` bên Python; `test_giao_dien` canh hai bên. */
+  const dsGhep: TPGhep[] = Array.isArray(ve.ghep) ? ve.ghep
+    : (ve.ghep ? [ve.ghep] : [])
 
   const bat = (o: 'chon' | 'chinh', r: React.RefObject<HTMLButtonElement>) => {
     setNeo(r.current?.getBoundingClientRect() ?? null)
@@ -202,58 +209,93 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
                        onDoi={v => onDoi({ ...ve, ...v })} />
             )}
 
-            {/* GHÉP — chỗ diễn đạt «giá / đỉnh 60 nến ≤ 0,97», tức rơi 3% từ đỉnh.
+            {/* GHÉP — một CHUỖI thành phần, nối TRÁI→PHẢI.
+                «giá / đỉnh 60 nến ≤ 0,97» là rơi 3% từ đỉnh — hai thành phần.
+                «0,25×ROC(63) + 0,35×ROC(126) + 0,40×ROC(252) − 0,20×độ lệch» là
+                một điểm số — bốn thành phần. Cùng một hình, khác số dòng.
+
                 Chỉ bày cho đại lượng kiểu SỐ: ĐÚNG/SAI thì cộng trừ vô nghĩa. */}
-            {(!dl || dl.kieu === 'so') && (
-              <label className="bn-hang bn-ghep"><span>Ghép với</span>
-                <select className="o" value={ghep?.phep ?? ''}
-                        onChange={e => onDoi({ ...ve, ghep: e.target.value
-                          // Mở ra là SỐ 1, không đoán hộ một đại lượng. Và 1 chứ
-                          // không phải 0: chia cho 0 thì cả vế thành 0 cứng.
-                          ? { ...(ghep ?? { so: 1 }), phep: e.target.value }
-                          : undefined })}>
-                  <option value="">— không ghép —</option>
-                  {td.phep_ghep.map(p => (
-                    <option key={p.ma} value={p.ma}>{p.nhan}</option>
-                  ))}
-                </select>
+            {(!dl || dl.kieu === 'so') && (<>
+              {dsGhep.length > 0 && (
+                <label className="bn-hang"><span>Hệ số</span>
+                  <input className="o so" inputMode="decimal"
+                         defaultValue={String(ve.he_so ?? 1)}
+                         onChange={e => onDoi({ ...ve,
+                           he_so: e.target.value as unknown as number })} />
+                  <span className="bn-nhac">× đại lượng trên</span>
+                </label>
+              )}
+              {dsGhep.map((g, i) => {
+                const dlG = g.ma_dl ? td.kho.find(d => d.ma === g.ma_dl) : undefined
+                const doiTP = (v: Partial<TPGhep> | null) =>
+                  onDoi({ ...ve, ghep: v === null
+                    ? dsGhep.filter((_, k) => k !== i)
+                    : dsGhep.map((x, k) => (k === i ? { ...x, ...v } : x)) })
+                return (
+                  <div className="bn-tp" key={i}>
+                    <label className="bn-hang bn-ghep"><span>Rồi</span>
+                      <select className="o bn-phep" value={g.phep}
+                              onChange={e => doiTP({ phep: e.target.value })}>
+                        {td.phep_ghep.map(p => (
+                          <option key={p.ma} value={p.ma}>{p.nhan}</option>
+                        ))}
+                      </select>
+                      <input className="o so" inputMode="decimal"
+                             defaultValue={String(g.he_so ?? 1)}
+                             onChange={e => doiTP({
+                               he_so: e.target.value as unknown as number })} />
+                      <span className="bn-nhac">×</span>
+                      <button className="nut-nho" title="Bỏ thành phần này"
+                              onClick={() => doiTP(null)}>✕</button>
+                    </label>
+                    <label className="bn-hang"><span>Đại lượng</span>
+                      <ChonGhep td={td} giaTri={g.ma_dl ?? ''} onDoi={ma => {
+                        if (!ma) { doiTP({ ma_dl: undefined, so: 1 }); return }
+                        const d = td.kho.find(x => x.ma === ma)
+                        if (!d) return
+                        const ts: Record<string, number> = {}
+                        for (const t of d.tham_so) ts[t.ten] = t.mac_dinh
+                        doiTP({ ma_dl: ma, so: undefined,
+                          duong: d.duong?.[0]?.[0],
+                          ...(d.tham_so.length ? { tham_so: ts } : {}) })
+                      }} />
+                    </label>
+                    {dlG
+                      ? <ChinhDL dl={dlG} ve={g} dsMa={dsMa}
+                                 coMaDangXet={coMaDangXet}
+                                 onDoi={v => doiTP(v as Partial<TPGhep>)} />
+                      : <label className="bn-hang"><span>Con số</span>
+                          {/* `defaultValue` + chuyền NGUYÊN chuỗi, đúng lối ô số
+                              của `ChonDaiLuong`: ép `Number()` từng phím là nuốt
+                              dấu chấm, «0.97» lặng lẽ thành «97». */}
+                          <input className="o so" inputMode="decimal"
+                                 defaultValue={String(g.so ?? 1)}
+                                 onChange={e => doiTP({ ma_dl: undefined,
+                                   so: e.target.value as unknown as number })} />
+                        </label>}
+                  </div>
+                )
+              })}
+              <label className="bn-hang bn-them-tp"><span />
+                <button className="nut-nho" onClick={() => onDoi({ ...ve,
+                  // Mở ra là SỐ 1, không đoán hộ một đại lượng. Và 1 chứ không
+                  // phải 0: chia cho 0 thì cả vế thành 0 cứng.
+                  ghep: [...dsGhep, { phep: '+', he_so: 1, so: 1 }] })}>
+                  + Ghép thêm một thành phần
+                </button>
               </label>
-            )}
-            {ghep?.phep && (<>
-              <label className="bn-hang"><span>Đại lượng</span>
-                <ChonGhep td={td} giaTri={ghep.ma_dl ?? ''} onDoi={ma => {
-                  if (!ma) { onDoi({ ...ve, ghep: { phep: ghep.phep, so: 1 } }); return }
-                  const d = td.kho.find(x => x.ma === ma)
-                  if (!d) return
-                  const ts: Record<string, number> = {}
-                  for (const t of d.tham_so) ts[t.ten] = t.mac_dinh
-                  onDoi({ ...ve, ghep: { phep: ghep.phep, ma_dl: ma,
-                    duong: d.duong?.[0]?.[0],
-                    ...(d.tham_so.length ? { tham_so: ts } : {}) } })
-                }} />
-              </label>
-              {dlGhep
-                ? <ChinhDL dl={dlGhep} ve={ghep} dsMa={dsMa}
-                           coMaDangXet={coMaDangXet}
-                           onDoi={v => onDoi({ ...ve,
-                             ghep: { ...ghep, ...v } as typeof ghep })} />
-                : <label className="bn-hang"><span>Con số</span>
-                    {/* `defaultValue` + chuyền NGUYÊN chuỗi, đúng lối ô số của
-                        `ChonDaiLuong`: ép `Number()` từng phím là nuốt dấu chấm,
-                        «0.97» lặng lẽ thành «97». */}
-                    <input className="o so" inputMode="decimal"
-                           defaultValue={String(ghep.so ?? 1)}
-                           onChange={e => onDoi({ ...ve, ghep: {
-                             ...ghep, ma_dl: undefined,
-                             so: e.target.value as unknown as number } })} />
-                  </label>}
             </>)}
           </div>
           {/* NGOÀI `.bn-chinh` — tấm ấy cuộn được, nên dòng khai hàm LEAN để trong
               nó là nó cuộn mất. Ghim ở chân, đúng như bảng chọn đại lượng. */}
           <div className="bn-lean">
-            {dl ? dl.lean : 'một con số'}{ghep?.phep && ` ${ghep.phep} ${
-              dlGhep ? dlGhep.lean : String(ghep.so ?? 1)}`}
+            {dl ? dl.lean : 'một con số'}
+            {dsGhep.map((g, i) => {
+              const dlG = g.ma_dl ? td.kho.find(d => d.ma === g.ma_dl) : undefined
+              const he = Number(g.he_so ?? 1)
+              return ` ${g.phep} ${he === 1 ? '' : `${he} * `}${
+                dlG ? dlG.lean : String(g.so ?? 1)}`
+            }).join('')}
           </div>
         </BangNoi>
       )}

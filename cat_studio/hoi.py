@@ -56,6 +56,44 @@ KIEU_SO = "so"
 KIEU_CO_KHONG = "co_khong"
 
 
+def ds_ghep(ve):
+    """Phần GHÉP của một vế -> DANH SÁCH thành phần. [] nếu vế không ghép gì.
+
+    ⚠ MỘT VẾ NAY LÀ MỘT CHUỖI, KHÔNG PHẢI MỘT CẶP (18/10/2026). Bản trước `ghep` là
+    một dict, tức đúng hai vế một phép: `giá / đỉnh 60 nến`. Đủ cho vd1, không đủ cho
+    cái mà ba ví dụ khác cần:
+
+        điểm = 0,25×ROC(63) + 0,35×ROC(126) + 0,40×ROC(252) − 0,20×biến_động
+
+    Bốn thành phần, mỗi cái một HỆ SỐ. Đó không phải cây biểu thức — nó là một DANH
+    SÁCH, nên hàng điều kiện vẫn là mấy dòng đọc được chứ không thành ô gõ công thức.
+    Đúng chỗ lằn ranh cũ muốn giữ.
+
+    HỆ SỐ nằm TRONG từng thành phần chứ không thành một phép `*` riêng, và đó là cả
+    mẹo: có hệ số thì tổng có trọng số viết được bằng một chuỗi nối TRÁI→PHẢI, không
+    cần thứ tự ưu tiên. Không có nó thì `0,25×a + 0,35×b` nối trái→phải ra
+    `((0,25×a)+0,35)×b` — sai, mà sai lặng.
+
+    FILE CŨ: `ghep` là dict thì gói thành danh sách một phần tử. Bỏ nhánh này là mọi
+    sơ đồ đã lưu mất phần ghép — thẻ vẫn vẽ, mã vẫn sinh, chỉ thiếu mất nửa điều kiện.
+    """
+    g = ve.get("ghep") if isinstance(ve, dict) else None
+    if isinstance(g, dict):
+        g = [g]
+    if not isinstance(g, list):
+        return []
+    return [t for t in g if isinstance(t, dict) and t.get("phep")]
+
+
+def he_so_cua(x):
+    """Hệ số của một thành phần ghép. 1 nếu không khai — tức «không nhân gì»."""
+    try:
+        v = float(x.get("he_so")) if isinstance(x, dict) else 1.0
+    except (TypeError, ValueError):
+        return 1.0
+    return 1.0 if v is None else v
+
+
 def _can_ma(lean, lean_dk):
     """Đại lượng này có cần CHỌN MÃ không — SUY THẲNG từ đoạn code của nó.
 

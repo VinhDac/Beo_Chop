@@ -438,6 +438,117 @@ kiem("và câu báo nói đúng VÌ SAO",
      f"— {[p['message'][:60] for p in r_ma['van_de'] if p['severity'] == 'error']}")
 
 # ---------------------------------------------------------------------------
+print(NL + "▸ ⚠ GHÉP NHIỀU THÀNH PHẦN — tổng có trọng số, nối TRÁI→PHẢI")
+# ---------------------------------------------------------------------------
+# Ba ví dụ trong tập mẫu chấm điểm bằng một TỔNG CÓ TRỌNG SỐ:
+#     0,25×ROC(63) + 0,35×ROC(126) + 0,40×ROC(252) − 0,20×biến_động
+# Bản trước ghép đúng MỘT phép (hai vế), nên câu ấy không nói được.
+
+
+def _ve_chuoi():
+    d = core.make_dieu_kien("roc", ">", 0, tham_so={"n": 63})
+    d["trai"]["he_so"] = 0.25
+    d["trai"]["ghep"] = [
+        {"phep": "+", "he_so": 0.35, "ma_dl": "roc", "tham_so": {"n": 126}},
+        {"phep": "+", "he_so": 0.40, "ma_dl": "roc", "tham_so": {"n": 252}},
+        {"phep": "-", "he_so": 0.20, "ma_dl": "std", "tham_so": {"n": 20}},
+    ]
+    return d
+
+
+def _ma_cua(dk):
+    b = core.make_start_step()
+    b["ma"] = [{"ma": "SPY", "loai": "equity"}]
+    b["nhip"] = "ngay"
+    b["chay_cho"] = "moi_ma"
+    h = core.make_hoi_step("hoi_thi_truong")
+    h["name"] = "dk"
+    h["dieu_kien"] = [dk]
+    a = core.make_lam_step(lam.LAM_DAT_TY_TRONG)
+    a["name"] = "mua"
+    a["ty_trong"] = 0.3
+    st = [b, h, a]
+    for i, x in enumerate(st):
+        x["pos"] = [[-220, 0], [160, 0], [540, 0]][i]
+    return sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "ghep",
+                         "steps": st,
+                         "edges": [{"from": b["id"], "to": h["id"], "port": "out"},
+                                   {"from": h["id"], "to": a["id"], "port": "out"}]})
+
+
+_kq = _ma_cua(_ve_chuoi())
+_dong = next((l.strip() for l in _kq["ma"].splitlines() if "if (" in l), "")
+kiem("bốn thành phần đều có mặt trong mã",
+     all(x in _dong for x in ("roc_63", "roc_126", "roc_252", "std_20")),
+     f"— {_dong[:120]}")
+# ⚠ HỆ SỐ PHẢI NHÂN VÀO TỪNG THÀNH PHẦN, không thành một phép `*` riêng trong chuỗi.
+# Nối trái→phải không có thứ tự ưu tiên, nên `0,25 × a + 0,35 × b` viết thành bốn
+# thành phần sẽ ra `((0,25×a)+0,35)×b` — sai, và sai LẶNG vì vẫn ra một con số.
+for _h, _k in ((0.25, "roc_63"), (0.35, "roc_126"), (0.4, "roc_252"),
+               (0.2, "std_20")):
+    kiem(f"hệ số {_h} nhân THẲNG vào {_k}",
+         f"({_h} * self._cb[sym][{_k!r}].current.value)" in _dong,
+         f"— {_dong[:150]}")
+# ⚠ ĐÓNG NGOẶC TỪNG BƯỚC, không nhờ Python tự ưu tiên: thứ người dùng ĐỌC trên hàng
+# điều kiện và thứ LEAN CHẠY phải là một.
+#
+# Canh bằng cách TÍNH THỬ RA SỐ, không bằng cách dò chuỗi ký tự. Dò chuỗi thì giòn:
+# đổi một dấu cách là phép soát đỏ, mà đổi cả cách tính thì nó vẫn xanh. Dựng một vế
+# toàn SỐ rồi `eval` cái biểu thức sinh ra, so với kết quả nối trái→phải tính tay.
+_so = {"so": 2, "he_so": 3, "ghep": [        # 3×2 = 6
+    {"phep": "+", "he_so": 5, "so": 4},      # 6 + 5×4 = 26
+    {"phep": "*", "he_so": 1, "so": 2},      # 26 × 2  = 52
+    {"phep": "-", "he_so": 1, "so": 2},      # 52 − 2  = 50
+]}
+# So bằng `==` rồi `eval` CẢ CÂU: khỏi phải cắt chuỗi để lấy riêng vế trái, mà cắt
+# chuỗi thì lại là dò ký tự — đúng cái vừa muốn tránh.
+# Nối trái→phải ra 50. Theo thứ tự ưu tiên của Python thì `3*2 + 5*4 * 2 - 2` = 44.
+# Hai số khác nhau, nên phép này phân biệt được đúng cái cần phân biệt.
+_dk_so = {"trai": _so, "phep": "==", "phai": {"so": 50}}
+_bt = next((l.strip() for l in _ma_cua(_dk_so)["ma"].splitlines()
+            if "if (" in l), "")
+_bt = _bt[len("if "):].rstrip(":").strip()
+kiem("tính ra ĐÚNG kết quả nối trái→phải (50)",
+     eval(_bt) is True,          # noqa: S307 — biểu thức do CHÍNH TA sinh ra
+     f"— {_bt[:130]}")
+# THẺ phải tả ĐÚNG cái mã làm — kể cả dấu ngoặc.
+_chu = core.mo_ta_dieu_kien(_ve_chuoi())
+kiem("thẻ nói đủ bốn thành phần",
+     all(x in _chu for x in ("0.25", "0.35", "0.4", "0.2", "ROC(63)",
+                             "ROC(126)", "ROC(252)")),
+     f"— {_chu}")
+kiem("và thẻ KHÔNG in hệ số hai lần", "0.35 × 0.35" not in _chu, f"— {_chu}")
+# ⚠ FILE CŨ: `ghep` là một DICT. Mất nhánh này là mọi sơ đồ đã lưu mất nửa điều kiện
+# — thẻ vẫn vẽ, mã vẫn sinh, chỉ thiếu mất phần chia.
+_cu = core.make_dieu_kien("gia", "<=", 0.97)
+_cu["trai"]["ghep"] = {"phep": "/", "ma_dl": "max", "tham_so": {"n": 60}}
+_dong_cu = next((l.strip() for l in _ma_cua(_cu)["ma"].splitlines()
+                 if "if (" in l), "")
+kiem("ghép kiểu CŨ (một dict) vẫn sinh ra đúng phép chia",
+     "max_60" in _dong_cu and "else 0" in _dong_cu, f"— {_dong_cu[:130]}")
+kiem("và thẻ của nó vẫn như cũ, không thừa dấu ngoặc",
+     core.mo_ta_dieu_kien(_cu).startswith("Giá hiện tại / Cao nhất"),
+     f"— {core.mo_ta_dieu_kien(_cu)}")
+
+# ⚠ CHUỖI PHẢI SỐNG QUA LƯU/MỞ — và phép soát này tồn tại vì đã dính một lần rồi.
+# `ghim` từng là một dict đặt trên khối, mà `ghim` lại là khoá CŨ của canvas nằm
+# trong `KHOA_CANVAS`, nên `chuan_hoa_khoi` gỡ sạch: ghim sống trong hộp thoại, chết
+# lúc lưu. Hàng rào hồi ấy mù vì nó đặt rồi đọc lại NGAY, không đi qua chuẩn hoá.
+# Nên lần này: đẩy nguyên khối qua `chuan_hoa_khoi` rồi mới đếm.
+_khoi = core.make_hoi_step("hoi_thi_truong")
+_khoi["name"] = "diem"
+_khoi["dieu_kien"] = [_ve_chuoi()]
+_sau = core.chuan_hoa_khoi(_khoi)
+_ve_sau = (_sau.get("dieu_kien") or [{}])[0].get("trai") or {}
+kiem("chuỗi ghép SỐNG qua `chuan_hoa_khoi` — đủ ba thành phần",
+     len(hoi.ds_ghep(_ve_sau)) == 3, f"— còn {len(hoi.ds_ghep(_ve_sau))}")
+kiem("và hệ số của vế gốc cũng sống", _ve_sau.get("he_so") == 0.25,
+     f"— {_ve_sau.get('he_so')}")
+kiem("hệ số của từng thành phần cũng sống",
+     [hoi.he_so_cua(t) for t in hoi.ds_ghep(_ve_sau)] == [0.35, 0.4, 0.2],
+     f"— {[hoi.he_so_cua(t) for t in hoi.ds_ghep(_ve_sau)]}")
+
+# ---------------------------------------------------------------------------
 print(NL + "▸ ⚠ LÀM NÓNG phải tính cả LỊCH SỬ MÀ MODEL CHIA VỐN ĐÒI")
 # ---------------------------------------------------------------------------
 # Làm nóng trước nay chỉ đếm chu kỳ CHỈ BÁO. Một sơ đồ không chỉ báo nào thì không

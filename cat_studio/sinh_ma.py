@@ -227,32 +227,56 @@ def _sym_py(nc, ve, sid):
     return f"self._ten[{m!r}]"
 
 
+def _he_so_py(nc, x, bt, sid):
+    """Nhân HỆ SỐ vào một thành phần. Hệ số 1 thì trả nguyên — đừng viết `1 * x`."""
+    h = hoi.he_so_cua(x)
+    if h == 1:
+        return bt
+    ten = _ten_ghim(x, "he_so")
+    return f"({_so_py(x, 'he_so', h) if ten else _lit(h)} * {bt})"
+
+
 def _ve_py(nc, ve, sid):
-    """Một VẾ của điều kiện -> biểu thức Python, GHÉP rồi nếu vế có ghép.
+    """Một VẾ của điều kiện -> biểu thức Python, nối cả CHUỖI ghép.
 
     Ghép là cách diễn đạt mấy thứ chỉ một đại lượng không nói nổi: «giá / đỉnh 60 nến
     ≤ 0,97» là rơi 3% từ đỉnh; «lãi/lỗ / giá vốn» là lãi theo phần. Đúng bốn phép LEAN
     khai trong `IndicatorExtensions` (xem `hoi.PHEP_GHEP`).
 
-    ⚠ MỘT tầng ghép, không phải cây biểu thức. Vì dạng vd1 cần — `a/b − 1 ≤ −0,03` —
-    bằng đúng `a/b ≤ 0,97`: chuyển hằng số sang vế kia là xong. Cây biểu thức lồng
-    nhau thì hàng điều kiện lại thành một ô gõ công thức, mất cái sạch của 3 ô."""
+    ⚠ MỘT CHUỖI, KHÔNG PHẢI CÂY BIỂU THỨC — và chỗ ấy vẫn giữ nguyên. Bản trước chỉ
+    cho ĐÚNG MỘT phép (hai vế), vì sợ cây biểu thức biến hàng điều kiện thành ô gõ
+    công thức. Nỗi sợ ấy đúng, nhưng cái chặn thì chặn quá tay: ba ví dụ trong tập mẫu
+    cần một TỔNG CÓ TRỌNG SỐ —
+
+        điểm = 0,25×ROC(63) + 0,35×ROC(126) + 0,40×ROC(252) − 0,20×biến_động
+
+    — mà tổng có trọng số là một DANH SÁCH, không phải cây. Nên nay: chuỗi thành phần,
+    mỗi thành phần mang HỆ SỐ của riêng nó, nối TRÁI→PHẢI.
+
+    ⚠ VÌ SAO HỆ SỐ PHẢI NẰM TRONG THÀNH PHẦN. Nối trái→phải thì không có thứ tự ưu
+    tiên, nên `0,25 × a + 0,35 × b` viết thành bốn thành phần sẽ ra `((0,25×a)+0,35)×b`
+    — sai, và sai LẶNG vì vẫn ra một con số. Có hệ số riêng thì mỗi thành phần đã nhân
+    xong trước khi cộng, và trái→phải là đúng.
+
+    ⚠ VÀ MÃ SINH RA ĐÓNG NGOẶC TỪNG BƯỚC, không nhờ Python tự ưu tiên. Nhờ thế thứ
+    người dùng ĐỌC trên hàng điều kiện và thứ LEAN CHẠY là một — `a + b * c` trên sơ
+    đồ không bao giờ lặng lẽ thành `a + (b*c)` của Python."""
     if not isinstance(ve, dict):
         return "0"
-    bt = _mot_dai_luong(nc, ve, sid)
-    ghep = ve.get("ghep") if isinstance(ve.get("ghep"), dict) else None
-    if not ghep or not ghep.get("phep"):
-        return bt
-    phep = ghep["phep"]
-    if phep not in [m for m, _n in hoi.PHEP_GHEP]:
-        nc.loi(sid, f'Không có phép ghép "{phep}".')
-        return bt
-    b = _mot_dai_luong(nc, ghep, sid)
-    if phep == "/":
-        # LEAN chia cho 0 thì ra 0 (`GetOverIndicatorComposer`), không nổ. Copy đúng
-        # thế — không có cái này thì một nến khối lượng 0 là đứt cả lượt backtest.
-        return f"({bt} / {b} if {b} else 0)"
-    return f"({bt} {phep} {b})"
+    bt = _he_so_py(nc, ve, _mot_dai_luong(nc, ve, sid), sid)
+    for t in hoi.ds_ghep(ve):
+        phep = t["phep"]
+        if phep not in [m for m, _n in hoi.PHEP_GHEP]:
+            nc.loi(sid, f'Không có phép ghép "{phep}".')
+            continue
+        b = _he_so_py(nc, t, _mot_dai_luong(nc, t, sid), sid)
+        if phep == "/":
+            # LEAN chia cho 0 thì ra 0 (`GetOverIndicatorComposer`), không nổ. Copy
+            # đúng thế — thiếu cái này thì một nến khối lượng 0 là đứt cả lượt.
+            bt = f"({bt} / {b} if {b} else 0)"
+        else:
+            bt = f"({bt} {phep} {b})"
+    return bt
 
 
 def _mot_dai_luong(nc, ve, sid):

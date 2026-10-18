@@ -597,10 +597,27 @@ def _ghep_chu(ve, ngan):
     mà thẻ lại đọc "Giá hiện tại ≤ 0,97" — một câu VÔ LÝ (giá có bao giờ dưới 1 đô)
     nhưng không sai cú pháp nào, nên chẳng ai thấy gì. Đúng thứ `mo_ta_lam` đã cảnh
     báo ngay ở đầu: chữ trên thẻ phải tả ĐÚNG thứ bộ sinh mã thật sự viết ra."""
-    ghep = ve.get("ghep") if isinstance(ve.get("ghep"), dict) else None
-    if not ghep or not ghep.get("phep"):
-        return ngan
-    return f"{ngan} {ghep['phep']} {_ve_dieu_kien(ghep)}"
+    ds = hoi.ds_ghep(ve)
+    if not ds:
+        return _he_so_chu(ve, ngan)
+    # ⚠ ĐÓNG NGOẶC TỪNG BƯỚC, y hệt mã sinh ra. Bộ sinh mã nối TRÁI→PHẢI và đóng
+    # ngoặc từng bước (xem `_ve_py`), nên thẻ cũng phải thế: viết `a + b * c` phẳng
+    # thì người đọc hiểu theo ưu tiên toán học, mà mã chạy lại là `(a+b)*c`. Thẻ nói
+    # một đằng mã chạy một nẻo là đúng cái bệnh hàm này sinh ra để chặn.
+    # ⚠ KHÔNG NHÂN HỆ SỐ LẦN NỮA cho thành phần. `_ve_dieu_kien(t)` dựng chữ của
+    # thành phần rồi tự đi qua `_ghep_chu` — mà nhánh "không ghép gì" của hàm này đã
+    # nhân hệ số vào rồi. Nhân thêm ở đây thì thẻ in «0,35 × 0,35 × ROC(126)»: vẫn
+    # đọc được, vẫn không sai cú pháp, chỉ là NÓI SAI gấp đôi trọng số thật.
+    chu = _he_so_chu(ve, ngan)
+    for t in ds:
+        chu = f"({chu} {t['phep']} {_ve_dieu_kien(t)})"
+    return chu[1:-1] if chu.startswith("(") and len(ds) == 1 else chu
+
+
+def _he_so_chu(x, ngan):
+    """Thêm HỆ SỐ vào chữ của một thành phần: «0,25 × ROC(63)». Hệ số 1 thì thôi."""
+    h = hoi.he_so_cua(x)
+    return ngan if h == 1 else f"{_so_gon(h)} × {ngan}"
 
 
 def mo_ta_dieu_kien(dk):

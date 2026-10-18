@@ -151,9 +151,23 @@ export interface VeDieuKien {
   tham_so?: Record<string, number>
   duong?: string
   so?: number
-  /** GHÉP với một đại lượng (hay một số) nữa bằng một phép tính: «giá / đỉnh 60 nến».
-   *  MỘT tầng, không lồng nhau — xem `sinh_ma._ve_py` để biết vì sao. */
-  ghep?: VeDieuKien & { phep: string }
+  /** HỆ SỐ nhân vào vế này: «0,25 × ROC(63)». Thiếu hay bằng 1 thì không nhân gì.
+   *
+   *  Nó nằm TRONG thành phần chứ không thành một phép `×` riêng, và đó là cả mẹo:
+   *  chuỗi ghép nối TRÁI→PHẢI, không có thứ tự ưu tiên. Không có hệ số riêng thì
+   *  `0,25 × a + 0,35 × b` viết thành bốn thành phần ra `((0,25×a)+0,35)×b` — sai,
+   *  mà sai LẶNG vì vẫn ra một con số. */
+  he_so?: number
+  /** GHÉP — một CHUỖI thành phần, nối trái→phải: «0,25×ROC(63) + 0,35×ROC(126) +
+   *  0,40×ROC(252) − 0,20×độ lệch chuẩn».
+   *
+   *  ⚠ Vẫn KHÔNG phải cây biểu thức, và chỗ ấy cố ý: một tổng có trọng số là một
+   *  DANH SÁCH, nên hàng điều kiện vẫn là mấy dòng đọc được chứ không thành ô gõ
+   *  công thức. Xem `hoi.ds_ghep` và `sinh_ma._ve_py`.
+   *
+   *  ⚠ FILE CŨ ghi `ghep` là MỘT object. Đọc phải nhận cả hai hình — mất nhánh ấy
+   *  là mọi sơ đồ đã lưu thiếu mất nửa điều kiện mà vẫn vẽ ra bình thường. */
+  ghep?: (VeDieuKien & { phep: string }) | (VeDieuKien & { phep: string })[]
   /** Ô nào của vế này đã GHIM làm tham số Optimize: tên ô -> tên núm. Nằm CẠNH con
    *  số chứ không thay nó, nên mọi chỗ đang đọc số vẫn thấy một con số thật.
    *  ⚠ `ghim_num`, KHÔNG phải `ghim`: `ghim` đã là khoá CŨ của canvas («ghim khối
