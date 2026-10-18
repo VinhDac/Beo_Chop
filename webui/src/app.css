@@ -117,6 +117,14 @@ input, textarea { user-select: text; }
   transition: background .12s, border-color .12s;
 }
 .nut:hover:not(:disabled) { background: var(--raised-hover); }
+/* DỪNG — nút giết tiến trình LEAN. Lớp này đã có trên nút từ lúc làm, kèm cả comment
+   giải thích vì sao phải khác nút thường ("một cái giết tiến trình LEAN còn một cái
+   chỉ cất hộp đi"), mà luật thì chưa bao giờ viết: hai nút trông y hệt nhau. Viền và
+   chữ đỏ, nền vẫn trầm — đủ để dừng tay, không hét vào mặt người dùng. */
+.nut-dung { border-color: var(--err); color: var(--err); }
+.nut-dung:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--err) 14%, var(--raised));
+}
 .nut:disabled { opacity: .4; cursor: default; }
 .nut.chinh { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
 .nut.chinh:hover:not(:disabled) { filter: brightness(1.08); }
@@ -182,6 +190,12 @@ input, textarea { user-select: text; }
 }
 .muc-phai:hover:not(:disabled) { background: var(--raised-hover); }
 .muc-phai:disabled { opacity: .38; cursor: default; }
+/* CÓ MENU CON — mũi tên ở mép phải. Không có nó thì mục mở ra menu con trông y hệt
+   mục bấm-là-chạy, và người dùng chỉ biết khi đã rê chuột vào. */
+.muc-phai.co-con::after {
+  content: '›'; margin-left: auto; padding-left: 10px;
+  color: var(--muted); font-size: 13px; line-height: 1;
+}
 /* Ô icon giữ chỗ CỐ ĐỊNH kể cả khi mục không có icon — thiếu nó thì mấy dòng trong
    submenu (vốn không có icon) thụt ra thụt vào so với các dòng khác. */
 .muc-phai .hinh-muc { flex: 0 0 14px; display: flex; align-items: center; }
@@ -1084,6 +1098,12 @@ mark.tim-chu {
 }
 .tab:hover { color: var(--text); }
 .tab.dang { color: var(--text); border-bottom-color: var(--accent); }
+/* NÂNG — tab «Vấn đề» khi sơ đồ có LỖI (khác với chỉ có cảnh báo). `SoDo.tsx` đã gắn
+   lớp này từ lâu (`nang: soLoi > 0`) mà chưa bao giờ có luật nào, nên tab báo lỗi
+   trông y hệt tab bình thường — đúng chỗ người dùng cần thấy nhất thì lại không thấy
+   gì. Giữ màu cả khi tab đang mở, không thì mở ra là mất dấu đỏ. */
+.tab.nang, .tab.nang.dang { color: var(--err); }
+.tab.nang.dang { border-bottom-color: var(--err); }
 .hang-tab .day { flex: 1; }
 .nut-nho {
   background: none; border: none; color: var(--muted);

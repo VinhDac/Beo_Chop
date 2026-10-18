@@ -44,8 +44,11 @@ export default function TrangKetQua({ ma }: { ma: string }) {
     })()
   }, [ma])
 
+  // `cua-so-kq` lo hết khung cửa sổ này. Lớp `app` từng đứng cạnh nó là đồ thừa:
+  // không luật CSS nào mang tên ấy, và cửa sổ chính dùng `khung` chứ không dùng
+  // `app`, nên nó chẳng chung với ai cả.
   return (
-    <div className="app cua-so-kq">
+    <div className="cua-so-kq">
       <TitleBar tieuDe={kq ? `Kết quả — ${kq.ten_lop ?? ''}` : 'Kết quả'} menus={[]} />
       {loi && <div className="mc-bao loi kq-loi">⚠ {loi}</div>}
       {!kq && !loi && (

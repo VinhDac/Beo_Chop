@@ -304,7 +304,7 @@ LOAI_HOI = {
     HOI_LICH: {
         "nhan": "Hỏi lịch",
         "mo_ta": "bây giờ là lúc nào",
-        "icon": "delay",
+        "icon": "lich",
         "tat": False,
         "nhom": [("Thời gian", LICH)],
     },

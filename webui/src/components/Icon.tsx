@@ -73,6 +73,10 @@ const HINH: Record<string, React.ReactNode> = {
   // DỪNG — ô vuông trong vòng tròn, đúng cặp với `chay` (tam giác trong vòng tròn).
   dung: <><circle {...S} cx="8" cy="8" r="6" /><rect {...S} x="6" y="6" width="4" height="4" rx="0.5" /></>,
   motSo: <><circle {...S} cx="8" cy="8" r="5.8" /><path {...S} d="M6.8 6.2L8.4 5.2v5.6M7 10.8h2.8" /></>,
+  // LỊCH — mặt đồng hồ, cho họ «Hỏi lịch» (giờ, thứ, ngày, phiên đang mở). Trước đây
+  // họ ấy khai icon "delay", một cái tên KHÔNG CÓ TRONG ĐÂY, nên `Icon` trả `null` và
+  // chỗ đó trống trơn.
+  lich: <><circle {...S} cx="8" cy="8" r="6" /><path {...S} d="M8 4.4V8l2.6 1.6" /></>,
   minus: <><path {...S} d="M3 8h10" /></>,
   dau: <><path {...S} d="M11.5 3.4 6.4 8l5.1 4.6M4.6 3.4v9.2" /></>,
   cuoi: <><path {...S} d="M4.5 3.4 9.6 8l-5.1 4.6M11.4 3.4v9.2" /></>,
@@ -86,11 +90,14 @@ export default function Icon({ name, size = 14 }: { name: string; size?: number 
   )
 }
 
-/** Loại hành động -> tên icon. Web tự quyết VẼ GÌ; Python chỉ nói ĐÓ LÀ GÌ (`type`). */
-export const ICON_HANH_DONG: Record<string, string> = {
-  check_cond: 'check-cond',
-  vao_lenh: 'vao-lenh',
-  sua_lenh: 'sua-lenh',
-  dat_co: 'dat-co',
-  quay_ve: 'quay-ve',
-}
+/* ĐÃ BỎ `ICON_HANH_DONG`.
+ *
+ * Nó là một bảng tra THỨ HAI: loại khối -> tên icon, đặt ở đây trong khi từ điển
+ * Python đã khai `icon` cho từng loại rồi. Hai bảng thì một bảng tụt lại — và nó tụt
+ * thật: năm khoá nó giữ (`check_cond`, `vao_lenh`, `sua_lenh`, `dat_co`, `quay_ve`)
+ * là tên của một THIẾT KẾ CŨ. Chín loại việc và năm loại hỏi hiện nay không khoá nào
+ * khớp, nên phép tra luôn trượt, rơi về `?? ''`, và MỌI dòng trong thân thẻ khối mất
+ * icon. Không lỗi, không cảnh báo — chỉ là nó không còn ở đó.
+ *
+ * Nay `core.the_buoc` gửi `icon` kèm từng dòng (`DongThe.icon`), lấy thẳng từ từ
+ * điển. Một chỗ khai, một chỗ bày. */

@@ -24,6 +24,10 @@ BAI = [
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_cai_dat.py", "Cài đặt app — cái núm phải NỐI VÀO ĐÂU ĐÓ, không phải núm giả"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
+    # ĐỨNG CUỐI vì nó soi NGANG qua tất cả những bài trên: mấy bài kia soi từng bảng
+    # với chính nó, bài này soi chỗ hai bảng phải khớp nhau. Dựng lại ví dụ 1 lôi ra
+    # tám lỗi trong một buổi, và cả tám đều nằm ở mối nối chứ không nằm trong hộp.
+    ("test_moi_noi.py", "MỐI NỐI — hai bảng phải dài bằng nhau, mà không ai đứng so"),
 ]
 
 hong = []

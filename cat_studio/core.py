@@ -610,6 +610,18 @@ def mo_ta_hanh_dong(a):
     return f"{t} · {' · '.join(o[:3])}" if o else t
 
 
+def icon_cua(loai):
+    """Tên icon của MỘT loại khối, lấy thẳng từ từ điển. "" nếu loại ấy không có.
+
+    Một chỗ duy nhất trả lời câu "khối này vẽ hình gì" — giao diện chỉ bày lại."""
+    # «Quay về» không nằm trong từ điển nào — nó là khối riêng của `core`, nên khai
+    # icon của nó ngay cạnh chỗ nó được dựng, không để lạc sang giao diện.
+    if loai == QUAY_VE:
+        return "quay-ve"
+    d = lam.LOAI_LAM.get(loai) or hoi.LOAI_HOI.get(loai) or {}
+    return d.get("icon") or ""
+
+
 def the_buoc(step):
     """Một khối -> DỮ LIỆU vẽ hộp trên canvas (không phải HTML).
 
@@ -646,6 +658,15 @@ def the_buoc(step):
     else:
         nhan = ["chạy 1 lần"]
         dong = [{"text": mo_ta_hanh_dong(step), "type": step.get("type")}]
+
+    # ICON ĐI KÈM TỪNG DÒNG, lấy từ chính từ điển đã khai nó.
+    #
+    # ⚠ TRƯỚC ĐÂY GIAO DIỆN TỰ TRA, và bảng tra ấy còn giữ năm tên từ một thiết kế cũ
+    # (`check_cond`, `vao_lenh`…). Loại khối đã đổi tên hết, nên phép tra luôn trượt,
+    # rơi về `?? ''`, và MỌI dòng trong thân thẻ mất icon — không lỗi, không cảnh báo.
+    # Nay chỉ còn MỘT chỗ khai: từ điển. Thêm loại khối là icon có ngay.
+    for d in dong:
+        d["icon"] = icon_cua(d.get("type"))
 
     return {
         "id": step.get("id"),

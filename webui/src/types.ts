@@ -65,6 +65,9 @@ export interface Edge {
 export interface DongThe {
   text: string
   type?: string | null
+  /** Tên icon, do `core.icon_cua` lấy từ TỪ ĐIỂN. Giao diện không tự tra: bảng tra
+   *  thứ hai ở đây đã từng lệch khoá và làm mọi dòng mất icon, lặng thinh. */
+  icon?: string
 }
 
 /** Thẻ vẽ một khối. Mọi chuỗi trong đây do Python sinh. */

@@ -1,7 +1,7 @@
 import { memo, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { Card, Step, StepKind } from '../types'
-import IconNet, { ICON_HANH_DONG } from './Icon'
+import IconNet from './Icon'
 import { doanTim } from '../tim'
 
 /** Số dòng hành động hiện tối đa trên một hộp.
@@ -132,7 +132,7 @@ function StepNode({ data, selected }: NodeProps) {
             {hien.map((d, i) => (
               <div key={i} className="dong" title={d.text}>
                 <span className="danh">{card.kind === 'group' ? '·' : ''}</span>
-                <IconNet name={ICON_HANH_DONG[d.type ?? ''] ?? ''} size={12} />
+                <IconNet name={d.icon ?? ''} size={12} />
                 <span><ChuTim text={d.text} tim={tim} /></span>
               </div>
             ))}
