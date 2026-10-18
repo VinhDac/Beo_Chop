@@ -259,7 +259,7 @@ kiem("hồ sơ mặc định cũng vậy", core.tom_tat_co_may(core.co_may_mac_d
      f"— {core.tom_tat_co_may(core.co_may_mac_dinh())}")
 
 _may = dict(core.co_may_mac_dinh(), moc_so_sanh="SPY")
-kiem("đổi một ô -> kể đúng một thứ", core.tom_tat_co_may(_may) == ["mốc so sánh SPY"],
+kiem("đổi một ô -> kể đúng một thứ", core.tom_tat_co_may(_may) == ["Mốc so sánh SPY"],
      f"— {core.tom_tat_co_may(_may)}")
 # Ô CHỌN phải hiện NHÃN, không hiện tên lớp LEAN: "InsightWeighting…" đọc trên canvas
 # thì không ai biết nó chia vốn kiểu gì.

@@ -971,35 +971,43 @@ mark.tim-chu {
    nó giúp nhìn là chính cái canvas ngay dưới nó. Để trên ribbon thì mắt phải nhảy lên
    một dải khác để tìm, và nó dễ bị bấm nhầm lẫn với mấy nút "thêm". */
 .o-tim-noi { position: absolute; z-index: 6; left: 12px; top: 12px; }
-/* ---------------- Viên thuốc CỖ MÁY LEAN ----------------
-   NỔI Ở GÓC PHẢI TRÊN, đối xứng với ô Tìm bên trái, cùng dáng viên thuốc. Nó là CỬA
-   DUY NHẤT vào hộp Cỗ máy nên luôn có mặt; chữ bên trong chỉ kể thứ đã đổi.
+/* ---------------- Thẻ CỖ MÁY LEAN ----------------
+   NỔI Ở GÓC PHẢI TRÊN, đối xứng với ô Tìm bên trái. Nó là CỬA DUY NHẤT vào hộp Cỗ
+   máy nên luôn có mặt; chữ bên trong chỉ kể thứ đã đổi.
 
-   `max-width` + cắt ba chấm: trên cửa sổ hẹp thì chữ ngắn lại chứ viên thuốc không
-   bò sang nửa trái, nơi ô Tìm và danh sách xổ của nó đang ở. */
+   SỐ ĐO CHÉP Y HỆT `.hop .chan` CỦA JENIFER_STUDIO — cái chân khối đựng mấy thẻ
+   `.the`: `gap: 5px`, `padding: 7px 10px`, và thẻ thì dùng thẳng class `.the` của
+   Cat (10.5px, `padding: 1px 8px`) — đúng cái huy hiệu đang in trên khối. Tự chế
+   một bộ số khác là đẻ ra viên thuốc thứ hai không giống thứ gì trong app.
+
+   ⚠ PHÌNH THÌ PHÌNH XUỐNG DƯỚI, KHÔNG SANG NGANG. `width` chặn cứng, nên thêm một
+   món là thẻ xuống dòng chứ cái hộp không kéo dài ra giữa canvas — chỗ ấy là chỗ
+   nhìn sơ đồ. Nhãn chiếm cả dòng trên (`width: 100%`) khi có thẻ, nên thẻ bắt đầu
+   từ mép trái và mắt đếm được theo cột.
+   Lúc CHƯA ĐẶT GÌ thì không chặn gì cả: hộp co lại đúng bằng một dòng chữ. */
 .tag-co-may-noi { position: absolute; z-index: 6; right: 12px; top: 12px; }
 .tag-co-may {
-  display: inline-flex; align-items: baseline; gap: 8px;
-  max-width: 44vw;
-  padding: 5px 14px;
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 10px;
   box-shadow: var(--shadow);
-  font: 12px var(--font);
-  cursor: pointer; white-space: nowrap;
+  text-align: left; cursor: pointer;
   transition: border-color .12s, background .12s;
 }
 .tag-co-may:hover { border-color: var(--accent); background: var(--raised); }
+.tag-co-may.co { width: 208px; }
 .tag-co-may .ten {
-  font-size: 11px; font-weight: 600; letter-spacing: .04em;
-  color: var(--muted);
+  font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--muted); white-space: nowrap;
 }
-/* Chưa đặt gì thì chữ MỜ: viên thuốc vẫn thấy được (nó là cửa), mà không giành mắt
-   với sơ đồ. Đặt rồi thì chữ sáng lên — liếc một cái là biết LEAN đang lo gì. */
-.tag-co-may .gt { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
-.tag-co-may.co .gt { color: var(--text); }
-.tag-co-may.co .ten { color: var(--accent); }
+.tag-co-may.co .ten { width: 100%; color: var(--accent); }
+.tag-co-may .trong { font-size: 10.5px; color: var(--dim); }
+/* Thẻ dùng CHUNG `.the` với huy hiệu trên khối (khai ở đầu file) — chỉ thêm chặn
+   bề ngang, vì một nhãn model dài vẫn có thể lọt qua phép rút ngắn bên Python. */
+.tag-co-may .the { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* Khối khớp ô tìm: viền vàng, thấy từ xa trên một sơ đồ nghìn khối. */
 .hop.tim-thay { box-shadow: 0 0 0 2px var(--warn), var(--shadow-lg); }

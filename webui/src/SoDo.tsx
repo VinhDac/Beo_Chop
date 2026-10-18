@@ -223,8 +223,8 @@ function SoDoTrong() {
   const [coMay, setCoMay] = useState<CoMay>({})
   /** Mấy chữ trên viên thuốc góc phải — Python dựng, đây chỉ bày. */
   const [tomTatMay, setTomTatMay] = useState<string[]>([])
-  /** Mở hộp Cỗ máy không? `nhom` là chỗ cần cuộn tới. */
-  const [moCoMay, setMoCoMay] = useState<string | undefined | null>(null)
+  /** Mở hộp Cỗ máy không? */
+  const [moCoMay, setMoCoMay] = useState(false)
   const [moKho, setMoKho] = useState(false)
   /** Kho Strategy — hộp chọn file đã lưu. */
   const [moKhoStrategy, setMoKhoStrategy] = useState(false)
@@ -421,6 +421,7 @@ function SoDoTrong() {
     // CHẠY, và chúng cầm luôn cái nút Dừng — đóng hộ là cướp mất lối dừng.
     setMoKho(false); setMoKhoStrategy(false); setMoKhoLuot(false)
     setMoKetQua(false); setMoToiUu(false); setMoCaiDat(false); setMoBangPhim(false)
+    setMoCoMay(false)
     chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     await nap({ schema: 1, type: 'strategy', name: doc.name || 'Strategy',
                 steps: doc.steps, edges: doc.edges ?? [] })
@@ -1558,7 +1559,7 @@ function SoDoTrong() {
         {/* CỖ MÁY LEAN nổi ở góc PHẢI trên, đối xứng với ô Tìm bên trái. Nó là
             CỬA DUY NHẤT vào hộp Cỗ máy nên luôn có mặt, kể cả khi chưa đặt gì. */}
         <div className="tag-co-may-noi">
-          <TagCoMay tomTat={tomTatMay} onMo={() => setMoCoMay(undefined)} />
+          <TagCoMay tomTat={tomTatMay} onMo={() => setMoCoMay(true)} />
         </div>
         {hnDangO && (
           <div className="thanh-hn">
@@ -1726,11 +1727,11 @@ function SoDoTrong() {
         }
         return null
       })()}
-      {moCoMay !== null && tuDienBD && (
-        <HopCoMay coMay={coMay} tuDien={tuDienBD} maSoDo={dsMa} moNhom={moCoMay}
+      {moCoMay && tuDienBD && (
+        <HopCoMay coMay={coMay} tuDien={tuDienBD} maSoDo={dsMa}
                   onLuu={v => { chup(); setCoMay(v); ghi('sửa cỗ máy LEAN')
-                                setMoCoMay(null) }}
-                  onDong={() => setMoCoMay(null)} />
+                                setMoCoMay(false) }}
+                  onDong={() => setMoCoMay(false)} />
       )}
       {moCaiDat && <HopCaiDat onDong={() => setMoCaiDat(false)} />}
       {moKhoLuot && <HopKhoLuot onDong={() => setMoKhoLuot(false)} />}

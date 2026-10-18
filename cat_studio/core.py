@@ -364,8 +364,24 @@ def _nhan_chon(o, v):
     return str(v)
 
 
+def _ngan(nhan):
+    """Nhãn model -> phần TÊN của nó, bỏ lời giải thích sau dấu gạch dài.
+
+    Mấy bảng model khai nhãn theo lối «TÊN — giải thích»: *"Chia theo TRỌNG SỐ — mã
+    điểm cao được nhiều vốn hơn"*. Lời giải thích ấy đúng chỗ của nó trong ô CHỌN,
+    nơi người ta đang quyết định; trên một cái thẻ bé ở góc canvas thì nó dài gấp ba
+    chỗ có, và đẩy mấy thẻ khác ra ngoài màn hình."""
+    return str(nhan).split(" — ")[0].strip()
+
+
 def tom_tat_co_may(co_may):
-    """CỖ MÁY LEAN -> mấy chữ cho viên thuốc ở góc phải canvas. -> [chữ]
+    """CỖ MÁY LEAN -> mấy THẺ NGẮN cho viên thuốc ở góc phải canvas. -> [chữ]
+
+    ⚠ MỖI THỨ MỘT THẺ, không nối thành một câu. Bản trước trả về mấy mẩu dài rồi
+    giao diện nối bằng dấu chấm giữa, nên viên thuốc thành một dòng chữ chạy ngang
+    nửa canvas và không đọc ra được món nào với món nào. Lối của Jenifer_Studio là
+    mỗi món một viên thuốc con (`.the`), xuống dòng khi hết chỗ — mắt đếm được ngay
+    là LEAN đang lo mấy việc.
 
     Viên thuốc ấy là CỬA DUY NHẤT vào hộp Cỗ máy, nên nó LUÔN có mặt — kể cả khi
     chưa ai đặt gì (lúc ấy giao diện ghi «chưa đặt gì»). Cửa vô hình thì không ai mở.
@@ -379,6 +395,11 @@ def tom_tat_co_may(co_may):
     d = co_may if isinstance(co_may, dict) else {}
     ra = []
     for o in bat_dau.o_co_may(d):
+        # Ô CON thì KHÔNG thành thẻ riêng. «Trailing stop» đã là một thẻ rồi; thêm
+        # «Cắt khi tụt khỏi đỉnh lãi quá 0.08» là hai thẻ cho một việc, và cái thứ
+        # hai dài gấp đôi cái thứ nhất. Con số ấy ở ngay trong hộp, cách một cú bấm.
+        if o["ten"] not in bat_dau.O_THEO_TEN:
+            continue
         v = o_may(d, o["ten"])
         if v == o["mac_dinh"] or v is None or str(v).strip() == "" or v == []:
             continue
@@ -386,8 +407,8 @@ def tom_tat_co_may(co_may):
             n = len(v) if isinstance(v, list) else 0
             ra.append(f"{n} ô nhớ")
             continue
-        ra.append(_nhan_chon(o, v) if o["kieu"] == bat_dau.O_CHON else
-                  f"{o['nhan'].lower()} {v}")
+        ra.append(_ngan(_nhan_chon(o, v)) if o["kieu"] == bat_dau.O_CHON else
+                  f"{_ngan(o['nhan'])} {v}")
     return ra
 
 

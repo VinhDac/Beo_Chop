@@ -80,7 +80,7 @@ kiem("có tóm tắt cho viên thuốc", isinstance(r.get("tom_tat_co_may"), lis
 kiem("sơ đồ chưa đặt gì thì tóm tắt rỗng", r["tom_tat_co_may"] == [],
      f"— {r['tom_tat_co_may']}")
 _r3 = val(A.soat(steps, edges, {"moc_so_sanh": "SPY"}))
-kiem("gửi hồ sơ vào thì tóm tắt kể ra", _r3["tom_tat_co_may"] == ["mốc so sánh SPY"],
+kiem("gửi hồ sơ vào thì tóm tắt kể ra", _r3["tom_tat_co_may"] == ["Mốc so sánh SPY"],
      f"— {_r3['tom_tat_co_may']}")
 
 print("\n▸ Khối không ai dẫn tới thì KHÔNG có số")

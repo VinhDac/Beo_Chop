@@ -5,15 +5,20 @@
  *  phải trống trơn — mà nó lại là CỬA DUY NHẤT vào mấy ô ấy. Cửa vô hình thì không
  *  ai mở. Chưa đặt gì thì nó ghi đúng câu ấy: «chưa đặt gì».
  *
- *  CÒN CHỮ BÊN TRONG thì chỉ kể thứ ĐÃ ĐỔI (`core.tom_tat_co_may`). Kể cả mặc định
- *  thì viên thuốc dài bằng cả hộp thoại, và ta chỉ dời đống lộn xộn từ khối Bắt đầu
- *  sang góc màn hình — đúng cái vừa chữa.
+ *  MỖI VIỆC MỘT THẺ `.the`, KHÔNG NỐI THÀNH MỘT CÂU — lối của Jenifer_Studio, và
+ *  `.the` là đúng cái class thẻ huy hiệu trên khối đang dùng. Bản trước nối mấy mẩu
+ *  bằng dấu chấm giữa, nên viên thuốc thành một dòng chữ chạy ngang nửa canvas và
+ *  không đọc ra được món nào với món nào. Thẻ rời thì mắt ĐẾM được: liếc một cái là
+ *  biết LEAN đang lo mấy việc, chứ không phải đọc hết câu mới biết.
  *
- *  CÙNG DÁNG VIÊN THUỐC với ô «Tìm khối…» ở góc trái (`.o-tim-khoi`): hai thứ nổi
- *  trên canvas mà khác dáng nhau thì trông như hai app.
+ *  PHÌNH THÌ PHÌNH XUỐNG DƯỚI. Bề ngang chặn cứng bên CSS, nên thêm một món là thẻ
+ *  xuống dòng chứ cái hộp không kéo dài ra giữa canvas — chỗ ấy là chỗ nhìn sơ đồ.
+ *  Và không cắt bớt thẻ: cắt là mất hẳn mấy việc cuối mà không có dấu hiệu nào. Chữ
+ *  trong MỘT thẻ mới cắt ba chấm.
  */
 export default function TagCoMay({ tomTat, onMo }: {
-  /** Mấy chữ Python dựng sẵn — chỗ này không biết ô nào là mặc định. */
+  /** Mấy thẻ Python dựng sẵn, đã rút ngắn (`core.tom_tat_co_may`) — chỗ này không
+   *  biết ô nào là mặc định, cũng không tự cắt chữ. */
   tomTat: string[]
   onMo: () => void
 }) {
@@ -24,7 +29,8 @@ export default function TagCoMay({ tomTat, onMo }: {
                       : 'Cỗ máy LEAN — dây chuyền, phí sàn, ô nhớ, mốc so sánh'}
             onClick={onMo}>
       <span className="ten">CỖ MÁY LEAN</span>
-      <span className="gt">{co ? tomTat.join(' · ') : 'chưa đặt gì'}</span>
+      {co ? tomTat.map(x => <span className="the" key={x}>{x}</span>)
+          : <span className="trong">chưa đặt gì</span>}
     </button>
   )
 }

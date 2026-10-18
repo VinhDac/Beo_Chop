@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useState } from 'react'
 import Icon from './Icon'
 import { DocThem, Hang, OTheoKieu } from './ORuot'
 import type {
@@ -282,8 +282,8 @@ export function locOAnHien(gt: Record<string, unknown>, td: TuDienBatDau) {
   return ra
 }
 
-export default function RuotBatDau({ dsO, nhom, gt, setGt, tuDien, maSoDo,
-                                    moNhom }: {
+export default function RuotBatDau({ dsO, nhom, gt, setGt, tuDien,
+                                    maSoDo }: {
   /** Danh sách ô hộp này bày — Python chia, chỗ này không lọc lại.
    *  Tên `dsO` chứ không `o`: trong thân có hai vòng lặp đặt biến `o`, và một
    *  cái tên bị che là một chỗ đọc ra nghĩa khác với nghĩa nó chạy. */
@@ -300,39 +300,9 @@ export default function RuotBatDau({ dsO, nhom, gt, setGt, tuDien, maSoDo,
    *  cách chọn chính mã cỗ máy mình đang chạy. Hỏng LẶNG: ô vẫn bày, vẫn chọn được,
    *  chỉ thiếu đúng mấy dòng đáng chọn nhất. */
   maSoDo?: string[]
-  /** Mã NHÓM cần cuộn tới ngay khi mở — viên thuốc góc canvas gửi vào. */
-  moNhom?: string
 }) {
   const doi = (k: string, v: unknown) => setGt(x => ({ ...x, [k]: v }))
 
-  /* Cuộn tới nhóm được chỉ, MỘT LẦN lúc mở.
-   *
-   *  ⚠ Trong `requestAnimationFrame`, không gọi thẳng: lúc hiệu ứng chạy thì Modal
-   *  vừa gắn vào cây DOM mà chưa qua nhịp vẽ nào, nên `scrollIntoView` tính trên một
-   *  khung cao 0 và cuộn về đúng chỗ cũ. Lỗi ấy KHÔNG lộ ra mọi lúc — hộp đã mở sẵn
-   *  một lần rồi thì trình duyệt còn giữ kích thước, và nó cuộn đúng. */
-  useEffect(() => {
-    if (!moNhom) return
-    const id = requestAnimationFrame(() => {
-      document.querySelector(`[data-nhom="${moNhom}"]`)
-        ?.scrollIntoView({ block: 'start' })
-    })
-    return () => cancelAnimationFrame(id)
-  }, [moNhom])
-
-  /* SÁU Ô MANG THEO Ô THÊM — và chúng cùng một luật, nên cùng một đường đi.
-   *
-   * «Nhịp» mở ra Độ phân giải và ô «Lúc nào trong ngày»; ô ấy lại mở ra Giờ/Phút hay
-   * Số phút; «Phòng rủi ro» mở ra ô Ngưỡng; «Phát tín hiệu tự động», «Phí» và «Trượt
-   * giá» mỗi cái mở ra tham số của model nó. Python khai CẢ SÁU bảng cùng hình dạng
-   * `{ma, nhan, o_them}`, nên chỗ này chỉ cần biết TÊN Ô NÀO tra BẢNG NÀO — không
-   * biết trong `o_them` có mấy ô, cũng không biết chúng là ô gõ hay ô chọn.
-   *
-   * ⚠ THÊM MỘT Ô CÓ Ô CON MÀ QUÊN KHAI Ở ĐÂY thì ô ấy chọn xong KHÔNG núm nào hiện
-   * ra, và model chạy ở mặc định của LEAN — nhãn hứa một đằng, mã sinh ra một nẻo.
-   * Bệnh ấy đã gặp ba lần trong một ngày (`StandardDeviationExecutionModel`, rổ
-   * `ema_cheo`, `add_security_initializer` đặt sai chỗ), nên `test_moi_noi` canh:
-   * bảng nào Python gửi có `o_them` thì ở đây phải có một dòng tra. */
   const bangOThem = bangOThemCua(tuDien)
 
   /** Ô con ĐANG HIỆN của một ô cha — rỗng nếu ô ấy không mang ô con nào. */

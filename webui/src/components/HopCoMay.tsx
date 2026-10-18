@@ -18,15 +18,12 @@ import type { CoMay, TuDienBatDau } from '../types'
  *
  *  Ruột vẽ ô dùng chung với hộp Bắt đầu: xem `RuotBatDau`.
  */
-export default function HopCoMay({ coMay, tuDien, maSoDo, moNhom, onLuu,
-                                  onDong }: {
+export default function HopCoMay({ coMay, tuDien, maSoDo, onLuu, onDong }: {
   coMay: CoMay
   tuDien: TuDienBatDau
   /** Mã khối Bắt đầu đang khai — ô «Mốc so sánh» gợi ý chúng. Hộp này không
    *  đọc được chúng từ hồ sơ của nó: «Mã» ở hộp kia. */
   maSoDo: string[]
-  /** Nhóm cần cuộn tới khi mở — viên thuốc góc canvas gửi vào. */
-  moNhom?: string
   onLuu: (v: CoMay) => void
   onDong: () => void
 }) {
@@ -49,8 +46,7 @@ export default function HopCoMay({ coMay, tuDien, maSoDo, moNhom, onLuu,
         </div>
 
         <RuotBatDau dsO={tuDien.o_co_may} nhom={tuDien.nhom_co_may} gt={gt}
-                    setGt={setGt} tuDien={tuDien} maSoDo={maSoDo}
-                    moNhom={moNhom} />
+                    setGt={setGt} tuDien={tuDien} maSoDo={maSoDo} />
       </div>
     </Modal>
   )
