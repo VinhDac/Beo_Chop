@@ -2218,6 +2218,45 @@ def _lam_can_ma(a):
     return bool(o_nho and o_nho["can_ma"])
 
 
+def soat_loai_la(steps):
+    """Khối mang LOẠI mà không từ điển nào nhận. -> [vấn đề]
+
+    ⚠ BA CHỖ CÙNG IM MỘT LÚC, và đó là cả lý do phép soát này ra đời. Mở một sơ đồ
+    lưu từ bộ khối cũ (D-12: `check_cond`, `dat_co`, `vao_lenh`, `doc_gia`…):
+
+      · BẤM ĐÚP vào khối -> không ra gì. `coHopSua` hỏi ba từ điển, không ai nhận,
+        nên nó lặng lẽ không mở hộp nào. Không một lời.
+      · BẢNG VẤN ĐỀ -> sạch. `soat_khoi_hoi` và `soat_khoi_lam` đều trả rỗng cho một
+        loại chúng không sở hữu, nên khối ấy rơi qua KẼ GIỮA hai phép soát.
+      · BUILD -> ra một file toàn `pass`. Bộ sinh mã không biết viết gì cho loại lạ
+        nên viết `pass`, và backtest chạy hết, 0 lệnh, không lỗi nào.
+
+    Ba triệu chứng, một bệnh, mà không chỗ nào gọi tên nó. Người dùng chỉ thấy "bấm
+    đúp không ra gì" và không có cách nào biết vì sao.
+
+    LỖI chứ không cảnh báo: sơ đồ ấy KHÔNG chạy được, và càng vẽ thêm vào nó càng
+    phí công."""
+    ra = []
+    for st in (steps or []):
+        if not isinstance(st, dict):
+            continue
+        for a in (hanh_dong_cua(st) if is_group_step(st) else [st]):
+            if not isinstance(a, dict):
+                continue
+            t = str(a.get("type") or "").strip()
+            if not t or t == QUAY_VE:
+                continue
+            if hoi.la_loai_hoi(t) or lam.la_loai_lam(t):
+                continue
+            _loi(ra, "error", st.get("id"),
+                 f'"{step_title(a)}" mang loại khối "{t}" — không từ điển nào của app '
+                 f"nhận loại ấy. Sơ đồ này lưu từ một bộ khối CŨ: bấm đúp vào nó không "
+                 f"mở ra hộp nào, và Build thì sinh ra một file rỗng ruột (toàn "
+                 f"`pass`) chạy xong không một lệnh nào. Hãy xoá khối này rồi thả lại "
+                 f"một khối mới cùng việc.")
+    return ra
+
+
 def soat_khoi_lam(step):
     """Soát RUỘT một khối Hành động. -> [{severity, step, index, message}]
 

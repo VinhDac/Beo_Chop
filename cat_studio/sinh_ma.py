@@ -763,6 +763,7 @@ def sinh(doc):
         nc.van_de += core.soat_khoi_hoi(s)
         nc.van_de += core.soat_khoi_lam(s)
         nc.van_de += core.soat_khoi_bat_dau(s, nc.may)
+    nc.van_de += core.soat_loai_la(steps)
     nc.van_de += core.soat_ca_ro(steps)
     nc.van_de += core.soat_ro_dong(steps)
     nc.van_de += core.soat_day_chuyen(steps, nc.may)

@@ -297,7 +297,8 @@ function SoDoTrong() {
   const [dangO, setDangO] = useState(-1)
   /** Menu chuột phải: bấm ở đâu, và bấm trúng cái gì. */
   const [menuPhai, setMenuPhai] = useState<
-    { x: number; y: number; loai: 'nen' | 'khoi' | 'hatNhan'; id?: string } | null>(null)
+    { x: number; y: number; loai: 'nen' | 'khoi' | 'hatNhan' | 'day'
+      id?: string } | null>(null)
   const [moBangPhim, setMoBangPhim] = useState(false)
   const [doiTen, setDoiTen] = useState<{ loai: 'khoi' | 'hatNhan'; id: string;
                                          ten: string } | null>(null)
@@ -788,6 +789,19 @@ function SoDoTrong() {
     }))
   }, [dangChon, chup, setNodes])
 
+  /** Ngắt ĐÚNG MỘT dây.
+   *
+   *  ⚠ TRƯỚC ĐÂY KHÔNG CÓ LỐI NÀO LÀM VIỆC NÀY. Chỉ có «Ngắt hết kết nối» trên một
+   *  KHỐI — cắt sạch mọi dây chạm tới nó. Trên một chỗ rẽ ba nhánh, muốn bỏ đúng một
+   *  nhánh thì phải cắt cả ba rồi nối lại hai. Mà `deleteKeyCode={null}` nên chọn dây
+   *  rồi bấm Delete cũng không ra gì: dây là thứ vẽ ra được, bấm được, mà không gỡ
+   *  được. */
+  const ngatMotDay = useCallback((id: string) => {
+    chup()
+    setEdges(es => es.filter(e => e.id !== id))
+    ghi('ngắt một dây nối')
+  }, [chup, setEdges, ghi])
+
   /** Ngắt hết dây dính tới khối đang chọn. */
   const ngatNoi = useCallback(() => {
     if (!dangChon.length) return
@@ -1208,6 +1222,14 @@ function SoDoTrong() {
     if (!menuPhai) return []
     const them = (kind: StepKind, loai?: string) => () => void themKhoi(kind, loai)
 
+    // ⚠ MỘT LỐI KHÔNG CẦN TRÚNG ĐÍCH. Bấm đúp vào dây nhanh hơn, nhưng dây mảnh —
+    // trượt vài pixel là trúng nền và không ra gì. Cùng lẽ với «Sửa khối…» trong menu
+    // của khối: phép nhanh phải luôn có một phép CHẬM đi kèm.
+    if (menuPhai.loai === 'day') {
+      return [{ ten: 'Ngắt dây này', icon: 'unlink',
+                onClick: () => ngatMotDay(menuPhai.id!) }]
+    }
+
     if (menuPhai.loai === 'nen') {
       return [
         { ten: 'Thêm khối Bắt đầu', icon: 'start', onClick: them('start') },
@@ -1326,6 +1348,7 @@ function SoDoTrong() {
         phim: phimCua('xoa'), onClick: xoa },
     ]
   }, [coHopSua, viSaoKhongSua, menuPhai, nodes, dangChon, thuTu, hatNhan, trongHN,
+      ngatMotDay,
       biGiau, themKhoi, setNodes, chup, doiKhoa, ngatNoi, noiToi, vaoHatNhan,
       gomNhom, raNhom, gomHatNhan, taHatNhan, nhanBan, xoa])
 
@@ -1582,6 +1605,14 @@ function SoDoTrong() {
           onNodeDoubleClick={(_, n) => {
             if (n.id.startsWith('hn:')) { vaoHatNhan(n.id.slice(3)); return }
             if (coHopSua((n.data as { step?: Step }).step)) setDangSua(n.id)
+          }}
+          /* BẤM ĐÚP VÀO DÂY LÀ NGẮT NÓ — và `stopPropagation` để nó không rơi
+             xuống nền thành một cú bấm đúp nữa. Hoàn tác được (Ctrl+Z), nên không
+             hỏi lại: hỏi mỗi lần gỡ một dây thì vẽ sơ đồ thành một chuỗi xác nhận. */
+          onEdgeDoubleClick={(ev, d) => { ev.stopPropagation(); ngatMotDay(d.id) }}
+          onEdgeContextMenu={(ev, d) => {
+            ev.preventDefault()
+            setMenuPhai({ x: ev.clientX, y: ev.clientY, id: d.id, loai: 'day' })
           }}
           onPaneContextMenu={ev => {
             ev.preventDefault()

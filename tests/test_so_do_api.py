@@ -20,7 +20,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from cat_studio import core, luu_tru  # noqa: E402
+from cat_studio import core, lam, luu_tru  # noqa: E402
 
 TAM = tempfile.mkdtemp(prefix="catso-")
 luu_tru._GOC_MA_NGUON = TAM          # mọi thứ app ghi ra sẽ rơi vào đây
@@ -52,7 +52,11 @@ def so_do():
     """Sơ đồ nhỏ: Bắt đầu → Nhóm → Quay về (khép vòng)."""
     bd = val(A.khoi_moi("start"))["step"]
     g = val(A.khoi_moi("group"))["step"]
-    g["actions"] = [{"type": "mua"}]
+    # ⚠ LOẠI THẬT, không bịa. Bản trước để `{"type": "mua"}` — một chữ không từ điển
+    # nào nhận — và nó qua tuốt vì hồi ấy chưa ai soát loại khối. Mẫu thử mang một
+    # loại chết thì mọi phép dựng trên nó đang canh một sơ đồ người dùng không bao
+    # giờ vẽ ra được.
+    g["actions"] = [{"type": lam.LAM_GHI_CHU, "cau": "x"}]
     qv = val(A.khoi_moi("action", core.QUAY_VE))["step"]
     qv["ve"] = bd["id"]
     return [bd, g, qv], [{"from": bd["id"], "to": g["id"]},
@@ -67,9 +71,10 @@ kiem("có số thứ tự", r["thu_tu"] == {steps[0]["id"]: "1", steps[1]["id"]:
                                      steps[2]["id"]: "3"})
 kiem("có thẻ cho MỌI khối", set(r["the"]) == {s["id"] for s in steps})
 kiem("thẻ do Python dựng chữ",
-     r["the"][steps[1]["id"]]["lines"][0]["text"].startswith("mua"))
+     r["the"][steps[1]["id"]]["lines"][0]["text"].startswith("Debug"),
+     f"— {r['the'][steps[1]['id']]['lines'][0]['text']!r}")
 kiem("có bảng vòng", r["vong"] == {steps[2]["id"]: [steps[0]["id"], None]})
-kiem("sơ đồ đúng thì không lỗi", not r["van_de"], f"— {[p['message'][:40] for p in r['van_de']]}")
+kiem("sơ đồ đúng thì không lỗi", not r["van_de"], f"— {[p[chr(109)+chr(101)+chr(115)+chr(115)+chr(97)+chr(103)+chr(101)][:40] for p in r['van_de']]}")
 kiem("trả lại edges đã dọn", len(r["edges"]) == 2)
 # ⚠ CỖ MÁY ĐI CÙNG CỬA NÀY. Viên thuốc góc phải canvas đọc nó; quên gửi thì viên
 # thuốc trống trơn mà không gì kêu — giao diện chỉ thấy một khoá thiếu và vẽ rỗng.
@@ -82,6 +87,29 @@ kiem("sơ đồ chưa đặt gì thì tóm tắt rỗng", r["tom_tat_co_may"] ==
 _r3 = val(A.soat(steps, edges, {"moc_so_sanh": "SPY"}))
 kiem("gửi hồ sơ vào thì tóm tắt kể ra", _r3["tom_tat_co_may"] == ["Mốc so sánh SPY"],
      f"— {_r3['tom_tat_co_may']}")
+
+# ================= Loại khối LẠ =================
+# ⚠ BA CHỖ CÙNG IM MỘT LÚC khi mở một sơ đồ lưu từ bộ khối CŨ (D-12: `check_cond`,
+# `dat_co`, `vao_lenh`…): bấm đúp vào khối không ra gì (`coHopSua` hỏi ba từ điển,
+# không ai nhận), bảng Vấn đề sạch trơn (`soat_khoi_hoi` và `soat_khoi_lam` đều trả
+# rỗng cho loại chúng không sở hữu, nên khối rơi qua KẼ GIỮA hai phép), và Build ra
+# một file toàn `pass` chạy xong 0 lệnh. Ba triệu chứng, một bệnh, không ai gọi tên.
+#     Đã gặp thật: `mẫu RSI` — chính cái mẫu đầu tiên người dùng mở ra.
+print("\n▸ Khối mang loại KHÔNG từ điển nào nhận")
+_la = val(A.khoi_moi("action"))["step"]
+_la["type"] = "check_cond"                       # loại của bộ khối đã chết
+_r_la = val(A.soat(steps + [_la], edges))
+kiem("bảng Vấn đề gọi tên loại ấy",
+     any(v["severity"] == "error" and "check_cond" in v["message"]
+         for v in _r_la["van_de"]),
+     f"— {[v[chr(109)+chr(101)+chr(115)+chr(115)+chr(97)+chr(103)+chr(101)][:60] for v in _r_la['van_de']]}")
+kiem("và nói rõ sơ đồ lưu từ bộ khối CŨ",
+     any("bộ khối CŨ" in v["message"] for v in _r_la["van_de"]))
+# Và ĐỪNG kêu oan: mọi loại đang sống phải im.
+_sach = val(A.soat(steps, edges))
+kiem("sơ đồ toàn loại đang sống thì KHÔNG kêu",
+     not any("từ điển nào" in v["message"] for v in _sach["van_de"]),
+     f"— {[v[chr(109)+chr(101)+chr(115)+chr(115)+chr(97)+chr(103)+chr(101)][:50] for v in _sach['van_de']]}")
 
 print("\n▸ Khối không ai dẫn tới thì KHÔNG có số")
 le = val(A.khoi_moi("action"))["step"]

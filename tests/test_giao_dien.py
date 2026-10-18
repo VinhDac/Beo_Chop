@@ -385,6 +385,20 @@ kiem("và cả hai vỏ đều gọi nó",
 kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("TrangKetQua.tsx"),
      "— cửa sổ frameless như cửa sổ chính")
 
+# ⚠ DÂY PHẢI NGẮT ĐƯỢC TỪNG SỢI. Trước đây chỉ có «Ngắt hết kết nối» trên một KHỐI —
+# cắt sạch mọi dây chạm tới nó. Trên một chỗ rẽ ba nhánh, muốn bỏ đúng một nhánh thì
+# phải cắt cả ba rồi nối lại hai. Mà `deleteKeyCode={null}` nên chọn dây rồi bấm
+# Delete cũng không ra gì: dây là thứ vẽ ra được, bấm được, mà không gỡ được.
+print("\n▸ Ngắt được MỘT dây — và có cả lối không cần trúng đích")
+_sd_day = doc("SoDo.tsx")
+kiem("bấm đúp vào dây là ngắt nó", "onEdgeDoubleClick" in _sd_day)
+kiem("và chuột phải vào dây mở menu", "onEdgeContextMenu" in _sd_day,
+     "— dây mảnh, trượt vài pixel là trúng nền; phép nhanh phải có phép chậm đi kèm")
+kiem("menu ấy có mục ngắt", "Ngắt dây này" in _sd_day)
+kiem("và ngắt dây CHỤP một bước hoàn tác",
+     re.search(r"ngatMotDay = useCallback[\s\S]{0,160}chup\(\)", _sd_day) is not None,
+     "— gỡ nhầm một dây mà không lùi lại được thì phải vẽ lại tay")
+
 print("\n▸ Hộp Bắt đầu KHÔNG được khai lại thứ Python đã khai")
 from cat_studio import bat_dau  # noqa: E402
 # ⚠ MỘT RUỘT, HAI HỘP. Hộp «Bắt đầu» và hộp «Cỗ máy LEAN» bày ô theo CÙNG một luật
