@@ -7,10 +7,59 @@ Mỗi dòng dưới đây là một lần CHẠY THẬT, không phải đọc m�
 
 ---
 
-## Bảng kết quả
+## Bảng kết quả — soát lại 18/10/2026 CHIỀU, sau khi bày hết kệ LEAN
 
-| | dòng | vẽ được | chạy thật | lệnh khớp | chặn ở đâu |
-|---|---|---|---|---|---|
+Sáng nay 4 trên 11 vẽ được. Sau khi bày hết kệ LEAN (136 món) và chữa hai lỗi mà
+chính việc dựng lại lôi ra, con số là **9 trên 11**. Mỗi dòng là một lượt chạy thật.
+
+| | vẽ được | chạy | lệnh khớp | còn phải bỏ gì |
+|---|---|---|---|---|
+| **vd1** Nasdaq Bollinger | ✅ 10/13 | ✅ | **30** | trần cứng 10 vị thế |
+| **vd2** OmniFund Macro | ✅ | ✅ | **63** | — *(thiếu GLD · XLE)* |
+| **vd3** AI Basket | ✅ | ✅ | **2** | — *(thiếu 7/8 mã)* |
+| **vd4** Short Term Reversal | ❌ | — | — | **thiếu 2 tệp mã nguồn** |
+| **vd5** Crypto Reserve | ✅ phần chính | ✅ | **389** | rổ crypto ĐỘNG |
+| **vd6** Solana Adaptive | ✅ | ✅ | **0** | — *(không có SOLUSD)* |
+| **vd7** Top12 US Market Cap | ✅ phần chính | ✅ | **435** | điểm 4 thành phần |
+| **vd8** PCA Stat Arbitrage | ❌ | — | — | **PCA — LEAN không có** |
+| **vd9** *(gần trùng vd7)* | ✅ phần chính | ✅ | **424** | như vd7 |
+| **vd10** Growth V3 | ✅ phần chính | ✅ | **449** | hai chiến thuật con · trạng thái |
+| **vd11** Sector Rotation | ✅ phần chính | ✅ | **122** | máy trạng thái 7 biến |
+
+«Phần chính» nghĩa là: cùng rổ, cùng nhịp, cùng lối chia vốn, cùng cách phòng rủi ro
+— chỉ thiếu đúng mấy thứ ghi ở cột cuối. Không phải «na ná», mà là cùng hình trừ đi
+một chỗ gọi được tên.
+
+### Mấy thứ đổi được nhờ bày hết kệ
+
+| bản gốc viết tay | nay vẽ bằng |
+|---|---|
+| vd5 — HRP: 70 dòng scipy phân cụm tầng | `RiskParityPortfolioConstructionModel` |
+| vd7 · vd9 — `_inv_vol_weights`: 40 dòng | `RiskParityPortfolioConstructionModel` |
+| vd7 · vd9 — đỉnh vốn, cooldown | `TrailingStop` · `MaximumDrawdownPercentPortfolio` |
+| vd10 — tối ưu tỷ trọng | `MeanVarianceOptimizationPortfolioConstructionModel` |
+| vd10 — phí IB, trượt giá cố định | ô «Phí» · ô «Trượt giá» |
+| vd3 · vd5 · vd10 — cân lại theo tháng | nhịp THÁNG × quy tắc giờ |
+| vd11 — xếp hạng ngành | trọng số = `ROC(252)` + `InsightWeighting` |
+
+### Và việc dựng lại lôi ra hai lỗi THẬT
+
+Đây mới là giá trị chính của việc vẽ lại — không phải để khoe con số, mà để lòi ra
+chỗ hỏng:
+
+1. **Vẽ «Giá mua (bid)» là backtest ĐỨT.** `data.quote_bars[sym]` ném
+   `KeyNotFoundException` vì bộ miễn phí không có nến báo giá cho cổ phiếu. Chữa:
+   đọc qua `securities[sym].bid_price`, LEAN tự rơi về giá đóng.
+2. **`RiskParity` + nhịp HẸN GIỜ = ĐỨT.** Làm nóng chỉ đếm chu kỳ chỉ báo, nên sơ đồ
+   không chỉ báo nào thì không làm nóng gì, và model đọc 252 nến lịch sử chạy ngay
+   nến đầu. Chữa: mỗi model chia vốn khai số nến nó đòi, làm nóng lấy `max` hai
+   nguồn.
+
+Cả hai đều nằm im từ ngày viết, vì không ví dụ nào trong tập mẫu đi qua đúng chỗ ấy.
+
+---
+
+---|---|---|---|---|---|
 | **vd1** Nasdaq Bollinger Pullback | 437 | ✅ 10/13 yêu cầu | ✅ | **29** | trần cứng 10 vị thế — *LEAN có, chưa bày* |
 | **vd2** OmniFund Macro Sovereign | 98 | ✅ | ✅ | **63** | bộ dữ liệu thiếu GLD, XLE |
 | **vd3** AI Basket | 59 | ✅ | ✅ | **2** | bộ dữ liệu thiếu 7/8 mã |
