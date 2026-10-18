@@ -1574,6 +1574,30 @@ def soat_khoi_bat_dau(step):
              f"thành «khớp lúc đóng cửa», mà sàn này không nhận loại ấy — backtest "
              f"vẫn chạy hết và báo lãi 0%. Hãy đổi nhịp xuống giờ/phút, hoặc chọn sàn "
              f"Mặc định.")
+
+    # NGƯỠNG của model phòng rủi ro. Ô này chỉ hiện khi có chọn model, nên không có
+    # model thì không có gì để soát.
+    #
+    # ⚠ NGƯỠNG 0 LÀ MỘT CÁI PHANH ĐẠP CỨNG, không phải "không phanh". Cả bốn model
+    # lấy `-abs(ngưỡng)` rồi so `pnl < ngưỡng`, nên 0 nghĩa là CẮT NGAY khi mã chớm
+    # lỗ một xu — cỗ máy mua rồi bán sạch mỗi nến, backtest chạy hết, không một lời
+    # nào. Số âm thì `abs` ăn mất dấu, tức người dùng gõ -0.05 lại thành 5%: con số
+    # trong hộp và con số LEAN dùng không còn là một.
+    if bat_dau.rui_ro_cua(o_bat_dau(step, "phong_rui_ro")):
+        ng = _f(o_bat_dau(step, "nguong"))
+        if ng is None:
+            _loi(ra, "error", sid, f'"{ten}": ngưỡng phòng rủi ro không phải một '
+                                   f"con số.")
+        elif ng <= 0:
+            _loi(ra, "error", sid,
+                 f'"{ten}": ngưỡng phòng rủi ro phải lớn hơn 0 — LEAN lấy trị tuyệt '
+                 f"đối của số này, nên 0 là cắt ngay khi mã chớm lỗ và số âm thì "
+                 f"thành chính nó dương. Ghi 0.05 cho 5%.")
+        elif ng >= 1:
+            _loi(ra, "warning", sid,
+                 f'"{ten}": ngưỡng phòng rủi ro là PHẦN, không phải phần trăm — '
+                 f"{ng:g} nghĩa là {ng * 100:g}%, tức trạm này gần như không bao giờ "
+                 f"cắn. Ghi 0.05 cho 5%.")
     return ra
 
 

@@ -430,6 +430,83 @@ kiem("mọi model đang bày đều có khe được nuôi", not _chua_nuoi,
 kiem("và mỗi model đang bày đều khai nó đọc khe nào",
      all(m in bat_dau.CHIA_VON_DOC for m, _n in bat_dau.CHIA_VON if m))
 
+print("\n▸ ⚠ Hai trạm kia — «Phòng rủi ro» và «Đặt lệnh» — mắc bệnh KHÁC")
+# Cùng một hậu quả (chọn vào, chạy xong, không tác dụng, không một lời), khác nguyên
+# nhân. `CHIA_VON` chết vì ĐỌC một khe của `Insight` mà không khối nào đặt. Hai trạm
+# này không đọc khe nào — chúng đọc trạng thái danh mục, thứ LEAN tự giữ. Chúng chết
+# vì THAM SỐ KHỞI TẠO không ai truyền:
+#   · `StandardDeviationExecutionModel()` mặc định `resolution=Resolution.MINUTE`,
+#     mà sơ đồ nhịp NGÀY thì `CreateConsolidator` ném ngay nến đầu. ĐÃ CHẠY THẬT:
+#     0 lệnh (câu lỗi chỉ nằm trong nhật ký, bảng Kết quả nói «0 lệnh, lãi 0%»);
+#     truyền đúng độ phân giải thì 6 lệnh.
+#   · Bốn model phòng rủi ro đều có một ngưỡng; không truyền thì chúng chạy ở 5%
+#     mặc định của LEAN, trong khi nhãn hứa «theo %» mà hộp không có ô % nào.
+_khong_khai = [m for m, _n, *_ in bat_dau.PHONG_RUI_RO
+               if m and m not in bat_dau.PHONG_RUI_RO_DOC]
+_khong_khai += [m for m, _n in bat_dau.DAT_LENH
+                if m and m not in bat_dau.DAT_LENH_DOC]
+kiem("mỗi model đang bày đều khai nó ĐỌC/CẦN cái gì", not _khong_khai,
+     f"— {_khong_khai}")
+# ⚠ ĐỌC CỜ, KHÔNG DÒ CHỮ. Bản đầu của phép này dò chuỗi «CHƯA ai nuôi» trong dòng
+# khai, và lúc tôi ép thử bằng cách bày `SpreadExecutionModel` ra thì bài kiểm XANH —
+# dòng khai của nó nói lý do bằng chữ khác. Nay phần đầu của mỗi dòng khai là một
+# `bool`, nên không có cách nào nói lý do mà lọt.
+_chua_ai_nuoi = [m for m, _n, *_ in bat_dau.PHONG_RUI_RO
+                 if m and not bat_dau.PHONG_RUI_RO_DOC[m][0]]
+_chua_ai_nuoi += [m for m, _n in bat_dau.DAT_LENH
+                  if m and not bat_dau.DAT_LENH_DOC[m][0]]
+kiem("và không model nào tự khai «chưa nuôi được» mà vẫn bày", not _chua_ai_nuoi,
+     f"— {_chua_ai_nuoi}")
+_co_ly_do = all(str(v[1]).strip() for v in list(bat_dau.PHONG_RUI_RO_DOC.values())
+                + list(bat_dau.DAT_LENH_DOC.values()))
+kiem("và dòng khai nào cũng kèm LÝ DO, không phải cờ trống", _co_ly_do)
+_thieu_nguong = [m for m, _n, th in bat_dau.PHONG_RUI_RO
+                 if m and "nguong" not in {o["ten"] for o in th}]
+kiem("model phòng rủi ro nào cũng có Ô NGƯỠNG của riêng nó", not _thieu_nguong,
+     f"— {_thieu_nguong} bày ra mà không có ô nào điền ngưỡng, tức chạy ở 5% ngầm")
+
+# ⚠ HÀNG RÀO CHO CẢ HỌ: con số NGẦM. Mọi con số trong câu LEAN một trạm sinh ra phải
+# nói được ở chỗ người dùng THẤY — hoặc nằm trong nhãn của model, hoặc là giá trị một
+# ô. Thêm một model rồi gọi nó với `20000` gõ cứng là bài này đổ, chứ không phải chờ
+# ai đi đọc mã nguồn LEAN mới biết con số ấy từ đâu ra.
+_so = re.compile(r"\d+(?:\.\d+)?")
+_ngam = []
+for _bang, _ten_o in ((bat_dau.CHIA_VON, "chia_von"),
+                      (bat_dau.PHONG_RUI_RO, "phong_rui_ro"),
+                      (bat_dau.DAT_LENH, "dat_lenh")):
+    for _m, _nhan, *_th in _bang:
+        if not _m:
+            continue
+        _gt = {_ten_o: _m}
+        _noi_ra = {_nhan} | {str(o["mac_dinh"]) for o in bat_dau.o_cua(_gt)}
+        for _cau in bat_dau.lean_day_chuyen(_gt):
+            for _s in _so.findall(_cau):
+                if not any(_s in x for x in _noi_ra):
+                    _ngam.append((_m, _s))
+kiem("không con số NGẦM nào trong câu LEAN của ba trạm", not _ngam,
+     f"— {_ngam} không nằm trong nhãn model, cũng không là giá trị ô nào")
+
+# ĐÚNG CÁI LỖI ĐÃ CHẠY THẬT: độ phân giải phải đi theo NHỊP của sơ đồ, không đóng
+# cứng. Đổi nhịp mà câu LEAN đứng yên thì nó lại là `Resolution.MINUTE` trên dữ liệu
+# ngày — tức ném ngoại lệ ở nến đầu, mà bảng Kết quả chỉ nói «0 lệnh».
+_gt_std = {"dat_lenh": "StandardDeviationExecutionModel", "nhip": "ngay"}
+_cau_std = " ".join(bat_dau.lean_day_chuyen(_gt_std))
+kiem("câu `set_execution` mang độ phân giải THẬT của sơ đồ",
+     "Resolution.DAILY" in _cau_std, f"— {_cau_std}")
+_gt_std["nhip"] = "phut"
+kiem("và đổi nhịp là nó đổi theo",
+     "Resolution.MINUTE" in " ".join(bat_dau.lean_day_chuyen(_gt_std)),
+     "— đóng cứng một độ phân giải là chết lặng trên mọi nhịp khác")
+_gt_ng = {"phong_rui_ro": "TrailingStopRiskManagementModel", "nguong": 0.17}
+kiem("ngưỡng người dùng gõ đi THẲNG vào câu LEAN",
+     "(0.17)" in " ".join(bat_dau.lean_day_chuyen(_gt_ng)),
+     f"— {bat_dau.lean_day_chuyen(_gt_ng)}")
+_ma_sinh = io.open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
+    __file__))), "cat_studio", "sinh_ma.py"), encoding="utf-8").read()
+kiem("và bộ sinh mã KHÔNG tự ghép lại ba câu ấy",
+     "set_risk_management" not in _ma_sinh and "set_execution" not in _ma_sinh,
+     "— chỗ tự ghép `{ham}({lop}())` chính là chỗ hai lỗi trên mọc ra")
+
 print("\n▸ ⚠ Ô `chon` không được là một CHUỖI bị xé thành từng chữ")
 # ĐÃ DÍNH THẬT, hai lần, cùng một kiểu: `_o(ten, nhan, kieu, mac_dinh, don_vi,
 # goi_y, chon)` — đếm nhầm một chỗ trống là câu gợi ý trôi sang khe `chon`, rồi

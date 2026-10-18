@@ -272,24 +272,133 @@ CHIA_VON_DOC = {
     "MeanVarianceOptimizationPortfolioConstructionModel": "magnitude",
 }
 
+
+def _o_nguong(nhan):
+    """Ô NGƯỠNG của một model phòng rủi ro — nó nằm TRONG bảng `PHONG_RUI_RO`.
+
+    Cả bốn model nhận ĐÚNG MỘT tham số đầu là một phần trăm, nhưng phần trăm ấy
+    nghĩa khác nhau ở từng model (lỗ / lãi / tụt khỏi đỉnh), nên mỗi model một
+    nhãn riêng — y lối `NHIP` cho mỗi nhịp mấy ô thêm của riêng nó.
+
+    ⚠ ĐƠN VỊ LÀ "PHẦN", KHÔNG PHẢI "%" — y hệt ô «Đệm tiền mặt». Giá trị đi THẲNG
+    vào câu LEAN, không ai chia cho 100 ở giữa: có một phép tính giữa đường là có
+    một chỗ cho hai bên nói khác nhau.
+
+    Cùng tên ô cho cả bốn (`nguong`), nên đổi model thì con số người dùng vừa gõ
+    còn nguyên, không bị reset về mặc định."""
+    return _o("nguong", nhan, O_SO, 0.05, "", don_vi="phần",
+              goi_y="0.05 = 5%. Mặc định của LEAN cũng là 0.05.")
+
+
 #: Chạy SAU khi chia vốn, được quyền chỉnh lại tỷ trọng.
 #: ⚠ Mấy thứ này trước đây ta TỪ CHỐI (SL/TP cần nhớ qua nến, xem `lam.py`). Lối cổ
 #: điển thì đúng là cần; ở đây LEAN giữ mức hộ, app không nhớ gì cả.
+#:
+#: ⚠ MỖI MODEL KÈM Ô THÊM CỦA RIÊNG NÓ, cùng lối `NHIP` và `RO`. Cả bốn model đọc
+#: `security.holdings.*` — thứ LEAN tự giữ, không khối vẽ nào phải nuôi — nên không
+#: cái nào mắc bệnh của `CHIA_VON`. Nhưng cả bốn có MỘT THAM SỐ NGƯỠNG mà bộ sinh mã
+#: trước đây không truyền, nên chúng chạy ở 5% mặc định của LEAN trong khi nhãn hứa
+#: «theo %» mà không có ô % nào để điền. Ngưỡng là CẢ cái phanh; đóng cứng 5% rồi
+#: không nói ra là một kiểu nói dối lặng — xem `PHONG_RUI_RO_DOC`.
 PHONG_RUI_RO = (
-    ("", "— không dùng —"),
-    ("MaximumDrawdownPercentPerSecurity", "Cắt lỗ theo % từng mã"),
-    ("MaximumUnrealizedProfitPercentPerSecurity", "Chốt lời theo % từng mã"),
-    ("MaximumDrawdownPercentPortfolio", "Cắt lỗ theo % CẢ danh mục"),
-    ("TrailingStopRiskManagementModel", "Trailing stop"),
+    ("", "— không dùng —", ()),
+    ("MaximumDrawdownPercentPerSecurity", "Cắt lỗ theo % từng mã",
+     (_o_nguong("Cắt khi mã ấy lỗ quá"),)),
+    ("MaximumUnrealizedProfitPercentPerSecurity", "Chốt lời theo % từng mã",
+     (_o_nguong("Chốt khi mã ấy lãi quá"),)),
+    ("MaximumDrawdownPercentPortfolio", "Cắt lỗ theo % CẢ danh mục",
+     (_o_nguong("Cắt khi cả danh mục lỗ quá"),)),
+    ("TrailingStopRiskManagementModel", "Trailing stop",
+     (_o_nguong("Cắt khi tụt khỏi đỉnh lãi quá"),)),
 )
 
+#: Model phòng rủi ro -> `(app nuôi được không, nó ĐỌC/CẦN cái gì)`. Giữ cả model
+#: CHƯA bày, kèm lý do — ai muốn mở lại thì phải nuôi được thứ ấy trước. Đọc
+#: `manage_risk` của từng model trong `Algorithm.Framework/Risk/`.
+#:
+#: Khác `CHIA_VON_DOC` một chỗ quan trọng: ở đây không có model nào đọc một khe của
+#: `Insight`. Cả bốn đọc trạng thái danh mục, thứ LEAN tự giữ. Cái CHẾT LẶNG ở trạm
+#: này là một thứ khác — THAM SỐ KHỞI TẠO không ai truyền. Nên `CHIA_VON_DOC` khai
+#: được bằng MỘT CHỮ (tên khe, đối chiếu thẳng với mấy khe khối tín hiệu điền), còn
+#: hai bảng này phải khai thành hai phần.
+#:
+#: ⚠ PHẦN ĐẦU LÀ MỘT CỜ, KHÔNG PHẢI MỘT CÂU. Bản đầu của tôi gộp cả hai vào một
+#: chuỗi rồi để bài kiểm dò chữ «CHƯA ai nuôi» trong đó — và khi tôi ép thử bằng cách
+#: bày `SpreadExecutionModel` ra, bài kiểm XANH, vì dòng khai của nó nói lý do bằng
+#: chữ khác. Một hàng rào đọc văn xuôi là một hàng rào có lỗ ở đúng chỗ người sau sẽ
+#: bước vào.
+PHONG_RUI_RO_DOC = {
+    "MaximumDrawdownPercentPerSecurity":
+        (True, "security.holdings.unrealized_profit_percent · ngưỡng = tham số 1"),
+    "MaximumUnrealizedProfitPercentPerSecurity":
+        (True, "security.holdings.unrealized_profit_percent · ngưỡng = tham số 1"),
+    # ⚠ CHỈ CẮN Ở NHỊP CÓ MỤC TIÊU MỚI: `manage_risk` của nó có thêm điều kiện
+    # `len(targets) != 0`, tức nó chỉ cắt khi model chia vốn VỪA phát ra mục tiêu
+    # trong đúng nhịp ấy. `EqualWeighting`/`InsightWeighting` cân lại mỗi ngày nên
+    # trên nhịp ngày là mỗi nến một lần — đã chạy thật, 12 lệnh so với 2. Ba model
+    # kia quét `algorithm.securities` nên cắn ở MỌI nhịp.
+    "MaximumDrawdownPercentPortfolio":
+        (True, "portfolio.total_portfolio_value · ngưỡng = tham số 1 · CẦN nhịp "
+               "có mục tiêu"),
+    "TrailingStopRiskManagementModel":
+        (True, "security.holdings.absolute_holdings_value · ngưỡng = tham số 1"),
+    # CHƯA NUÔI ĐƯỢC: nó lọc `active_securities` theo `fundamentals.has_fundamental_
+    # data` rồi nhóm theo `company_reference.industry_template_code`. Không có dữ
+    # liệu fundamental thì danh sách lọc ra RỖNG và nó trả về [] mọi nhịp — chạy hết,
+    # không lỗi, không tác dụng. Bộ miễn phí chỉ có `fundamental/coarse/` từ
+    # 20140324, và chỉ cho mấy mã rổ.
+    "MaximumSectorExposureRiskManagementModel":
+        (False, "fundamentals.company_reference.industry_template_code — chưa có "
+                "dữ liệu fundamental thì nó lặng"),
+}
+
 #: Cách đẩy tỷ trọng thành lệnh.
+#:
+#: ⚠ NHÃN PHẢI NÓI RA CON SỐ LEAN DÙNG. Hai model dưới cùng có tham số mặc định mà
+#: app không truyền; chúng vẫn chạy đúng, nhưng người dùng không có đường nào biết
+#: «lệch khỏi trung bình» là lệch mấy lần, của bao nhiêu nến. Nói ra trong nhãn thì
+#: không cần thêm ô — khác ngưỡng cắt lỗ, đây là tham số TINH CHỈNH, không phải cả
+#: cái phanh.
 DAT_LENH = (
     ("", "— không dùng —"),
     ("ImmediateExecutionModel", "Đặt NGAY bằng lệnh thị trường"),
-    ("VolumeWeightedAveragePriceExecutionModel", "Rải theo VWAP"),
-    ("StandardDeviationExecutionModel", "Chờ giá lệch khỏi trung bình"),
+    ("VolumeWeightedAveragePriceExecutionModel",
+     "Rải theo VWAP — chờ giá tốt hơn VWAP, mỗi nến tối đa 1% khối lượng"),
+    ("StandardDeviationExecutionModel",
+     "Chờ giá lệch 2 lần độ lệch chuẩn khỏi trung bình 60 nến"),
 )
+
+#: Model đặt lệnh -> `(app nuôi được không, nó ĐỌC/CẦN cái gì)`. Cùng lối
+#: `PHONG_RUI_RO_DOC`, kể cả chuyện phần đầu là một CỜ chứ không phải một câu.
+DAT_LENH_DOC = {
+    "ImmediateExecutionModel": (True, "không đọc gì — đặt thẳng mọi mục tiêu"),
+    # `price_is_favorable` đọc `security.bid_price`/`ask_price`. Trên dữ liệu chỉ có
+    # nến giao dịch (bộ miễn phí) thì `SecurityCache` không đặt hai cái ấy, nhưng
+    # `Security.BidPrice` có dòng `Cache.BidPrice == 0 ? Price : Cache.BidPrice` —
+    # rơi về giá đóng, nên điều kiện vẫn có nghĩa. Đã chạy thật: 2 lệnh, giá khác
+    # lượt không dùng model (lãi -13.248% so với -13.082%).
+    "VolumeWeightedAveragePriceExecutionModel":
+        (True, "security.bid_price/ask_price (rơi về giá đóng) · VWAP nội nhật "
+               "tự dựng"),
+    # ⚠ CHẾT THẬT, ĐÃ CHỨNG MINH. Tham số thứ ba `resolution` MẶC ĐỊNH LÀ
+    # `Resolution.MINUTE`, mà `SymbolData` lấy consolidator theo đúng tham số ấy.
+    # `QCAlgorithm.CreateConsolidator` ném `ArgumentException` khi độ phân giải xin
+    # NHỎ HƠN độ phân giải đã đăng ký: "Unable to create SPY consolidator because
+    # SPY is registered for Daily data." Nhịp ngày (mặc định của app) là chết ngay
+    # nến đầu — backtest ghi ra kết quả, bảng Kết quả nói «0 lệnh, lãi 0%», câu lỗi
+    # chỉ nằm trong nhật ký. Nên `lean_day_chuyen` PHẢI truyền độ phân giải thật.
+    "StandardDeviationExecutionModel":
+        (True, "SMA/STD của chính nó · CẦN truyền đúng độ phân giải của sơ đồ "
+               "(tham số 3)"),
+    # CHƯA NUÔI ĐƯỢC: docstring của CHÍNH LEAN ghi «will not work using Resolution.
+    # DAILY since Exchange.exchange_open will be false». Thêm nữa `spread_is_
+    # favorable` đòi `ask_price > 0 and bid_price > 0` VÀ chênh lệch mua/bán nhỏ hơn
+    # ngưỡng — dữ liệu chỉ có nến giao dịch thì bid = ask = giá đóng, tức chênh lệch
+    # 0, tức nó mất hẳn tác dụng. Chạy hết, không lỗi, không lọc gì.
+    "SpreadExecutionModel":
+        (False, "exchange.exchange_open + chênh lệch bid/ask — LEAN nói rõ KHÔNG "
+                "chạy trên nhịp ngày"),
+}
 
 
 SAN_KHONG_NHAN_MOC = ("OANDA_BROKERAGE", "BINANCE", "COINBASE")
@@ -511,7 +620,7 @@ O_BAT_DAU = [
        goi_y="Biến tín hiệu thành tỷ trọng. Không chọn thì tín hiệu phát ra "
              "KHÔNG ai nhận.", bat_buoc=False),
     _o("phong_rui_ro", "Phòng rủi ro", O_CHON, "",
-       "set_risk_management(…)", chon=list(PHONG_RUI_RO),
+       "set_risk_management(…)", chon=[(m, n) for m, n, *_ in PHONG_RUI_RO],
        goi_y="Chạy SAU khi chia vốn, chỉnh lại tỷ trọng — cắt lỗ, chốt lời, "
              "trailing stop. LEAN giữ mức, app không nhớ gì.", bat_buoc=False),
     _o("dat_lenh", "Đặt lệnh", O_CHON, "",
@@ -522,14 +631,24 @@ O_BAT_DAU = [
 O_THEO_TEN = {o["ten"]: o for o in O_BAT_DAU}
 
 
-def o_cua(gia_tri=None):
-    """Mọi ô của khối Bắt đầu, KỂ CẢ ô chỉ hiện theo nhịp đã chọn.
+def rui_ro_cua(ma):
+    """Một mục của `PHONG_RUI_RO` theo mã lớp. None nếu để trống hay mã lạ."""
+    m = str(ma or "").strip()
+    return next((x for x in PHONG_RUI_RO if x[0] and x[0] == m), None)
 
-    Cùng lối với `lam.o_cua`: chọn "Mỗi ngày đúng giờ" thì ô Giờ/Phút mới hiện ra."""
+
+def o_cua(gia_tri=None):
+    """Mọi ô của khối Bắt đầu, KỂ CẢ ô chỉ hiện theo nhịp hay theo model đã chọn.
+
+    Cùng lối với `lam.o_cua`: chọn "Mỗi ngày đúng giờ" thì ô Giờ/Phút mới hiện ra,
+    chọn một model phòng rủi ro thì ô Ngưỡng mới hiện ra."""
     ra = list(O_BAT_DAU)
     n = nhip_cua(str((gia_tri or {}).get("nhip") or O_THEO_TEN["nhip"]["mac_dinh"]))
     if n:
         ra.extend(n[4])
+    r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
+    if r:
+        ra.extend(r[2])
     return ra
 
 
@@ -577,6 +696,73 @@ def ham_lean(gia_tri=None):
     return dau if chay == "on_data" else f"{dau} · {chay}"
 
 
+def lean_day_chuyen(gia_tri=None):
+    """BA TRẠM của dây chuyền LEAN -> [câu], để hộp thoại nói thẳng ra.
+
+    MỘT BẢN SỰ THẬT cho cả `sinh_ma` và hộp thoại. Trước đây `sinh_ma._khai_mo` tự
+    ghép `self.{ham}({lop}())` ngay tại chỗ — luôn KHÔNG THAM SỐ — và đó là chỗ hai
+    lỗi lặng mọc lên:
+
+      1. `StandardDeviationExecutionModel()` có tham số thứ ba `resolution` mặc định
+         `Resolution.MINUTE`, mà `SymbolData` lấy consolidator theo đúng tham số ấy.
+         Sơ đồ nhịp ngày (mặc định của app) thì `QCAlgorithm.CreateConsolidator` ném
+         ngay nến đầu: *"Unable to create SPY consolidator because SPY is registered
+         for Daily data"*. Kết quả vẫn ghi ra, bảng Kết quả nói «0 lệnh, lãi 0%», câu
+         lỗi chỉ nằm trong nhật ký. ĐÃ ÉP TÁI HIỆN: 0 lệnh; truyền đúng độ phân giải
+         thì 6 lệnh.
+      2. Cả bốn model phòng rủi ro có tham số ngưỡng mà không ai truyền, nên chúng
+         chạy ở 5% mặc định trong khi nhãn hứa «theo %» và hộp không có ô % nào.
+
+    Mỗi câu ở đây PHẢI là một khúc của mã `sinh_ma` sinh ra, trừ chữ `self.` MỞ ĐẦU
+    — cùng quy ước `lean_ro`, và `test_sinh_ma` canh đúng chuyện ấy."""
+    ra = []
+    chia = str((gia_tri or {}).get("chia_von") or "").strip()
+    if chia:
+        ra.append(f"set_portfolio_construction({chia}())")
+
+    r = rui_ro_cua((gia_tri or {}).get("phong_rui_ro"))
+    if r:
+        # Ngưỡng đi THẲNG vào câu LEAN. `repr` của một float Python là literal Python
+        # — không có phép tính nào ở giữa, nên không có chỗ nào để hai bên lệch nhau.
+        ra.append(f"set_risk_management({r[0]}({_phan(gt_o(gia_tri, 'nguong'))!r}))")
+
+    lenh = str((gia_tri or {}).get("dat_lenh") or "").strip()
+    if lenh == "StandardDeviationExecutionModel":
+        # ĐỘ PHÂN GIẢI KHÔNG PHẢI MỘT Ô — nó đã được ô «Nhịp chạy» trả lời rồi. Hỏi
+        # lần thứ hai là mời người dùng nói hai câu khác nhau cho một thứ.
+        # Hai số kia là mặc định CỦA LEAN, viết thẳng ra để mã sinh ra không mang một
+        # con số ngầm nào; nhãn trong `DAT_LENH` nói đúng hai số này.
+        ra.append(f"set_execution({lenh}(60, 2, Resolution.{do_phan_giai(gia_tri)}))")
+    elif lenh:
+        ra.append(f"set_execution({lenh}())")
+    return ra
+
+
+def gt_o(gia_tri, ten):
+    """Giá trị một ô của khối Bắt đầu, rơi về mặc định nếu khối CHƯA CÓ KHOÁ ấy.
+
+    Ô THÊM (của nhịp, của model phòng rủi ro) không nằm trong `O_THEO_TEN`, nên phải
+    tìm qua `o_cua` — chính danh sách ô ĐANG hiện.
+
+    ⚠ CHỈ rơi về mặc định khi khoá VẮNG, không khi nó RỖNG — đúng luật `gt_ro` và
+    `core.o_bat_dau`. Coi `""` như vắng là xoá trắng ô «Ngưỡng» rồi cỗ máy lặng lẽ
+    cắt lỗ ở 5%: hộp thoại trống trơn mà mã sinh ra mang một con số, và phép soát
+    không có gì để bắt. Rỗng là rỗng, và `soat_khoi_bat_dau` báo lỗi vì nó rỗng."""
+    for o in o_cua(gia_tri):
+        if o["ten"] == ten:
+            v = (gia_tri or {}).get(ten)
+            return o["mac_dinh"] if v is None else v
+    return None
+
+
+def _phan(v):
+    """-> float, 0.0 nếu không phải số. Ô số có thể đang mang chuỗi người dùng gõ."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def khai(gia_tri=None):
     """MỌI câu LEAN khối Bắt đầu khai ra, theo đúng giá trị đang có. -> [câu].
 
@@ -592,6 +778,7 @@ def khai(gia_tri=None):
     trọng nhất cái rổ sinh ra. Cả hai đều không gây lỗi nào, nên không ai thấy."""
     ra = [ham_lean(gia_tri)]
     ra.append(lean_ro((gia_tri or {}).get("ma")))
+    ra.extend(lean_day_chuyen(gia_tri))
     return [c for c in ra if c]
 
 
@@ -608,4 +795,9 @@ def tu_dien():
         # LEAN và mấy ô con đều khai ở đây, không khai lại bên TypeScript.
         "ro": [{"ma": m, "nhan": n, "lop": lop, "o_them": list(th)}
                for m, n, lop, th in RO],
+        # PHÒNG RỦI RO — mỗi model mang ô NGƯỠNG của riêng nó, cùng lối `nhip`/`ro`.
+        # Nhãn ô khác nhau ở từng model (lỗ / lãi / tụt khỏi đỉnh), nên giao diện
+        # KHÔNG dựng lại ô ấy — nó bày thẳng `o` Python gửi sang.
+        "phong_rui_ro": [{"ma": m, "nhan": n, "o_them": list(th)}
+                         for m, n, th in PHONG_RUI_RO],
     }

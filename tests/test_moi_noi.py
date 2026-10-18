@@ -274,6 +274,24 @@ _khong_nuoi = [m for m, _n in bat_dau.CHIA_VON
                if m and m not in bat_dau.CHIA_VON_DOC]
 kiem("mọi model chia vốn đang bày đều khai nó đọc khe nào", not _khong_nuoi,
      f"— {_khong_nuoi}")
+# CẢ BA TRẠM, một luật: bày ra thì phải khai được nó cần gì. Hai trạm sau chết vì
+# THAM SỐ KHỞI TẠO không ai truyền chứ không vì khe `Insight` nào — `Standard
+# DeviationExecutionModel()` mặc định `Resolution.MINUTE` nên ném ngoại lệ ngay nến
+# đầu của mọi sơ đồ nhịp ngày, mà bảng Kết quả chỉ nói «0 lệnh, lãi 0%».
+_ba_bang = ((bat_dau.PHONG_RUI_RO, bat_dau.PHONG_RUI_RO_DOC),
+            (bat_dau.DAT_LENH, bat_dau.DAT_LENH_DOC))
+_khong_khai = [m for bang, doc in _ba_bang for m, _n, *_ in bang
+               if m and m not in doc]
+kiem("và mọi model phòng rủi ro / đặt lệnh đang bày cũng khai nó CẦN gì",
+     not _khong_khai, f"— {_khong_khai}")
+# Bảng khai mà không ai đọc thì nó là một tờ giấy dán tường. `lean_day_chuyen` là
+# chỗ duy nhất dựng ba câu ấy, nên nó phải là chỗ duy nhất `sinh_ma` hỏi.
+_ma_sinh = io.open(os.path.join(GOC, "cat_studio", "sinh_ma.py"),
+                   encoding="utf-8").read()
+kiem("và bộ sinh mã hỏi MỘT cửa, không tự ghép ba câu ấy",
+     "lean_day_chuyen(" in _ma_sinh
+     and "set_portfolio_construction" not in _ma_sinh,
+     "— hai bản ghép chữ cho một câu là hai bản để trôi khỏi nhau")
 
 print("\n▸ MỐI NỐI 8 — giao diện BÀY LẠI thứ Python khai, không tự ghép lại")
 # Luật nền: Python khai, giao diện chỉ bày. Hai nơi cùng ghép một câu thì sớm muộn

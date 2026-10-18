@@ -322,6 +322,31 @@ kiem("«lấy 0» — câu khai bỏ hàm lọc y như mã",
      bat_dau.lean_ro({"ro": "etf", "ma_etf": "SPY", "lay": 0}) in r_ca_ro["ma"],
      f"— khai {bat_dau.lean_ro({'ro': 'etf', 'ma_etf': 'SPY', 'lay': 0})!r}")
 
+# BA TRẠM CỦA DÂY CHUYỀN — cùng luật ấy, và đây là chỗ nó vừa cứu một lỗi đã chạy
+# thật. Chỗ này từng tự ghép `self.{ham}({lop}())` ngay trong `sinh_ma`, luôn KHÔNG
+# THAM SỐ, nên `StandardDeviationExecutionModel` chạy với `Resolution.MINUTE` mặc
+# định và ném ngoại lệ ở nến đầu mọi sơ đồ nhịp ngày — 0 lệnh, và bảng Kết quả không
+# nói gì. Nay `bat_dau.lean_day_chuyen` là một bản sự thật cho cả hai bên, và phép
+# dưới đây lặp qua CẢ BA BẢNG: thêm một model là nó canh luôn.
+print(NL + "  (2c) ba trạm dây chuyền — câu khai cũng là một KHÚC của mã thật")
+for _ten_o, _bang in (("chia_von", bat_dau.CHIA_VON),
+                      ("phong_rui_ro", bat_dau.PHONG_RUI_RO),
+                      ("dat_lenh", bat_dau.DAT_LENH)):
+    for _m, _nhan, *_ in _bang:
+        if not _m:
+            continue
+        _bd2 = core.make_start_step()
+        _bd2["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+        _bd2[_ten_o] = _m
+        _th2 = core.make_lam_step(lam.LAM_TIN_HIEU, "Nên lên")
+        _th2["huong"], _th2["han"] = "UP", 5
+        _d2 = core.make_process_template(
+            "Tram", [_bd2, _th2], [{"from": _bd2["id"], "to": _th2["id"]}])
+        _ma2 = sinh_ma.sinh(_d2)["ma"]
+        _thieu = [c for c in bat_dau.lean_day_chuyen(_bd2) if c not in _ma2]
+        kiem(f"«{_m}» — câu khai nằm nguyên trong mã sinh ra", not _thieu,
+             f"— {_thieu}")
+
 print(NL + "  (3) chỉ báo — khai ở `on_securities_changed`, KHÔNG ở `initialize`")
 # Lúc `initialize` chạy, rổ còn RỖNG: `for sym in self._ma` duyệt số không mã, nên
 # chẳng chỉ báo nào được khai, và `self._cb[sym]` ném KeyError ở nến đầu.

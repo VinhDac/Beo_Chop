@@ -483,12 +483,13 @@ def _khai_mo(nc, st):
     # DÂY CHUYỀN CỦA LEAN — ba trạm đứng sau cây quyết định, cắm ở `initialize`.
     # Thứ tự viết ra theo đúng thứ tự dữ liệu chảy qua chúng (insight -> tỷ trọng ->
     # chỉnh rủi ro -> lệnh), để đọc mã sinh ra là thấy ngay dây chuyền.
-    for ten_o, ham in (("chia_von", "set_portfolio_construction"),
-                       ("phong_rui_ro", "set_risk_management"),
-                       ("dat_lenh", "set_execution")):
-        lop = str(core.o_bat_dau(st, ten_o) or "").strip()
-        if lop:
-            ra.append(f"self.{ham}({lop}())")
+    #
+    # ⚠ KHÔNG GHÉP Ở ĐÂY NỮA. Chỗ này từng tự viết `self.{ham}({lop}())` — luôn
+    # KHÔNG THAM SỐ — nên `StandardDeviationExecutionModel` chạy với `resolution`
+    # mặc định `Resolution.MINUTE` và chết ngay nến đầu của mọi sơ đồ nhịp ngày, còn
+    # bốn model phòng rủi ro thì chạy ở ngưỡng 5% ngầm. `bat_dau.lean_day_chuyen` là
+    # một bản sự thật cho cả bộ sinh mã và hộp thoại.
+    ra += [f"self.{c}" for c in bat_dau.lean_day_chuyen(st)]
     return ra
 
 

@@ -386,6 +386,7 @@ kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("Tran
      "— cửa sổ frameless như cửa sổ chính")
 
 print("\n▸ Hộp Bắt đầu KHÔNG được khai lại thứ Python đã khai")
+from cat_studio import bat_dau  # noqa: E402
 bd = bo_chu_thich_ts(doc("components/HopBatDau.tsx"))
 # ⚠ ĐÃ HỎNG THẬT, ba cái một lúc. Hộp thoại dựng lại object cho mấy ô THÊM của nhịp:
 #   kieu: 'so' đóng cứng  -> «Độ phân giải dữ liệu» (ô CHỌN năm mức) hiện ra như ô gõ
@@ -397,6 +398,21 @@ kiem("không còn đọc khoá `nho_nhat` (từ điển không có khoá ấy)",
 kiem("không còn đóng cứng `kieu: 'so'`", "kieu: 'so'" not in bd)
 kiem("ô thêm của nhịp đưa thẳng `o` của Python vào",
      re.search(r"o_them[\s\S]{0,200}<Hang[^>]*o=\{o\b", bd) is not None)
+# Ô NGƯỠNG của trạm phòng rủi ro là Ô THÊM thứ hai, cùng một luật nên cùng một
+# đường: Python khai `PHONG_RUI_RO[*].o_them`, hộp thoại bày lại. Nhãn ô khác nhau ở
+# từng model («cắt khi lỗ» / «chốt khi lãi» / «tụt khỏi đỉnh»), nên dựng lại ô ấy
+# bên TypeScript là nói sai ba trong bốn lần — mà con số vẫn chạy, nên không ai thấy.
+kiem("ô ngưỡng của phòng rủi ro cũng đi qua `o_them` của Python",
+     "tuDien.phong_rui_ro" in bd
+     and re.search(r"rui\?\.o_them[\s\S]{0,120}<Hang[^>]*o=\{o\b", bd) is not None,
+     "— một ô gõ cứng bên này là một nhãn nói sai mà build vẫn sạch")
+kiem("và không gõ cứng nhãn ngưỡng nào",
+     not [o["nhan"] for _m, _n, th in bat_dau.PHONG_RUI_RO for o in th
+          if f'"{o["nhan"]}"' in bd or f"'{o['nhan']}'" in bd])
+# Lưu thì phải BỎ ô của lựa chọn không còn hiện — không thì file mang theo một ngưỡng
+# cắt lỗ của trạm đã tắt, rồi mở lại là nó lặng lẽ sống lại.
+kiem("lưu có lọc ô của lựa chọn đã tắt, cho CẢ HAI nhóm",
+     re.search(r"function luu\(\)[\s\S]{0,400}rui\?\.o_them", bd) is not None)
 # Dòng khai LEAN tồn tại ĐÚNG ĐỂ kiểm lời hứa — nó nói sai thì tệ hơn không có nó.
 # Nên giao diện KHÔNG ghép câu ấy nữa: nó hỏi `bat_dau.khai()` sau MỖI thay đổi rồi
 # bày lại nguyên văn. Trước đây chỗ này tự suy ra độ phân giải thật, tự chọn `add_*`

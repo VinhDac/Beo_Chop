@@ -352,6 +352,51 @@ kiem("phòng rủi ro mà không có chia vốn → CẢNH BÁO",
      any(v["severity"] == "warning" for v in core.soat_day_chuyen([_bd2])),
      "— nó chạy SAU chia vốn, không có chia vốn thì không tới lượt")
 
+print("\n▸ ⚠ Ô NGƯỠNG của trạm phòng rủi ro — có mới hiện, và 0 là CẮT NGAY")
+# Cả bốn model nhận một ngưỡng phần trăm làm tham số đầu, mà bộ sinh mã trước đây
+# gọi chúng KHÔNG THAM SỐ — tức chúng chạy ở 5% mặc định của LEAN trong khi nhãn hứa
+# «theo %» và hộp thoại không có ô % nào. Ngưỡng là CẢ cái phanh; đóng cứng rồi không
+# nói ra là một kiểu nói dối lặng.
+_bdn = core.make_start_step()
+kiem("chưa chọn model thì KHÔNG có ô ngưỡng nào thừa ra",
+     "nguong" not in {o["ten"] for o in bat_dau.o_cua(_bdn)})
+_bdn["chia_von"] = "EqualWeightingPortfolioConstructionModel"
+for _m, _nhan, _th2 in bat_dau.PHONG_RUI_RO:
+    if not _m:
+        continue
+    _bdn["phong_rui_ro"] = _m
+    _hien = {o["ten"]: o for o in bat_dau.o_cua(_bdn)}
+    kiem(f"«{_nhan}» → ô ngưỡng hiện ra", "nguong" in _hien)
+    # Nhãn phải nói ĐÚNG PHANH NÀO: cùng một con số 0.05 nghĩa «lỗ 5%» ở model này
+    # và «lãi 5%» ở model kia. Một nhãn chung cho cả bốn là một nhãn nói sai ba lần.
+    kiem("  và nhãn ô nói đúng model ấy đo cái gì",
+         _hien["nguong"]["nhan"] == _th2[0]["nhan"])
+_bdn["phong_rui_ro"] = "MaximumDrawdownPercentPerSecurity"
+kiem("mặc định sạch", not [v for v in core.soat_khoi_bat_dau(_bdn)
+                          if v["severity"] == "error"])
+_bdn["nguong"] = 0
+kiem("ngưỡng 0 → LỖI", any(v["severity"] == "error" and "ngưỡng" in v["message"]
+                           for v in core.soat_khoi_bat_dau(_bdn)),
+     "— LEAN lấy `-abs(0)` = 0 rồi so `pnl < 0`: cắt ngay khi mã chớm lỗ một xu")
+_bdn["nguong"] = ""
+kiem("ngưỡng để trống → LỖI, không lặng rơi về 5%",
+     any(v["severity"] == "error" for v in core.soat_khoi_bat_dau(_bdn)),
+     "— hộp trống trơn mà mã sinh ra mang một con số là hai đằng nói khác nhau")
+_bdn["nguong"] = 5
+kiem("gõ 5 (tưởng là 5%) → CẢNH BÁO",
+     any(v["severity"] == "warning" and "PHẦN" in v["message"]
+         for v in core.soat_khoi_bat_dau(_bdn)),
+     "— 5 nghĩa là 500%, tức trạm ấy gần như không bao giờ cắn")
+_bdn["nguong"] = 0.08
+kiem("ngưỡng hợp lệ đi THẲNG vào câu LEAN",
+     "MaximumDrawdownPercentPerSecurity(0.08)" in
+     " ".join(bat_dau.lean_day_chuyen(_bdn)),
+     f"— {bat_dau.lean_day_chuyen(_bdn)}")
+_bdn["phong_rui_ro"] = ""
+kiem("bỏ model thì ô ngưỡng cũng thôi hiện",
+     "nguong" not in {o["ten"] for o in bat_dau.o_cua(_bdn)},
+     "— hộp thoại lọc theo đúng danh sách này lúc lưu, nên file không mang ô mồ côi")
+
 
 # ================= 7. RỔ ĐỘNG — kiểu thứ hai của ô «Chạy trên mã nào» ==========
 print(NL + "▸ Rổ động — mỗi rổ phải là MỘT lớp có thật của LEAN")

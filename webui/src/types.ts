@@ -403,9 +403,13 @@ export interface NhipChay {
   nhan: string
   res: string
   chay: string
-  /** Ô chỉ hiện khi chọn nhịp này (giờ, phút, số phút sau khi mở cửa…). */
-  o_them: { ten: string; nhan: string; mac_dinh: number
-            nho_nhat: number; lon_nhat: number }[]
+  /** Ô chỉ hiện khi chọn nhịp này (giờ, phút, số phút sau khi mở cửa…).
+   *
+   *  ⚠ ĐÚNG `OLam[]`, y `RoDong.o_them`. Bản trước khai một hình dạng RIÊNG ở đây
+   *  với hai khoá `nho_nhat`/`lon_nhat` mà từ điển Python KHÔNG HỀ CÓ — nên hộp
+   *  thoại phải `as unknown as OLam` mỗi lần dùng, và `tsc` thì sạch vì chính dòng
+   *  khai này nói thế. Khai sai mà build vẫn sạch là đúng họ lỗi dự án này săn. */
+  o_them: OLam[]
   /** CÙNG nhịp ấy nhưng ô `ma` là một RỔ: lịch không neo vào mã nào được, vì rổ lúc
    *  `initialize` còn rỗng. Python khai câu thứ hai này ở `bat_dau.NHIP`. */
   chay_ro: string
@@ -420,6 +424,11 @@ export interface TuDienBatDau {
   nhip: NhipChay[]
   /** Kiểu thứ hai của ô «Chạy trên mã nào» — xem `RoChay`. */
   ro: RoDong[]
+  /** Model PHÒNG RỦI RO, mỗi cái mang ô NGƯỠNG của riêng nó — cùng hình dạng
+   *  `nhip`/`ro`, nên hộp thoại bày chúng bằng đúng một đường. Nhãn ô khác nhau ở
+   *  từng model (cắt khi lỗ / chốt khi lãi / tụt khỏi đỉnh), nên TypeScript KHÔNG
+   *  dựng lại ô ấy: ngưỡng là cả cái phanh, nó phải nói đúng phanh nào. */
+  phong_rui_ro: { ma: string; nhan: string; o_them: OLam[] }[]
 }
 
 /* ------------------------------- Kho và khoá -------------------------------- */

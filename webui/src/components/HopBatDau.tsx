@@ -182,30 +182,43 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
   const [gt, setGt] = useState<Record<string, unknown>>(() => ({ ...step }))
   const doi = (k: string, v: unknown) => setGt(x => ({ ...x, [k]: v }))
 
+  /* HAI Ô MANG THEO Ô THÊM — và chúng cùng một luật, nên cùng một đường đi.
+   *
+   * «Nhịp chạy» mở ra Giờ/Phút/Độ phân giải; «Phòng rủi ro» mở ra ô Ngưỡng. Python
+   * khai cả hai bảng cùng hình dạng `{ma, nhan, o_them}` (`bat_dau.NHIP` và
+   * `bat_dau.PHONG_RUI_RO`), nên chỗ này chỉ cần biết TÊN Ô NÀO tra BẢNG NÀO —
+   * không biết trong `o_them` có mấy ô, cũng không biết chúng là ô gõ hay ô chọn. */
+  const bangOThem: Record<string, { ma: string; o_them: OLam[] }[]> = {
+    nhip: tuDien.nhip,
+    phong_rui_ro: tuDien.phong_rui_ro,
+  }
   const nhip = tuDien.nhip.find(n => n.ma === String(gt.nhip ?? ''))
+  const rui = tuDien.phong_rui_ro.find(r => r.ma === String(gt.phong_rui_ro ?? ''))
 
-  /** Đổi nhịp thì điền luôn mặc định cho mấy ô mới hiện ra.
+  /** Đổi một ô mang ô thêm thì điền luôn mặc định cho mấy ô mới hiện ra.
    *
    *  Không điền thì ô mới bày số 0 trong khi Python rơi về mặc định của từ điển —
    *  thẻ khối và hộp thoại nói hai đằng. Đúng cái bẫy đã gặp ở hộp Hành động. */
-  function doiNhip(v: string) {
+  function doiCoOThem(ten: string, v: string) {
     setGt(x => {
-      const ra: Record<string, unknown> = { ...x, nhip: v }
-      for (const o of tuDien.nhip.find(n => n.ma === v)?.o_them ?? []) {
+      const ra: Record<string, unknown> = { ...x, [ten]: v }
+      for (const o of bangOThem[ten].find(n => n.ma === v)?.o_them ?? []) {
         if (!(o.ten in ra)) ra[o.ten] = o.mac_dinh
       }
       return ra
     })
   }
 
-  /** Lưu, có BỎ ô của nhịp không chọn — để file không mang theo "giờ 14:30" của một
-   *  cỗ máy chạy mỗi nến ngày. */
+  /** Lưu, có BỎ ô của lựa chọn không còn hiện — để file không mang theo "giờ 14:30"
+   *  của một cỗ máy chạy mỗi nến ngày, hay một ngưỡng cắt lỗ của trạm đã tắt. */
   function luu() {
-    const dangHien = new Set((nhip?.o_them ?? []).map(o => o.ten))
-    const cuaNhip = new Set(tuDien.nhip.flatMap(n => n.o_them.map(o => o.ten)))
+    const dangHien = new Set([...(nhip?.o_them ?? []), ...(rui?.o_them ?? [])]
+      .map(o => o.ten))
+    const moi = Object.values(bangOThem).flat()
+      .flatMap(n => n.o_them.map(o => o.ten))
     const ra: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(gt)) {
-      if (!cuaNhip.has(k) || dangHien.has(k)) ra[k] = v
+      if (!moi.includes(k) || dangHien.has(k)) ra[k] = v
     }
     onLuu({ ...(ra as unknown as Step), id: step.id, kind: step.kind,
             name: ten.trim() || 'Bắt đầu' })
@@ -296,12 +309,13 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
           }
           return (
             <Hang key={o.ten} o={o} gt={gt[o.ten]}
-                  onDoi={v => (o.ten === 'nhip' ? doiNhip(String(v))
-                                                : doi(o.ten, v))} />
+                  onDoi={v => (o.ten in bangOThem
+                    ? doiCoOThem(o.ten, String(v)) : doi(o.ten, v))} />
           )
         })}
 
-        {/* Ô THÊM của nhịp — giờ, phút, số phút sau khi mở cửa, độ phân giải.
+        {/* Ô THÊM — của nhịp (giờ, phút, số phút sau khi mở cửa, độ phân giải) và
+         *  của model phòng rủi ro (ngưỡng cắt/chốt).
          *
          *  ⚠ ĐƯA THẲNG `o` CỦA PYTHON VÀO, không dựng lại. Bản trước nặn một object
          *  mới với `kieu: 'so'` đóng cứng và `chon: []`, nên:
@@ -311,8 +325,8 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
          *      trong từ điển — nên in ra đúng chữ "Từ undefined đến undefined",
          *      đè mất câu gợi ý thật mà Python đã viết.
          *  Giao diện khai lại thứ Python đã khai là đúng cái bệnh dự án này săn. */}
-        {(nhip?.o_them ?? []).map(o => (
-          <Hang key={o.ten} o={o as unknown as OLam} gt={gt[o.ten] ?? o.mac_dinh}
+        {[...(nhip?.o_them ?? []), ...(rui?.o_them ?? [])].map(o => (
+          <Hang key={o.ten} o={o} gt={gt[o.ten] ?? o.mac_dinh}
                 onDoi={v => doi(o.ten, v)} />
         ))}
 
