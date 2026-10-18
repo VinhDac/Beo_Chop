@@ -81,6 +81,15 @@ NEN = {
 # CỐ Ý KHÔNG BÀY — mỗi dòng phải có lý do viết bằng chữ.
 # ---------------------------------------------------------------------------
 CO_Y_BO = {
+    # --- app đã khai lý do ở CHÍNH BẢNG CỦA NÓ, đừng chép lại lần nữa ---
+    # `PHONG_RUI_RO_DOC` · `DAT_LENH_DOC` · `CHIA_VON_THIEU_DU_LIEU` khai `(False,
+    # lý do)` cho model nào app nuôi không nổi, kèm bằng chứng đã chạy thật. Hàm
+    # `_app_tu_khai()` dưới đây đọc thẳng mấy bảng ấy, nên ba model này KHÔNG có
+    # dòng riêng ở đây: một lý do chép hai chỗ là hai chỗ lệch nhau về sau.
+    #     MaximumSectorExposureRiskManagementModel
+    #     SpreadExecutionModel
+    #     SectorWeightingPortfolioConstructionModel
+
     # --- lớp nền, không phải món dùng được ---
     "BasePairsTradingAlphaModel":
         "Lớp NỀN cho cặp giao dịch, không tự chạy được. Món dùng được là "
@@ -148,7 +157,7 @@ CO_Y_BO = {
 # ---------------------------------------------------------------------------
 MOC = {
     "chi_bao": 21,
-    "chia_von": 2,
+    "chia_von": 5,
     "alpha": 0,
     "ro": 9,
     "phong_rui_ro": 4,
@@ -267,6 +276,25 @@ def model_lean(goc, ho):
     return ra
 
 
+def _app_tu_khai():
+    """-> {tên model: lý do} app đã tự khai là nuôi không nổi, ở bảng của chính nó.
+
+    Mấy bảng `*_DOC` của `bat_dau` khai `(nuôi được?, nó cần gì)` cho TỪNG model,
+    kể cả model chưa bày — và lý do ở đó kèm bằng chứng đã chạy thật
+    (`SpreadExecutionModel`: chính docstring LEAN nói không chạy trên nhịp ngày).
+
+    Đọc thẳng chúng thay vì chép lý do sang `CO_Y_BO`: một lý do nằm hai chỗ là hai
+    chỗ sẽ lệch nhau, và chẳng ai biết chỗ nào mới đúng."""
+    ra = {}
+    for bang in (getattr(bat_dau, "PHONG_RUI_RO_DOC", {}),
+                 getattr(bat_dau, "DAT_LENH_DOC", {}),
+                 getattr(bat_dau, "CHIA_VON_THIEU_DU_LIEU", {})):
+        for ten, v in bang.items():
+            if isinstance(v, tuple) and len(v) == 2 and not v[0]:
+                ra[ten] = str(v[1])
+    return ra
+
+
 def ma_app(ds):
     """-> {mã} app đang bày, bỏ dòng «— không dùng —»."""
     ra = set()
@@ -296,6 +324,10 @@ for khoa, moc in sorted(MOC.items()):
 print(f"  (đang bày: {dang_bay})")
 
 # ---------------------------------------------------------------------------
+# Danh sach BO day du = khai tay o day + phan app da tu khai o bang cua no.
+BO = dict(CO_Y_BO)
+BO.update(_app_tu_khai())
+
 GOC = goc_lean()
 if not GOC:
     print()
@@ -334,9 +366,9 @@ for ten, d in sorted(cb_app.items()):
          f"chỉ báo «{d['ma']}» khai {n} tham số, LEAN nhận {' hoặc '.join(vua)} "
          f"— `{d['lean']}` sẽ nổ lúc chạy.")
 
-thieu_cb = sorted(set(cb_lean) - set(cb_app) - set(CO_Y_BO))
+thieu_cb = sorted(set(cb_lean) - set(cb_app) - set(BO))
 print(f"  LEAN {len(cb_lean)} · app bày {len(cb_app)} · "
-      f"cố ý bỏ {len(set(cb_lean) & set(CO_Y_BO))} · THIẾU {len(thieu_cb)}")
+      f"cố ý bỏ {len(set(cb_lean) & set(BO))} · THIẾU {len(thieu_cb)}")
 if thieu_cb:
     print(f"     {' '.join(thieu_cb)}")
 kiem(not thieu_cb,
@@ -359,9 +391,9 @@ for ho, nhan, bay in BANG:
                    f"bộ đọc hụt, không phải LEAN rỗng.")
     la = sorted(bay - co)
     kiem(not la, f"bảng «{nhan}» bày {', '.join(la)} mà LEAN không có lớp ấy.")
-    thieu = sorted(co - bay - set(CO_Y_BO))
+    thieu = sorted(co - bay - set(BO))
     print(f"  {nhan:<14} LEAN {len(co):>3} · app bày {len(bay & co):>3} · "
-          f"cố ý bỏ {len(co & set(CO_Y_BO)):>2} · THIẾU {len(thieu)}")
+          f"cố ý bỏ {len(co & set(BO)):>2} · THIẾU {len(thieu)}")
     for t in thieu:
         print(f"       – {t}")
     kiem(not thieu,
@@ -380,7 +412,7 @@ for ho, _nhan, _bay in BANG:
 # CO_Y_BO vẫn phải được phép nói về chúng.
 tat_ca |= set(NEN["Selection"]) | {"CustomUniverseSelectionModel"}
 
-for ten, ly_do in sorted(CO_Y_BO.items()):
+for ten, ly_do in sorted(BO.items()):
     kiem(len(str(ly_do).strip()) >= 20,
          f"CO_Y_BO[{ten}] không có lý do tử tế — một câu nói rõ vì sao bỏ.")
     kiem(ten in tat_ca,
@@ -389,7 +421,7 @@ for ten, ly_do in sorted(CO_Y_BO.items()):
 da_bay = set(cb_app)
 for _ho, _nhan, bay in BANG:
     da_bay |= bay
-cham = sorted(set(CO_Y_BO) & da_bay)
+cham = sorted(set(BO) & da_bay)
 kiem(not cham, f"CO_Y_BO bảo bỏ {', '.join(cham)} mà app ĐÃ bày — hai chỗ nói "
                f"trái nhau, xoá dòng trong CO_Y_BO.")
 

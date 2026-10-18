@@ -272,11 +272,30 @@ SAN = (
 #: `set_run_time_error` thẳng), nên chọn vào là backtest chạy hết rồi ra 0 lệnh, không
 #: một lời nào. Thà không bày còn hơn bày rồi báo lỗi — thêm ô nuôi được chúng thì
 #: mở lại, ĐỪNG mở trước.
+#: ⚠ VÀ ĐÃ ĐẾM LẠI CẢ KỆ (18/10/2026). Luật trên đúng, nhưng suốt thời gian qua nó
+#: chỉ được áp cho mấy model TÌNH CỜ GẶP trong ví dụ. Đếm thẳng
+#: `Algorithm.Framework/Portfolio/` ra 10 model, app bày 2 — và ba trong tám cái còn
+#: lại KHÔNG đọc khe nào của `Insight` cả, tức nuôi được ngay từ đầu:
+#:
+#:   RiskParity           không đọc khe nào  -> LEAN tự lấy history, tự tính biến
+#:                                              động, tự cân rủi ro. ĐÂY đúng là
+#:                                              40 dòng `_inv_vol_weights` mà vd7
+#:                                              và vd9 phải viết tay.
+#:   MeanReversion        không đọc khe nào
+#:   AccumulativeInsight  chỉ đọc `direction` -> app đã đặt từ lâu
+#:
+#: Bài `test_du_lean` canh chỗ này từ nay: nó đếm kệ của LEAN rồi so với bảng này.
 CHIA_VON = (
     ("", "— không dùng —"),
     ("EqualWeightingPortfolioConstructionModel", "Chia ĐỀU cho mọi tín hiệu (1/N)"),
     ("InsightWeightingPortfolioConstructionModel",
      "Chia theo TRỌNG SỐ — mã điểm cao được nhiều vốn hơn"),
+    ("RiskParityPortfolioConstructionModel",
+     "CÂN RỦI RO — mã càng biến động càng ít vốn (LEAN tự tính)"),
+    ("MeanReversionPortfolioConstructionModel",
+     "HỒI QUY TRUNG BÌNH — dồn vốn vào mã vừa rơi xa trung bình"),
+    ("AccumulativeInsightPortfolioConstructionModel",
+     "CỘNG DỒN — mỗi tín hiệu thêm 3% vị thế, tín hiệu sau cộng vào tín hiệu trước"),
 )
 
 #: Model chia vốn -> khe nào của `Insight` nó ĐỌC ("" = không đọc gì). Giữ cả mấy
@@ -285,8 +304,26 @@ CHIA_VON = (
 CHIA_VON_DOC = {
     "EqualWeightingPortfolioConstructionModel": "",
     "InsightWeightingPortfolioConstructionModel": "weight",
+    "RiskParityPortfolioConstructionModel": "",
+    "MeanReversionPortfolioConstructionModel": "",
+    "AccumulativeInsightPortfolioConstructionModel": "",
     "ConfidenceWeightedPortfolioConstructionModel": "confidence",
     "MeanVarianceOptimizationPortfolioConstructionModel": "magnitude",
+    "BlackLittermanOptimizationPortfolioConstructionModel": "magnitude",
+}
+
+#: Model chia vốn CHƯA BÀY VÌ THIẾU DỮ LIỆU, không vì thiếu khe `Insight`. Tách khỏi
+#: `CHIA_VON_DOC` vì hai bệnh khác nhau cần hai cách chữa khác nhau: khe thiếu thì
+#: thêm ô; dữ liệu thiếu thì phải mua dữ liệu, app không làm gì được.
+#:
+#: Cùng một lối với `PHONG_RUI_RO_DOC["MaximumSectorExposure…"]` — hai model này
+#: chặn ở ĐÚNG MỘT thứ (`CompanyReference.industry_template_code`), nên phải đối xử
+#: giống nhau. Bày một cái ra và giấu một cái đi là cái kiểu không ai giải thích nổi
+#: ba tháng sau.
+CHIA_VON_THIEU_DU_LIEU = {
+    "SectorWeightingPortfolioConstructionModel":
+        (False, "fundamentals.company_reference.industry_template_code — không có "
+                "dữ liệu doanh nghiệp thì nó bỏ qua MỌI mã và ra 0 lệnh"),
 }
 
 
@@ -488,6 +525,20 @@ RO = (
                   "hơn 500 mã, nặng máy."))),
     ("qc500", "QC500 — 500 cổ phiếu Mỹ thanh khoản nhất",
      "QC500UniverseSelectionModel", ()),
+    # ⚠ CHƯA BÀY `EmaCrossUniverseSelectionModel`, VÀ ĐÂY LÀ LÝ DO — vì nó đáng bày:
+    # nó chính là TRẦN CỨNG «chỉ giữ N mã» mà soát 11 ví dụ đi tìm suốt. Câu "chấm
+    # điểm cả rổ rồi giữ 12 mã tốt nhất" không nói được ở trạm chia vốn (model chia
+    # cho MỌI mã có tín hiệu, không cắt ở mã thứ 12); nó nói ở tầng RỔ này.
+    #
+    # Chặn ở bộ sinh mã, không chặn ở đây: `_ro_py` viết `{lop}()` KHÔNG tham số cho
+    # mọi rổ khác `etf`, nên bày nó ra là sinh `EmaCrossUniverseSelectionModel()` —
+    # chạy ở 100/300/**500 mã** mặc định của LEAN trong khi hộp thoại hứa «giữ 20
+    # mã». Lại đúng bệnh của `StandardDeviationExecutionModel`: nhãn hứa một đằng,
+    # mã sinh ra một nẻo, không một lời nào.
+    #
+    # Chữa đúng gốc là để MỖI RỔ tự khai câu LEAN của nó (như mọi mục khác trong từ
+    # điển) thay vì để `_ro_py` đoán theo `ro[0] == "etf"`. Làm xong việc ấy thì mở
+    # dòng này, và cả `CoarseFundamental`/`FineFundamental` nếu có dữ liệu.
     ("etf_thanh_khoan", "Rổ ETF thanh khoản — cả sáu nhóm", "LiquidETFUniverse", ()),
     ("kim_loai", "ETF kim loại — vàng, bạc, bạch kim", "MetalsETFUniverse", ()),
     ("nang_luong", "ETF năng lượng — dầu, khí, mặt trời", "EnergyETFUniverse", ()),
