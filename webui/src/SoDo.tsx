@@ -464,6 +464,21 @@ function SoDoTrong() {
   }, [khoiBatDau])
   const coMaDangXet = (khoiBatDau?.chay_cho as string | undefined) !== 'ca_danh_muc'
 
+  /* Ô NHỚ khối Bắt đầu đã khai -> {mã: tên người dùng đặt}.
+     Dựng THẲNG từ khối Bắt đầu, không cất riêng: đổi tên một ô nhớ là mọi hộp thoại
+     thấy ngay, và xoá khối Bắt đầu là danh sách tự rỗng. Chép tên sang khối Ghi nhớ
+     thì đổi tên xong thẻ kia vẫn đọc tên cũ — thẻ nói dối. */
+  const dsNho = useMemo(() => {
+    const ds = Array.isArray(khoiBatDau?.tri_nho)
+      ? (khoiBatDau.tri_nho as { ma?: string; nhan?: string }[]) : []
+    const ra: Record<string, string> = {}
+    for (const x of ds) {
+      const m = String(x?.ma ?? '').trim()
+      if (m) ra[m] = String(x?.nhan ?? '').trim() || m
+    }
+    return ra
+  }, [khoiBatDau])
+
   /* ------------------------------------------------------------ hạt nhân
      Dựng THẲNG từ khoá trên từng khối, không cất riêng ở đâu: xoá hết khối của nó là
      nó tự mất, không phải dọn bảng nào. */
@@ -1665,7 +1680,7 @@ function SoDoTrong() {
         }
         if (tuDienLam && tuDien && laHanhDong(tuDienLam, st.type)) {
           return <HopHanhDong step={st} tuDien={tuDienLam} tuDienHoi={tuDien}
-                              dsMa={dsMa} coMaDangXet={coMaDangXet}
+                              dsMa={dsMa} dsNho={dsNho} coMaDangXet={coMaDangXet}
                               onLuu={luu} onDong={() => setDangSua(null)} />
         }
         return null

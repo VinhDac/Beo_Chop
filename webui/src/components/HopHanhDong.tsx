@@ -19,7 +19,7 @@ import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../t
  *  ấy, chứ không phải tin suông.
  */
 
-export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet,
+export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, dsNho, coMaDangXet,
                                      onLuu, onDong }: {
   step: Step
   tuDien: TuDienLam
@@ -27,6 +27,13 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
   tuDienHoi: TuDienHoi
   /** Mã khối Bắt đầu đang khai — ô «Mã» chọn trong đây, không cho gõ tay. */
   dsMa: string[]
+  /** Ô NHỚ khối Bắt đầu đã khai — `{mã: tên người dùng đặt}`.
+   *
+   *  ⚠ Ô «Ô nhớ» của khối Ghi nhớ phải bày ĐÚNG mấy ô này, không bày cả mười hai mã
+   *  của từ điển. Bày hết thì người dùng chọn một ô chưa đặt tên, sơ đồ vẫn chạy
+   *  (ô nào cũng dựng sẵn), mà mở lại thì không biết nó giữ cái gì — `soat_day_
+   *  chuyen` cảnh báo đúng chuyện đó, nhưng chặn ngay ở đây thì hơn. */
+  dsNho?: Record<string, string>
   coMaDangXet: boolean
   onLuu: (s: Step) => void
   onDong: () => void
@@ -47,7 +54,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
       // bên Python. File cũ (lưu trước khi thêm một ô) mở ra sẽ bày số 0 trong khi
       // Python đọc ra 0.05, mà hai bên đều "đúng" theo luật của mình.
       const l = tuDien.loai.find(y => y.ma === step.type)
-      const oChon = l?.o.find(o => o.kieu === 'chon')
+      const oChon = l?.o.find(o => o.ten === l?.o_lai)
       const them = oChon ? l?.theo_loai[String(ra[oChon.ten] ?? oChon.mac_dinh)]?.o : []
       for (const o of [...(l?.o ?? []), ...(them ?? [])]) {
         if (!(o.ten in ra)) ra[o.ten] = o.mac_dinh
@@ -76,9 +83,14 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
 
   if (!loai) return null
 
-  /** Ô CHỌN đầu tiên là cái cầm lái: nó quyết những ô còn lại hiện ra cái gì, và quyết
-   *  luôn hàm LEAN. (Bản thân danh sách ô vẫn của Python — đây chỉ chọn nhánh nào.) */
-  const oLai = loai.o.find(o => o.kieu === 'chon')
+  /** Ô CẦM LÁI — nó quyết những ô còn lại hiện ra cái gì, và quyết luôn hàm LEAN.
+   *
+   *  ⚠ HỎI PYTHON (`loai.o_lai`), KHÔNG ĐOÁN. Bản trước lấy "ô CHỌN đầu tiên", mà
+   *  khối «Ghi nhớ» có HAI ô chọn và ô cầm lái là ô THỨ HAI («Đặt thế nào», không
+   *  phải «Ô nhớ»). Đoán sai thì hộp thoại bày nhánh sai và điền mặc định của nhánh
+   *  sai, trong khi bộ sinh mã dùng nhánh đúng — hai bên cùng "đúng" theo luật của
+   *  mình, và lệch nhau lặng thinh. */
+  const oLai = loai.o.find(o => o.ten === loai.o_lai)
   const nhanh = oLai ? loai.theo_loai[String(gt[oLai.ten] ?? '')] : undefined
   const dsO: OLam[] = [...loai.o, ...(nhanh?.o ?? [])]
   const hamLean = nhanh?.lean ?? loai.lean
@@ -140,7 +152,19 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
             {/* Ô «Mã» là ô CHỌN, không phải ô gõ. Gõ tay thì gõ sai, mà cái sai ấy
                 chỉ lộ ra lúc bấm Build — bộ sinh mã báo «khối Bắt đầu chưa khai mã
                 ấy». Luật đã có sẵn trong lõi; chỗ này thôi bày cửa đi sai ra. */}
-            {o.ten === 'ma'
+            {o.ten === 'o_nho'
+              /* Ô NHỚ — bày ĐÚNG mấy ô khối Bắt đầu đã khai, gọi bằng TÊN người
+                 dùng đặt. Bày cả mười hai mã của từ điển thì người dùng chọn một ô
+                 chưa đặt tên: sơ đồ vẫn chạy (ô nào cũng dựng sẵn) mà mở lại thì
+                 không biết nó giữ cái gì. */
+              ? <select className="o day" value={String(gt.o_nho ?? '')}
+                        onChange={e => doi('o_nho', e.target.value)}>
+                  <option value="">— chưa chọn ô nhớ —</option>
+                  {Object.entries(dsNho ?? {}).map(([m, n]) => (
+                    <option key={m} value={m}>{n}</option>
+                  ))}
+                </select>
+              : o.ten === 'ma'
               ? <ChonMa ds={dsMa} giaTri={String(gt.ma ?? '')}
                         coMaDangXet={coMaDangXet}
                         onDoi={m => doi('ma', m)} />

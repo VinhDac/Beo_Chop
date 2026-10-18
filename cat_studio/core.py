@@ -574,6 +574,16 @@ def make_quay_ve_step(ve=None, so_vong=None, name=None):
 # mấy hàm này, không chép lại.
 
 
+#: Bảng TÊN ô nhớ của lần vẽ thẻ hiện tại — xem `the_buoc`.
+#:
+#: ⚠ VÌ SAO LÀ BIẾN MODULE chứ không phải tham số truyền tay: `_ve_dieu_kien` gọi đệ
+#: quy qua `_ghep_chu` và được bốn chỗ khác gọi vào. Luồn thêm một tham số qua cả
+#: chuỗi ấy là sáu chữ ký đổi, và chỗ nào quên truyền thì thẻ lặng lẽ quay về nhãn
+#: từ điển — hỏng lặng. Đặt quanh MỘT lần vẽ thẻ rồi gỡ sạch thì chỉ một chỗ phải
+#: nhớ, và `the_buoc` là chỗ duy nhất đặt nó.
+_TEN_NHO = {}
+
+
 def _ve_dieu_kien(ve):
     """Một VẾ của dòng điều kiện -> chữ. Dùng cho cả vế trái lẫn vế phải."""
     if not isinstance(ve, dict):
@@ -586,7 +596,10 @@ def _ve_dieu_kien(ve):
     dl = hoi.dai_luong(ve.get("ma_dl"))
     if not dl:
         return str(ve.get("ma_dl") or "?")
-    chu = dl["nhan"]
+    # Ô NHỚ gọi bằng TÊN NGƯỜI DÙNG ĐẶT. Nhãn từ điển («Trí nhớ THEO MÃ — đúng/sai
+    # 1») là chỗ CẤT, không phải thứ người ta đọc; thẻ mà in nó thì câu «đang chờ
+    # mua lại» biến mất khỏi sơ đồ đúng lúc người đọc cần nó nhất.
+    chu = _TEN_NHO.get(ve["ma_dl"]) or dl["nhan"]
     # Tham số hiện trong ngoặc: "EMA — trung bình trượt luỹ thừa" quá dài trên thẻ,
     # nên lấy phần TRƯỚC dấu gạch làm tên ngắn.
     ngan = chu.split(" — ")[0]
@@ -824,6 +837,17 @@ def the_buoc(step, ten_nho=None):
     if ten_nho and (step or {}).get("type") == lam.LAM_GHI_NHO:
         step = {**step, "_ten_nho": ten_nho.get(
             str(step.get("o_nho") or "").strip(), "")}
+    global _TEN_NHO
+    _TEN_NHO = dict(ten_nho or {})
+    try:
+        return _the_buoc(step)
+    finally:
+        # GỠ SẠCH. Để sót thì thẻ của một sơ đồ khác (hộp thoại mở sau, sơ đồ vừa
+        # nhân bản) đọc tên ô nhớ của sơ đồ trước — một cái tên đúng ở nhầm chỗ.
+        _TEN_NHO = {}
+
+
+def _the_buoc(step):
     kind = step.get("kind")
     hd = hanh_dong_cua(step)
 

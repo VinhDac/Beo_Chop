@@ -216,6 +216,7 @@ export interface OLam {
   /** `ds_ma` và `khoang_ngay` chỉ khối Bắt đầu có — widget của chúng nằm ngay trong
    *  `HopBatDau.tsx`, không ở `ORuot.tsx`, vì ô chung phải ở lại chung. */
   kieu: 'so' | 'chu' | 'chon' | 'co_khong' | 'ds_ma' | 'khoang_ngay'
+    | 'ds_nho'
   /** Chỉ nhận số NGUYÊN (giờ, phút). Python khai, giao diện KHÔNG tự đoán. */
   nguyen?: boolean
   mac_dinh: unknown
@@ -245,6 +246,11 @@ export interface LoaiLam {
   /** Ô THÊM theo lựa chọn của ô chọn đầu tiên (lệnh Giới hạn cần giá giới hạn, lệnh
    *  Dừng cần giá kích hoạt). Khoá = mã lựa chọn. */
   theo_loai: Record<string, { lean: string; o: OLam[] }>
+  /** TÊN ô CẦM LÁI — ô CHỌN quyết nhánh `theo_loai` nào được dùng. Python nói ra,
+   *  giao diện KHÔNG đoán: khối «Ghi nhớ» có hai ô chọn và ô cầm lái là ô THỨ HAI,
+   *  nên lối đoán "ô chọn đầu tiên" bày nhánh sai và điền mặc định của nhánh sai —
+   *  trong khi bộ sinh mã dùng nhánh đúng. Hai bên cùng "đúng" theo luật riêng. */
+  o_lai: string
   /** Khối này có ô chọn ĐẠI LƯỢNG không (chọn trong CẢ kho, không riêng một họ). */
   co_dai_luong?: boolean
   /** Tên ô đại lượng ấy: «Giá trị vẽ», «Trọng số»… — từ điển nói, giao diện bày. */
@@ -473,6 +479,10 @@ export interface TuDienBatDau {
    *  từng model (cắt khi lỗ / chốt khi lãi / tụt khỏi đỉnh), nên TypeScript KHÔNG
    *  dựng lại ô ấy: ngưỡng là cả cái phanh, nó phải nói đúng phanh nào. */
   phong_rui_ro: BangCoOThem[]
+  /** MƯỜI HAI ô nhớ CỐ ĐỊNH của `hoi.TRI_NHO` — giao diện bày danh sách này cho
+   *  người dùng chọn, rồi họ đặt TÊN cho ô nào muốn dùng. Không sinh mã mới: mã ô
+   *  nhớ là của từ điển, chỉ cái tên là của người dùng. */
+  o_nho: { ma: string; nhan: string; kieu: string; can_ma: boolean }[]
   /** Quy tắc GIỜ — bảng riêng, vì `schedule.on(date_rules.X, time_rules.Y)` nhận
    *  mọi X với mọi Y. Gộp hai thứ ấy vào một danh sách cặp là chỉ phủ được những
    *  cặp ai đó nghĩ ra để thêm. */

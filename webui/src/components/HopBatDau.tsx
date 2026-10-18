@@ -7,6 +7,76 @@ import type {
   BangCoOThem, KhoangNgay, MaChay, OLam, RoChay, Step, TuDienBatDau,
 } from '../types'
 
+/** MỘT Ô NHỚ đã khai: mã của từ điển + tên người dùng đặt + giá trị ban đầu. */
+type ONhoKhai = { ma: string; nhan: string; ban_dau?: unknown }
+
+/** Ô «Cỗ máy nhớ những gì» — khai mấy ô nhớ, mỗi ô một TÊN.
+ *
+ *  ⚠ MÃ Ô NHỚ LÀ CỦA TỪ ĐIỂN, TÊN LÀ CỦA NGƯỜI DÙNG. Mười hai mã cố định khai bên
+ *  Python (`hoi.TRI_NHO`); chỗ này chỉ cho chọn một mã còn trống rồi đặt tên. Cho
+ *  người dùng tự khai tên biến thì từ điển hết là từ điển, và mọi hàng rào lặp qua
+ *  nó mất chỗ đứng. */
+function ODsNho({ ds, td, onDoi }: {
+  ds: ONhoKhai[]
+  td: TuDienBatDau
+  onDoi: (v: ONhoKhai[]) => void
+}) {
+  const daDung = new Set(ds.map(x => x.ma))
+  const conTrong = td.o_nho.filter(o => !daDung.has(o.ma))
+  const kieuCua = (ma: string) => td.o_nho.find(o => o.ma === ma)?.kieu
+  return (
+    <div className="ds-nho">
+      {ds.map((x, i) => {
+        const o = td.o_nho.find(y => y.ma === x.ma)
+        const doi = (v: Partial<ONhoKhai> | null) => onDoi(v === null
+          ? ds.filter((_, k) => k !== i)
+          : ds.map((y, k) => (k === i ? { ...y, ...v } : y)))
+        return (
+          <div className="dong-nho" key={x.ma || i}>
+            <input className="o day" value={x.nhan ?? ''} spellCheck={false}
+                   placeholder="tên ô nhớ — «đang chờ mua lại»"
+                   onChange={e => doi({ nhan: e.target.value })} />
+            <select className="o" value={x.ma}
+                    onChange={e => doi({ ma: e.target.value,
+                      ban_dau: kieuCua(e.target.value) === 'co_khong'
+                        ? false : 0 })}>
+              {/* Ô đang chọn luôn có mặt, không thì đổi tên là mất chỗ. */}
+              {[...(o ? [o] : []), ...conTrong].map(y => (
+                <option key={y.ma} value={y.ma}>{y.nhan}</option>
+              ))}
+            </select>
+            {/* GIÁ TRỊ BAN ĐẦU — bắt buộc có, vì nhịp đầu tiên đã đọc ô này rồi. */}
+            {o?.kieu === 'co_khong'
+              ? <select className="o" value={x.ban_dau ? '1' : ''}
+                        onChange={e => doi({ ban_dau: !!e.target.value })}>
+                  <option value="">ban đầu: SAI</option>
+                  <option value="1">ban đầu: ĐÚNG</option>
+                </select>
+              : <input className="o so" inputMode="decimal"
+                       defaultValue={String(x.ban_dau ?? 0)}
+                       onChange={e => doi({
+                         ban_dau: e.target.value as unknown as number })} />}
+            <button className="nut-nho" title="Bỏ ô nhớ này"
+                    onClick={() => doi(null)}>✕</button>
+          </div>
+        )
+      })}
+      {conTrong.length > 0 && (
+        <button className="nut-nho" onClick={() => onDoi([...ds, {
+          ma: conTrong[0].ma, nhan: '',
+          ban_dau: conTrong[0].kieu === 'co_khong' ? false : 0 }])}>
+          + Thêm một ô nhớ
+        </button>
+      )}
+      <div className="ro-nhac">
+        Ô nhớ giữ một quyết định cỗ máy đã ra, để nhịp sau đọc lại. Thứ LEAN đã lo —
+        đỉnh giá từ lúc vào, cửa sổ N giá đóng, đang giữ mã nào — thì đừng nhớ lại
+        ở đây.
+      </div>
+    </div>
+  )
+}
+
 /** Ô «Chạy trên mã nào» đang nói kiểu nào — MỘT CHỖ DUY NHẤT quyết định.
  *
  *  Phân biệt bằng HÌNH DẠNG, y như Python (`bat_dau.ro_cua`): mảng là mấy mã gõ sẵn,
@@ -266,6 +336,14 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
       return (
         <Hang o={o}>
           <OChayTrenMa gt={gt.ma} td={tuDien} onDoi={v => doi('ma', v)} />
+        </Hang>
+      )
+    }
+    if (o.kieu === 'ds_nho') {
+      return (
+        <Hang o={o}>
+          <ODsNho ds={(gt.tri_nho as ONhoKhai[]) ?? []} td={tuDien}
+                  onDoi={v => doi('tri_nho', v)} />
         </Hang>
       )
     }

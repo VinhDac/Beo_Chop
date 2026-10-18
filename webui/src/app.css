@@ -2003,3 +2003,30 @@ mark.tim-chu {
 }
 .bang-noi .nut-nho:hover { color: var(--accent); border-color: var(--accent-soft); }
 .bang-noi .bn-them-tp .nut-nho { margin-left: 0; }
+
+/* ───────────── Hộp Bắt đầu — khai Ô NHỚ ────────────────────────────────────
+   Mỗi dòng là MỘT ô nhớ: tên người dùng đặt · ô nào của từ điển · giá trị ban đầu.
+   Tên đứng TRƯỚC và rộng nhất, vì đó là thứ người ta đọc — mã ô thì chỉ là chỗ cất. */
+/* ⚠ `flex: 1 1 auto` + `min-width: 0` — y lối `.ds-ma`. Thiếu nó thì tấm chỉ rộng
+   bằng nội dung tối thiểu (đo được 220px) và BA ô trên một dòng tràn ra ngoài. Đo
+   bằng JS mới thấy: `scrollWidth > clientWidth`, mắt nhìn ảnh thì tưởng vừa. */
+.hop-lam .ds-nho {
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1 1 auto; min-width: 0;
+}
+/* Ba ô một dòng là quá chật cho tấm 460px của hộp Bắt đầu, nên cho XUỐNG DÒNG: tên
+   chiếm cả dòng trên (nó là thứ người ta đọc), ô nhớ + giá trị ban đầu + nút bỏ nằm
+   dòng dưới. */
+.hop-lam .ds-nho .dong-nho {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0;
+}
+.hop-lam .ds-nho .dong-nho > .o.day { flex: 1 1 100%; min-width: 0; }
+.hop-lam .ds-nho .dong-nho > select { flex: 1 1 150px; min-width: 0; }
+.hop-lam .ds-nho .dong-nho > .o.so { flex: 0 0 72px; }
+.hop-lam .ds-nho .nut-nho {
+  flex: 0 0 auto; padding: 3px 8px; font: 500 11.5px var(--font);
+  color: var(--muted); background: var(--field);
+  border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.hop-lam .ds-nho .nut-nho:hover { color: var(--accent); border-color: var(--accent-soft); }

@@ -548,6 +548,12 @@ def tu_dien():
              "can_ma": d["can_ma"], "lean": d["lean"], "tat": d.get("tat", False),
              "nhom": d["nhom"],
              "o": d["o"], "theo_loai": d.get("theo_loai", {}),
+             # ⚠ Ô CẦM LÁI DO PYTHON NÓI RA, không để giao diện đoán. Giao diện từng
+             # đoán "ô CHỌN đầu tiên", và khối «Ghi nhớ» có hai ô chọn mà ô cầm lái
+             # là ô THỨ HAI — đoán sai thì hộp thoại bày nhánh sai và điền mặc định
+             # của nhánh sai, trong khi bộ sinh mã dùng nhánh đúng. Hai bên cùng
+             # "đúng" theo luật của mình, và lệch nhau lặng thinh.
+             "o_lai": (o_lai(ma) or {}).get("ten", ""),
              "co_dai_luong": d.get("co_dai_luong", False),
              # Nhãn và "có nhận số không" phải đi KÈM, không thì giao diện lại gõ
              # cứng "Giá trị vẽ" cho mọi khối có ô đại lượng.
