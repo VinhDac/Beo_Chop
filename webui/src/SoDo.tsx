@@ -24,6 +24,7 @@ import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
 import HopTienDo from './components/HopTienDo'
 import HopToiUu from './components/HopToiUu'
+import HopTienDoToiUu from './components/HopTienDoToiUu'
 import Icon from './components/Icon'
 import HopCaiDat from './components/HopCaiDat'
 import HopKhoLuot from './components/HopKhoLuot'
@@ -250,6 +251,9 @@ function SoDoTrong() {
   const [moToiUu, setMoToiUu] = useState(false)
   const [tdToiUu, setTdToiUu] = useState<TuDienToiUu | null>(null)
   const [numSoDo, setNumSoDo] = useState<NumSoDo[]>([])
+  const [tdToiUuChay, setTdToiUuChay] = useState<
+    { giay: number; so_luot?: number; xong_may?: number
+      dong_cuoi?: string } | null>(null)
   const [moCaiDat, setMoCaiDat] = useState(false)
   /** Kho LƯỢT BACKTEST — khác `moKho` phía trên, cái ấy là kho Strategy. */
   const [moKhoLuot, setMoKhoLuot] = useState(false)
@@ -1643,6 +1647,19 @@ function SoDoTrong() {
       {tienDo && (
         <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
       )}
+      {tdToiUuChay && (
+        <HopTienDoToiUu td={tdToiUuChay}
+          onHuy={() => setTdToiUuChay(null)}
+          onDung={() => void (async () => { await py.dung_toi_uu() })()}
+          onXem={() => void (async () => {
+            // Mở cửa sổ NGAY trong lúc mẻ còn chạy: bảng và plot trong đó đầy dần.
+            // Mã mẻ do PYTHON nói (`ma_id`) — bẻ đường dẫn ở đây là giao diện phải
+            // đoán cách `luu_tru` xếp thư mục, mà đó là việc của Python.
+            const t = await py.tien_do_toi_uu()
+            const id = (t.value as { ma_id?: string } | undefined)?.ma_id
+            if (id) await py.mo_cua_so_toi_uu(id)
+          })()} />
+      )}
       {moToiUu && tdToiUu && (
         <HopToiUu td={tdToiUu} num={numSoDo} dangChay={dangChay}
                   onDong={() => setMoToiUu(false)}
@@ -1655,20 +1672,26 @@ function SoDoTrong() {
                     }
                     if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
                     setDangChay(true)
+                    setTdToiUuChay({ giay: 0 })
                     ghi('bắt đầu một mẻ Optimize')
-                    // MỘT MẺ LÀ HÀNG TRĂM LƯỢT, nên mở cửa sổ NGAY chứ đừng đợi
-                    // xong: bảng và plot trong đó đầy dần, người dùng nhìn thấy nó
-                    // còn sống. Đợi hết mẻ mới mở thì có khi chờ hàng tiếng trước
-                    // một màn hình không nói gì.
+                    // HỎI MỖI GIÂY, y như backtest. Khác một điểm: mẻ ĐẾM ĐƯỢC,
+                    // nên hộp tiến độ có phần trăm THẬT — đếm từ file kết quả đã
+                    // ghi ra đĩa, không phải một con số bịa.
                     const nhip = window.setInterval(() => void (async () => {
                       const t = await py.tien_do_toi_uu()
                       if (!t.ok || !t.value) return
                       const v = t.value as { dang_chay?: boolean; xong?: boolean
+                                             giay?: number; so_luot?: number
+                                             xong_may?: number; dong_cuoi?: string
                                              kq?: { ok?: boolean; loi?: string
                                                     id?: string } }
+                      setTdToiUuChay(td => td && { giay: v.giay ?? td.giay,
+                        so_luot: v.so_luot, xong_may: v.xong_may,
+                        dong_cuoi: v.dong_cuoi })
                       if (!v.xong) return
                       window.clearInterval(nhip)
                       setDangChay(false)
+                      setTdToiUuChay(null)
                       if (v.kq?.id) await py.mo_cua_so_toi_uu(v.kq.id)
                       else if (v.kq && !v.kq.ok) await bao({ loi: v.kq.loi ?? '' })
                     })(), 1000)

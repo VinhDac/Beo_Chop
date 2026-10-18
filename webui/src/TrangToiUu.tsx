@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import TitleBar from './components/TitleBar'
 import Icon from './components/Icon'
 import { cho_cau_noi, pyTu } from './api'
-import type { LuotToiUu } from './types'
+import type { LuotToiUu, TuDienToiUu } from './types'
 
 /** CỬA SỔ OPTIMIZE — đúng HAI phần, không hơn.
  *
@@ -34,6 +34,9 @@ export default function TrangToiUu({ ma }: { ma: string }) {
   const [dangChay, setDangChay] = useState(false)
   const [sap, setSap] = useState<{ cot: string; xuoi: boolean }>(
     { cot: '', xuoi: false })
+  const [td, setTd] = useState<TuDienToiUu | null>(null)
+  /** Bày cả 27 cột. KHÔNG giấu gì — chỉ là mặc định gọn, mở ra một nút là thấy hết. */
+  const [hetCot, setHetCot] = useState(false)
 
   useEffect(() => {
     let song = true
@@ -58,24 +61,34 @@ export default function TrangToiUu({ ma }: { ma: string }) {
         setLoi('Không kết nối được tới Python.')
         return
       }
+      const t = await pyTu.tu_dien_toi_uu()
+      if (song && t.ok && t.value) setTd(t.value)
       await doc()
     })()
     return () => { song = false }
   }, [ma])
 
   const ds: LuotToiUu['ket_qua'] = me?.ket_qua ?? []
-  const tenNum = useMemo(
-    () => [...new Set(ds.flatMap(r => Object.keys(r.tham_so)))].sort(), [ds])
-  const tenChiTieu = useMemo(() => {
-    const d = new Map<string, number>()
-    for (const r of ds) for (const k of Object.keys(r.chi_tieu)) {
-      d.set(k, (d.get(k) ?? 0) + 1)
-    }
-    return [...d.keys()]
-  }, [ds])
-
   const mucTieu = me?.cai?.muc_tieu ?? 'Sharpe Ratio'
   const lon = (me?.cai?.huong ?? 'max') === 'max'
+  const tenNum = useMemo(
+    () => [...new Set(ds.flatMap(r => Object.keys(r.tham_so)))].sort(), [ds])
+  /* SÁU CỘT, KHÔNG PHẢI 27. Bày hết thì bảng rộng gấp ba màn hình và phải kéo
+     ngang mới thấy cột mình cần. Danh sách do PYTHON khai (`chi_tieu_chinh`) —
+     giao diện không tự chọn hộ chỉ tiêu nào là quan trọng.
+     Chỉ tiêu ĐANG TÌM luôn đứng đầu, kể cả khi nó không nằm trong sáu cột ấy: quét
+     để tìm Sortino mà bảng không có cột Sortino thì xếp hạng theo cái gì. */
+  const coSan = useMemo(() => {
+    const d = new Set<string>()
+    for (const r of ds) for (const k of Object.keys(r.chi_tieu)) d.add(k)
+    return d
+  }, [ds])
+  const tenChiTieu = useMemo(() => {
+    if (hetCot) return [...coSan]
+    const chinh = td?.chi_tieu_chinh ?? []
+    return [...new Set([mucTieu, ...chinh])].filter(c => coSan.has(c))
+  }, [coSan, td, hetCot, mucTieu])
+
 
   /* PLOT: mỗi lượt một chấm theo thứ tự chạy xong, cộng đường TỐT NHẤT ĐẾN GIỜ. */
   const diem = useMemo(() => {
@@ -128,6 +141,9 @@ export default function TrangToiUu({ ma }: { ma: string }) {
             <span className="tu-cham">·</span>
             tìm <b>{mucTieu}</b> {lon ? 'lớn nhất' : 'nhỏ nhất'}
             {dangChay && <span className="tu-dang"><Icon name="chay" /> đang chạy…</span>}
+            <button className="nut-nho tu-cot-nut" onClick={() => setHetCot(v => !v)}>
+              {hetCot ? 'cột chính' : `tất cả ${coSan.size} cột`}
+            </button>
           </div>
 
           {/* ───── 1. PLOT ───── */}

@@ -1821,6 +1821,11 @@ mark.tim-chu {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
+/* THANH PHẦN TRĂM THẬT — chỉ Optimize có. Backtest thì KHÔNG: LEAN không in tiến độ
+   một lượt ra màn hình, nên thanh bên kia chạy qua lại để nói "còn sống" chứ không
+   hứa "còn ngần này nữa". Mẻ Optimize thì đếm được — biết trước bao nhiêu lượt, và
+   đếm được bao nhiêu file kết quả đã ghi ra đĩa. */
+.td-thanh.that > i { animation: none; transition: width .3s ease; }
 /* Các bước xếp ngang: đã qua thì mờ, đang làm thì sáng, chưa tới thì rất mờ. */
 .td-buoc { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
 .td-buoc > span { color: var(--dim); opacity: .45; }
@@ -1925,3 +1930,11 @@ mark.tim-chu {
    không biết `rsi_chu_ky` bằng mấy thì xem để làm gì. Màn QC không có mấy cột này. */
 .tu-bang .tu-cot-num { color: var(--accent); }
 .tu-bang .tu-stt { text-align: left; color: var(--dim); }
+/* Nút bày hết cột — nằm cuối dòng đầu, mờ như một lối đi phụ. Mặc định bảng chỉ
+   sáu cột cho gọn; nút này là lời hứa KHÔNG GIẤU GÌ, mở ra là thấy cả 27. */
+/* ⚠ `float`, KHÔNG phải `display:flex` trên `.tu-dau`. Dòng ấy là VĂN XUÔI —
+   «5 lượt xong · tìm Sharpe Ratio lớn nhất» — gồm mấy `<b>` nằm giữa chữ thường.
+   Biến nó thành flex container thì mỗi mẩu chữ thành một flex item và MẤT HẾT
+   khoảng trắng giữa chúng: «5lượt xong · tìmSharpe Ratiolớn nhất». Đã nhìn thấy
+   trên ảnh chụp. */
+.tu-cot-nut { float: right; font-size: 11px; margin-top: -2px; }

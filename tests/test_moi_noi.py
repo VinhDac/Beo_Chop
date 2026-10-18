@@ -466,6 +466,42 @@ kiem("có cờ đóng tự động — thiếu là cả mẻ đứng chờ một
 _mo_ra = {c for c, _n in toi_uu.CACH_TIM}
 kiem("cách tìm là một lớp có thật của LEAN", _cfg["optimization-strategy"] in _mo_ra)
 
+print("\n▸ Cột BÀY SẴN của bảng xếp hạng phải là chỉ tiêu CÓ THẬT")
+# Bày cả 27 cột thì bảng rộng gấp ba màn hình, phải kéo ngang mới thấy cột mình cần
+# — đã thấy trên ảnh người dùng gửi. Nhưng danh sách rút gọn mà gõ sai một tên thì
+# cột ấy VĨNH VIỄN rỗng và không có lỗi nào kêu lên.
+_la = [c for c in toi_uu.CHI_TIEU_CHINH if c not in toi_uu.CHI_TIEU]
+kiem("mọi cột bày sẵn đều nằm trong 27 chỉ tiêu thật", not _la, f"— {_la}")
+kiem("và nó GỌN thật, không phải bày lại cả nắm",
+     3 <= len(toi_uu.CHI_TIEU_CHINH) <= 8, f"— {len(toi_uu.CHI_TIEU_CHINH)} cột")
+kiem("từ điển gửi danh sách ấy sang giao diện",
+     len(toi_uu.tu_dien()["chi_tieu_chinh"]) == len(toi_uu.CHI_TIEU_CHINH))
+_tu_tsx = doc("webui", "src", "TrangToiUu.tsx")
+kiem("giao diện ĐỌC `chi_tieu_chinh` chứ không tự chọn cột",
+     "chi_tieu_chinh" in _tu_tsx)
+kiem("và chỉ tiêu ĐANG TÌM luôn có cột, kể cả khi nó ngoài danh sách",
+     "mucTieu, ...chinh" in _tu_tsx,
+     "— quét tìm Sortino mà bảng không có cột Sortino thì xếp hạng theo gì")
+kiem("vẫn mở xem được CẢ 27 cột — gọn chứ không giấu",
+     "hetCot" in _tu_tsx and "tất cả" in _tu_tsx)
+
+print("\n▸ Hộp tiến độ Optimize — phần trăm phải là SỐ THẬT")
+# Backtest KHÔNG có phần trăm, cố ý: LEAN không in tiến độ một lượt ra màn hình, nên
+# bịa một con số là hứa một cái mốc không ai giữ được. Mẻ Optimize thì khác — biết
+# trước bao nhiêu lượt, và đếm được bao nhiêu file kết quả đã ghi ra đĩa.
+_td = chay_toi_uu.trang_thai()
+for _k in ("so_luot", "xong_may", "ma_id", "giay"):
+    kiem(f"`trang_thai` nói «{_k}»", _k in _td)
+_hop = doc("webui", "src", "components", "HopTienDoToiUu.tsx")
+kiem("hộp đếm theo xong/tổng, không phải thanh chạy suông",
+     "xong_may" in _hop and "so_luot" in _hop)
+kiem("còn-bao-lâu tính theo NHỊP THẬT của mấy lượt đã xong",
+     "giay / xong" in _hop,
+     "— lấy con số ước lượng lúc bấm Chạy thì máy bận là nói sai")
+_sodo = doc("webui", "src", "SoDo.tsx")
+kiem("mở cửa sổ bằng `ma_id` của Python, không tự bẻ đường dẫn",
+     "ma_id" in _sodo and "replace(/" not in _sodo)
+
 print("\n▸ ⚠ Bảng xếp hạng chỉ được bày NÚM CỦA MẺ, không bày tham số của LEAN")
 # ĐÃ DÍNH THẬT, và chỉ lộ ra khi nhìn ảnh chụp: `algorithmConfiguration.parameters`
 # mang cả `ema-fast` · `ema-slow` · `intrinio-username` · `intrinio-password` của

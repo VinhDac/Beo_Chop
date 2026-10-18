@@ -187,4 +187,5 @@ export const pyQC = py
 export const pyTu = {
   doc_me: () => goi<LuotToiUu>('doc_me'),
   tien_do: () => goi<{ dang_chay?: boolean; xong?: boolean }>('tien_do'),
+  tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
 }

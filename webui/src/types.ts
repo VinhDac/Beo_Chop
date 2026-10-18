@@ -492,6 +492,8 @@ export interface TuDienToiUu {
   huong: { ma: string; nhan: string }[]
   /** 27 chỉ tiêu LEAN ghi vào file kết quả — đếm từ file thật. */
   chi_tieu: string[]
+  /** Sáu cột bảng xếp hạng bày sẵn. Bày cả 27 thì bảng rộng gấp ba màn hình. */
+  chi_tieu_chinh: string[]
   /** Mặc định cho một mẻ mới — PYTHON khai, giao diện không tự nghĩ ra con số nào. */
   mac_dinh: CaiToiUu
   giay_moi_luot: number

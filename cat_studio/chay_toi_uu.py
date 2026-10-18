@@ -39,6 +39,10 @@ _TRANG_THAI = {
     "dang_chay": False, "xong": False, "bat_dau": 0.0, "dong_cuoi": "",
     "kq": None, "tien_trinh": None, "da_dung": False, "thu_muc": "",
     "so_luot": 0, "xong_may": 0, "ten_num": (),
+    #: Mã mẻ («<lớp>/<mã lượt>») — giao diện cần nó để mở cửa sổ NGAY
+    #: trong lúc mẻ còn chạy. Để giao diện tự bẻ đường dẫn ra thì nó
+    #: phải đoán cách `luu_tru` xếp thư mục, mà đó là việc của Python.
+    "ma_id": "",
 }
 
 
@@ -197,6 +201,7 @@ def chay(ma, ten_lop, cai):
     ra_thu_muc = os.path.join(thu_muc_goc(), ten_lop, ma_luot)
     os.makedirs(ra_thu_muc, exist_ok=True)
     _dat(thu_muc=ra_thu_muc, so_luot=uoc["so_luot"],
+         ma_id=f"{ten_lop}/{ma_luot}",
          ten_num=tuple(sorted((cai.get("tham_so") or {}))))
 
     thu_muc_exe = os.path.dirname(sb["exe"])
@@ -295,7 +300,7 @@ def bat_dau_chay(ma, ten_lop, cai):
         _TRANG_THAI.update({"dang_chay": True, "xong": False, "bat_dau": time.time(),
                             "dong_cuoi": "", "kq": None, "tien_trinh": None,
                             "da_dung": False, "thu_muc": "", "so_luot": 0,
-                            "ten_num": ()})
+                            "ten_num": (), "ma_id": ""})
 
     def chay_nen():
         try:

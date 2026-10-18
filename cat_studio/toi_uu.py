@@ -66,6 +66,21 @@ CHI_TIEU = (
     "Estimated Strategy Capacity", "Lowest Capacity Asset",
 )
 
+#: CỘT BẢNG XẾP HẠNG BÀY SẴN — sáu chỉ tiêu, không phải cả 27.
+#:
+#: Bày hết thì bảng rộng gấp ba màn hình và phải kéo ngang mới thấy cột mình cần;
+#: mà thứ người ta nhìn để chọn một bộ số thì chỉ có ngần này: lãi bao nhiêu, sụt
+#: sâu bao nhiêu, ăn thua mấy phần, và giao dịch có đủ nhiều để tin con số không.
+#: 21 cột còn lại vẫn đọc được — cửa sổ có nút bày hết, nên không giấu gì cả.
+#:
+#: ⚠ CHỈ TIÊU ĐANG TÌM luôn được thêm vào, kể cả khi nó không nằm trong danh sách
+#: này: quét để tìm Sortino mà bảng không có cột Sortino thì xếp hạng theo cái gì.
+CHI_TIEU_CHINH = (
+    "Sharpe Ratio", "Net Profit", "Compounding Annual Return",
+    "Drawdown", "Win Rate", "Total Orders",
+)
+
+
 #: Đường dẫn LEAN hiểu cho một chỉ tiêu.
 def duong_chi_tieu(ten):
     return f"Statistics.{ten}"
@@ -138,6 +153,7 @@ def tu_dien():
         "phep_so": [{"ma": m, "nhan": n} for m, n in PHEP_SO],
         "huong": [{"ma": m, "nhan": n} for m, n in HUONG],
         "chi_tieu": list(CHI_TIEU),
+        "chi_tieu_chinh": list(CHI_TIEU_CHINH),
         "mac_dinh": {k: (dict(v) if isinstance(v, dict) else
                          list(v) if isinstance(v, list) else v)
                      for k, v in MAC_DINH.items()},
