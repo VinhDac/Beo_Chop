@@ -379,6 +379,14 @@ function SoDoTrong() {
   useEffect(() => nghe('mo_so_do', (d) => void (async () => {
     const doc = d as { name?: string; steps?: Step[]; edges?: Edge[]; dat?: string[] }
     if (!doc?.steps?.length) return
+    // ĐÓNG MỌI HỘP ĐANG CHE SƠ ĐỒ. Người dùng bấm đúp từ cửa sổ Optimize, cửa sổ này
+    // nhảy lên trước — mà trước mặt họ lại là cái hộp Kho còn mở, che đúng thứ họ
+    // vừa bấm để xem. Đưa cửa sổ lên mà không dọn đường thì công cốc.
+    //
+    // CỐ Ý KHÔNG đóng hộp tiến độ (`tienDo`, `tdToiUuChay`): chúng nói về việc ĐANG
+    // CHẠY, và chúng cầm luôn cái nút Dừng — đóng hộ là cướp mất lối dừng.
+    setMoKho(false); setMoKhoStrategy(false); setMoKhoLuot(false)
+    setMoKetQua(false); setMoToiUu(false); setMoCaiDat(false); setMoBangPhim(false)
     chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges) })
     await nap({ schema: 1, type: 'strategy', name: doc.name || 'Strategy',
                 steps: doc.steps, edges: doc.edges ?? [] })

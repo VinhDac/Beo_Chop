@@ -675,8 +675,19 @@ kiem("cửa sổ sơ đồ NGHE `mo_so_do`", "nghe('mo_so_do'" in _sd_ts)
 kiem("và nó NẠP THẲNG tài liệu nhận được, không tự dò ô trong TypeScript",
      "await nap({" in _sd_ts and "dat_num_so_do" not in _sd_ts,
      "— viết lại luật «con số nằm ở đâu» bằng TS là bản sự thật thứ hai")
+_than_mo = _sd_ts.split("nghe('mo_so_do'")[1][:1400]
 kiem("đẩy một bước Hoàn tác trước khi nạp đè lên sơ đồ đang vẽ",
-     "chong.current.push" in _sd_ts.split("nghe('mo_so_do'")[1][:900])
+     "chong.current.push" in _than_mo)
+# Đưa cửa sổ lên trước mà cái hộp Kho vẫn mở thì nó che đúng thứ người dùng vừa bấm
+# để xem — công cốc. Quét theo DANH SÁCH state thật, nên thêm một hộp mới mà quên
+# đóng nó là bài này kêu.
+_hop_che = [d.split("const [")[1].split(",")[0].strip()
+            for d in _sd_ts.splitlines()
+            if d.strip().startswith("const [mo") and "useState(false)" in d]
+_quen = [h for h in _hop_che if f"set{h[0].upper()}{h[1:]}(false)" not in _than_mo]
+kiem(f"đóng CẢ {len(_hop_che)} hộp đang che sơ đồ", not _quen, f"— quên: {_quen}")
+kiem("nhưng KHÔNG đóng hộp tiến độ — chúng cầm nút Dừng",
+     "setTienDo(null)" not in _than_mo and "setTdToiUuChay(null)" not in _than_mo)
 
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
