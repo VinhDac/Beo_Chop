@@ -459,6 +459,27 @@ def mo_ta_lam(step):
         dong.append(f"Vẽ {chu}")
         dong.append(f"bảng «{g('bang')}» · đường «{g('ten_duong')}»")
 
+    elif t == lam.LAM_TIN_HIEU:
+        huong = {"UP": "LÊN", "DOWN": "XUỐNG", "FLAT": "PHẲNG"}.get(
+            str(g("huong") or ""), "?")
+        han = _f(g("han"))
+        if huong == "PHẲNG":
+            # FLAT là "thôi giữ mã này", nên nói theo việc chứ đừng nói "tín hiệu
+            # PHẲNG giữ 1 ngày" — câu ấy đúng chữ mà sai nghĩa.
+            dong.append("Thôi giữ — bỏ tín hiệu cũ")
+        else:
+            # `_so_gon`, KHÔNG phải `_pt`: `_pt` là bộ in phần trăm, nó nhân 100 — ô
+            # «Giữ tối đa 15 ngày» đọc ra "1500 ngày".
+            dong.append(f"Tín hiệu {huong}"
+                        + (f" · giữ tối đa {_so_gon(han)} ngày" if han else ""))
+        # TRỌNG SỐ chỉ nói ra khi nó KHÁC 1. Mặc định 1 nghĩa là "mọi mã ngang nhau",
+        # tức không xếp hạng gì — bày nó lên thẻ chỉ làm rối thẻ.
+        gt = step.get("gia_tri")
+        if isinstance(gt, dict) and gt.get("ma_dl"):
+            dong.append(f"trọng số: {_ve_dieu_kien(gt)}")
+        elif isinstance(gt, dict) and _f(gt.get("so")) not in (None, 1):
+            dong.append(f"trọng số: {_so_gon(_f(gt.get('so')))}")
+
     elif t == lam.LAM_BAO_TIN:
         dich = str(g("dich") or "").strip()
         dong.append(f"{nhan_chon('kenh')} -> {dich or '(chưa có nơi gửi)'}")
@@ -521,7 +542,8 @@ def _ve_dieu_kien(ve):
     if "so" in ve and "ma_dl" not in ve:
         n = ve["so"]
         # Số nguyên thì đừng in ".0" — "RSI < 30" đọc dễ hơn "RSI < 30.0".
-        return str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
+        chu = str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
+        return _ghep_chu(ve, chu)
     dl = hoi.dai_luong(ve.get("ma_dl"))
     if not dl:
         return str(ve.get("ma_dl") or "?")
@@ -536,7 +558,20 @@ def _ve_dieu_kien(ve):
         ngan += "." + str(ve["duong"])
     if ve.get("ma"):
         ngan = f"{ve['ma']}·{ngan}"
-    return ngan
+    return _ghep_chu(ve, ngan)
+
+
+def _ghep_chu(ve, ngan):
+    """Thêm phần GHÉP vào chữ của một vế: «Giá hiện tại / Cao nhất N nến(60)».
+
+    ⚠ THIẾU HÀM NÀY LÀ THẺ KHỐI NÓI DỐI. Bộ sinh mã viết `giá / đỉnh 60 nến ≤ 0,97`,
+    mà thẻ lại đọc "Giá hiện tại ≤ 0,97" — một câu VÔ LÝ (giá có bao giờ dưới 1 đô)
+    nhưng không sai cú pháp nào, nên chẳng ai thấy gì. Đúng thứ `mo_ta_lam` đã cảnh
+    báo ngay ở đầu: chữ trên thẻ phải tả ĐÚNG thứ bộ sinh mã thật sự viết ra."""
+    ghep = ve.get("ghep") if isinstance(ve.get("ghep"), dict) else None
+    if not ghep or not ghep.get("phep"):
+        return ngan
+    return f"{ngan} {ghep['phep']} {_ve_dieu_kien(ghep)}"
 
 
 def mo_ta_dieu_kien(dk):

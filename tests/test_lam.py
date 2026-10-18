@@ -363,6 +363,28 @@ for _h, _v in _th["theo_loai"].items():
          "{gia_tri}" in _v["lean"] and _v["lean"].count("None") == 3,
          f"— {_v['lean'][-60:]}")
 
+print("\n▸ ⚠ Mọi loại việc phải ĐỌC RA ĐƯỢC trên thẻ khối — không loại nào là dấu «?»")
+# ĐÃ DÍNH THẬT, và người dùng thấy trước tôi: `mo_ta_lam` là BẢNG TRA, mỗi loại một
+# câu viết tay. Thêm loại thứ chín («Phát tín hiệu») mà quên thêm nhánh cho nó, thế là
+# cả ba khối trên sơ đồ vd1 hiện đúng một dấu hỏi — không lỗi, không cảnh báo, chỉ là
+# thẻ không nói gì. Bảng tra nào cũng có bẫy này, nên phải quét CẢ bảng.
+_cham_hoi = []
+for _ma in lam.LOAI_LAM:
+    _d = core.mo_ta_lam(core.make_lam_step(_ma))
+    if not _d or _d == ["?"] or any("?" == str(x).strip() for x in _d):
+        _cham_hoi.append(_ma)
+kiem(f"quét cả {len(lam.LOAI_LAM)} loại việc", len(lam.LOAI_LAM) == 9)
+kiem("không loại nào ra dấu «?»", not _cham_hoi, f"— {_cham_hoi}")
+# Và mấy ô cầm lái phải ĐỔI được câu, không thì câu ấy chỉ là chữ trang trí.
+_f = core.make_lam_step(lam.LAM_TIN_HIEU)
+_f["huong"] = "FLAT"
+kiem("đổi hướng là đổi câu",
+     core.mo_ta_lam(_f) != core.mo_ta_lam(core.make_lam_step(lam.LAM_TIN_HIEU)),
+     f"— {core.mo_ta_lam(_f)}")
+_h15 = core.mo_ta_lam(core.make_lam_step(lam.LAM_TIN_HIEU))[0]
+kiem("«giữ tối đa 15 ngày» chứ không phải 1500",
+     "15 ngày" in _h15, f"— {_h15}")
+
 print("\n▸ Nhãn ô đại lượng do TỪ ĐIỂN nói, giao diện không gõ cứng")
 # ĐÃ DÍNH THẬT: `HopHanhDong.tsx` gõ cứng "Giá trị vẽ", nên khối Phát tín hiệu vừa
 # thêm ô «Trọng số» là hộp thoại gọi nó bằng tên của khối khác. Cùng họ với chỗ

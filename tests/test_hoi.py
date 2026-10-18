@@ -259,6 +259,22 @@ kiem("ghép hai tầng → lỗi", any("hai tầng" in m for m in _loi7), f"— 
 kiem("và bộ sinh mã thật sự BỎ tầng thứ hai — nên lỗi kia không phải cấm vô cớ",
      "- 1" not in _dong7, f"— {_dong7}")
 
+print("\n▸ ⚠ THẺ KHỐI phải NÓI RA phép ghép — bỏ nó đi là thẻ nói dối")
+# Nguy hơn một dấu «?», vì nó vẫn đọc trôi chảy: bộ sinh mã viết `giá / đỉnh 60 nến
+# ≤ 0,97`, mà thẻ đọc "Giá hiện tại ≤ 0,97" — một câu VÔ LÝ (giá nào dưới 1 đô) nhưng
+# không sai cú pháp nào, nên nhìn qua chẳng ai thấy gì. Đúng điều `mo_ta_lam` cảnh báo
+# ngay ở đầu: chữ trên thẻ phải tả ĐÚNG thứ bộ sinh mã thật sự viết ra.
+for _p, _ten_p in hoi.PHEP_GHEP:
+    _dk = core.make_dieu_kien("gia", "<=", 0.97)
+    _dk["trai"]["ghep"] = {"phep": _p, "ma_dl": "max", "tham_so": {"n": 60}}
+    _chu = core.mo_ta_dieu_kien(_dk)
+    kiem(f"thẻ nói ra phép «{_ten_p}»", _p in _chu and "Cao nhất" in _chu, f"— {_chu}")
+# Ghép với một CON SỐ cũng phải hiện — và cả khi nó nằm ở vế PHẢI.
+_dk = core.make_dieu_kien("gia", ">", 0)
+_dk["phai"] = {"ma_dl": "sma", "tham_so": {"n": 200}, "ghep": {"phep": "*", "so": 1.05}}
+_chu = core.mo_ta_dieu_kien(_dk)
+kiem("vế phải có ghép cũng hiện", "* 1.05" in _chu, f"— {_chu}")
+
 print("\n▸ Ghép phải SỐNG qua lưu/mở — `chuan_hoa_khoi` dựng lại khối từ đầu")
 _h = core.make_hoi_step("hoi_thi_truong")
 _dk = core.make_dieu_kien("gia", "<=", 0.97)
