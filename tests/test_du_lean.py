@@ -81,6 +81,85 @@ NEN = {
 # CỐ Ý KHÔNG BÀY — mỗi dòng phải có lý do viết bằng chữ.
 # ---------------------------------------------------------------------------
 CO_Y_BO = {
+    # --- chỉ báo: 17 cái LEAN có mà app CỐ Ý không bày ---
+    'A':
+        'Nhận HAI mã (`Symbol target, Symbol reference`) — '
+        'alpha/beta/tương quan/hiệp phương sai của mã này SO VỚI mã '
+        'kia. Một đại lượng trong từ điển hiện chỉ mang MỘT ô mã, nên '
+        'bày ra là mã thứ hai không có chỗ nào để chọn.',
+    'AO':
+        'Có tham số BẮT BUỘC kiểu `MovingAverageType` (chọn loại trung '
+        'bình trượt), mà ô tham số hiện chỉ nhận SỐ. Cần thêm ô chọn '
+        'kiểu trung bình trượt trước — ô ấy dùng được cho cả ATR, RSI, '
+        'CCI, MACD, KCH.',
+    'APO':
+        'Có tham số BẮT BUỘC kiểu `MovingAverageType` (chọn loại trung '
+        'bình trượt), mà ô tham số hiện chỉ nhận SỐ. Cần thêm ô chọn '
+        'kiểu trung bình trượt trước — ô ấy dùng được cho cả ATR, RSI, '
+        'CCI, MACD, KCH.',
+    'ARIMA':
+        'Tham số bắt buộc `intercept` kiểu bool, mà ô tham số hiện chỉ '
+        'nhận SỐ. Và ARIMA cần bốn bậc mô hình — bày ra mà đặt sai bậc '
+        'thì nó không nổ, chỉ ra số vô nghĩa.',
+    'B':
+        'Nhận HAI mã (`Symbol target, Symbol reference`) — '
+        'alpha/beta/tương quan/hiệp phương sai của mã này SO VỚI mã '
+        'kia. Một đại lượng trong từ điển hiện chỉ mang MỘT ô mã, nên '
+        'bày ra là mã thứ hai không có chỗ nào để chọn.',
+    'C':
+        'Nhận HAI mã (`Symbol target, Symbol reference`) — '
+        'alpha/beta/tương quan/hiệp phương sai của mã này SO VỚI mã '
+        'kia. Một đại lượng trong từ điển hiện chỉ mang MỘT ô mã, nên '
+        'bày ra là mã thứ hai không có chỗ nào để chọn.',
+    'COV':
+        'Nhận HAI mã (`Symbol target, Symbol reference`) — '
+        'alpha/beta/tương quan/hiệp phương sai của mã này SO VỚI mã '
+        'kia. Một đại lượng trong từ điển hiện chỉ mang MỘT ô mã, nên '
+        'bày ra là mã thứ hai không có chỗ nào để chọn.',
+    'D':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'DEM':
+        'Có tham số BẮT BUỘC kiểu `MovingAverageType` (chọn loại trung '
+        'bình trượt), mà ô tham số hiện chỉ nhận SỐ. Cần thêm ô chọn '
+        'kiểu trung bình trượt trước — ô ấy dùng được cho cả ATR, RSI, '
+        'CCI, MACD, KCH.',
+    'G':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'IV':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'PPO':
+        'Có tham số BẮT BUỘC kiểu `MovingAverageType` (chọn loại trung '
+        'bình trượt), mà ô tham số hiện chỉ nhận SỐ. Cần thêm ô chọn '
+        'kiểu trung bình trượt trước — ô ấy dùng được cho cả ATR, RSI, '
+        'CCI, MACD, KCH.',
+    'R':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'SWISS':
+        'Tham số bắt buộc `SwissArmyKnifeTool` là một enum chọn bộ lọc '
+        '(Gauss / Butterworth / HighPass…), mà ô tham số hiện chỉ nhận '
+        'SỐ.',
+    'T':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'V':
+        'Chỉ báo của QUYỀN CHỌN (Greeks). Bộ dữ liệu miễn phí kèm LEAN '
+        'không có quyền chọn, và sơ đồ chưa có khối nào nói về quyền '
+        'chọn.',
+    'VAR':
+        'LEAN dùng CÙNG MỘT TÊN `VAR` cho HAI chỉ báo khác nhau: '
+        '`Variance` (phương sai, 1 tham số) và `ValueAtRisk` (giá trị '
+        'chịu rủi ro, 2 tham số). Bày một dòng «VAR» ra thì không ai '
+        'biết mình đang chọn cái nào — phải tách thành hai dòng tên '
+        'khác nhau trước.',
     # --- app đã khai lý do ở CHÍNH BẢNG CỦA NÓ, đừng chép lại lần nữa ---
     # `PHONG_RUI_RO_DOC` · `DAT_LENH_DOC` · `CHIA_VON_THIEU_DU_LIEU` khai `(False,
     # lý do)` cho model nào app nuôi không nổi, kèm bằng chứng đã chạy thật. Hàm
@@ -156,7 +235,7 @@ CO_Y_BO = {
 # Sửa con số ở đây CHỈ khi vừa bày thêm thật, và phải sửa TĂNG.
 # ---------------------------------------------------------------------------
 MOC = {
-    "chi_bao": 21,
+    "chi_bao": 105,
     "chia_von": 5,
     "alpha": 0,
     "ro": 9,
@@ -345,11 +424,20 @@ kiem(len(cb_lean) > 100,
      f"đọc `QCAlgorithm.Indicators.cs` chỉ ra {len(cb_lean)} chỉ báo — ít bất "
      f"thường, chắc chữ ký đổi hình và bộ đọc hụt. Soát lại `chi_bao_lean`.")
 
+# ⚠ SO TÊN PHẢI BỎ GẠCH DƯỚI. LEAN đặt tên hàm theo PascalCase rồi sinh ra tên
+# Python snake_case, và hai lối ấy KHÔNG nghịch đảo nhau: `SMA` -> `sma` -> ngược
+# lại là `SMA`, đúng; nhưng `HeikinAshi` -> `heikin_ashi` -> ngược lại ra
+# `HEIKIN_ASHI`, mà LEAN tên là `HeikinAshi`. Bản đầu bài này so bằng `.upper()`
+# nên nó kêu đúng một cái `HeikinAshi` là "LEAN không có hàm ấy" — kêu oan, mà lần
+# này lời kêu oan lại chỉ đúng chỗ từ điển ghi SAI tên (`heikinashi`). Nên: so
+# không phân biệt gạch dưới, và cái gì còn lệch thì lệch thật.
+_phang_lean = {k.replace("_", "").upper(): k for k in cb_lean}
 cb_app = {}          # TÊN LEAN -> dòng từ điển
 for d in hoi.BANG_DAI_LUONG.values():
     m = re.match(r"self\.([a-z0-9_]+)\(", str(d.get("lean", "")))
     if m and hoi.la_chi_bao(d["ma"]):
-        cb_app[m.group(1).upper()] = d
+        k = m.group(1).replace("_", "").upper()
+        cb_app[_phang_lean.get(k, m.group(1).upper())] = d
 
 la = sorted(t for t in cb_app if t not in cb_lean)
 kiem(not la, f"app khai chỉ báo mà LEAN KHÔNG có hàm ấy: {', '.join(la)} — "

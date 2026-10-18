@@ -104,9 +104,14 @@ print("\n▸ Giá trị vẽ dùng lại ĐÚNG kho đại lượng của khối
 # «Tổng giá trị danh mục» — thứ ai cũng muốn nhìn. Nay chỉ còn một kho, nên ô này
 # chỉ khai "có chọn đại lượng", không khai chọn trong họ nào.
 kiem("Vẽ lên bảng có ô chọn đại lượng", lam.VE_BANG["co_dai_luong"] is True)
+# ⚠ `>= 68` CHỨ KHÔNG `== 68`. Dòng cũ đóng cứng con số 68, và nó đổ ngay lần đầu
+# có người bày thêm chỉ báo — đổ vì bảng DÀI RA, tức đổ vì việc đúng. Một bài kiểm
+# đổ khi người ta làm đúng thì lần sau người ta sửa con số cho nó im, chứ không đọc.
+# Thứ bài này canh là «ô ấy với tới CẢ NĂM họ», không phải kho dài đúng mấy dòng.
+# Còn chuyện kho bị RÚT NGẮN thì `test_du_lean` canh bằng `MOC`, đúng chỗ của nó.
 kiem("và nó với tới CẢ kho, không riêng một họ",
-     len({d["ho"] for d in hoi.KHO}) == 5 and len(hoi.KHO) == 68,
-     f"— {len(hoi.KHO)} đại lượng")
+     len({d["ho"] for d in hoi.KHO}) == 5 and len(hoi.KHO) >= 68,
+     f"— {len(hoi.KHO)} đại lượng, {len({d['ho'] for d in hoi.KHO})} họ")
 
 # ================= 2. Chín loại =================
 print("\n▸ Chín loại hành động")

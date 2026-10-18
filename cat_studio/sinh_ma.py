@@ -120,7 +120,18 @@ class _Kho:
         k = self.khoa(dl, ve)
         if k not in self.ds:
             ts = ve.get("tham_so") or {}
-            cau = _thay(dl["lean"], {"sym": "sym",
+            # ⚠ `res` CŨNG PHẢI THAY ĐƯỢC TRONG `lean`, không riêng trong `lean_dk`.
+            # Năm hàm chỉ báo của LEAN khai `Resolution? resolution =
+            # Resolution.Daily` — tức một THAM SỐ NULLABLE CÓ MẶC ĐỊNH KHÁC NULL —
+            # và pythonnet không dựng nổi mặc định ấy: gọi `self.si(sym, 3.0)` là
+            # nổ *"Object of type 'System.Int32' cannot be converted to type
+            # 'System.Nullable`1[QuantConnect.Resolution]'"*, bất kể truyền int,
+            # float hay Decimal. Truyền thẳng độ phân giải thì chạy.
+            #
+            # Chỉ lượt CHẠY THẬT mới thấy: cổng `test_du_lean` so SỐ LƯỢNG tham số
+            # với chữ ký C#, và `self.si(sym, gioi_han)` khớp đúng chữ ký ấy. Nó
+            # vẫn nổ.
+            cau = _thay(dl["lean"], {"sym": "sym", "res": res,
                                      **{t["ten"]: _so_py(ve, t["ten"], ts[t["ten"]])
                                         for t in dl["tham_so"]}})
             dk = (dl.get("lean_dk") or "").format(bien="_cb", res=res)
