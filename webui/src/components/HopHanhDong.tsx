@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import { Ve } from './HopDieuKien'
-import { Hang, KhaiLean } from './ORuot'
+import { Hang, KhaiLean, OGhim, OTheoKieu } from './ORuot'
 import ChonMa from './ChonMa'
 import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../types'
 
@@ -144,7 +144,14 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, coMaDangXet
               ? <ChonMa ds={dsMa} giaTri={String(gt.ma ?? '')}
                         coMaDangXet={coMaDangXet}
                         onDoi={m => doi('ma', m)} />
-              : undefined}
+              /* Chỉ ô SỐ mới ghim được — Optimize của LEAN chỉ quét số. Ghim một
+                 tên sàn hay một hướng tín hiệu thì không có khoảng nào để quét. */
+              : o.kieu === 'so'
+                ? <OGhim chu={gt} tenO={o.ten} nhan={o.nhan} so={gt[o.ten]}
+                         onDoi={m => setGt(m)}>
+                    <OTheoKieu o={o} gt={gt[o.ten]} onDoi={v => doi(o.ten, v)} />
+                  </OGhim>
+                : undefined}
           </Hang>
         ))}
 

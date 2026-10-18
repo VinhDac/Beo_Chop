@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { locSo, chotSo } from '../so'
+import Icon from './Icon'
 import type { OLam } from '../types'
 
 /** Ô RUỘT KHỐI — mấy widget hộp thoại nào cũng cần.
@@ -11,6 +12,61 @@ import type { OLam } from '../types'
  *  Hình thức một ô do `kieu` quyết, mà `kieu` thì PYTHON khai — giao diện không tự
  *  nghĩ ra ô nào.
  */
+
+/** Nhãn tiếng Việt -> tên núm hợp khuôn LEAN: `"Chu kỳ"` -> `"chu_ky"`.
+ *
+ *  Đặt tên hộ để người dùng không phải gõ. Khuôn phải khớp `core._RE_TEN_THAM_SO`
+ *  bên Python (chữ thường không dấu, số, gạch dưới, bắt đầu bằng chữ) — tên sai
+ *  khuôn thì config optimizer của LEAN không khai nổi, và nó quét một tên khác
+ *  trong khi thuật toán đọc tên này: N lượt backtest ra y hệt nhau, không lỗi. */
+export function tenNum(nhan: string): string {
+  const s = nhan.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+  return (/^[a-z]/.test(s) ? s : 'num_' + s).slice(0, 32)
+}
+
+/** NÚT GHIM một ô số làm tham số Optimize.
+ *
+ *  Ghim rồi thì ô ĐỔI SANG GÕ TÊN, còn con số lùi về sau thành "mặc định 14" — vì
+ *  sau khi ghim, thứ người ta cần đọc là cái tên, còn con số chỉ là giá trị dùng khi
+ *  chạy backtest thường.
+ *
+ *  Dùng chung một bản cho cả ba chỗ có ô số (tham số chỉ báo, con số của vế, ô số
+ *  khối Hành động) — ba bản thì sớm muộn một bên đặt tên theo khuôn khác. */
+export function OGhim({ chu, tenO, nhan, so, onDoi, children }: {
+  /** Cái DICT đang giữ ô ấy — vế điều kiện, hay chính khối. */
+  chu: Record<string, unknown>
+  tenO: string
+  nhan: string
+  so: unknown
+  onDoi: (chuMoi: Record<string, unknown>) => void
+  /** Ô số thật, hiện khi CHƯA ghim. */
+  children: ReactNode
+}) {
+  const ghim = (chu.ghim ?? {}) as Record<string, string>
+  const ten = ghim[tenO] ?? ''
+  const dat = (v: string | null) => {
+    const m = { ...ghim }
+    if (v === null) delete m[tenO]
+    else m[tenO] = v
+    onDoi({ ...chu, ghim: Object.keys(m).length ? m : undefined })
+  }
+  return (<>
+    {ten
+      ? <input className="o ten-num" spellCheck={false} value={ten}
+               placeholder="tên núm" onChange={e => dat(tenNum(e.target.value))} />
+      : children}
+    <button type="button"
+            className={'nut-nho nut-ghim' + (ten ? ' dang' : '')}
+            title={ten ? `Bỏ ghim — ô này đang là núm «${ten}»`
+                       : 'Ghim làm tham số để Optimize quét'}
+            onClick={() => dat(ten ? null : tenNum(nhan))}>
+      <Icon name="ghim" />
+    </button>
+    {ten && <span className="doc-them">mặc định {String(so ?? '')}</span>}
+  </>)
+}
 
 /** Ô SỐ có BẢN NHÁP riêng.
  *

@@ -4,6 +4,7 @@ import Icon from './Icon'
 import BangNoi from './BangNoi'
 import ChonDaiLuong from './ChonDaiLuong'
 import ChonMa from './ChonMa'
+import { OGhim } from './ORuot'
 import type { DaiLuong, Step, TuDienHoi, VeDieuKien, DongDieuKien } from '../types'
 
 /** HỘP THOẠI KHỐI XÁC NHẬN — nơi người chơi gõ điều kiện.
@@ -58,11 +59,16 @@ function ChinhDL({ dl, ve, dsMa, coMaDangXet, onDoi }: {
     )}
     {dl.tham_so.map(t => (
       <label key={t.ten} className="bn-hang"><span>{t.nhan}</span>
-        <input className="o so" inputMode="numeric"
-               value={String(ve.tham_so?.[t.ten] ?? t.mac_dinh)}
-               onChange={e => onDoi({ tham_so: {
-                 ...(ve.tham_so ?? {}),
-                 [t.ten]: e.target.value as unknown as number } })} />
+        <OGhim chu={ve as unknown as Record<string, unknown>} tenO={t.ten}
+               nhan={`${dl.nhan.split(' — ')[0]} ${t.nhan}`}
+               so={ve.tham_so?.[t.ten] ?? t.mac_dinh}
+               onDoi={m => onDoi(m as unknown as VeDieuKien)}>
+          <input className="o so" inputMode="numeric"
+                 value={String(ve.tham_so?.[t.ten] ?? t.mac_dinh)}
+                 onChange={e => onDoi({ ...ve, tham_so: {
+                   ...(ve.tham_so ?? {}),
+                   [t.ten]: e.target.value as unknown as number } })} />
+        </OGhim>
       </label>
     ))}
     {dl.duong && (
@@ -122,8 +128,10 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
   const dl = ve.ma_dl ? td.kho.find(d => d.ma === ve.ma_dl) : undefined
   // Đại lượng kiểu SỐ thì bánh răng luôn có, kể cả khi nó không mã không tham số:
   // phép GHÉP nằm trong bảng ấy, không có bánh răng thì không ai tới được.
-  const coChinh = !!dl && (dl.can_ma || dl.tham_so.length > 0 || !!dl.duong
-                           || dl.kieu === 'so')
+  // Ô CON SỐ cũng có bánh răng — ngưỡng so sánh («RSI <= 45») là thứ đáng ghim
+  // làm tham số nhất, mà trước đây nó là chỗ DUY NHẤT không có bánh răng nào.
+  const coChinh = laSo || (!!dl && (dl.can_ma || dl.tham_so.length > 0
+                                    || !!dl.duong || dl.kieu === 'so'))
   const ghep = ve.ghep
   const dlGhep = ghep?.ma_dl ? td.kho.find(d => d.ma === ghep.ma_dl) : undefined
 
@@ -175,15 +183,28 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
                       onChon={chonDL} onDong={() => setMo('')} />
       )}
 
-      {mo === 'chinh' && neo && dl && (
+      {mo === 'chinh' && neo && (dl || laSo) && (
         <BangNoi neo={neo} rong={262} cao={440} onDong={() => setMo('')}>
           <div className="bn-chinh">
-            <ChinhDL dl={dl} ve={ve} dsMa={dsMa} coMaDangXet={coMaDangXet}
-                     onDoi={v => onDoi({ ...ve, ...v })} />
+            {laSo ? (
+              <label className="bn-hang"><span>Con số</span>
+                <OGhim chu={ve as unknown as Record<string, unknown>} tenO="so"
+                       nhan="nguong" so={ve.so ?? 0}
+                       onDoi={m => onDoi(m as unknown as VeDieuKien)}>
+                  <input className="o so" inputMode="decimal"
+                         value={String(ve.so ?? 0)}
+                         onChange={e => onDoi({ ...ve,
+                           so: e.target.value as unknown as number })} />
+                </OGhim>
+              </label>
+            ) : (
+              <ChinhDL dl={dl!} ve={ve} dsMa={dsMa} coMaDangXet={coMaDangXet}
+                       onDoi={v => onDoi({ ...ve, ...v })} />
+            )}
 
             {/* GHÉP — chỗ diễn đạt «giá / đỉnh 60 nến ≤ 0,97», tức rơi 3% từ đỉnh.
                 Chỉ bày cho đại lượng kiểu SỐ: ĐÚNG/SAI thì cộng trừ vô nghĩa. */}
-            {dl.kieu === 'so' && (
+            {(!dl || dl.kieu === 'so') && (
               <label className="bn-hang bn-ghep"><span>Ghép với</span>
                 <select className="o" value={ghep?.phep ?? ''}
                         onChange={e => onDoi({ ...ve, ghep: e.target.value
@@ -231,7 +252,7 @@ export function Ve({ ve, td, dsMa, coMaDangXet = true, choSo, donViKia, onDoi }:
           {/* NGOÀI `.bn-chinh` — tấm ấy cuộn được, nên dòng khai hàm LEAN để trong
               nó là nó cuộn mất. Ghim ở chân, đúng như bảng chọn đại lượng. */}
           <div className="bn-lean">
-            {dl.lean}{ghep?.phep && ` ${ghep.phep} ${
+            {dl ? dl.lean : 'một con số'}{ghep?.phep && ` ${ghep.phep} ${
               dlGhep ? dlGhep.lean : String(ghep.so ?? 1)}`}
           </div>
         </BangNoi>

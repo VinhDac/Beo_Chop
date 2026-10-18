@@ -1110,6 +1110,22 @@ mark.tim-chu {
   cursor: pointer; padding: 4px 8px; border-radius: 4px; font: 12px var(--font);
 }
 .nut-nho:hover { background: var(--raised); color: var(--text); }
+/* GHIM — ô số này là một núm Optimize sẽ quét. Mờ khi chưa ghim (một lối đi phụ,
+   đừng tranh chỗ với con số), sáng màu nhấn khi đã ghim: nhìn một cái là thấy sơ đồ
+   có mấy núm, không phải mở từng hộp ra đếm. */
+.nut-ghim { padding: 4px 6px; opacity: .45; }
+.nut-ghim:hover { opacity: 1; }
+.nut-ghim.dang { opacity: 1; color: var(--accent); }
+.nut-ghim.dang:hover { background: var(--raised); }
+/* Ô gõ TÊN NÚM thay chỗ ô số khi đã ghim — chữ mã nguồn, vì nó là một định danh
+   đi thẳng vào config của LEAN chứ không phải câu tiếng Việt.
+   ⚠ `min-width` CÓ SÀN, không phải 0: trong bảng nổi rộng 262px, hàng đã có nhãn
+   96px + nút ghim + chữ "mặc định 1.75", nên `min-width: 0` làm ô tên co lại thành
+   một ô vuông không đọc được chữ nào. Đã nhìn thấy trên ảnh chụp. */
+.ten-num { flex: 1 1 110px; min-width: 110px; font: 12px var(--font-mono); }
+/* Và cho hàng xuống dòng: hết chỗ thì "mặc định …" tụt xuống, chứ đừng bóp ô tên. */
+.bn-hang { flex-wrap: wrap; }
+.bn-hang .doc-them { margin-left: 96px; }
 .noi-dung-tab { flex: 1; overflow: auto; padding: 6px 0; }
 .dong-van-de {
   display: flex; gap: 8px; align-items: baseline;

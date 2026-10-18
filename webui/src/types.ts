@@ -151,6 +151,9 @@ export interface VeDieuKien {
   /** GHÉP với một đại lượng (hay một số) nữa bằng một phép tính: «giá / đỉnh 60 nến».
    *  MỘT tầng, không lồng nhau — xem `sinh_ma._ve_py` để biết vì sao. */
   ghep?: VeDieuKien & { phep: string }
+  /** Ô nào của vế này đã GHIM làm tham số Optimize: tên ô -> tên núm. Nằm CẠNH con
+   *  số chứ không thay nó, nên mọi chỗ đang đọc số vẫn thấy một con số thật. */
+  ghim?: Record<string, string>
 }
 
 export interface DongDieuKien {
