@@ -14,6 +14,7 @@ import OTimKhoi, { type LocTim } from './components/OTimKhoi'
 import TagCoMay from './components/TagCoMay'
 import KhoiMo from './components/KhoiMo'
 import HopCoMay from './components/HopCoMay'
+import HopQuayVe from './components/HopQuayVe'
 import ContextMenu, { type MucPhai } from './components/ContextMenu'
 import BangPhimTat from './components/BangPhimTat'
 import HopDoiTen from './components/HopDoiTen'
@@ -251,6 +252,7 @@ function SoDoTrong() {
   const coHopSua = useCallback((st?: Step) => !!st && (
     (st.kind === 'start' && !!tuDienBD)
     || (st.kind === 'group' && !!tuDienLam && !!tuDien)
+    || st.type === 'quay_ve'
     || !!tuDien?.loai.some(l => l.ma === st.type)
     || (!!tuDien && laHanhDong(tuDienLam, st.type))
   ), [tuDien, tuDienLam, tuDienBD])
@@ -269,7 +271,6 @@ function SoDoTrong() {
     if (st.kind === 'group') {
       return tuDienLam && tuDien ? '' : thieu(tuDienLam ? 'XÁC NHẬN' : 'HÀNH ĐỘNG')
     }
-    if (st.type === 'quay_ve') return 'Khối Quay về chưa có hộp sửa — dùng Nối tới…'
     if (!tuDien) return thieu('XÁC NHẬN')
     if (!tuDienLam) return thieu('HÀNH ĐỘNG')
     return `Khối loại "${st.type ?? '?'}" chưa có hộp sửa`
@@ -1839,6 +1840,13 @@ function SoDoTrong() {
           return <HopNhom step={st} tuDienLam={tuDienLam} tuDienHoi={tuDien}
                           dsMa={dsMa} coMaDangXet={coMaDangXet}
                           onLuu={luu} onDong={() => setDangSua(null)} />
+        }
+        if (st.type === 'quay_ve') {
+          return <HopQuayVe step={st} dsKhoi={nodes
+                      .filter(x => x.id !== dangSua && !x.id.startsWith('hn:'))
+                      .map(x => ({ id: x.id,
+                        nhan: `${thuTu[x.id] ?? '–'} · ${(x.data as { card: Card }).card.title}` }))}
+                    onLuu={luu} onDong={() => setDangSua(null)} />
         }
         if (st.kind === 'start' && tuDienBD) {
           return <HopBatDau step={st} tuDien={tuDienBD} onLuu={luu}

@@ -398,6 +398,24 @@ kiem("trang đứng riêng tự vẽ thanh tiêu đề", "TitleBar" in doc("Tran
 #   · cú bấm nằm ở `mousedown`, không ở `click`: chuột nhấn xuống làm bỏ chọn khối,
 #     khối mờ tính theo khối ấy nên biến mất trước khi `click` kịp bắn.
 # Cả ba đều cho ra CÙNG một triệu chứng: con trỏ là bàn tay, bấm vào không ra gì.
+# ⚠ KHỐI QUAY VỀ RƠI QUA KẼ GIỮA HAI TỪ ĐIỂN. Nó không hỏi thị trường, cũng không ra
+# lệnh nào — nó là NGỮ PHÁP của hình vẽ — nên không thuộc từ điển Hỏi lẫn từ điển Làm,
+# và bấm đúp vào nó không ra gì. Tệ hơn: ô «số vòng» của nó không đặt được Ở ĐÂU CẢ.
+# Đếm cả mã nguồn thì `so_vong` của một KHỐI chỉ được ĐỌC (vẽ đường ↻, sinh mã), chưa
+# một chỗ nào ghi — một ô có thật trong file, có thật trong bộ sinh mã, mà người dùng
+# không có cửa nào chạm tới. (Ô số vòng trên ĐƯỜNG ↻ là lối khai vòng thứ hai, khác.)
+print("\n▸ Khối Quay về có hộp sửa, và sửa được SỐ VÒNG")
+_qv = doc("components/HopQuayVe.tsx")
+kiem("có hộp riêng cho Quay về", bool(_qv))
+kiem("sửa được ĐÍCH", "setVe(" in _qv)
+kiem("và sửa được SỐ VÒNG", "so_vong" in _qv and "setSoVong(" in _qv,
+     "— ô có thật trong file và trong bộ sinh mã mà không có cửa nào chạm tới")
+kiem("để TRỐNG là lặp mãi, và KHÔNG ghi khoá",
+     "delete s.so_vong" in _qv,
+     "— có khoá mà giá trị rỗng là thứ `khoi_quay_ve` phải đoán")
+kiem("bấm đúp vào Quay về mở được hộp",
+     "quay_ve" in doc("SoDo.tsx") and "HopQuayVe" in doc("SoDo.tsx"))
+
 print("\n▸ Khối mờ của nối thông minh — ba chỗ chết LẶNG")
 _sd_mo = doc("SoDo.tsx")
 kiem("khối mờ khai sẵn CỠ", re.search(r"width: 296, height: \d+", _sd_mo) is not None,
