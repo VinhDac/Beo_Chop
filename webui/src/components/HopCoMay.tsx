@@ -3,6 +3,7 @@ import Modal from './Modal'
 import Icon from './Icon'
 import RuotBatDau, { locOAnHien } from './RuotBatDau'
 import type { CoMay, TuDienBatDau } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP CỖ MÁY LEAN — thứ LEAN lo hộ, quanh cái sơ đồ.
  *
@@ -30,20 +31,19 @@ export default function HopCoMay({ coMay, tuDien, maSoDo, onLuu, onDong }: {
   const [gt, setGt] = useState<Record<string, unknown>>(() => ({ ...coMay }))
 
   return (
-    <Modal title="Cỗ máy LEAN" width={660} onClose={onDong}
+    <Modal title={tr('Cỗ máy LEAN')} width={660} onClose={onDong}
            footer={<>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Huỷ</button>
+             <button className="nut" onClick={onDong}>{tr('Huỷ')}</button>
              <button className="nut chinh"
                      onClick={() => onLuu(locOAnHien(gt, tuDien) as CoMay)}>
-               Lưu
+               {tr('Lưu')}
              </button>
            </>}>
       <div className="hop-lam">
         <div className="mo-ta-loai">
-          <Icon name="gear" /> những thứ LEAN lo hộ quanh sơ đồ — không phải một
-          bước nào trong sơ đồ
-        </div>
+          {trx('{0} những thứ LEAN lo hộ quanh sơ đồ — không phải một '
+          + 'bước nào trong sơ đồ', <Icon name="gear" />)}</div>
 
         <RuotBatDau dsO={tuDien.o_co_may} nhom={tuDien.nhom_co_may} gt={gt}
                     setGt={setGt} tuDien={tuDien} maSoDo={maSoDo} />

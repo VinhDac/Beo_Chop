@@ -3,6 +3,7 @@ import TitleBar from './components/TitleBar'
 import Icon from './components/Icon'
 import { cho_cau_noi, pyTu } from './api'
 import type { LuotToiUu, TuDienToiUu } from './types'
+import { tr, trx, useNgonNgu } from './ngon_ngu'
 
 /** CỬA SỔ OPTIMIZE — đúng HAI phần, không hơn.
  *
@@ -29,6 +30,8 @@ function so(v: unknown): number | null {
 }
 
 export default function TrangToiUu({ ma }: { ma: string }) {
+  // Gốc cửa sổ nghe ngôn ngữ: `cho_cau_noi` đặt tiếng xong là cả trang vẽ lại.
+  useNgonNgu()
   const [me, setMe] = useState<LuotToiUu | null>(null)
   const [loi, setLoi] = useState('')
   const [dangChay, setDangChay] = useState(false)
@@ -43,7 +46,7 @@ export default function TrangToiUu({ ma }: { ma: string }) {
     const doc = async () => {
       const r = await pyTu.doc_me()
       if (!song) return
-      if (!r.ok || !r.value) { setLoi(r.error ?? 'Không mở được mẻ này.'); return }
+      if (!r.ok || !r.value) { setLoi(r.error ?? tr('Không mở được mẻ này.')); return }
       setMe(r.value)
       // CÒN CHẠY THÌ ĐỌC LẠI: lượt nào xong là file của nó đã nằm đó, nên bảng và
       // plot đầy dần. Bắt nhìn màn trống tới lúc hết mẻ thì không ai biết nó còn
@@ -58,7 +61,7 @@ export default function TrangToiUu({ ma }: { ma: string }) {
       try {
         await cho_cau_noi('ping', 30000)
       } catch {
-        setLoi('Không kết nối được tới Python.')
+        setLoi(tr('Không kết nối được tới Python.'))
         return
       }
       const t = await pyTu.tu_dien_toi_uu()
@@ -131,18 +134,18 @@ export default function TrangToiUu({ ma }: { ma: string }) {
       <TitleBar tieuDe={me ? `Optimize · ${me.ten_lop ?? ''}` : 'Optimize'}
                 menus={[]} />
       {loi && <div className="mc-bao loi kq-loi">⚠ {loi}</div>}
-      {!me && !loi && <div className="kq-cho"><Icon name="chay" /> đang mở mẻ…</div>}
+      {!me && !loi && <div className="kq-cho">{trx('{0} đang mở mẻ…', <Icon name="chay" />)}</div>}
 
       {me && (
         <div className="tu-than">
           <div className="tu-dau">
-            <b>{ds.length}</b> lượt xong
+            <b>{ds.length}</b>{tr(' lượt xong')}
             {me.so_luot ? <> / {me.so_luot}</> : null}
             <span className="tu-cham">·</span>
-            tìm <b>{mucTieu}</b> {lon ? 'lớn nhất' : 'nhỏ nhất'}
-            {dangChay && <span className="tu-dang"><Icon name="chay" /> đang chạy…</span>}
+            {tr('tìm ')}<b>{mucTieu}</b> {lon ? tr('lớn nhất') : tr('nhỏ nhất')}
+            {dangChay && <span className="tu-dang">{trx('{0} đang chạy…', <Icon name="chay" />)}</span>}
             <button className="nut-nho tu-cot-nut" onClick={() => setHetCot(v => !v)}>
-              {hetCot ? 'cột chính' : `tất cả ${coSan.size} cột`}
+              {hetCot ? tr('cột chính') : tr('tất cả {0} cột', coSan.size)}
             </button>
           </div>
 
@@ -162,14 +165,13 @@ export default function TrangToiUu({ ma }: { ma: string }) {
               )}
               {diem.v.map((v, i) => v === null ? null : (
                 <circle key={i} cx={x(i)} cy={y(v)} r={3} className="tu-cham-diem">
-                  <title>{`lượt ${i + 1} · ${mucTieu} ${v}`}</title>
+                  <title>{tr('lượt {0} · {1} {2}', i + 1, mucTieu, v)}</title>
                 </circle>
               ))}
             </svg>
             <div className="tu-chu-thich">
-              <span className="tu-ky-hieu diem" /> mỗi lượt
-              <span className="tu-ky-hieu duong" /> tốt nhất đến giờ
-            </div>
+              {trx('{0} mỗi lượt{1} tốt nhất đến giờ', <span className="tu-ky-hieu diem" />,
+                <span className="tu-ky-hieu duong" />)}</div>
           </div>
 
           {/* ───── 2. BẢNG XẾP HẠNG ───── */}
@@ -199,13 +201,13 @@ export default function TrangToiUu({ ma }: { ma: string }) {
                      trước. Thử một bộ số tìm được mà phải mở từng khối ra gõ lại
                      sáu con số thì chẳng ai buồn thử. */
                   <tr key={r.id} className="co-the-ap"
-                      title="Bấm đúp để đặt bộ số này vào sơ đồ"
+                      title={tr('Bấm đúp để đặt bộ số này vào sơ đồ')}
                       onDoubleClick={() => void (async () => {
                         // ⚠ ĐỪNG NUỐT KẾT QUẢ. `void pyTu.ap_num(...)` vứt luôn cả
                         // câu lỗi, nên mẻ cũ (chưa lưu sơ đồ) bấm đúp ra ĐÚNG KHÔNG
                         // GÌ CẢ — không mở, không báo, người dùng tưởng nút hỏng.
                         const kq = await pyTu.ap_num(r.tham_so)
-                        if (!kq.ok) { setLoi(kq.error ?? 'không mở được sơ đồ'); return }
+                        if (!kq.ok) { setLoi(kq.error ?? tr('không mở được sơ đồ')); return }
                         setLoi('')
                       })()}>
                     <td className="tu-stt">{i + 1}</td>

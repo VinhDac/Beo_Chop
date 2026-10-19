@@ -4,6 +4,7 @@ import { DocThem, Hang, OTheoKieu } from './ORuot'
 import type {
   BangCoOThem, KhoangNgay, MaChay, OLam, RoChay, TuDienBatDau,
 } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** RUỘT dùng chung của HAI hộp thoại: «Bắt đầu» và «Cỗ máy LEAN».
  *
@@ -44,7 +45,7 @@ function ODsNho({ ds, td, onDoi }: {
         return (
           <div className="dong-nho" key={x.ma || i}>
             <input className="o day" value={x.nhan ?? ''} spellCheck={false}
-                   placeholder="tên ô nhớ — «đang chờ mua lại»"
+                   placeholder={tr('tên ô nhớ — «đang chờ mua lại»')}
                    onChange={e => doi({ nhan: e.target.value })} />
             <select className="o" value={x.ma}
                     onChange={e => doi({ ma: e.target.value,
@@ -52,21 +53,21 @@ function ODsNho({ ds, td, onDoi }: {
                         ? false : 0 })}>
               {/* Ô đang chọn luôn có mặt, không thì đổi tên là mất chỗ. */}
               {[...(o ? [o] : []), ...conTrong].map(y => (
-                <option key={y.ma} value={y.ma}>{y.nhan}</option>
+                <option key={y.ma} value={y.ma}>{tr(y.nhan)}</option>
               ))}
             </select>
             {/* GIÁ TRỊ BAN ĐẦU — bắt buộc có, vì nhịp đầu tiên đã đọc ô này rồi. */}
             {o?.kieu === 'co_khong'
               ? <select className="o" value={x.ban_dau ? '1' : ''}
                         onChange={e => doi({ ban_dau: !!e.target.value })}>
-                  <option value="">ban đầu: SAI</option>
-                  <option value="1">ban đầu: ĐÚNG</option>
+                  <option value="">{tr('ban đầu: SAI')}</option>
+                  <option value="1">{tr('ban đầu: ĐÚNG')}</option>
                 </select>
               : <input className="o so" inputMode="decimal"
                        defaultValue={String(x.ban_dau ?? 0)}
                        onChange={e => doi({
                          ban_dau: e.target.value as unknown as number })} />}
-            <button className="nut-nho" title="Bỏ ô nhớ này"
+            <button className="nut-nho" title={tr('Bỏ ô nhớ này')}
                     onClick={() => doi(null)}>✕</button>
           </div>
         )
@@ -75,13 +76,13 @@ function ODsNho({ ds, td, onDoi }: {
         <button className="nut-nho" onClick={() => onDoi([...ds, {
           ma: conTrong[0].ma, nhan: '',
           ban_dau: conTrong[0].kieu === 'co_khong' ? false : 0 }])}>
-          + Thêm một ô nhớ
+          {tr('+ Thêm một ô nhớ')}
         </button>
       )}
       <div className="ro-nhac">
-        Ô nhớ giữ một quyết định cỗ máy đã ra, để nhịp sau đọc lại. Thứ LEAN đã lo —
-        đỉnh giá từ lúc vào, cửa sổ N giá đóng, đang giữ mã nào — thì đừng nhớ lại
-        ở đây.
+        {tr('Ô nhớ giữ một quyết định cỗ máy đã ra, để nhịp sau đọc lại. Thứ LEAN đã lo — '
+        + 'đỉnh giá từ lúc vào, cửa sổ N giá đóng, đang giữ mã nào — thì đừng nhớ lại '
+        + 'ở đây.')}
       </div>
     </div>
   )
@@ -124,24 +125,24 @@ function DanhSachMa({ ds, td, onDoi }: {
     <div className="ds-ma">
       {ds.map((m, i) => (
         <div className="dong-ma" key={i}>
-          <input className="o ma" spellCheck={false} placeholder="mã"
+          <input className="o ma" spellCheck={false} placeholder={tr('mã')}
                  list={`co-san-${m.loai}`} value={m.ma}
                  onChange={e => sua(i, { ma: e.target.value.toUpperCase() })} />
           <select className="o day" value={m.loai}
                   onChange={e => sua(i, { loai: e.target.value })}>
             {td.loai_tai_san.map(l => (
-              <option key={l.ma} value={l.ma}>{l.nhan}</option>
+              <option key={l.ma} value={l.ma}>{tr(l.nhan)}</option>
             ))}
           </select>
           {/* Không CHẶN — ai có bộ dữ liệu riêng thì mã nào cũng chạy được. Chỉ nói
               ra, vì bộ miễn phí chỉ có 13 mã. */}
           {m.ma && !coDuLieu(m) && (
             <span className="ma-khong-co" title={
-              `Bộ dữ liệu miễn phí đi kèm LEAN không có ${m.ma}. Vẽ vẫn vẽ được, `
+              tr('Bộ dữ liệu miễn phí đi kèm LEAN không có {0}. Vẽ vẫn vẽ được, '
               + 'nhưng backtest trên máy này sẽ không ra lệnh nào — trừ khi bạn tự '
-              + 'tải dữ liệu về.'}>không có dữ liệu</span>
+              + 'tải dữ liệu về.', m.ma)}>{tr('không có dữ liệu')}</span>
           )}
-          <button className="nut-nho" title="Bỏ mã này"
+          <button className="nut-nho" title={tr('Bỏ mã này')}
                   onClick={() => onDoi(ds.filter((_x, j) => j !== i))}>✕</button>
         </div>
       ))}
@@ -153,8 +154,7 @@ function DanhSachMa({ ds, td, onDoi }: {
         </datalist>
       ))}
       <button className="nut" onClick={() => onDoi([...ds, { ma: '', loai: 'equity' }])}>
-        <Icon name="plus" /> Thêm mã
-      </button>
+        {trx('{0} Thêm mã', <Icon name="plus" />)}</button>
     </div>
   )
 }
@@ -191,9 +191,9 @@ function OChayTrenMa({ gt, td, onDoi }: {
     <div className="o-chay-ma">
       <select className="o day" value={ro ? String(ro.ro ?? '') : ''}
               onChange={e => chonRo(e.target.value)}>
-        <option value="">Mấy mã gõ sẵn</option>
+        <option value="">{tr('Mấy mã gõ sẵn')}</option>
         {td.ro.map(r => (
-          <option key={r.ma} value={r.ma}>Rổ — {r.nhan}</option>
+          <option key={r.ma} value={r.ma}>{trx('Rổ — {0}', tr(r.nhan))}</option>
         ))}
       </select>
 
@@ -211,7 +211,7 @@ function OChayTrenMa({ gt, td, onDoi }: {
         {(muc?.o_them ?? []).map(o => (
           <div className="ro-o" key={o.ten}>
             <div className="ro-hang">
-              <span className="ro-nhan">{o.nhan}</span>
+              <span className="ro-nhan">{tr(o.nhan)}</span>
               <OTheoKieu o={o} gt={ro[o.ten] ?? o.mac_dinh}
                          onDoi={v => onDoi({ ...ro, [o.ten]: v })} />
               <DocThem o={o} gt={ro[o.ten] ?? o.mac_dinh} />
@@ -220,15 +220,15 @@ function OChayTrenMa({ gt, td, onDoi }: {
                 ETF» nói bộ dữ liệu miễn phí có rổ của ETF nào — giấu nó sau một cái
                 hover là để người chơi gõ một mã không có dữ liệu rồi ngồi đoán vì
                 sao backtest không ra lệnh nào. */}
-            {o.goi_y && <div className="ro-goi-y">{o.goi_y}</div>}
+            {o.goi_y && <div className="ro-goi-y">{tr(o.goi_y)}</div>}
           </div>
         ))}
         {/* Rổ gồm mã nào là chuyện LEAN quyết lại mỗi ngày, nên không khối nào gõ
             được tên mã. Nói ra Ở ĐÂY, lúc chọn — chứ đừng để tới lúc bấm Build mới
             hiện một bảng Vấn đề dài. */}
         <div className="ro-nhac">
-          Rổ đổi theo ngày, nên không khối nào gõ được tên mã — mọi khối chạy cho
-          «mã đang xét». Cần khối «Phát tín hiệu» để LEAN chia vốn.
+          {tr('Rổ đổi theo ngày, nên không khối nào gõ được tên mã — mọi khối chạy cho '
+          + '«mã đang xét». Cần khối «Phát tín hiệu» để LEAN chia vốn.')}
         </div>
       </>)}
     </div>
@@ -358,10 +358,10 @@ export default function RuotBatDau({ dsO, nhom, gt, setGt, tuDien,
         <Hang o={o}>
           <select className="o day" value={String(gt.moc_so_sanh ?? '')}
                   onChange={e => doi('moc_so_sanh', e.target.value)}>
-            <option value="">(để trống — LEAN tự lấy SPY)</option>
+            <option value="">{tr('(để trống — LEAN tự lấy SPY)')}</option>
             {ds.map(m => (
               <option key={m} value={m}>
-                {m}{cua.includes(m) ? ' — mã của cỗ máy này' : ''}
+                {m}{cua.includes(m) ? tr(' — mã của cỗ máy này') : ''}
               </option>
             ))}
           </select>
@@ -420,15 +420,15 @@ export default function RuotBatDau({ dsO, nhom, gt, setGt, tuDien,
           *  model cắt lỗ thì nằm sau cả «Mốc so sánh». Hồi có sáu ô thì còn thấy
           *  được; nay hơn hai mươi ô thì người dùng chọn một model rồi không biết
           *  núm của nó mọc ra ở đâu. */}
-      {[...nhom, { ma: tuDien.nhom_khac, nhan: 'Khác', mo_ta: '' }]
+      {[...nhom, { ma: tuDien.nhom_khac, nhan: tr('Khác'), mo_ta: '' }]
         .map(nh => {
             const cua = dsO.filter(x => (x.nhom || tuDien.nhom_khac) === nh.ma)
             if (!cua.length) return null
             return (
               <section className="nhom-o" key={nh.ma} data-nhom={nh.ma}>
                 <h4 className="nhom-ten">
-                  {nh.nhan}
-                  {nh.mo_ta && <span className="nhom-mo-ta">{nh.mo_ta}</span>}
+                  {tr(nh.nhan)}
+                  {nh.mo_ta && <span className="nhom-mo-ta">{tr(nh.mo_ta)}</span>}
                 </h4>
                 {cua.map(o => (
                   <Fragment key={o.ten}>{veOVaCon(o)}</Fragment>

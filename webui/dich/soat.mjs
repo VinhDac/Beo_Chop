@@ -62,7 +62,9 @@ export function nhanPython() {
     return { loi: (r.stderr || r.error?.message || '').trim().split(/\r?\n/).slice(-8).join('\n')
       || 'mã thoát ' + (r.status ?? r.signal) }
   let nhan
-  try { nhan = JSON.parse(r.stdout).filter(s => laViet(s)) }
+  // `BO_CAU` lọc ở đây NỮA, không chỉ trong `cauTrongMa`: nhãn hai tiếng của nhóm Ngôn
+  // ngữ do Python khai, nên nó tới qua đường này (xem chú thích ở `chung.mjs`).
+  try { nhan = JSON.parse(r.stdout).filter(s => laViet(s) && !BO_CAU.has(s.trim())) }
   catch (e) { return { loi: 'đầu ra không phải JSON: ' + e.message } }
   // Rỗng cũng là hỏng: hôm nay ~100 nhãn. Cho qua thì --don coi mọi bản dịch nhãn Python
   // là thừa — y như lúc script chết.

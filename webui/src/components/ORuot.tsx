@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { locSo, chotSo } from '../so'
 import Icon from './Icon'
 import type { OLam } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** Ô RUỘT KHỐI — mấy widget hộp thoại nào cũng cần.
  *
@@ -55,16 +56,16 @@ export function OGhim({ chu, tenO, nhan, so, onDoi, children }: {
   return (<>
     {ten
       ? <input className="o ten-num" spellCheck={false} value={ten}
-               placeholder="tên núm" onChange={e => dat(tenNum(e.target.value))} />
+               placeholder={tr('tên núm')} onChange={e => dat(tenNum(e.target.value))} />
       : children}
     <button type="button"
             className={'nut-nho nut-ghim' + (ten ? ' dang' : '')}
-            title={ten ? `Bỏ ghim — ô này đang là núm «${ten}»`
-                       : 'Ghim làm tham số để Optimize quét'}
+            title={ten ? tr('Bỏ ghim — ô này đang là núm «{0}»', ten)
+                       : tr('Ghim làm tham số để Optimize quét')}
             onClick={() => dat(ten ? null : tenNum(nhan))}>
       <Icon name="ghim" />
     </button>
-    {ten && <span className="doc-them">mặc định {String(so ?? '')}</span>}
+    {ten && <span className="doc-them">{trx('mặc định {0}', String(so ?? ''))}</span>}
   </>)
 }
 
@@ -108,7 +109,7 @@ export function OTheoKieu({ o, gt, onDoi }: {
     return (
       <select className="o day" value={String(gt ?? '')}
               onChange={e => onDoi?.(e.target.value)}>
-        {o.chon.map(([m, n]) => <option key={m} value={m}>{n}</option>)}
+        {o.chon.map(([m, n]) => <option key={m} value={m}>{tr(n)}</option>)}
       </select>
     )
   }
@@ -126,7 +127,7 @@ export function OTheoKieu({ o, gt, onDoi }: {
   // hiện câu "bộ sinh mã tự điền", mà nó có tự điền mốc nào đâu.
   return (
     <input className="o day" spellCheck={false} value={String(gt ?? '')}
-           placeholder={o.bat_buoc ? '' : 'không bắt buộc'}
+           placeholder={o.bat_buoc ? '' : tr('không bắt buộc')}
            onChange={e => onDoi?.(e.target.value)} />
   )
 }
@@ -141,10 +142,15 @@ export function DocThem({ o, gt }: { o: OLam; gt?: unknown }) {
   // Mọi đơn vị KHÁC hiện nguyên văn. Trước đây chỉ `$` được viết riêng một dòng, nên
   // ô nào khai "phút", "lần", "ngày"… là đơn vị ấy biến mất — từ điển nói mà giao
   // diện không nghe.
-  return o.don_vi ? <span className="doc-them">{o.don_vi}</span> : null
+  return o.don_vi ? <span className="doc-them">{tr(o.don_vi)}</span> : null
 }
 
 /** Một hàng = một ô.
+ *
+ *  DỊCH Ở ĐÂY, chỗ nhãn HIỆN RA — `o` tới từ từ điển Python, mà bảng hằng thì không bọc
+ *  được lúc nạp tệp. Mấy hộp thoại tự dựng một `o` bằng tay (`HopQuayVe`) đã gọi `tr`
+ *  sẵn trên nhãn của nó; gọi lại ở đây không sao, vì `tr` của một câu tiếng Anh không
+ *  tra ra gì nên trả lại chính nó.
  *
  *  `children` thay chỗ ô mặc định, cho mấy kiểu chỉ MỘT hộp thoại cần (danh sách mã,
  *  khoảng ngày) — chúng vẫn được cái nhãn và lời gợi ý xếp thẳng cột như mọi hàng
@@ -153,11 +159,11 @@ export function Hang({ o, gt, onDoi, children }: {
   o: OLam; gt?: unknown; onDoi?: (v: unknown) => void; children?: ReactNode
 }) {
   return (
-    <label className="o-hang" title={o.goi_y || o.nhan}>
-      <span className="nhan-o">{o.nhan}</span>
+    <label className="o-hang" title={tr(o.goi_y || o.nhan)}>
+      <span className="nhan-o">{tr(o.nhan)}</span>
       {children ?? <OTheoKieu o={o} gt={gt} onDoi={onDoi} />}
       <DocThem o={o} gt={gt} />
-      {o.goi_y && <span className="goi-y-o">{o.goi_y}</span>}
+      {o.goi_y && <span className="goi-y-o">{tr(o.goi_y)}</span>}
     </label>
   )
 }
@@ -178,7 +184,7 @@ export function KhaiLean({ ham }: { ham: string | string[] }) {
   const ds = (Array.isArray(ham) ? ham : [ham]).filter(Boolean)
   return (
     <div className="lean-khai">
-      <span>LEAN sẽ gọi</span>
+      <span>{tr('LEAN sẽ gọi')}</span>
       <div className="lean-cau">{ds.map((c, i) => <code key={i}>{c}</code>)}</div>
     </div>
   )

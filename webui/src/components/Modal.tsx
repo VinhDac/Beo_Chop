@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { coBangNoi } from './BangNoi'
+import { tr } from '../ngon_ngu'
 
 /** Vỏ hộp thoại dùng chung.
  *
@@ -43,7 +44,7 @@ export default function Modal({ title, width = 560, onClose, footer, children, k
       <div className="hop-thoai" style={{ width }} onMouseDown={e => e.stopPropagation()}>
         <div className="ht-dau">
           <span>{title}</span>
-          <button className="ht-dong" onClick={onClose} title="Đóng (Esc)">✕</button>
+          <button className="ht-dong" onClick={onClose} title={tr('Đóng (Esc)')}>✕</button>
         </div>
         <div className="ht-than">{children}</div>
         <div className="ht-chan">{footer}</div>

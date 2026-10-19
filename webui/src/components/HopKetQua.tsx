@@ -4,6 +4,7 @@ import Icon from './Icon'
 import BangBieuDo from './BangBieuDo'
 import { useKeoCao } from './BangDuoi'
 import type { KetQuaChay } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** MÀN KẾT QUẢ — tám ô số, tám bảng biểu đồ bật tắt được, rồi các bảng chi tiết.
  *
@@ -85,10 +86,9 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
         {/* ⚠ Mọi lệnh bị từ chối mà backtest vẫn báo đủ thống kê — bẫy đã gặp thật
             (sàn không nhận lệnh «khớp lúc đóng cửa»). Nói ngay trên đầu. */}
         {hong > 0 && (
-          <div className="mc-bao loi">
-            ⚠ {hong}/{lenh.length} lệnh <b>KHÔNG HỢP LỆ</b> — sàn từ chối. Mọi con số
-            phía dưới vì thế gần như vô nghĩa. Mở tab <b>Lệnh</b> xem lý do.
-          </div>
+          <div className="mc-bao loi">{trx('⚠ {0}/{1} lệnh {2} — sàn từ chối. Mọi con số phía dưới '
+            + 'vì thế gần như vô nghĩa. Mở tab {3} xem lý do.', hong, lenh.length,
+            <b>{tr('KHÔNG HỢP LỆ')}</b>, <b>{tr('Lệnh')}</b>)}</div>
         )}
 
         <div className="o-lon">
@@ -107,13 +107,13 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
                           onDong={() => setHien(h => ({ ...h, [b.ten]: false }))} />
             ))}
             {!(kq.bieu_do ?? []).some(b => hien[b.ten]) && (
-              <div className="bang-bd mo">Chưa bật bảng nào — chọn ở cột bên phải.</div>
+              <div className="bang-bd mo">{tr('Chưa bật bảng nào — chọn ở cột bên phải.')}</div>
             )}
           </div>
 
           <div className="kq-ben">
             <div className="kq-hop">
-              <div className="kq-hop-dau">Chọn biểu đồ</div>
+              <div className="kq-hop-dau">{tr('Chọn biểu đồ')}</div>
               {(kq.bieu_do ?? []).map(b => (
                 <label className="kq-chon" key={b.ten}>
                   <input type="checkbox" checked={!!hien[b.ten]}
@@ -126,7 +126,7 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
 
             {kq.may_chu && Object.keys(kq.may_chu).length > 0 && (
               <div className="kq-hop">
-                <div className="kq-hop-dau">Máy chạy</div>
+                <div className="kq-hop-dau">{tr('Máy chạy')}</div>
                 {Object.entries(kq.may_chu).map(([k, v]) => (
                   <div className="kq-doi" key={k}><span>{k}</span><b>{v}</b></div>
                 ))}
@@ -135,7 +135,7 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
 
             {kq.thu_muc && (
               <div className="kq-hop">
-                <div className="kq-hop-dau">File kết quả</div>
+                <div className="kq-hop-dau">{tr('File kết quả')}</div>
                 <div className="kq-duong">{kq.thu_muc}</div>
               </div>
             )}
@@ -145,11 +145,11 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
         {/* Tay kéo nằm NGAY TRÊN hàng tab — chỗ mắt đã nhìn khi muốn xem bảng dưới. */}
         <div className="thanh-keo" onMouseDown={batKeo} />
         <div className="hang-tab">
-          {([['tong_quan', 'Tổng quan'],
-             ['lenh', `Lệnh (${lenh.length})`],
-             ['giao_dich', `Giao dịch (${(kq.giao_dich ?? []).length})`],
-             ['nhat_ky', 'Nhật ký'],
-             ['ma', 'Mã']] as const).map(([m, n]) => (
+          {([['tong_quan', tr('Tổng quan')],
+             ['lenh', tr('Lệnh ({0})', lenh.length)],
+             ['giao_dich', tr('Giao dịch ({0})', (kq.giao_dich ?? []).length)],
+             ['nhat_ky', tr('Nhật ký')],
+             ['ma', tr('Mã')]] as const).map(([m, n]) => (
             <button key={m} className={'nut-nho' + (tab === m ? ' chon' : '')}
                     onClick={() => setTab(m)}>{n}</button>
           ))}
@@ -175,7 +175,7 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
               {coCuon && (
                 <>
                   <div className="hang-tab phu">
-                    <b>Thống kê trượt</b>
+                    <b>{tr('Thống kê trượt')}</b>
                     <span className="day" />
                     <select className="o" value={chiTieu}
                             onChange={e => setChiTieu(e.target.value)}>
@@ -184,9 +184,9 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
                   </div>
                   <table className="bang-kq">
                     <thead><tr>
-                      <th>Chốt ngày</th>
-                      <th className="phai">1 tháng</th><th className="phai">3 tháng</th>
-                      <th className="phai">6 tháng</th><th className="phai">12 tháng</th>
+                      <th>{tr('Chốt ngày')}</th>
+                      <th className="phai">{tr('1 tháng')}</th><th className="phai">{tr('3 tháng')}</th>
+                      <th className="phai">{tr('6 tháng')}</th><th className="phai">{tr('12 tháng')}</th>
                     </tr></thead>
                     <tbody>
                       {cuon!.dong.map(d => (
@@ -209,9 +209,9 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
           {tab === 'lenh' && (
             <table className="bang-kq">
               <thead><tr>
-                <th>#</th><th>Lúc</th><th>Mã</th><th>Loại</th>
-                <th className="phai">Số lượng</th><th className="phai">Giá</th>
-                <th>Trạng thái</th><th>Ghi chú đi kèm</th>
+                <th>#</th><th>{tr('Lúc')}</th><th>{tr('Mã')}</th><th>{tr('Loại')}</th>
+                <th className="phai">{tr('Số lượng')}</th><th className="phai">{tr('Giá')}</th>
+                <th>{tr('Trạng thái')}</th><th>{tr('Ghi chú đi kèm')}</th>
               </tr></thead>
               <tbody>
                 {lenh.map(l => (
@@ -219,10 +219,10 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
                     <td>{String(l.id)}</td>
                     <td className="mono">{l.luc}</td>
                     <td>{l.ma}</td>
-                    <td>{l.loai}</td>
+                    <td>{tr(l.loai)}</td>
                     <td className="phai mono">{so(l.so_luong)}</td>
                     <td className="phai mono">{so(l.gia)}</td>
-                    <td>{l.trang_thai}</td>
+                    <td>{tr(l.trang_thai)}</td>
                     <td className="mono nho">{l.tag}</td>
                   </tr>
                 ))}
@@ -233,10 +233,10 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
           {tab === 'giao_dich' && (
             <table className="bang-kq">
               <thead><tr>
-                <th>Mã</th><th>Vào</th><th className="phai">Giá vào</th>
-                <th>Ra</th><th className="phai">Giá ra</th>
-                <th className="phai">Số lượng</th><th className="phai">Phí</th>
-                <th className="phai">Lãi/lỗ</th>
+                <th>{tr('Mã')}</th><th>{tr('Vào')}</th><th className="phai">{tr('Giá vào')}</th>
+                <th>Ra</th><th className="phai">{tr('Giá ra')}</th>
+                <th className="phai">{tr('Số lượng')}</th><th className="phai">{tr('Phí')}</th>
+                <th className="phai">{tr('Lãi/lỗ')}</th>
               </tr></thead>
               <tbody>
                 {(kq.giao_dich ?? []).map((g, i) => (
@@ -257,10 +257,10 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
             </table>
           )}
 
-          {tab === 'nhat_ky' && <pre className="ma-lean">{kq.nhat_ky || '(trống)'}</pre>}
+          {tab === 'nhat_ky' && <pre className="ma-lean">{kq.nhat_ky || tr('(trống)')}</pre>}
 
           {/* Tab Mã bày ĐÚNG file vừa chạy, không sinh lại một bản khác rồi bảo là nó. */}
-          {tab === 'ma' && <pre className="ma-lean">{kq.ma || '(trống)'}</pre>}
+          {tab === 'ma' && <pre className="ma-lean">{kq.ma || tr('(trống)')}</pre>}
       </div>
     </div>
   )
@@ -272,13 +272,12 @@ export default function HopKetQua({ kq, onDong, onChayLai }: {
   onChayLai: () => void
 }) {
   return (
-    <Modal title={`Kết quả — ${kq.ten_lop ?? ''}`} width={1180} onClose={onDong}
+    <Modal title={tr('Kết quả — {0}', kq.ten_lop ?? '')} width={1180} onClose={onDong}
            footer={<>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Đóng</button>
+             <button className="nut" onClick={onDong}>{tr('Đóng')}</button>
              <button className="nut chinh" onClick={onChayLai}>
-               <Icon name="chay" /> Chạy lại
-             </button>
+               {trx('{0} Chạy lại', <Icon name="chay" />)}</button>
            </>}>
       <RuotKetQua kq={kq} />
     </Modal>

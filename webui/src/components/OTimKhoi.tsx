@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import IconNet from './Icon'
 import { boDau } from '../tim'
+import { tr, trx } from '../ngon_ngu'
 
 /** Một lọc nhanh — hỏi theo DÂY thay vì theo chữ (xem `SoDo.dsLoc`). */
 export interface LocTim { ma: string; ten: string; goiY: string; so: number }
@@ -64,11 +65,11 @@ export default function OTimKhoi({ giaTri, onDoi, soKhop, dangO, onToi, loc, dsL
       {dangLoc && (
         <span className="chip-loc" title={dangLoc.goiY}>
           {dangLoc.ten}
-          <button onMouseDown={e => { e.preventDefault(); onLoc(null) }} title="Bỏ lọc">×</button>
+          <button onMouseDown={e => { e.preventDefault(); onLoc(null) }} title={tr('Bỏ lọc')}>×</button>
         </span>
       )}
       <input value={giaTri} spellCheck={false}
-             placeholder={dangLoc ? 'Enter: khối kế tiếp' : 'Tìm khối…'}
+             placeholder={dangLoc ? tr('Enter: khối kế tiếp') : tr('Tìm khối…')}
              onChange={e => { onDoi(e.target.value); setSang(-1); setMo(true) }}
              onFocus={() => setMo(true)}
              onBlur={() => { setMo(false); setSang(-1) }}
@@ -95,8 +96,8 @@ export default function OTimKhoi({ giaTri, onDoi, soKhop, dangO, onToi, loc, dsL
              }} />
       {(coChu || dangLoc) && (
         <span className="dem">
-          {soKhop === 0 ? 'không thấy'
-            : dangO >= 0 ? `${dangO + 1}/${soKhop}` : `${soKhop} khối`}
+          {soKhop === 0 ? tr('không thấy')
+            : dangO >= 0 ? `${dangO + 1}/${soKhop}` : tr('{0} khối', soKhop)}
         </span>
       )}
       {mo && muc.length > 0 && (
@@ -112,7 +113,7 @@ export default function OTimKhoi({ giaTri, onDoi, soKhop, dangO, onToi, loc, dsL
                 ? <><b>{m.l.ten}</b><span className="mo">{m.l.goiY}</span>
                     <span className="so">{m.l.so}</span></>
                 : <><b>{m.k.nhan}</b> · {m.k.ten}
-                    {m.k.hn && <span className="mo"> — trong {m.k.hn}</span>}</>}
+                    {m.k.hn && <span className="mo">{trx(' — trong {0}', m.k.hn)}</span>}</>}
             </div>
           ))}
         </div>

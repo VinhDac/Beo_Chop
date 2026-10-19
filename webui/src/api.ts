@@ -86,8 +86,8 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
      * rỗng tức là chưa xong. */
     const soCua = api ? Object.keys(api).length : 0
     return { ok: false, error: soCua === 0
-      ? `gọi "${ten}" lúc cầu nối Python chưa dựng xong`
-      : `api.py không có hàm "${ten}"` }
+      ? tr('gọi "{0}" lúc cầu nối Python chưa dựng xong', ten)
+      : tr('api.py không có hàm "{0}"', ten) }
   }
   try {
     return (await api[ten](...args)) as Reply<T>

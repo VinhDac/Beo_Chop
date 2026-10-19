@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import BangNoi from './BangNoi'
 import Icon from './Icon'
 import type { DaiLuong, TuDienHoi } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** BẢNG CHỌN ĐẠI LƯỢNG — cửa DUY NHẤT vào kho 68 đại lượng.
  *
@@ -58,7 +59,7 @@ export default function ChonDaiLuong({ neo, td, dangChon, donViKia, chiSo, choSo
     return td.kho.filter(d => {
       if (chiSo && d.kieu === 'co_khong') return false
       if (!q) return true
-      return d.nhan.toLowerCase().includes(q) || d.ma.includes(q)
+      return tr(d.nhan).toLowerCase().includes(q) || d.ma.includes(q)
         || d.lean.toLowerCase().includes(q)
     })
   }, [td.kho, tim, chiSo])
@@ -78,11 +79,11 @@ export default function ChonDaiLuong({ neo, td, dangChon, donViKia, chiSo, choSo
   const muc = (d: DaiLuong, tat?: string) => (
     <button key={d.ma} type="button" className={`dl-muc${tat ? ' tat' : ''}`
       + (d.ma === dangChon ? ' dang' : '')}
-            title={tat || d.lean}
+            title={tat ? tr(tat) : d.lean}
             onMouseEnter={() => setRoi(d)}
             onClick={() => { if (!tat) { onChon(d); onDong() } }}>
-      <span className="dl-ten">{d.nhan}</span>
-      <span className="dl-dv">{d.don_vi || (d.kieu === 'co_khong' ? 'đúng/sai' : '')}</span>
+      <span className="dl-ten">{tr(d.nhan)}</span>
+      <span className="dl-dv">{d.don_vi ? tr(d.don_vi) : (d.kieu === 'co_khong' ? tr('đúng/sai') : '')}</span>
     </button>
   )
 
@@ -94,7 +95,7 @@ export default function ChonDaiLuong({ neo, td, dangChon, donViKia, chiSo, choSo
       if (d.nhom !== nhom) {
         nhom = d.nhom
         ra.push(<div key={`h${d.ma}`} className="dl-nhom">
-          <Icon name={hoCua[d.ho]?.icon ?? 'motSo'} /> {nhom}
+          <Icon name={hoCua[d.ho]?.icon ?? 'motSo'} /> {tr(nhom)}
         </div>)
       }
       ra.push(muc(d, tat?.(d)))
@@ -107,13 +108,13 @@ export default function ChonDaiLuong({ neo, td, dangChon, donViKia, chiSo, choSo
       <div className="bn-tim">
         <Icon name="tim" />
         <input autoFocus value={tim} spellCheck={false}
-               placeholder="tìm: rsi, giá, macd, tiền mặt…"
+               placeholder={tr('tìm: rsi, giá, macd, tiền mặt…')}
                onChange={e => setTim(e.target.value)} />
       </div>
 
       {choSo && onChonSo && (
         <div className="bn-so">
-          <span>hoặc một con số</span>
+          <span>{tr('hoặc một con số')}</span>
           <input className="o so" inputMode="decimal" defaultValue={choSo.gia_tri}
                  onChange={e => onChonSo(e.target.value as unknown as number)} />
         </div>
@@ -121,30 +122,29 @@ export default function ChonDaiLuong({ neo, td, dangChon, donViKia, chiSo, choSo
 
       <div className="bn-ds">
         {cung.length > 0 && (<>
-          <div className="dl-tang">cùng đơn vị «{donViKia}» — {cung.length} cái</div>
+          <div className="dl-tang">{trx('cùng đơn vị «{0}» — {1} cái', tr(donViKia ?? ''), cung.length)}</div>
           {theoNhom(cung)}
         </>)}
 
         {khac.length > 0 && (<>
           {cung.length > 0 &&
-            <div className="dl-tang mo">khác đơn vị — {khac.length} cái</div>}
+            <div className="dl-tang mo">{trx('khác đơn vị — {0} cái', khac.length)}</div>}
           {theoNhom(khac)}
         </>)}
 
         {mua.length > 0 && (<>
           <button type="button" className="dl-gap" onClick={() => setMoMua(v => !v)}
-                  title={mua.map(d => hoCua[d.ho]?.tat).find(Boolean) || ''}>
-            {moMua ? '▾' : '▸'} cần mua dữ liệu — {mua.length} cái
-          </button>
+                  title={tr(mua.map(d => hoCua[d.ho]?.tat).find(Boolean) || '')}>
+            {trx('{0} cần mua dữ liệu — {1} cái', moMua ? '▾' : '▸', mua.length)}</button>
           {moMua && theoNhom(mua, d => hoCua[d.ho]?.tat || undefined)}
         </>)}
 
-        {!hop.length && <div className="bn-rong">không có đại lượng nào khớp «{tim}»</div>}
+        {!hop.length && <div className="bn-rong">{trx('không có đại lượng nào khớp «{0}»', tim)}</div>}
       </div>
 
       {/* Nói thẳng hàm LEAN đứng sau — cùng lời hứa như `.lean-khai` của hộp Hành
           động: mỗi mục ở đây là MỘT thứ có thật, và đây là chỗ kiểm được. */}
-      <div className="bn-lean">{roi ? roi.lean : `${td.kho.length} đại lượng`}</div>
+      <div className="bn-lean">{roi ? roi.lean : tr('{0} đại lượng', td.kho.length)}</div>
     </BangNoi>
   )
 }

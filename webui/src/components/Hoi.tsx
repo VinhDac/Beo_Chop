@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './Modal'
+import { tr } from '../ngon_ngu'
 
 /** HỘP HỎI CỦA APP — thay cho `window.confirm` / `alert` / `prompt`.
  *
@@ -100,11 +101,11 @@ export default function HopHoi() {
   const ok = () => xong(y.nhap !== undefined ? gia : true)
 
   return (
-    <Modal title={y.tieu_de ?? 'Xác nhận'} width={y.chi_tiet ? 560 : 440} onClose={dong}
+    <Modal title={y.tieu_de ?? tr('Xác nhận')} width={y.chi_tiet ? 560 : 440} onClose={dong}
            footer={<>
-             {!y.chi_bao && <button className="nut" onClick={dong}>Huỷ</button>}
+             {!y.chi_bao && <button className="nut" onClick={dong}>{tr('Huỷ')}</button>}
              <button ref={nut} className={'nut ' + (y.nguy ? 'do' : 'chinh')} onClick={ok}>
-               {y.nut_ok ?? (y.chi_bao ? 'Đóng' : 'Đồng ý')}
+               {y.nut_ok ?? (y.chi_bao ? tr('Đóng') : tr('Đồng ý'))}
              </button>
            </>}>
       <div className="hoi-loi">{y.loi}</div>

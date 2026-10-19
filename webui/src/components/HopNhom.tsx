@@ -3,6 +3,7 @@ import Modal from './Modal'
 import Icon from './Icon'
 import HopHanhDong from './HopHanhDong'
 import type { Step, TuDienHoi, TuDienLam } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP SỬA KHỐI NHÓM — chuỗi hành động bên trong một hộp.
  *
@@ -67,23 +68,22 @@ export default function HopNhom({ step, tuDienLam, tuDienHoi, dsMa, coMaDangXet,
 
   return (
     <>
-      <Modal title="Nhóm" width={620} onClose={onDong}
+      <Modal title={tr('Nhóm')} width={620} onClose={onDong}
              footer={<>
                <span className="day" />
-               <button className="nut" onClick={onDong}>Huỷ</button>
+               <button className="nut" onClick={onDong}>{tr('Huỷ')}</button>
                <button className="nut chinh"
-                       onClick={() => onLuu({ ...step, name: ten.trim() || 'Nhóm mới',
-                                              actions: ds })}>Lưu</button>
+                       onClick={() => onLuu({ ...step, name: ten.trim() || tr('Nhóm mới'),
+                                              actions: ds })}>{tr('Lưu')}</button>
              </>}>
         <div className="hop-lam">
           <div className="mo-ta-loai">
-            <Icon name="group" /> một chuỗi hành động chạy thẳng một lượt, không rẽ nhánh
-          </div>
+            {trx('{0} một chuỗi hành động chạy thẳng một lượt, không rẽ nhánh', <Icon name="group" />)}</div>
 
           <label className="o-hang">
-            <span className="nhan-o">Tên khối</span>
+            <span className="nhan-o">{tr('Tên khối')}</span>
             <input className="o day" value={ten} spellCheck={false}
-                   placeholder="Nhóm mới" onChange={e => setTen(e.target.value)} />
+                   placeholder={tr('Nhóm mới')} onChange={e => setTen(e.target.value)} />
           </label>
 
           <div className="ds-hd">
@@ -94,34 +94,34 @@ export default function HopNhom({ step, tuDienLam, tuDienHoi, dsMa, coMaDangXet,
                 <div className="dong-hd" key={i}>
                   <span className="stt">{i + 1}</span>
                   <Icon name={l?.icon ?? 'action'} />
-                  <b>{l?.nhan ?? String(a.type ?? '?')}</b>
+                  <b>{l ? tr(l.nhan) : String(a.type ?? '?')}</b>
                   {ma && <span className="ma-hd">{ma}</span>}
                   <span className="day" />
-                  <button className="nut-nho" title="Lên"
+                  <button className="nut-nho" title={tr('Lên')}
                           onClick={() => doiCho(i, -1)} disabled={i === 0}>↑</button>
-                  <button className="nut-nho" title="Xuống"
+                  <button className="nut-nho" title={tr('Xuống')}
                           onClick={() => doiCho(i, 1)}
                           disabled={i === ds.length - 1}>↓</button>
-                  <button className="nut-nho" onClick={() => setSua(i)}>Sửa</button>
-                  <button className="nut-nho bo" title="Bỏ hành động này"
+                  <button className="nut-nho" onClick={() => setSua(i)}>{tr('Sửa')}</button>
+                  <button className="nut-nho bo" title={tr('Bỏ hành động này')}
                           onClick={() => setDs(x => x.filter((_c, j) => j !== i))}>
                     ✕
                   </button>
                 </div>
               )
             })}
-            {!ds.length && <div className="dong-hd mo">chưa có hành động nào</div>}
+            {!ds.length && <div className="dong-hd mo">{tr('chưa có hành động nào')}</div>}
           </div>
 
           <div className="o-hang">
-            <span className="nhan-o">Thêm hành động</span>
+            <span className="nhan-o">{tr('Thêm hành động')}</span>
             <select className="o day" value={themLoai}
                     onChange={e => setThemLoai(e.target.value)}>
               {tuDienLam.loai.map(l => (
-                <option key={l.ma} value={l.ma}>{l.nhan}</option>
+                <option key={l.ma} value={l.ma}>{tr(l.nhan)}</option>
               ))}
             </select>
-            <button className="nut" onClick={them}><Icon name="plus" /> Thêm</button>
+            <button className="nut" onClick={them}>{trx('{0} Thêm', <Icon name="plus" />)}</button>
           </div>
         </div>
       </Modal>

@@ -311,7 +311,10 @@ print("\n▸ ⚙ ở GÓC TRÁI DƯỚI — chỗ quen thuộc cho cài đặt (
 kiem("thanh trạng thái có nút ⚙",
      re.search(r'className="nut-tt"[\s\S]{0,200}setMoCaiDat\(true\)', sodo) is not None)
 kiem("và nó đứng ĐẦU hàng, trước mấy con số",
-     re.search(r'thanh-trang-thai"[\s\S]{0,500}?nut-tt[\s\S]{0,260}?\{nodes\.length\}', sodo)
+     # `nodes.length` nay là đối số của `trx('{0} khối · {1} dây', …)` — bộ dịch bọc câu
+     # lại, nên khuôn cũ `{nodes.length}` không còn. Bắt theo CHÍNH TÊN BIẾN, hình nào
+     # cũng khớp: thứ bài này canh là THỨ TỰ, không phải cách viết câu.
+     re.search(r'thanh-trang-thai"[\s\S]{0,500}?nut-tt[\s\S]{0,320}?nodes\.length', sodo)
      is not None)
 kiem("có luật CSS cho nó", ".nut-tt {" in bo_chu_thich(app))
 
@@ -320,7 +323,10 @@ print("\n▸ Menu thanh tiêu đề — đường LUÔN CÓ, khác ribbon (ribbo
 # không mục nào mờ được. Hậu quả: ở cửa sổ 1020px (sàn của app) ribbon ẩn mất nhóm
 # Sửa, Hoàn tác và Strategy — lúc ấy Hoàn tác, Nhân bản, Xoá, Lưu KHÔNG còn chỗ nào
 # bấm được. Jenifer_Studio có File/Edit/View/Help đúng vì lẽ ấy.
-nhom_menu = re.findall(r"\{ ten: '(\w+)', muc: \[", sodo)
+# Tên nhóm đi qua bộ dịch (`ten: tr('Sửa')`) trừ «File» — tên ấy giống nhau cả hai
+# tiếng nên không có khoá nào. Khuôn phải nhận CẢ HAI hình, không thì bài này chỉ còn
+# đếm được một nhóm và nó kêu oan.
+nhom_menu = re.findall(r"\{ ten: (?:tr\()?'(\w+)'\)?, muc: \[", sodo)
 kiem("có bốn nhóm menu", len(nhom_menu) == 4, f"— {nhom_menu}")
 # Phím tắt hiện cạnh mục là cách DUY NHẤT người dùng học được chúng.
 kiem("mục menu có hiện phím tắt", sodo.count("phim: phimCua(") >= 10,

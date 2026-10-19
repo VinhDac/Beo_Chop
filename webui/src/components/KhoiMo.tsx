@@ -1,4 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { tr } from '../ngon_ngu'
 
 /** KHỐI MỜ của NỐI THÔNG MINH — chép từ `KhoiGoiY` của Jenifer_Studio.
  *
@@ -26,7 +27,7 @@ export default function KhoiMo({ data }: NodeProps) {
       {/* Chỉ để dây mờ có chỗ bám — không kéo nối được. */}
       <Handle type="target" id="left" position={Position.Left}
               style={{ opacity: 0, pointerEvents: 'none' }} />
-      <div className="khoi-goi-y" title="Bấm để thêm — tự nối dây"
+      <div className="khoi-goi-y" title={tr('Bấm để thêm — tự nối dây')}
            onMouseDown={e => { e.stopPropagation(); e.preventDefault(); onBam?.() }}
            // Khối mờ không phải một bước: không có menu chuột phải của khối.
            onContextMenu={e => { e.preventDefault(); e.stopPropagation() }}>

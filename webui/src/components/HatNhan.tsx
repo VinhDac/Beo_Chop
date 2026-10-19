@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { tr, trx, useNgonNgu } from '../ngon_ngu'
 
 /** HẠT NHÂN — một mảng sơ đồ gói lại thành một khung nhỏ cho dễ nhìn.
  *
@@ -39,6 +40,8 @@ export interface DuLieuHatNhan {
 const CANH: [string, Position][] = [['left', Position.Left], ['right', Position.Right]]
 
 function KhoiHatNhan({ data, selected }: NodeProps) {
+  // `memo` chặn lượt vẽ lại mà gốc cửa sổ phát ra khi đổi tiếng — nên khối tự nghe.
+  useNgonNgu()
   const d = data as unknown as DuLieuHatNhan
   return (
     <>
@@ -49,12 +52,12 @@ function KhoiHatNhan({ data, selected }: NodeProps) {
       ))}
       <div className={'hop hat-nhan' + (selected ? ' dang-chon' : '')
                       + (d.timThay ? ' tim-thay' : '')}
-           title="Bấm đúp để vào bên trong sửa">
+           title={tr('Bấm đúp để vào bên trong sửa')}>
         <div className={'so-thu-tu' + (d.thuTu ? '' : ' trong')}>{d.thuTu ?? '–'}</div>
         <div className="dau">
           <span className="dai-mau" />
           <span className="ten" title={d.ten}>{d.ten}</span>
-          <span className="loai">Hạt nhân</span>
+          <span className="loai">{tr('Hạt nhân')}</span>
         </div>
         <svg className="hn-ve" viewBox={`0 0 ${d.ve.w} ${d.ve.h}`} aria-hidden>
           {d.ve.day.map((l, i) => (
@@ -66,8 +69,8 @@ function KhoiHatNhan({ data, selected }: NodeProps) {
           ))}
         </svg>
         <div className="chan">
-          <span className="the">{d.so} khối</span>
-          <span className="hn-goi-y">bấm đúp để vào sửa</span>
+          <span className="the">{trx('{0} khối', d.so)}</span>
+          <span className="hn-goi-y">{tr('bấm đúp để vào sửa')}</span>
         </div>
       </div>
     </>

@@ -1,3 +1,5 @@
+import { tr, trx } from '../ngon_ngu'
+
 /** Ô CHỌN MÃ — danh sách rút từ KHỐI BẮT ĐẦU, không cho gõ tay.
  *
  *  ⚠ VÌ SAO KHÔNG CHO GÕ. Gõ tay thì gõ sai, mà cái sai ấy chỉ lộ ra lúc bấm Build:
@@ -24,17 +26,17 @@ export default function ChonMa({ ds, giaTri, coMaDangXet = true, onDoi }: {
   if (!ds.length) {
     return (
       <span className="chon-ma rong">
-        khối Bắt đầu chưa khai mã nào
+        {tr('khối Bắt đầu chưa khai mã nào')}
       </span>
     )
   }
   return (
     <select className="o chon-ma" value={v}
             onChange={e => onDoi(e.target.value)}>
-      {coMaDangXet && <option value="">(mã đang xét)</option>}
-      {!coMaDangXet && !v && <option value="">— chọn mã —</option>}
+      {coMaDangXet && <option value="">{tr('(mã đang xét)')}</option>}
+      {!coMaDangXet && !v && <option value="">{tr('— chọn mã —')}</option>}
       {ds.map(m => <option key={m} value={m}>{m}</option>)}
-      {lac && <option value={v}>{v} — không còn trong khối Bắt đầu</option>}
+      {lac && <option value={v}>{trx('{0} — không còn trong khối Bắt đầu', v)}</option>}
     </select>
   )
 }

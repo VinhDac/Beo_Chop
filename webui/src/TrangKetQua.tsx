@@ -4,6 +4,7 @@ import TitleBar from './components/TitleBar'
 import Icon from './components/Icon'
 import { cho_cau_noi, py } from './api'
 import type { KetQuaChay } from './types'
+import { tr, trx, useNgonNgu } from './ngon_ngu'
 
 /** TRANG KẾT QUẢ ĐỨNG MỘT MÌNH — ruột của một CỬA SỔ RIÊNG.
  *
@@ -20,6 +21,8 @@ import type { KetQuaChay } from './types'
  *  gốc), nên trang này phải tự vẽ thanh tiêu đề — dùng lại đúng `TitleBar`.
  */
 export default function TrangKetQua({ ma }: { ma: string }) {
+  // Gốc cửa sổ nghe ngôn ngữ: `cho_cau_noi` đặt tiếng xong là cả trang vẽ lại.
+  useNgonNgu()
   const [kq, setKq] = useState<KetQuaChay | null>(null)
   const [loi, setLoi] = useState('')
 
@@ -28,7 +31,7 @@ export default function TrangKetQua({ ma }: { ma: string }) {
       try {
         await cho_cau_noi('ping', 30000)
       } catch {
-        setLoi('Không kết nối được tới Python.')
+        setLoi(tr('Không kết nối được tới Python.'))
         return
       }
       const r = await py.doc_luot_chay(ma)
@@ -39,7 +42,7 @@ export default function TrangKetQua({ ma }: { ma: string }) {
         // được. Trông y như lỗi của `khung_cua_so`.
         setKq(r.value)
       } else {
-        setLoi(r.error ?? 'không đọc được lượt chạy này')
+        setLoi(r.error ?? tr('không đọc được lượt chạy này'))
       }
     })()
   }, [ma])
@@ -49,10 +52,10 @@ export default function TrangKetQua({ ma }: { ma: string }) {
   // `app`, nên nó chẳng chung với ai cả.
   return (
     <div className="cua-so-kq">
-      <TitleBar tieuDe={kq ? `Kết quả — ${kq.ten_lop ?? ''}` : 'Kết quả'} menus={[]} />
+      <TitleBar tieuDe={kq ? tr('Kết quả — {0}', kq.ten_lop ?? '') : tr('Kết quả')} menus={[]} />
       {loi && <div className="mc-bao loi kq-loi">⚠ {loi}</div>}
       {!kq && !loi && (
-        <div className="kq-cho"><Icon name="chay" /> đang mở lượt chạy…</div>
+        <div className="kq-cho">{trx('{0} đang mở lượt chạy…', <Icon name="chay" />)}</div>
       )}
       {kq && <RuotKetQua kq={kq} />}
     </div>

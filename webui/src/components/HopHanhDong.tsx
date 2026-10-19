@@ -5,6 +5,7 @@ import { Ve } from './HopDieuKien'
 import { Hang, KhaiLean, OGhim, OTheoKieu } from './ORuot'
 import ChonMa from './ChonMa'
 import type { LoaiLam, OLam, Step, TuDienHoi, TuDienLam, VeDieuKien } from '../types'
+import { tr } from '../ngon_ngu'
 
 /** HỘP THOẠI KHỐI HÀNH ĐỘNG — nơi người chơi khai một việc sẽ làm với thị trường.
  *
@@ -128,22 +129,22 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, dsNho, coMa
   }
 
   return (
-    <Modal title={loai.nhan} width={620} onClose={onDong}
+    <Modal title={tr(loai.nhan)} width={620} onClose={onDong}
            footer={<>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Huỷ</button>
-             <button className="nut chinh" onClick={luu}>Lưu</button>
+             <button className="nut" onClick={onDong}>{tr('Huỷ')}</button>
+             <button className="nut chinh" onClick={luu}>{tr('Lưu')}</button>
            </>}>
       <div className="hop-lam">
         <div className="mo-ta-loai">
-          <Icon name={loai.icon} /> {loai.mo_ta}
+          <Icon name={loai.icon} /> {tr(loai.mo_ta)}
         </div>
-        {loai.tat && <div className="mc-bao loi">⚠ {loai.tat}</div>}
+        {loai.tat && <div className="mc-bao loi">⚠ {tr(loai.tat)}</div>}
 
         <label className="o-hang">
-          <span className="nhan-o">Tên khối</span>
+          <span className="nhan-o">{tr('Tên khối')}</span>
           <input className="o day" value={ten} spellCheck={false}
-                 placeholder={loai.nhan} onChange={e => setTen(e.target.value)} />
+                 placeholder={tr(loai.nhan)} onChange={e => setTen(e.target.value)} />
         </label>
 
         {dsO.map(o => (
@@ -159,7 +160,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, dsNho, coMa
                  không biết nó giữ cái gì. */
               ? <select className="o day" value={String(gt.o_nho ?? '')}
                         onChange={e => doi('o_nho', e.target.value)}>
-                  <option value="">— chưa chọn ô nhớ —</option>
+                  <option value="">{tr('— chưa chọn ô nhớ —')}</option>
                   {Object.entries(dsNho ?? {}).map(([m, n]) => (
                     <option key={m} value={m}>{n}</option>
                   ))}
@@ -184,7 +185,7 @@ export default function HopHanhDong({ step, tuDien, tuDienHoi, dsMa, dsNho, coMa
             {/* Nhãn lấy từ TỪ ĐIỂN: «Giá trị vẽ» với khối Vẽ lên bảng, «Trọng số»
                 với khối Phát tín hiệu. Gõ cứng một nhãn ở đây là mọi khối có ô đại
                 lượng đều bị gọi sai tên. */}
-            <span className="nhan-o">{loai?.nhan_dai_luong}</span>
+            <span className="nhan-o">{tr(loai?.nhan_dai_luong ?? '')}</span>
             <Ve ve={(gt.gia_tri as VeDieuKien) ?? {}} td={tuDienHoi} dsMa={dsMa}
                 coMaDangXet={coMaDangXet} choSo={!!loai?.dai_luong_so}
                 onDoi={v => doi('gia_tri', v)} />

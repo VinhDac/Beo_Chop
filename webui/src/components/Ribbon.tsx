@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import IconNet from './Icon'
 import NutMenu from './NutMenu'
+import { tr } from '../ngon_ngu'
 
 /** Thanh công cụ kiểu ribbon của Paint: nút nhóm lại, nhãn nhóm nằm DƯỚI, có vạch ngăn
  *  giữa các nhóm.
@@ -130,50 +131,53 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
           và họ nào cũng với tới được từ bất kỳ khối nào, nên chọn họ không còn quyết
           cái gì nữa — nó chỉ là «mở sẵn ở mục này». Một lời biện hộ sống lâu hơn cái
           lý của nó thì nguy hơn là không có lời nào. */}
-      <Nhom ten="Thêm khối">
-        <Nut ten="Bắt đầu" icon="start" onClick={v.themBatDau}
-             title="Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn" />
-        <NutMenu ten="Xác nhận" icon="branch"
-                 title="Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ"
+      <Nhom ten={tr('Thêm khối')}>
+        <Nut ten={tr('Bắt đầu')} icon="start" onClick={v.themBatDau}
+             title={tr('Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn')} />
+        <NutMenu ten={tr('Xác nhận')} icon="branch"
+                 title={tr('Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ')}
                  muc={v.loaiHoi.map(l => ({
-                   nhan: l.nhan, phu: l.mo_ta, icon: l.icon, tat: l.tat,
+                   nhan: tr(l.nhan), phu: tr(l.mo_ta), icon: l.icon,
+                   tat: l.tat && tr(l.tat),
                    chay: () => v.themHoi(l.ma),
                  }))} />
-        <NutMenu ten="Hành động" icon="action"
-                 title="Thêm một việc sẽ làm với thị trường, hoặc một dòng ghi ra ngoài"
+        <NutMenu ten={tr('Hành động')} icon="action"
+                 title={tr('Thêm một việc sẽ làm với thị trường, hoặc một dòng ghi ra ngoài')}
                  dauMuc={(m, i) => {
                    const n = v.loaiLam[i]?.nhom
-                   return i === 0 || n !== v.loaiLam[i - 1]?.nhom ? n : undefined
+                   return i === 0 || n !== v.loaiLam[i - 1]?.nhom ? tr(n) : undefined
                  }}
                  muc={v.loaiLam.map(l => ({
                    // Dòng phụ là HÀM LEAN nó sẽ gọi — cùng lời hứa như `.lean-khai`
                    // của hộp thoại: mỗi khối là một thứ có thật, kiểm được ngay ở đây.
-                   nhan: l.nhan, phu: l.lean, icon: l.icon, tat: l.tat,
+                   nhan: tr(l.nhan), phu: l.lean, icon: l.icon,
+                   tat: l.tat && tr(l.tat),
                    chay: () => v.themLam(l.ma),
                  }))} />
-        <Nut ten="Nhóm" icon="group" onClick={v.themNhom}
-             title="Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt (Ctrl+G gom khối đang chọn)" />
-        <Nut ten="Quay về" icon="quay-ve" onClick={v.themQuayVe}
-             title="Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp" />
+        <Nut ten={tr('Nhóm')} icon="group" onClick={v.themNhom}
+             title={tr('Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt (Ctrl+G gom khối '
+               + 'đang chọn)')} />
+        <Nut ten={tr('Quay về')} icon="quay-ve" onClick={v.themQuayVe}
+             title={tr('Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp')} />
       </Nhom>
 
-      <Nhom ten="Sửa" hienTu={HIEN_TU.sua}>
-        <Nut ten="Nhân bản" icon="copy" onClick={v.nhanBan} tat={!soChon} title="Ctrl+D" />
-        <Nut ten="Xoá" icon="trash" onClick={v.xoa} tat={!soChon} title="Delete" />
+      <Nhom ten={tr('Sửa')} hienTu={HIEN_TU.sua}>
+        <Nut ten={tr('Nhân bản')} icon="copy" onClick={v.nhanBan} tat={!soChon} title="Ctrl+D" />
+        <Nut ten={tr('Xoá')} icon="trash" onClick={v.xoa} tat={!soChon} title="Delete" />
       </Nhom>
 
       {/* HẠT NHÂN KHÔNG CÒN CỤM PHÍM NÀO (Ctrl+G nay là của Nhóm, như Jenifer), nên
           ribbon và menu chuột phải là hai đường duy nhất — ẩn nhóm này sau cùng. */}
-      <Nhom ten="Hạt nhân" hienTu={HIEN_TU.hatNhan}>
+      <Nhom ten={tr('Hạt nhân')} hienTu={HIEN_TU.hatNhan}>
         <Nut ten="Gom" icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
-             title="Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi" />
-        <Nut ten="Tách" icon="unlink" onClick={v.taHatNhan} tat={!soChon}
-             title="Đưa các khối đang chọn ra khỏi hạt nhân của chúng" />
+             title={tr('Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi')} />
+        <Nut ten={tr('Tách')} icon="unlink" onClick={v.taHatNhan} tat={!soChon}
+             title={tr('Đưa các khối đang chọn ra khỏi hạt nhân của chúng')} />
       </Nhom>
 
-      <Nhom ten="Hoàn tác" hienTu={HIEN_TU.hoanTac}>
-        <Nut ten="Hoàn tác" icon="undo" onClick={v.hoanTac} tat={!coHoanTac} title="Ctrl+Z" />
-        <Nut ten="Làm lại" icon="redo" onClick={v.lamLai} tat={!coLamLai} title="Ctrl+Y" />
+      <Nhom ten={tr('Hoàn tác')} hienTu={HIEN_TU.hoanTac}>
+        <Nut ten={tr('Hoàn tác')} icon="undo" onClick={v.hoanTac} tat={!coHoanTac} title="Ctrl+Z" />
+        <Nut ten={tr('Làm lại')} icon="redo" onClick={v.lamLai} tat={!coLamLai} title="Ctrl+Y" />
       </Nhom>
 
       <Nhom ten="Strategy" hienTu={HIEN_TU.strategy}>
@@ -183,12 +187,12 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
               · Cài đặt -> nút bánh răng ở thanh trạng thái, và Ctrl+,
             Bỏ một nút mà việc của nó mất luôn thì không được — xem luật thứ tự ẩn
             nhóm ở đầu file. Hai cái này không mất gì. */}
-        <Nut ten="Kho" icon="folder" onClick={v.mo}
-             title="Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)" />
-        <NutMenu ten="Lưu" icon="save" title="Ctrl+S"
-                 muc={[{ nhan: 'Lưu', phu: 'Ctrl+S — ghi đè bản đang mở',
+        <Nut ten={tr('Kho')} icon="folder" onClick={v.mo}
+             title={tr('Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)')} />
+        <NutMenu ten={tr('Lưu')} icon="save" title="Ctrl+S"
+                 muc={[{ nhan: tr('Lưu'), phu: tr('Ctrl+S — ghi đè bản đang mở'),
                          icon: 'save', chay: v.luu },
-                       { nhan: 'Lưu thành…', phu: 'một Strategy mới, giữ nguyên bản đang mở',
+                       { nhan: tr('Lưu thành…'), phu: tr('một Strategy mới, giữ nguyên bản đang mở'),
                          icon: 'copy', chay: v.luuThanh }]} />
       </Nhom>
 
@@ -201,23 +205,23 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
           Optimize, Live — và là đúng chữ người trong nghề đọc trên bất cứ nền nào
           khác. Dịch ra tiếng Việt thì phải học lại khi sang QuantConnect. Nghĩa tiếng
           Việt nằm ở chú giải khi rê chuột. */}
-      <Nhom ten="Cỗ máy" chinh>
+      <Nhom ten={tr('Cỗ máy')} chinh>
         <Nut ten="Build" icon="gear" onClick={v.sinhMa}
-             title="Build — sơ đồ này thành thuật toán LEAN Python, xem trước rồi lưu ra file" />
+             title={tr('Build — sơ đồ này thành thuật toán LEAN Python, xem trước rồi lưu ra file')} />
         {/* MỘT Ô, HAI VIỆC. Đang chạy thì chỗ này là nút DỪNG — mắt người dùng
             đang ở đúng đây vì họ vừa bấm Backtest, nên đừng bắt đi tìm chỗ khác.
             Không chạy thì chẳng có gì để dừng, bày thêm một nút mờ là thừa. */}
         {v.dangChay
-          ? <Nut ten="Dừng" icon="dung" lop="nut-dung" onClick={v.dung}
-                 title="Dừng lượt backtest đang chạy (F6)" />
+          ? <Nut ten={tr('Dừng')} icon="dung" lop="nut-dung" onClick={v.dung}
+                 title={tr('Dừng lượt backtest đang chạy (F6)')} />
           : <Nut ten="Backtest" icon="chay" onClick={v.chay}
-                 title="Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này" />}
+                 title={tr('Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này')} />}
         <Nut ten="Optimize" icon="branch" onClick={v.toiUu}
-             title="Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất" />
+             title={tr('Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất')} />
         <Nut ten="Live" icon="an-lenh" tat
-             title="Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn." />
+             title={tr('Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn.')} />
         <Nut ten="Results" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
-             title="Results — mở lại kết quả lượt backtest vừa rồi" />
+             title={tr('Results — mở lại kết quả lượt backtest vừa rồi')} />
       </Nhom>
     </div>
   )

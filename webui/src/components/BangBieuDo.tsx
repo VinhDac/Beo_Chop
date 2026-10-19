@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { DuongBieuDo } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** MỘT BẢNG BIỂU ĐỒ — tiêu đề trái, nút khoảng phải, dấu ✕ đóng, rồi hình.
  *
@@ -131,7 +132,7 @@ export default function BangBieuDo({ ten, duong, onDong }: {
           <button key={n} className={'nut-nho' + (khoang === v ? ' chon' : '')}
                   onClick={() => setKhoang(v)}>{n}</button>
         ))}
-        <button className="nut-nho dong" title="Đóng bảng này" onClick={onDong}>✕</button>
+        <button className="nut-nho dong" title={tr('Đóng bảng này')} onClick={onDong}>✕</button>
       </div>
 
       <div className="bd-than" ref={boc}
@@ -215,8 +216,8 @@ export default function BangBieuDo({ ten, duong, onDong }: {
               return p.length >= 5 ? (
                 <span key={x.ten} className="cot-doc">
                   <i>{x.ten}</i>
-                  <em>Mở {gon(p[1], b.don_vi)} · Cao {gon(p[2], b.don_vi)}</em>
-                  <em>Thấp {gon(p[3], b.don_vi)} · Đóng {gon(p[4], b.don_vi)}</em>
+                  <em>{trx('Mở {0} · Cao {1}', gon(p[1], b.don_vi), gon(p[2], b.don_vi))}</em>
+                  <em>{trx('Thấp {0} · Đóng {1}', gon(p[3], b.don_vi), gon(p[4], b.don_vi))}</em>
                 </span>
               ) : (
                 <span key={x.ten}>{x.ten}: {gon(p[p.length - 1], b.don_vi)}</span>
@@ -235,7 +236,7 @@ export default function BangBieuDo({ ten, duong, onDong }: {
               {x.kieu === 'nen'
                 ? <><i style={{ background: MAU_LEN }} /><i style={{ background: MAU_XUONG }} /></>
                 : <i style={{ background: MAU[j++ % MAU.length] }} />}
-              {x.ten}{x.don_vi ? ` (${x.don_vi})` : ''}
+              {x.ten}{x.don_vi ? ` (${tr(x.don_vi)})` : ''}
             </span>
           )) })()}
         </div>

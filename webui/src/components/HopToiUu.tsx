@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import type { Step, TuDienToiUu, NumSoDo, CaiToiUu, RangBuoc } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP OPTIMIZE — năm dòng, mỗi dòng một khoá có thật trong config của LEAN.
  *
@@ -68,9 +69,9 @@ export default function HopToiUu({ td, num, cai0, dangChay, onChay, onDong }: {
     : num.reduce((a, n) => a * soBuoc(cai.tham_so?.[n.ten]), 1)
   const songSong = Math.max(1, Number(cai.cung_luc) || 2)
   const giay = soLuot * td.giay_moi_luot / songSong
-  const lauLa = giay < 90 ? `${Math.round(giay)} giây`
-    : giay < 5400 ? `${Math.round(giay / 60)} phút`
-      : `${(giay / 3600).toFixed(1)} tiếng`
+  const lauLa = giay < 90 ? tr('{0} giây', Math.round(giay))
+    : giay < 5400 ? tr('{0} phút', Math.round(giay / 60))
+      : tr('{0} tiếng', (giay / 3600).toFixed(1))
 
   const doiNum = (ten: string, o: string, v: string) =>
     setCai(x => ({ ...x, tham_so: { ...(x.tham_so ?? {}),
@@ -85,34 +86,33 @@ export default function HopToiUu({ td, num, cai0, dangChay, onChay, onDong }: {
            footer={<>
              <span className={'tu-uoc' + (soLuot ? '' : ' thieu')}>
                {soLuot
-                 ? <>sẽ chạy <b>{soLuot.toLocaleString('vi')}</b> lượt
-                     · ước chừng <b>{lauLa}</b></>
+                 ? <>{trx('sẽ chạy {0} lượt · ước chừng {1}', <b>{soLuot.toLocaleString('vi')}</b>,
+                   <b>{lauLa}</b>)}</>
                  : num.length
-                   ? <>chưa khai khoảng quét: {thieu.join(', ')}</>
-                   : <>sơ đồ chưa ghim núm nào — bấm bánh răng cạnh một ô số</>}
+                   ? <>{trx('chưa khai khoảng quét: {0}', thieu.join(', '))}</>
+                   : <>{tr('sơ đồ chưa ghim núm nào — bấm bánh răng cạnh một ô số')}</>}
              </span>
-             <button className="nut" onClick={onDong}>Đóng</button>
+             <button className="nut" onClick={onDong}>{tr('Đóng')}</button>
              <button className="nut chinh" disabled={!soLuot || dangChay}
                      onClick={() => onChay(cai)}>
-               <Icon name="chay" /> Chạy
-             </button>
+               {trx('{0} Chạy', <Icon name="chay" />)}</button>
            </>}>
       <div className="hop-lam hop-tu">
-        <label className="o-hang"><span className="nhan-o">Mục tiêu</span>
+        <label className="o-hang"><span className="nhan-o">{tr('Mục tiêu')}</span>
           <select className="o day" value={cai.muc_tieu}
                   onChange={e => doi('muc_tieu', e.target.value)}>
             {td.chi_tieu.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select className="o" style={{ flex: '0 0 110px' }} value={cai.huong}
                   onChange={e => doi('huong', e.target.value)}>
-            {td.huong.map(h => <option key={h.ma} value={h.ma}>{h.nhan}</option>)}
+            {td.huong.map(h => <option key={h.ma} value={h.ma}>{tr(h.nhan)}</option>)}
           </select>
         </label>
 
-        <div className="tu-muc">Núm sơ đồ đang ghim</div>
+        <div className="tu-muc">{tr('Núm sơ đồ đang ghim')}</div>
         {!num.length && (
-          <div className="tu-rong">Chưa có núm nào. Mở một khối ra, bấm bánh răng
-            cạnh ô số rồi bấm nút ghim.</div>
+          <div className="tu-rong">{tr('Chưa có núm nào. Mở một khối ra, bấm bánh răng '
+            + 'cạnh ô số rồi bấm nút ghim.')}</div>
         )}
         {num.map(n => {
           const k = cai.tham_so?.[n.ten]
@@ -122,37 +122,36 @@ export default function HopToiUu({ td, num, cai0, dangChay, onChay, onDong }: {
               <div className="tu-ten">
                 <span className="num-ghim">{n.ten}</span>
                 <span className="tu-noi" title={n.o_tai.join(' · ')}>
-                  {n.o_tai.length > 1 ? `dùng ở ${n.o_tai.length} chỗ` : n.o_tai[0]}
+                  {n.o_tai.length > 1 ? tr('dùng ở {0} chỗ', n.o_tai.length) : n.o_tai[0]}
                 </span>
               </div>
               <div className="tu-khoang">
-                <span>từ</span>
+                <span>{tr('từ')}</span>
                 <input className="o so" inputMode="decimal" value={String(k?.tu ?? '')}
                        onChange={e => doiNum(n.ten, 'tu', e.target.value)} />
-                <span>đến</span>
+                <span>{tr('đến')}</span>
                 <input className="o so" inputMode="decimal" value={String(k?.den ?? '')}
                        onChange={e => doiNum(n.ten, 'den', e.target.value)} />
-                <span>bước</span>
+                <span>{tr('bước')}</span>
                 <input className="o so" inputMode="decimal"
                        value={String(k?.buoc ?? '')}
                        onChange={e => doiNum(n.ten, 'buoc', e.target.value)} />
-                <span className="tu-dem">{sb ? `${sb} giá trị` : 'khoảng rỗng'}</span>
+                <span className="tu-dem">{sb ? tr('{0} giá trị', sb) : tr('khoảng rỗng')}</span>
               </div>
             </div>
           )
         })}
 
-        <div className="tu-muc">Ràng buộc
+        <div className="tu-muc">{tr('Ràng buộc')}
           <button className="nut-nho" onClick={() => setCai(x => ({ ...x,
             rang_buoc: [...(x.rang_buoc ?? []),
               { chi_tieu: 'Drawdown', phep: 'lessOrEqual', gia_tri: 0.2 }] }))}>
-            <Icon name="plus" /> thêm
-          </button>
+            {trx('{0} thêm', <Icon name="plus" />)}</button>
         </div>
         {!cai.rang_buoc?.length && (
-          <div className="tu-rong">Không bắt buộc. Có ràng buộc thì optimizer BỎ
-            những lượt không đạt, nên nó không trao giải cho một lượt Sharpe cao mà
-            sụt 60%.</div>
+          <div className="tu-rong">{tr('Không bắt buộc. Có ràng buộc thì optimizer BỎ '
+            + 'những lượt không đạt, nên nó không trao giải cho một lượt Sharpe cao mà '
+            + 'sụt 60%.')}</div>
         )}
         {(cai.rang_buoc ?? []).map((r, i) => (
           <div key={i} className="tu-rb">
@@ -162,11 +161,11 @@ export default function HopToiUu({ td, num, cai0, dangChay, onChay, onDong }: {
             </select>
             <select className="o" value={r.phep}
                     onChange={e => doiRb(i, 'phep', e.target.value)}>
-              {td.phep_so.map(p => <option key={p.ma} value={p.ma}>{p.nhan}</option>)}
+              {td.phep_so.map(p => <option key={p.ma} value={p.ma}>{tr(p.nhan)}</option>)}
             </select>
             <input className="o so" inputMode="decimal" value={String(r.gia_tri)}
                    onChange={e => doiRb(i, 'gia_tri', e.target.value)} />
-            <button className="nut-nho" title="Bỏ dòng này"
+            <button className="nut-nho" title={tr('Bỏ dòng này')}
                     onClick={() => setCai(x => ({ ...x,
                       rang_buoc: (x.rang_buoc ?? []).filter((_, j) => j !== i) }))}>
               <Icon name="trash" />
@@ -174,17 +173,17 @@ export default function HopToiUu({ td, num, cai0, dangChay, onChay, onDong }: {
           </div>
         ))}
 
-        <div className="tu-muc">Chạy thế nào</div>
-        <label className="o-hang"><span className="nhan-o">Cách tìm</span>
+        <div className="tu-muc">{tr('Chạy thế nào')}</div>
+        <label className="o-hang"><span className="nhan-o">{tr('Cách tìm')}</span>
           <select className="o day" value={cai.cach_tim}
                   onChange={e => doi('cach_tim', e.target.value)}>
-            {td.cach_tim.map(c => <option key={c.ma} value={c.ma}>{c.nhan}</option>)}
+            {td.cach_tim.map(c => <option key={c.ma} value={c.ma}>{tr(c.nhan)}</option>)}
           </select>
         </label>
-        <label className="o-hang"><span className="nhan-o">Chạy cùng lúc</span>
+        <label className="o-hang"><span className="nhan-o">{tr('Chạy cùng lúc')}</span>
           <input className="o so" inputMode="numeric" value={String(cai.cung_luc)}
                  onChange={e => doi('cung_luc', e.target.value)} />
-          <span className="doc-them">lượt một lúc · 0 = để LEAN tự lấy nửa số nhân CPU</span>
+          <span className="doc-them">{tr('lượt một lúc · 0 = để LEAN tự lấy nửa số nhân CPU')}</span>
         </label>
       </div>
     </Modal>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && node dich/chay.mjs --chi-soat && vite build",
     "preview": "vite preview",
     "kiem-kieu": "tsc --noEmit",
     "dich": "node dich/chay.mjs"

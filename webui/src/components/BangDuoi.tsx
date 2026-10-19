@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import type React from 'react'
+import { tr } from '../ngon_ngu'
 
 /** BẢNG DƯỚI — Vấn đề và Nhật ký.
  *
@@ -83,7 +84,7 @@ export default function BangDuoi({ tabs, tab, onTab, cao, onCao, gap, onGap }: {
         ))}
         <span className="day" />
         <button className="nut-nho" onClick={() => onGap(!gap)}
-                title={gap ? 'Mở bảng dưới' : 'Gập bảng dưới'}>
+                title={gap ? tr('Mở bảng dưới') : tr('Gập bảng dưới')}>
           {gap ? '▲' : '▼'}
         </button>
       </div>

@@ -1,4 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, useReactFlow, type EdgeProps } from '@xyflow/react'
+import { tr } from '../ngon_ngu'
 
 /* ĐƯỜNG ↻ QUAY LẠI — mũi tên ngược về một khối phía trước, tức một vòng lặp trên sơ đồ.
  *
@@ -55,12 +56,12 @@ export default function DuongVong({
              style={{ transform: `translate(-50%, -50%) translate(${gx}px, ${gy}px)` }}>
           <span className="dau">↻</span>
           {ao
-            ? <span className="don-vi">{d_?.vong ? `${so} vòng` : 'lặp mãi'}</span>
+            ? <span className="don-vi">{d_?.vong ? tr('{0} vòng', so) : tr('lặp mãi')}</span>
             : <>
                 <input value={String(so)} inputMode="numeric"
                        onChange={e => datSo(e.target.value)}
-                       title="Số lượt thân vòng chạy" />
-                <span className="don-vi">vòng</span>
+                       title={tr('Số lượt thân vòng chạy')} />
+                <span className="don-vi">{tr('vòng')}</span>
               </>}
         </div>
       </EdgeLabelRenderer>

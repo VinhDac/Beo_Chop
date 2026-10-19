@@ -3,6 +3,7 @@ import Modal from './Modal'
 import Icon from './Icon'
 import { py } from '../api'
 import type { TheLuotChay, TheMeToiUu } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** KHO — mọi lượt BACKTEST và mọi mẻ OPTIMIZE đã chạy, mới nhất trước.
  *
@@ -45,7 +46,7 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
   const nap = async () => {
     const [a, b] = await Promise.all([py.ds_luot_chay(), py.ds_me_toi_uu()])
     if (a.ok && a.value) setDs(a.value)
-    else setLoi(a.error ?? 'không đọc được kho lượt chạy')
+    else setLoi(a.error ?? tr('không đọc được kho lượt chạy'))
     if (b.ok && b.value) setMe(b.value)
   }
   useEffect(() => { void nap() }, [])
@@ -54,10 +55,10 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
   const rong = tab === 'bt' ? ds?.length === 0 : me?.length === 0
 
   return (
-    <Modal title="Kho lượt chạy" width={700} onClose={onDong}
+    <Modal title={tr('Kho lượt chạy')} width={700} onClose={onDong}
            footer={<>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Đóng</button>
+             <button className="nut" onClick={onDong}>{tr('Đóng')}</button>
            </>}>
       <div className="kho-luot">
         {loi && <div className="mc-bao loi">⚠ {loi}</div>}
@@ -73,24 +74,22 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
           </button>
         </div>
 
-        <div className="dau-dk">
-          Mỗi dòng mở ra một <b>cửa sổ riêng</b> — mở nhiều cái rồi xếp cạnh nhau để
-          so hai phiên bản của cùng một chiến thuật.
-        </div>
+        <div className="dau-dk">{trx('Mỗi dòng mở ra một {0} — mở nhiều cái rồi xếp cạnh nhau để '
+        + 'so hai phiên bản của cùng một chiến thuật.', <b>{tr('cửa sổ riêng')}</b>)}</div>
 
-        {dangDoc && !loi && <div className="kq-cho">đang đọc…</div>}
+        {dangDoc && !loi && <div className="kq-cho">{tr('đang đọc…')}</div>}
         {rong && (
           <div className="kq-cho">
             {tab === 'bt'
-              ? <>chưa có lượt nào — bấm <b>Backtest</b> một lần</>
-              : <>chưa có mẻ nào — ghim một ô số rồi bấm <b>Optimize</b></>}
+              ? <>{trx('chưa có lượt nào — bấm {0} một lần', <b>Backtest</b>)}</>
+              : <>{trx('chưa có mẻ nào — ghim một ô số rồi bấm {0}', <b>Optimize</b>)}</>}
           </div>
         )}
 
         {tab === 'bt' && (ds ?? []).map(t => (
           <div className="luot" key={t.id}>
             <button className="luot-mo" onClick={() => void py.mo_cua_so_ket_qua(t.id)}
-                    title="Mở trong một cửa sổ riêng">
+                    title={tr('Mở trong một cửa sổ riêng')}>
               <span className="luot-ten">{t.ten_lop}</span>
               <span className="luot-luc">{doc(t.ma_luot)}</span>
               <span className="luot-so">
@@ -99,10 +98,10 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
                 ))}
               </span>
             </button>
-            <button className="nut-nho" title="Xoá hẳn lượt này"
+            <button className="nut-nho" title={tr('Xoá hẳn lượt này')}
                     onClick={() => void (async () => {
                       const r = await py.xoa_luot_chay(t.id)
-                      if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
+                      if (!r.ok) { setLoi(r.error ?? tr('không xoá được')); return }
                       void nap()
                     })()}><Icon name="trash" /></button>
           </div>
@@ -111,22 +110,22 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
         {tab === 'tu' && (me ?? []).map(t => (
           <div className="luot" key={t.id}>
             <button className="luot-mo" onClick={() => void py.mo_cua_so_toi_uu(t.id)}
-                    title="Mở trong một cửa sổ riêng">
+                    title={tr('Mở trong một cửa sổ riêng')}>
               <span className="luot-ten">{t.ten_lop}</span>
               <span className="luot-luc">{doc(t.ma_luot ?? '')}</span>
               <span className="luot-so">
                 {/* Một mẻ thì con số đáng đọc KHÁC một lượt: không phải lãi bao
                     nhiêu, mà QUÉT CÁI GÌ và quét bao nhiêu lượt. Lãi của từng lượt
                     nằm trong bảng xếp hạng bên trong, mở ra là thấy. */}
-                <i><b>Tìm</b> {t.cai?.muc_tieu ?? '—'}</i>
-                <i><b>Núm</b> {Object.keys(t.cai?.tham_so ?? {}).join(', ') || '—'}</i>
-                <i><b>Lượt</b> {t.so_xong ?? 0}{t.so_luot ? ` / ${t.so_luot}` : ''}</i>
+                <i><b>{tr('Tìm')}</b> {t.cai?.muc_tieu ?? '—'}</i>
+                <i><b>{tr('Núm')}</b> {Object.keys(t.cai?.tham_so ?? {}).join(', ') || '—'}</i>
+                <i><b>{tr('Lượt')}</b> {t.so_xong ?? 0}{t.so_luot ? ` / ${t.so_luot}` : ''}</i>
               </span>
             </button>
-            <button className="nut-nho" title="Xoá hẳn mẻ này, kể cả mọi lượt bên trong"
+            <button className="nut-nho" title={tr('Xoá hẳn mẻ này, kể cả mọi lượt bên trong')}
                     onClick={() => void (async () => {
                       const r = await py.xoa_me_toi_uu(t.id)
-                      if (!r.ok) { setLoi(r.error ?? 'không xoá được'); return }
+                      if (!r.ok) { setLoi(r.error ?? tr('không xoá được')); return }
                       void nap()
                     })()}><Icon name="trash" /></button>
           </div>

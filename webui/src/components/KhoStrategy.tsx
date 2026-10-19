@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Modal from './Modal'
 import Icon from './Icon'
 import { xacNhan, nhapChu } from './Hoi'
+import { tr, trx } from '../ngon_ngu'
 
 /** MỘT DÒNG trong kho.
  *
@@ -59,10 +60,10 @@ export default function KhoStrategy({ dangMo, lay, onMo, onDong, onDoiTen, onNha
   async function xoa() {
     if (!muc) return
     if (!(await xacNhan({
-      tieu_de: 'Xoá Strategy',
-      loi: `Xoá "${muc.ten}"?`,
-      chi_tiet: 'File bị xoá hẳn khỏi đĩa, không hoàn tác được.',
-      nut_ok: 'Xoá', nguy: true,
+      tieu_de: tr('Xoá Strategy'),
+      loi: tr('Xoá "{0}"?', muc.ten),
+      chi_tiet: tr('File bị xoá hẳn khỏi đĩa, không hoàn tác được.'),
+      nut_ok: tr('Xoá'), nguy: true,
     }))) return
     await onXoa(muc.ten)
     setChon(null)
@@ -71,8 +72,8 @@ export default function KhoStrategy({ dangMo, lay, onMo, onDong, onDoiTen, onNha
 
   async function doiTen() {
     if (!muc) return
-    const v = await nhapChu({ tieu_de: 'Đổi tên Strategy', loi: 'Tên mới:',
-                              nhap: muc.ten, nut_ok: 'Đổi tên' })
+    const v = await nhapChu({ tieu_de: tr('Đổi tên Strategy'), loi: tr('Tên mới:'),
+                              nhap: muc.ten, nut_ok: tr('Đổi tên') })
     if (!v || v.trim() === muc.ten) return
     await onDoiTen(muc.ten, v.trim())
     setChon(null)
@@ -81,8 +82,8 @@ export default function KhoStrategy({ dangMo, lay, onMo, onDong, onDoiTen, onNha
 
   async function nhanBan() {
     if (!muc) return
-    const v = await nhapChu({ tieu_de: 'Nhân bản Strategy', loi: 'Tên bản sao:',
-                              nhap: `${muc.ten} (bản sao)`, nut_ok: 'Nhân bản' })
+    const v = await nhapChu({ tieu_de: tr('Nhân bản Strategy'), loi: tr('Tên bản sao:'),
+                              nhap: tr('{0} (bản sao)', muc.ten), nut_ok: tr('Nhân bản') })
     if (!v?.trim()) return
     await onNhanBan(muc.ten, v.trim())
     setChon(null)
@@ -90,43 +91,43 @@ export default function KhoStrategy({ dangMo, lay, onMo, onDong, onDoiTen, onNha
   }
 
   const trong: ReactNode = xemTuLuu
-    ? <>Chưa có bản tự lưu nào. Bản tự lưu là phần đang làm dở của một Strategy đã lưu —
-       mở nó ra là mở lại bản gốc kèm phần dở, Ctrl+S ghi về bản gốc.</>
-    : <>Chưa có Strategy nào. Vẽ một sơ đồ rồi bấm <b>Lưu</b> là nó xuất hiện ở đây.</>
+    ? <>{tr('Chưa có bản tự lưu nào. Bản tự lưu là phần đang làm dở của một Strategy đã lưu — '
+       + 'mở nó ra là mở lại bản gốc kèm phần dở, Ctrl+S ghi về bản gốc.')}</>
+    : <>{trx('Chưa có Strategy nào. Vẽ một sơ đồ rồi bấm {0} là nó xuất hiện ở đây.', <b>{tr('Lưu')}</b>)}</>
 
   return (
-    <Modal title="Kho Strategy" width={520} onClose={onDong}
+    <Modal title={tr('Kho Strategy')} width={520} onClose={onDong}
            footer={<>
              <button className="nut" disabled={!muc} onClick={doiTen}>
-               <Icon name="edit" /> Đổi tên</button>
+               {trx('{0} Đổi tên', <Icon name="edit" />)}</button>
              <button className="nut" disabled={!muc} onClick={nhanBan}>
-               <Icon name="copy" /> Nhân bản</button>
+               {trx('{0} Nhân bản', <Icon name="copy" />)}</button>
              <button className="nut do" disabled={!muc} onClick={xoa}>
-               <Icon name="trash" /> Xoá</button>
+               {trx('{0} Xoá', <Icon name="trash" />)}</button>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Huỷ</button>
+             <button className="nut" onClick={onDong}>{tr('Huỷ')}</button>
              <button className="nut chinh" disabled={!muc}
-                     onClick={() => muc && onMo(muc.ten)}>Mở</button>
+                     onClick={() => muc && onMo(muc.ten)}>{tr('Mở')}</button>
            </>}>
       {/* HAI TAB. Bản gốc và bản tự lưu lẫn vào nhau là mở nhầm, lưu nhầm. */}
       <div className="hang-tab">
         <button className={'tab' + (!xemTuLuu ? ' dang' : '')}
                 onClick={() => { setXemTuLuu(false); setChon(null) }}>Strategy</button>
         <button className={'tab' + (xemTuLuu ? ' dang' : '')}
-                onClick={() => { setXemTuLuu(true); setChon(null) }}>Tự lưu</button>
+                onClick={() => { setXemTuLuu(true); setChon(null) }}>{tr('Tự lưu')}</button>
         <span className="day" />
         <input className="o" style={{ width: 150 }} value={tim} spellCheck={false}
-               placeholder="lọc theo tên…" onChange={e => setTim(e.target.value)} />
+               placeholder={tr('lọc theo tên…')} onChange={e => setTim(e.target.value)} />
       </div>
       <div className="danh-sach">
-        {dangTai && <div className="muc mo">đang đọc…</div>}
+        {dangTai && <div className="muc mo">{tr('đang đọc…')}</div>}
         {!dangTai && bay.length === 0 && <div className="muc mo">{trong}</div>}
         {bay.map(m => (
           <div key={khoa(m)} className={'muc' + (khoa(m) === chon ? ' chon' : '')}
                onClick={() => setChon(khoa(m))}
                onDoubleClick={() => onMo(m.ten)}>
             <span className="ten">{m.ten}</span>
-            {m.ten === dangMo && <b className="the">đang mở</b>}
+            {m.ten === dangMo && <b className="the">{tr('đang mở')}</b>}
           </div>
         ))}
       </div>

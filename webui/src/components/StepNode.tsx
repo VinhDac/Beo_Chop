@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { Card, Step, StepKind } from '../types'
 import IconNet from './Icon'
 import { doanTim } from '../tim'
+import { tr, trx, useNgonNgu } from '../ngon_ngu'
 
 /** Số dòng hành động hiện tối đa trên một hộp.
  *
@@ -89,6 +90,8 @@ const SIDES: [string, Position][] = [
 ]
 
 function StepNode({ data, selected }: NodeProps) {
+  // `memo` chặn lượt vẽ lại mà gốc cửa sổ phát ra khi đổi tiếng — nên khối tự nghe.
+  useNgonNgu()
   const card = (data as { card: Card }).card
   const thuTu = (data as { thuTu?: string }).thuTu
   /** Đang bấm vào một khối "Quay về" và khối này nằm TRONG vòng ấy — tô màu vòng.
@@ -131,8 +134,8 @@ function StepNode({ data, selected }: NodeProps) {
             Không có số = đường nối không dẫn tới khối này, nó sẽ KHÔNG chạy —
             phải nhìn thấy được ngay, không thì lại rơi vào cảnh sơ đồ nói dối. */}
         <div className={'so-thu-tu' + (thuTu ? '' : ' trong')}
-             title={thuTu ? `Bước ${thuTu} — số = đi được bao xa, chữ = đi nhánh nào`
-                          : 'Không có đường nối dẫn tới — sẽ không chạy'}>
+             title={thuTu ? tr('Bước {0} — số = đi được bao xa, chữ = đi nhánh nào', thuTu)
+                          : tr('Không có đường nối dẫn tới — sẽ không chạy')}>
           {thuTu ? <ChuTim text={thuTu} tim={tim} /> : '–'}
         </div>
         <div className="dau">
@@ -142,14 +145,14 @@ function StepNode({ data, selected }: NodeProps) {
           {/* KHỐI QUAY VỀ: nhãn đích ngay trên đầu hộp — đọc sơ đồ là biết nó nhảy đi
               đâu, khỏi phải mở hộp thoại hay dò theo đường ↻. */}
           {veNhan && (
-            <span className="ve-nhan" title={`Quay về khối ${veNhan}`}>↻ {veNhan}</span>
+            <span className="ve-nhan" title={tr('Quay về khối {0}', veNhan)}>↻ {veNhan}</span>
           )}
           <span className="loai">{TEN_LOAI[card.kind]}</span>
         </div>
 
         {(hien.length > 0 || card.kind === 'group') && (
           <div className="than">
-            {hien.length === 0 && <div className="dong rong">chưa có hành động nào</div>}
+            {hien.length === 0 && <div className="dong rong">{tr('chưa có hành động nào')}</div>}
             {hien.map((d, i) => (
               <div key={i} className="dong" title={d.text}>
                 <span className="danh">{card.kind === 'group' ? '·' : ''}</span>
@@ -159,7 +162,7 @@ function StepNode({ data, selected }: NodeProps) {
             ))}
             {con > 0 && (
               <div className="dong con-nua">
-                <span className="danh" /><span>… còn {con} hành động</span>
+                <span className="danh" /><span>{trx('… còn {0} hành động', con)}</span>
               </div>
             )}
           </div>

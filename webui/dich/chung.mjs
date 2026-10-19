@@ -15,8 +15,14 @@ export const BANG = path.join(SRC, 'tieng_anh.ts')
 
 /** Không phải chữ giao diện (`tim.ts` bỏ dấu để tìm), hoặc chính là bộ dịch. */
 export const BO_TEP = new Set(['ngon_ngu.ts', 'tieng_anh.ts', 'tim.ts'])
-/** Cố ý KHÔNG dịch: nhãn ghi sẵn cả hai tiếng, và tên một thứ tiếng ghi bằng chính nó. */
-export const BO_CAU = new Set(['Ngôn ngữ · Language:', 'Ngôn ngữ · Language', 'Tiếng Việt'])
+/** Cố ý KHÔNG dịch: nhãn ghi sẵn cả hai tiếng, và tên một thứ tiếng ghi bằng chính nó.
+ *
+ *  ⚠ Ba câu này do PYTHON khai (`cat_studio/cai_dat.py`, nhóm Ngôn ngữ) chứ không nằm
+ *  trong `webui/src` như bên Jenifer — nên `nhanPython` phải lọc bảng này nữa, không chỉ
+ *  `cauTrongMa`. Dịch chúng là phá đúng cái lối về của người lỡ chọn tiếng mình không
+ *  đọc được. */
+export const BO_CAU = new Set(['Ngôn ngữ · Language', 'Tiếng Việt',
+  'Hiện giao diện bằng · Show the app in'])
 
 const DAU = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i
 /** Tiếng Việt KHÔNG DẤU mà không trùng chữ tiếng Anh. Lọc theo dấu thì sót đúng những

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { py } from '../api'
 import ContextMenu, { type MucPhai } from './ContextMenu'
 import { useKhungCuaSo } from '../useKhungCuaSo'
+import { tr } from '../ngon_ngu'
 
 export interface NhomMenu { ten: string; muc: MucPhai[] }
 
@@ -103,11 +104,11 @@ export default function TitleBar({ tieuDe, menus, them }: {
         {/* Khoảng giữa để trống CỐ Ý: đó chính là vùng kéo cửa sổ. */}
         <div className="ten-cua-so">{tieuDe}</div>
         <div className="nut-cua-so" data-khong-keo>
-          <button className="nut-cs" title="Thu nhỏ"
+          <button className="nut-cs" title={tr('Thu nhỏ')}
                   onClick={() => py.cua_so_thu_nho()}>
             <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" /></svg>
           </button>
-          <button className="nut-cs" title={phongTo ? 'Khôi phục' : 'Phóng to'}
+          <button className="nut-cs" title={phongTo ? tr('Khôi phục') : tr('Phóng to')}
                   onClick={() => py.cua_so_phong_to().then(r => setPhongTo(!!r.value))}>
             {phongTo ? (
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor">
@@ -124,7 +125,7 @@ export default function TitleBar({ tieuDe, menus, them }: {
               chưa lưu. Cat_Studio thì tự lưu bản nháp mỗi 1,2 giây (`luu_ban_nhap`)
               và mở lại là nạp đúng bản ấy — ✕ không làm mất gì, nên một câu hỏi ở
               đây chỉ là một nhát bấm thừa mỗi lần đóng app. */}
-          <button className="nut-cs dong" title="Đóng"
+          <button className="nut-cs dong" title={tr('Đóng')}
                   onClick={() => py.cua_so_dong()}>
             <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor">
               <path d="M0 0l10 10M10 0L0 10" />

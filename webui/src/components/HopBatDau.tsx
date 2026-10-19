@@ -6,6 +6,7 @@ import { py } from '../api'
 import RuotBatDau, { locOAnHien } from './RuotBatDau'
 import { useEffect } from 'react'
 import type { Step, TuDienBatDau } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP KHỐI BẮT ĐẦU — sơ đồ này chạy trên cái gì, bao giờ, bằng bao nhiêu tiền.
  *
@@ -46,25 +47,25 @@ export default function HopBatDau({ step, tuDien, onLuu, onDong }: {
   function luu() {
     const ra = locOAnHien(gt, tuDien)
     onLuu({ ...(ra as unknown as Step), id: step.id, kind: step.kind,
-            name: ten.trim() || 'Bắt đầu' })
+            name: ten.trim() || tr('Bắt đầu') })
   }
 
   return (
-    <Modal title="Bắt đầu" width={660} onClose={onDong}
+    <Modal title={tr('Bắt đầu')} width={660} onClose={onDong}
            footer={<>
              <span className="day" />
-             <button className="nut" onClick={onDong}>Huỷ</button>
-             <button className="nut chinh" onClick={luu}>Lưu</button>
+             <button className="nut" onClick={onDong}>{tr('Huỷ')}</button>
+             <button className="nut chinh" onClick={luu}>{tr('Lưu')}</button>
            </>}>
       <div className="hop-lam">
         <div className="mo-ta-loai">
-          <Icon name="start" /> cỗ máy này chạy trên cái gì, từ bao giờ, bằng bao nhiêu tiền
-        </div>
+          {trx('{0} cỗ máy này chạy trên cái gì, từ bao giờ, bằng bao nhiêu tiền',
+            <Icon name="start" />)}</div>
 
         <label className="o-hang">
-          <span className="nhan-o">Tên khối</span>
+          <span className="nhan-o">{tr('Tên khối')}</span>
           <input className="o day" value={ten} spellCheck={false}
-                 placeholder="Bắt đầu" onChange={e => setTen(e.target.value)} />
+                 placeholder={tr('Bắt đầu')} onChange={e => setTen(e.target.value)} />
         </label>
 
         <RuotBatDau dsO={tuDien.o} nhom={tuDien.nhom} gt={gt} setGt={setGt}

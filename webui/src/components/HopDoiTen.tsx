@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Modal from './Modal'
+import { tr } from '../ngon_ngu'
 
 /** Hộp đổi tên — một ô chữ, Enter là xong.
  *
@@ -17,8 +18,8 @@ export default function HopDoiTen({ tieuDe, giaTri, onXong, onHuy }: {
   return (
     <Modal title={tieuDe} width={420} onClose={onHuy}
            footer={<><span className="day" />
-                     <button className="nut" onClick={onHuy}>Huỷ</button>
-                     <button className="nut chinh" onClick={luu}>Đổi tên</button></>}>
+                     <button className="nut" onClick={onHuy}>{tr('Huỷ')}</button>
+                     <button className="nut chinh" onClick={luu}>{tr('Đổi tên')}</button></>}>
       <input className="o day" value={v} autoFocus spellCheck={false}
              onChange={e => setV(e.target.value)}
              onKeyDown={e => {

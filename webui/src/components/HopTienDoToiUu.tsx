@@ -1,5 +1,6 @@
 import Modal from './Modal'
 import Icon from './Icon'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP TIẾN ĐỘ CỦA MỘT MẺ OPTIMIZE.
  *
@@ -30,9 +31,9 @@ export default function HopTienDoToiUu({ td, onHuy, onDung, onXem }: {
   const conLai = xong > 0 && tong > xong
     ? ((giay / xong) * (tong - xong))
     : 0
-  const docConLai = conLai < 90 ? `${Math.round(conLai)} giây`
-    : conLai < 5400 ? `${Math.round(conLai / 60)} phút`
-      : `${(conLai / 3600).toFixed(1)} tiếng`
+  const docConLai = conLai < 90 ? tr('{0} giây', Math.round(conLai))
+    : conLai < 5400 ? tr('{0} phút', Math.round(conLai / 60))
+      : tr('{0} tiếng', (conLai / 3600).toFixed(1))
 
   return (
     <Modal title="Optimize" width={560} onClose={onHuy}
@@ -40,15 +41,14 @@ export default function HopTienDoToiUu({ td, onHuy, onDung, onXem }: {
              {/* DỪNG bên trái, tách khỏi «Ẩn hộp này» — cùng lý do như hộp Backtest:
                  hai nút nghe giống nhau mà một cái giết cả mẻ. */}
              <button className="nut nut-dung" onClick={onDung}>
-               <Icon name="dung" /> Dừng mẻ này
-             </button>
+               {trx('{0} Dừng mẻ này', <Icon name="dung" />)}</button>
              <span className="day" />
-             <button className="nut" onClick={onXem}>Xem kết quả</button>
-             <button className="nut" onClick={onHuy}>Ẩn hộp này</button>
+             <button className="nut" onClick={onXem}>{tr('Xem kết quả')}</button>
+             <button className="nut" onClick={onHuy}>{tr('Ẩn hộp này')}</button>
            </>}>
       <div className="hop-td">
         <div className="td-dau">
-          <b>{tong ? `${xong} / ${tong} lượt` : 'Đang khởi động…'}</b>
+          <b>{tong ? tr('{0} / {1} lượt', xong, tong) : tr('Đang khởi động…')}</b>
           <span className="day" />
           <span className="td-giay">{giay.toFixed(0)}s</span>
         </div>
@@ -60,12 +60,12 @@ export default function HopTienDoToiUu({ td, onHuy, onDung, onXem }: {
 
         <div className="td-buoc">
           <span className="dang">{pt}%</span>
-          {conLai > 0 && <span>còn chừng {docConLai}</span>}
+          {conLai > 0 && <span>{trx('còn chừng {0}', docConLai)}</span>}
         </div>
 
         <div className="td-dong">{td.dong_cuoi || '…'}</div>
         <div className="td-chan">
-          mỗi lượt là một tiến trình LEAN riêng · đóng hộp này thì mẻ VẪN chạy tiếp
+          {tr('mỗi lượt là một tiến trình LEAN riêng · đóng hộp này thì mẻ VẪN chạy tiếp')}
         </div>
       </div>
     </Modal>

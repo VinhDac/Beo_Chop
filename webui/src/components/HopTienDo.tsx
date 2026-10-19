@@ -1,6 +1,7 @@
 import Modal from './Modal'
 import Icon from './Icon'
 import type { TienDoChay } from '../types'
+import { tr, trx } from '../ngon_ngu'
 
 /** HỘP TIẾN ĐỘ — hiện trong lúc LEAN chạy backtest.
  *
@@ -29,14 +30,13 @@ export default function HopTienDo({ td, onHuy, onDung }: {
                  mà một cái giết tiến trình LEAN còn một cái chỉ cất hộp đi. Đặt sát
                  nhau cùng một bên là mời người ta bấm nhầm. */}
              <button className="nut nut-dung" onClick={onDung}>
-               <Icon name="dung" /> Dừng backtest
-             </button>
+               {trx('{0} Dừng backtest', <Icon name="dung" />)}</button>
              <span className="day" />
-             <button className="nut" onClick={onHuy}>Ẩn hộp này</button>
+             <button className="nut" onClick={onHuy}>{tr('Ẩn hộp này')}</button>
            </>}>
       <div className="hop-td">
         <div className="td-dau">
-          <b>{td.giai_doan || 'Đang khởi động…'}</b>
+          <b>{td.giai_doan || tr('Đang khởi động…')}</b>
           <span className="day" />
           <span className="td-giay">{td.giay.toFixed(1)}s</span>
         </div>
@@ -53,8 +53,7 @@ export default function HopTienDo({ td, onHuy, onDung }: {
 
         <div className="td-dong">{td.dong_cuoi || '…'}</div>
         <div className="td-chan">
-          {td.so_dong} dòng từ LEAN · đóng hộp này thì backtest VẪN chạy tiếp
-        </div>
+          {trx('{0} dòng từ LEAN · đóng hộp này thì backtest VẪN chạy tiếp', td.so_dong)}</div>
       </div>
     </Modal>
   )

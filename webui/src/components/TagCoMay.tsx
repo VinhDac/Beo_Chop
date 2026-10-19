@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Icon from './Icon'
+import { tr, trx } from '../ngon_ngu'
 
 /** Ô CỖ MÁY LEAN ở góc PHẢI canvas — cài đặt chung của cả sơ đồ.
  *
@@ -35,26 +36,25 @@ export default function TagCoMay({ tomTat, onMo }: {
       <div className="cm-dau" onDoubleClick={onMo}>
         <span className="dai-mau" />
         <Icon name="gear" size={13} />
-        <span className="cm-ten">Cỗ máy LEAN</span>
-        <span className="cm-nhan">{co ? `${tomTat.length} thứ` : 'chưa đặt gì'}</span>
+        <span className="cm-ten">{tr('Cỗ máy LEAN')}</span>
+        <span className="cm-nhan">{co ? tr('{0} thứ', tomTat.length) : tr('chưa đặt gì')}</span>
         <button className="cm-gon" onClick={() => setGon(!gon)}
                 onDoubleClick={e => e.stopPropagation()}
-                title={gon ? 'Mở ra' : 'Thu gọn'}>{gon ? '▼' : '▲'}</button>
+                title={gon ? tr('Mở ra') : tr('Thu gọn')}>{gon ? '▼' : '▲'}</button>
       </div>
       {!gon && (
         <>
           <div className="cm-than">
-            Không phải một bước — đây là <b>những thứ LEAN lo hộ</b>, dùng chung cho
-            cả sơ đồ: bốn trạm dây chuyền, phí sàn, ô nhớ, mốc so sánh.
+            {tr('Không phải một bước — đây là ')}<b>{tr('những thứ LEAN lo hộ')}</b>{tr(', dùng chung cho '
+            + 'cả sơ đồ: bốn trạm dây chuyền, phí sàn, ô nhớ, mốc so sánh.')}
             <div className="cm-nhac">
               {co
                 ? tomTat.map(x => <span className="the" key={x}>{x}</span>)
-                : 'Chưa đặt gì — LEAN chạy ở mặc định của nó.'}
+                : tr('Chưa đặt gì — LEAN chạy ở mặc định của nó.')}
             </div>
           </div>
           <button className="nut nut-nho cm-sua" onClick={onMo}>
-            <Icon name="gear" size={12} /> Cài đặt cỗ máy
-          </button>
+            {trx('{0} Cài đặt cỗ máy', <Icon name="gear" size={12} />)}</button>
         </>
       )}
     </div>
