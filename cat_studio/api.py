@@ -496,8 +496,18 @@ class Api(NenCuaSo):
 
         Trả kèm trạng thái LEAN: đổi thư mục xong thì câu trả lời «đã đúng chưa»
         phải tới ngay, không bắt người dùng bấm Chạy rồi mới biết."""
+        # ⚠ GỘP TRƯỚC RỒI MỚI CHUẨN HOÁ, không chuẩn hoá riêng phần vừa gửi lên.
+        #
+        # ĐÃ MẤT DỮ LIỆU THẬT VÌ CHỖ NÀY. `cai_dat.doc()` luôn dựng một dict ĐỦ MỌI Ô,
+        # ô nào không có trong thứ đưa vào thì lấy MẶC ĐỊNH. Nên `doc({"ngon_ngu":"vi"})`
+        # trả về một bản cài đặt đầy đủ với `lean_goc` RỖNG, và `s.update(...)` đem cái
+        # rỗng ấy đè lên đường dẫn LEAN thật. Người dùng chỉ đổi mỗi thứ tiếng, mà mất
+        # luôn chỗ trỏ LEAN — không một lời báo nào, và chỉ lộ ra ở lần bấm Backtest sau.
+        #
+        # Hộp Cài đặt cũ gửi lên ĐỦ mọi ô nên không lộ. Ô đổi tiếng ở màn Mở máy chỉ gửi
+        # một ô, và nó làm bay đường dẫn LEAN ngay lần bấm đầu tiên.
         s = luu_tru.doc_cai_dat()
-        s.update(cai_dat.doc(gia_tri or {}))
+        s = cai_dat.doc({**s, **(gia_tri or {})})
         luu_tru.ghi_cai_dat(s)
         # Đổi tiếng thì PHÍA PYTHON phải biết ngay, không đợi mở lại app: mặt khối và bảng
         # Vấn đề do Python dựng, mà giao diện vẽ lại chúng ngay sau khi hộp Cài đặt đóng.

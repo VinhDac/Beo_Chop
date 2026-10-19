@@ -112,5 +112,30 @@ kiem("ô nào cũng khai đủ thứ giao diện cần",
          for n in td["nhom"] for o in n["o"]),
      "— hộp Cài đặt dựng bằng chính `Hang` của hộp khối")
 
+print("\n▸ ⚠ GHI MỘT Ô KHÔNG ĐƯỢC XOÁ MẤY Ô CÒN LẠI")
+# ĐÃ MẤT DỮ LIỆU THẬT. `cai_dat.doc()` luôn dựng một dict ĐỦ MỌI Ô — ô nào không có
+# trong thứ đưa vào thì lấy MẶC ĐỊNH. Nên `cai_dat_ghi` mà làm
+#     s.update(cai_dat.doc(gia_tri))
+# là đem một bản đầy mặc định đè lên bản đã lưu: người dùng đổi mỗi thứ tiếng ở màn Mở
+# máy (ô ấy chỉ gửi lên MỘT khoá) mà bay luôn đường dẫn LEAN. Không một lời báo nào, và
+# chỉ lộ ra ở lần bấm Backtest sau đó — lúc ấy chẳng ai nối hai chuyện với nhau nữa.
+#   Hộp Cài đặt cũ gửi lên ĐỦ mọi ô nên nó không bao giờ lộ chuyện này.
+_cu = {"ngon_ngu": "en", "lean_goc": r"C:\Lean\da\build", "han_gio_phut": 42,
+       "mo_ket_qua": False, "kho_backtest": 7}
+_sau = cai_dat.doc({**_cu, "ngon_ngu": "vi"})
+kiem("đổi một ô thì ô ấy đổi", _sau["ngon_ngu"] == "vi")
+for _o, _v in (("lean_goc", r"C:\Lean\da\build"), ("han_gio_phut", 42),
+               ("mo_ket_qua", False), ("kho_backtest", 7)):
+    kiem(f"và `{_o}` còn nguyên", _sau[_o] == _v,
+         f"— còn {_sau[_o]!r}, phải là {_v!r}")
+
+# Và cửa THẬT phải gộp trước khi chuẩn hoá, không chỉ mỗi hàm `doc` làm đúng.
+_api = io.open(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cat_studio", "api.py"), encoding="utf-8").read()
+kiem("`cai_dat_ghi` GỘP trước rồi mới chuẩn hoá",
+     "cai_dat.doc({**s, **(gia_tri or {})})" in _api,
+     "— `s.update(cai_dat.doc(gia_tri))` là đem mặc định đè lên thứ đã lưu")
+
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)
