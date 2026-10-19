@@ -23,6 +23,8 @@
  *    lượt chạy → run           mẻ → batch                 kho → library
  *    núm → knob                ghim → pin                 quét → sweep
  *    bảng Vấn đề → Problems    nhật ký → log              thanh trạng thái → status bar
+ *    màn (chơi) → level        hồi → act                  hành trình → journey
+ *    Xưởng → Workshop          Sáng tạo → Creative        màn ẩn → hidden period
  *    hạn giờ → time limit      hoàn tác → undo            làm lại → redo
  *    Lưu → Save                Huỷ → Cancel               Đóng → Close
  *    Lưu thành… → Save as…     Xoá → Delete               Nhân bản → Duplicate
@@ -350,6 +352,22 @@ const TIENG_ANH: Record<string, string> = {
   'Thu nhỏ': 'Minimize',
   'Khôi phục': 'Restore',
   'Phóng to': 'Maximize',
+  // ── man/ManHanhTrinh.tsx
+  'Không đọc được hành trình.': 'Couldn\'t read the journey.',
+  'Hành trình': 'Journey',
+  'Về màn mở máy': 'Back to the start screen',
+  'đang mở hành trình…': 'opening the journey…',
+  'Hành trình mới dựng xong BỘ KHUNG. Luật chấm sao, màn ẩn và boss là mốc sau — nên chưa màn nào chấm được.': 'The journey is only a SKELETON so far. Star scoring, the hidden period and bosses come later — so no level can be scored yet.',
+  'Chưa mở — chơi xong màn trước đã': 'Locked — finish the previous level first',
+  'Bạn đang ở đây': 'You are here',
+  'khoá': 'locked',
+  // ── man/ManMoMay.tsx
+  'Vẽ một cỗ máy. Thả nó vào thị trường. Xem nó sống được không.': 'Draw an engine. Drop it into the market. See if it survives.',
+  '26 màn — học từ cái máy hai khối tới boss cuối': '26 levels — from a two-block engine to the final boss',
+  'Vẽ tiếp': 'Keep drawing',
+  'Sáng tạo': 'Creative',
+  'Mở lại cỗ máy đang vẽ dở': 'Reopen the engine you were drawing',
+  'Mở hết đồ nghề, không chấm điểm': 'Every tool unlocked, nothing scored',
   // ── phim_tat.ts
   'Sửa sơ đồ': 'Edit the diagram',
   'Strategy · Cửa sổ': 'Strategy · Window',
@@ -395,6 +413,7 @@ const TIENG_ANH: Record<string, string> = {
   '(đã lưu — nhập để thay)': '(saved — type to replace)',
   'dán token vào đây': 'paste the token here',
   // ── SoDo.tsx
+  'Rời Xưởng': 'Leave the Workshop',
   'Đỏ': 'Red',
   'Cam': 'Orange',
   'Vàng': 'Yellow',

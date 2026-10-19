@@ -10,6 +10,7 @@
 import type {
   CaiToiUu,
   CoMay,
+  HanhTrinh,
   Edge,
   GoiYKe,
   KetQuaChay,
@@ -100,6 +101,9 @@ export const py = {
   ping: () => goi<string>('ping'),
   set_title: (ten: string) => goi<null>('set_title', ten),
   kho_danh_muc: () => goi<KhoDanhMuc>('kho_danh_muc'),
+  /** CẢ HÀNH TRÌNH — 9 hồi, 26 màn, màn nào đang mở. Bản đồ KHÔNG tự khai một màn
+   *  nào: hai nơi cùng giữ danh sách màn thì sớm muộn lệch nhau. */
+  hanh_trinh: () => goi<HanhTrinh>('hanh_trinh'),
   /** Từ điển XÁC NHẬN. Giao diện KHÔNG tự khai danh sách này — nó hỏi Python, vì hai
    *  nơi cùng giữ một bảng thì sớm muộn lệch nhau. */
   tu_dien_hoi: () => goi<TuDienHoi>('tu_dien_hoi'),

@@ -228,6 +228,43 @@ _css = doc("webui", "src", "app.css") + doc("webui", "src", "theme.css")
 CO_LOP = set(re.findall(r"\.([A-Za-z][A-Za-z0-9-]*)", _css))
 #: Lớp của @xyflow/react — thư viện tự hiểu, app không được đặt luật cho chúng.
 LOP_THU_VIEN = {"nodrag", "nopan", "nowheel"}
+def _bo_chu_thich(s):
+    """Bỏ chú thích `//` và `/* */` khỏi một tệp TSX. -> chuỗi cùng độ dài (thay bằng
+    khoảng trắng, nên mọi vị trí giữ nguyên).
+
+    ⚠ VÌ SAO PHẢI CÓ. Hàng rào bên dưới dò chữ `className=` trong NGUYÊN VĂN tệp. Một
+    lời chú thích nhắc tới `className={lop}` — viết ra đúng để giải thích vì sao KHÔNG
+    nên gom lớp qua biến — làm hàng rào kêu oan, và báo một lớp ma tên «lop». Đã dính
+    thật, và nó là loại hỏng tệ nhất: cách chữa dễ nhất là XOÁ LỜI CHÚ THÍCH đi, tức
+    hàng rào phá đúng thứ nó định giữ. Cùng một bệnh sẽ gặp lại ở
+    bất cứ hàng rào nào dò chữ trong nguyên văn tệp.
+
+    Tôn trọng nháy: `'https://x'` không phải chú thích, và `// "` không mở chuỗi."""
+    ra, i, n = [], 0, len(s)
+    while i < n:
+        c = s[i]
+        if c in "'\"`":
+            j = i + 1
+            while j < n and s[j] != c:
+                j += 2 if s[j] == "\\" else 1
+            ra.append(s[i:min(j + 1, n)])
+            i = j + 1
+        elif c == "/" and i + 1 < n and s[i + 1] == "/":
+            j = s.find("\n", i)
+            j = n if j < 0 else j
+            ra.append(" " * (j - i))
+            i = j
+        elif c == "/" and i + 1 < n and s[i + 1] == "*":
+            j = s.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            ra.append(" " * (j - i))
+            i = j
+        else:
+            ra.append(c)
+            i += 1
+    return "".join(ra)
+
+
 def _gia_tri_className(s):
     """Cắt ĐÚNG giá trị của mỗi `className=` -> [chuỗi].
 
@@ -235,6 +272,7 @@ def _gia_tri_className(s):
     `inputMode="decimal"`, `loai === 'equity'`… và bài kiểm sẽ kêu oan vì chúng.
     Bài kiểm kêu oan là bài kiểm sớm muộn bị bỏ qua, mà bỏ qua thì nó hết canh."""
     ra = []
+    s = _bo_chu_thich(s)
     for m in re.finditer(r"className=", s):
         i = m.end()
         if i >= len(s):
@@ -692,6 +730,85 @@ _quen = [h for h in _hop_che if f"set{h[0].upper()}{h[1:]}(false)" not in _than_
 kiem(f"đóng CẢ {len(_hop_che)} hộp đang che sơ đồ", not _quen, f"— quên: {_quen}")
 kiem("nhưng KHÔNG đóng hộp tiến độ — chúng cầm nút Dừng",
      "setTienDo(null)" not in _than_mo and "setTdToiUuChay(null)" not in _than_mo)
+
+print("\n▸ MỐI NỐI 13 — VỎ TRÒ CHƠI: Mở máy × Hành trình × Xưởng")
+# Mốc M1: canvas thôi làm Home. App mở ra là màn MỞ MÁY, canvas thành MỘT màn hình
+# (Xưởng) trong ba. Đứt chỗ nào ở đây cũng im: hoặc app lại mở thẳng vào canvas, hoặc
+# bấm một màn mà không đi đâu cả.
+_ht_py = doc("cat_studio", "hanh_trinh.py")
+_tc = doc("webui", "src", "TroChoi.tsx")
+_mm = doc("webui", "src", "man", "ManMoMay.tsx")
+_mht = doc("webui", "src", "man", "ManHanhTrinh.tsx")
+_main = doc("webui", "src", "main.tsx")
+_sd = doc("webui", "src", "SoDo.tsx")
+
+kiem("app mở ra là TRÒ CHƠI, không phải thẳng canvas",
+     "<TroChoi />" in _main and "<SoDo />" not in _main,
+     "— canvas là MỘT màn hình trong trò chơi, không còn là cả cửa sổ")
+kiem("vỏ có đủ ba màn hình", all(x in _tc for x in
+     ("<ManMoMay", "<ManHanhTrinh", "<SoDo")))
+kiem("và có màn che chuyển cảnh", "man-che" in _tc)
+
+# ⚠ ĐÚNG MỘT MÀN HÌNH SỐNG TẠI MỘT LÚC. `TitleBar` mang `useKhungCuaSo` — bộ bắt kéo
+# cửa sổ, nghe chuột ở mức `document`. Hai `TitleBar` cùng sống là hai bộ cùng bảo
+# Windows "bắt đầu kéo". Nên vỏ phải rẽ bằng `&&` loại trừ nhau, không được giấu màn
+# này rồi chồng màn kia lên.
+kiem("ba màn hình LOẠI TRỪ nhau, không chồng lên nhau",
+     _tc.count("man === '") >= 3 and "display: none" not in _tc
+     and "visibility" not in _tc,
+     "— hai `TitleBar` cùng sống là hai bộ bắt kéo cửa sổ đánh nhau")
+for _m in ("ManMoMay", "ManHanhTrinh"):
+    kiem(f"`{_m}` tự vẽ thanh tiêu đề",
+         "<TitleBar" in doc("webui", "src", "man", _m + ".tsx"),
+         "— cửa sổ frameless mà màn hình không có `TitleBar` là một dải chết")
+
+# ⚠ RỜI XƯỞNG PHẢI GHI NỐT BẢN NHÁP. `SoDo` ghi nháp TRỄ 1,2 giây; rời Xưởng là nó bị
+# tháo và hàm dọn HUỶ luôn bộ đếm giờ đang chờ — nên nét sửa cuối cùng, đúng cái nét
+# vừa làm xong rồi bấm ra, là nét DUY NHẤT không bao giờ được ghi.
+kiem("rời Xưởng thì GHI NỐT bản nháp trước khi đi",
+     "async function raXuong()" in _sd and "luu_ban_nhap" in _sd.split(
+         "async function raXuong()")[1].split("onRa?.()")[0],
+     "— không ghi nốt thì mất đúng một thao tác, mỗi lần, và không lỗi nào báo")
+kiem("và nút ra gọi ĐÚNG hàm ấy, không gọi thẳng `onRa`",
+     "onClick={raXuong}" in _sd)
+
+# ⚠ ĐỔI TIẾNG PHẢI ĐI QUA CỬA CÀI ĐẶT. Gọi thẳng `datNgonNgu` chỉ đổi trong bộ nhớ
+# của web: Python không nghe (mà tên hồi, tên màn do Python dựng), và lần nối sau
+# `api.ts` đọc lại cài đặt CŨ rồi đặt ngược về tiếng Anh. Đã hỏng thật, cả hai kiểu.
+kiem("ô đổi tiếng ở màn Mở máy đi qua cửa Cài đặt",
+     "cai_dat_ghi" in _mm,
+     "— gọi thẳng `datNgonNgu` thì Python không nghe và lần nối sau đặt ngược lại")
+
+# ⚠ KHÔNG KHAI LẠI MỘT MÀN NÀO BÊN TYPESCRIPT. Danh sách hồi và màn chỉ có một chỗ.
+kiem("hành trình do PYTHON giữ, giao diện chỉ hỏi rồi vẽ",
+     "py.hanh_trinh()" in _mht and "'m00'" not in _mht and '"m00"' not in _mht,
+     "— hai nơi cùng giữ danh sách màn thì lệch nhau ở đúng hồi ít người tới nhất")
+kiem("`api.py` có cửa `hanh_trinh`", "def hanh_trinh(self)" in _api_src)
+kiem("và `api.ts` khai cửa ấy", "hanh_trinh: () =>" in doc("webui", "src", "api.ts"))
+
+# Đếm thật, không tin lời chú thích.
+import importlib  # noqa: E402
+_ht = importlib.import_module("cat_studio.hanh_trinh")
+kiem(f"đủ 26 màn ({len(_ht.MAN)})", len(_ht.MAN) == 26)
+kiem(f"đủ 10 hồi ({len(_ht.HOI)})", len(_ht.HOI) == 10,
+     "— 9 hồi cộng khúc dạo đầu")
+_ma_hoi = {h["ma"] for h in _ht.HOI}
+kiem("mọi màn đều thuộc một hồi có thật",
+     all(m["hoi"] in _ma_hoi for m in _ht.MAN))
+kiem("mọi hồi đều có ít nhất một màn",
+     _ma_hoi == {m["hoi"] for m in _ht.MAN})
+kiem("mã màn không trùng nhau",
+     len({m["ma"] for m in _ht.MAN}) == len(_ht.MAN))
+kiem("màn nào cũng có câu DẠY", all(str(m.get("day") or "").strip() for m in _ht.MAN))
+
+_td = _ht.tu_dien()
+kiem("mới mở sổ thì CHỈ màn đầu mở, còn lại khoá",
+     [m["ma"] for m in _td["man"] if not m["khoa"]] == [_ht.MAN[0]["ma"]])
+# Luật chấm sao là mốc sau. Im lặng ở đây là vẽ sẵn ô sao rỗng, và người chơi tưởng
+# mình chơi mãi không ăn được sao nào.
+kiem("và NÓI RÕ là chưa có luật chấm", _td["co_luat_cham"] is False)
+kiem("bản đồ bày lời ấy ra", "co_luat_cham" in _mht)
+
 
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số

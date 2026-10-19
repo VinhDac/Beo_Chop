@@ -209,7 +209,11 @@ const idHatNhanMoi = () =>
 
 /* ------------------------------------- App ------------------------------------- */
 
-function SoDoTrong() {
+/** `manChoi` = mã màn đang chơi; rỗng là chế độ SÁNG TẠO. `onRa` = rời Xưởng.
+ *  Thiếu `onRa` thì Xưởng không có cửa ra — đúng cho lúc chạy một mình (bài kiểm). */
+interface ViecXuong { manChoi?: string; onRa?: () => void }
+
+function SoDoTrong({ onRa }: ViecXuong) {
   // ĐỔI TIẾNG THÌ VẼ LẠI. Gốc cửa sổ gọi là đủ cho gần hết cây — gốc vẽ lại thì con vẽ
   // lại theo. Chỉ hai component bọc `memo` (`StepNode`, `HatNhan`) phải tự gọi, vì
   // `memo` chặn đúng cái lượt vẽ lại ấy.
@@ -1283,6 +1287,23 @@ function SoDoTrong() {
     return () => clearTimeout(t)
   }, [nodes, edges, ten, sanSang])
 
+  /** RỜI XƯỞNG — ghi nốt bản nháp rồi mới đi.
+   *
+   *  ⚠ KHÔNG ĐƯỢC gọi thẳng `onRa()`. Bản nháp ghi TRỄ 1,2 giây (xem hiệu ứng «bản
+   *  nháp» bên trên), mà rời Xưởng là `SoDo` bị tháo và hàm dọn của hiệu ứng ấy HUỶ
+   *  luôn bộ đếm giờ đang chờ. Nên nét sửa cuối cùng — chính là nét vừa làm xong rồi
+   *  bấm ra — là nét DUY NHẤT không bao giờ được ghi. Mất đúng một thao tác, mỗi lần,
+   *  và không có lỗi nào báo. */
+  async function raXuong() {
+    try {
+      await py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay)
+    } catch {
+      // Ghi hụt thì vẫn cho đi — giam người dùng trong Xưởng vì một lần ghi hỏng
+      // còn tệ hơn mất một nét vẽ.
+    }
+    onRa?.()
+  }
+
   async function luu() {
     // CHƯA CÓ TÊN thì hỏi, đừng tự đặt "Strategy mới": người dùng bấm Lưu xong đi tìm
     // trong kho sẽ thấy một đống bản tên y hệt nhau.
@@ -1671,7 +1692,10 @@ function SoDoTrong() {
 
   return (
     <div className="khung">
-      <TitleBar tieuDe={ten || tr('Strategy mới')} menus={menus} />
+      <TitleBar tieuDe={ten || tr('Strategy mới')} menus={menus} them={
+        onRa && <button className="tb-ve" data-khong-keo onClick={raXuong}
+                        title={tr('Rời Xưởng')}>←</button>
+      } />
       <Ribbon v={viec} soChon={dangChon.length} trongHatNhan={!!trongHN}
               coHoanTac={coHoanTac} coLamLai={coLamLai} />
       <div className="vung-canvas">
@@ -1982,6 +2006,6 @@ function SoDoTrong() {
 }
 
 /** `useReactFlow` chỉ chạy được bên trong Provider — nên App thật nằm ở trong. */
-export default function SoDo() {
-  return <ReactFlowProvider><SoDoTrong /></ReactFlowProvider>
+export default function SoDo(v: ViecXuong = {}) {
+  return <ReactFlowProvider><SoDoTrong {...v} /></ReactFlowProvider>
 }

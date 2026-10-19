@@ -609,3 +609,39 @@ export interface LuotToiUu {
     chi_tieu: Record<string, string>
   }[]
 }
+
+/** Một HỒI của hành trình. */
+export interface HoiHT {
+  ma: string
+  ten: string
+  /** Câu một dòng của hồi — "Máy phải biết nhìn". */
+  cau: string
+}
+
+/** Một MÀN. Chữ đã do Python dịch sẵn, trang bản đồ không ghép câu nào. */
+export interface ManHT {
+  ma: string
+  hoi: string
+  /** Số thứ tự trong cả hành trình, 0-25. */
+  so: number
+  ten: string
+  /** MỘT ý mới duy nhất của màn này. */
+  day: string
+  /** Màn này mở khoá những gì. */
+  mo: string[]
+  /** Màn gánh cả trò chơi — bản đồ vẽ khác đi. */
+  dau: boolean
+  khoa: boolean
+  xong: boolean
+  sao: number
+}
+
+/** Cả hành trình. Giao diện KHÔNG khai lại một màn nào — xem `hanh_trinh.py`. */
+export interface HanhTrinh {
+  hoi: HoiHT[]
+  man: ManHT[]
+  /** Màn người chơi đang đứng. */
+  dang_o: string
+  /** Luật chấm sao đã có chưa. False thì bản đồ phải NÓI RA, đừng vẽ sao như thật. */
+  co_luat_cham: boolean
+}

@@ -27,6 +27,7 @@ from . import cai_dat
 from . import chay_lean
 from . import chay_toi_uu
 from . import core
+from . import hanh_trinh
 from . import sinh_ma
 from . import bat_dau
 from . import hoi
@@ -393,6 +394,15 @@ class Api(NenCuaSo):
 
         threading.Thread(target=va_va_bao, daemon=True).start()
         return _ok({"id": ma_id, "moi": True})
+
+    @_bat_loi
+    def hanh_trinh(self):
+        """CẢ HÀNH TRÌNH — 9 hồi, 26 màn, màn nào đang mở, màn nào mấy sao.
+
+        Giao diện KHÔNG khai lại một màn nào: bản đồ hỏi cửa này rồi vẽ. Hai nơi cùng
+        giữ danh sách màn thì sớm muộn lệch nhau, mà cái lệch ấy chỉ lộ ra ở hồi ít
+        người chơi tới nhất."""
+        return _ok(hanh_trinh.tu_dien())
 
     @_bat_loi
     def ds_luot_chay(self):

@@ -2098,3 +2098,147 @@ mark.tim-chu {
   cursor: pointer;
 }
 .hop-lam .ds-nho .nut-nho:hover { color: var(--accent); border-color: var(--accent-soft); }
+
+/* Nút VỀ trên thanh tiêu đề — chèn qua prop `them` của `TitleBar`, nên nó phải cùng
+   nhà với `.menu-tren` chứ không phải với nút trong thân trang. Bắt buộc mang
+   `data-khong-keo`, không thì Windows coi dải ấy là caption và cú bấm hoá ra kéo
+   cửa sổ (xem `TitleBar.tsx`). */
+.tb-ve {
+  margin-left: 2px; padding: 3px 9px; font: inherit; font-size: 14px; line-height: 1;
+  cursor: pointer; color: var(--muted); background: none; border: none; border-radius: 4px;
+}
+.tb-ve:hover { color: var(--text); background: var(--raised); }
+
+/* ======================= VỎ TRÒ CHƠI — chuyển cảnh ======================= */
+/* Màn che kéo xuống trong lúc tháo màn hình cũ và lắp màn hình mới. Xem `TroChoi.tsx`:
+   hai màn hình KHÔNG được cùng sống, nên không hoà tan vào nhau được — màn che vừa né
+   đúng chỗ ấy, vừa đúng chất trò chơi hơn hẳn. 180ms phải khớp `CHE_MS` bên đó. */
+.man-che {
+  position: fixed; inset: 0; z-index: 9000; pointer-events: none;
+  background: var(--bg); opacity: 0; transition: opacity 180ms ease;
+}
+.man-che.hien { opacity: 1; }
+
+/* ========================= MÀN MỞ MÁY ========================= */
+.mm { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.mm-than {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 16px; text-align: center;
+}
+.mm-ten {
+  margin: 10px 0 0; font-size: 38px; font-weight: 600; letter-spacing: .02em;
+  color: var(--text);
+}
+.mm-cau { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); max-width: 520px; }
+
+.mm-nut { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+/* Nút TO vì đây là hai lựa chọn duy nhất của cả màn hình — và nút của trò chơi thì
+   không nên trông như nút của hộp thoại. */
+.nut-to {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  min-width: 232px; padding: 13px 17px; font: inherit; font-size: 15px;
+  cursor: pointer; text-align: left; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+.nut-to:hover { background: var(--raised); border-color: var(--accent); transform: translateY(-1px); }
+.nut-to.chinh { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.nut-to small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+
+.mm-chan { padding: 10px 14px; display: flex; justify-content: flex-end; }
+.mm-tieng { width: auto; min-width: 128px; }
+
+/* Cỗ máy đang chạy — hình nền sống của màn mở. Xem `MayChay` trong `ManMoMay.tsx`:
+   mỗi sợi dây là HAI đường chồng nhau, nền liền nét và vệt sáng đứt nét chạy đè lên. */
+.mm-may { width: min(520px, 86vw); height: auto; overflow: visible; }
+.mm-nen path, .mm-dong path {
+  fill: none; stroke-width: 3; stroke-linecap: round;
+}
+.mm-nen path { stroke: var(--border); }
+.mm-dong path {
+  stroke: var(--dong); stroke-dasharray: 16 170; stroke-dashoffset: 180;
+  animation: mm-chay 2.05s linear infinite;
+}
+@keyframes mm-chay {
+  from { stroke-dashoffset: 180; }
+  to   { stroke-dashoffset: -80; }
+}
+.mm-khoi rect, .mm-khoi circle {
+  fill: var(--surface); stroke: var(--border); stroke-width: 2;
+  animation: mm-sang 2.05s ease-in-out infinite;
+}
+@keyframes mm-sang {
+  0%, 52%, 100% { stroke: var(--border); fill: var(--surface); }
+  10%, 28% {
+    stroke: var(--accent);
+    fill: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-dong path, .mm-khoi rect, .mm-khoi circle { animation: none; }
+  /* Tắt hoạt ảnh thì vệt sáng đứng im giữa dây trông như lỗi — giấu hẳn đi. */
+  .mm-dong { display: none; }
+}
+
+/* ========================= MÀN HÀNH TRÌNH ========================= */
+.ht { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.ht > .ht-loi { margin: 12px 14px; }
+.ht-cho {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 24px; color: var(--dim); font-size: 12.5px;
+}
+.ht-than { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 24px; }
+.ht-nhac {
+  margin: 10px 0 14px; padding: 9px 11px; font-size: 12px; line-height: 1.55;
+  color: var(--text); background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 6px;
+}
+
+.ht-hoi { margin-bottom: 22px; }
+.ht-hoi-dau {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 9px 0 7px; background: var(--bg);
+  border-bottom: 1px solid var(--border-soft); margin-bottom: 10px;
+}
+.ht-hoi-dau h2 { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--text); }
+.ht-hoi-cau { font-size: 12px; color: var(--accent); font-style: italic; }
+.ht-hoi-dau .day { flex: 1; }
+.ht-hoi-dem { font-size: 11.5px; color: var(--dim); font-family: var(--mono); }
+
+/* Lưới tự giãn: cửa sổ hẹp thì một cột, rộng thì ba — không cần luật @media nào, nên
+   cũng không có bảng ngưỡng nào phải đo lại sau này. */
+.ht-day { display: grid; gap: 9px; grid-template-columns: repeat(auto-fill, minmax(282px, 1fr)); }
+
+.ht-man {
+  display: block; width: 100%; text-align: left; padding: 11px 13px; font: inherit;
+  cursor: pointer; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border-soft); border-radius: 7px;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+.ht-man:hover:not(:disabled) {
+  background: var(--raised); border-color: var(--accent); transform: translateY(-1px);
+}
+/* MÀN KHOÁ vẫn đọc được tên và câu dạy — giấu hẳn thì người chơi không thấy hành
+   trình dài bao nhiêu, mà biết mình đang đi tới đâu chính là thứ giữ người ta lại. */
+.ht-man.khoa { cursor: default; opacity: .58; border-style: dashed; }
+.ht-man.dang-o { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+/* Mấy màn gánh cả trò chơi (xem thiết kế §3) — một vạch vàng ở mép trên. */
+.ht-man.dau { border-top: 2px solid var(--warn); }
+
+.ht-man-dau { display: flex; align-items: baseline; gap: 7px; }
+.ht-man-so { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
+.ht-man-ten { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; }
+.ht-khoa {
+  padding: 1px 5px; border-radius: 3px; font-size: 10px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--dim); border: 1px solid var(--border);
+}
+.ht-man-day { margin-top: 5px; font-size: 11.8px; line-height: 1.5; color: var(--muted); }
+.ht-mo { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.ht-the {
+  padding: 2px 6px; font-size: 10.5px; border-radius: 3px;
+  color: var(--muted); background: var(--field); border: 1px solid var(--border-soft);
+}
+.ht-dang-o { margin-top: 8px; font-size: 11px; color: var(--accent); font-weight: 600; }
