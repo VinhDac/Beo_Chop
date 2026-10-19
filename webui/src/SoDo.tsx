@@ -213,7 +213,12 @@ function SoDoTrong() {
   // ĐỔI TIẾNG THÌ VẼ LẠI. Gốc cửa sổ gọi là đủ cho gần hết cây — gốc vẽ lại thì con vẽ
   // lại theo. Chỉ hai component bọc `memo` (`StepNode`, `HatNhan`) phải tự gọi, vì
   // `memo` chặn đúng cái lượt vẽ lại ấy.
-  useNgonNgu()
+  //
+  // ⚠ VẼ LẠI THÔI THÌ CHƯA ĐỦ — chữ trên THẺ KHỐI do Python dựng, giao diện chỉ giữ
+  // bản nó nhận lúc soát. Nên `tieng` còn đi vào VÂN TAY của phép soát bên dưới: đổi
+  // tiếng là hỏi lại Python một lượt. Thiếu nó thì ribbon và menu đổi ngay mà mặt
+  // khối, bảng Vấn đề và viên thuốc Cỗ máy vẫn đứng ở tiếng cũ — nhìn ảnh mới thấy.
+  const tieng = useNgonNgu()
   // (bộ bắt kéo cửa sổ nay nằm trong chính `TitleBar` — xem chú thích ở đó)
   const { fitView, getViewport, setViewport, setCenter, zoomIn, zoomOut } = useReactFlow()
   /** Mức phóng hiện tại — đọc thẳng từ kho của React Flow nên con số không bao giờ
@@ -352,7 +357,7 @@ function SoDoTrong() {
     const e = rfSangEdges(edges)
     // Kéo khối chỉ đổi `pos`, mà `pos` KHÔNG đổi số thứ tự lẫn bảng Vấn đề -> không
     // phải soát lại. Vân tay bỏ `pos` và `hat_nhan` ra (hạt nhân cũng chỉ là cách nhìn).
-    const dau = JSON.stringify([s.map(({ pos: _p, hat_nhan: _h, ...x }) => x), e])
+    const dau = JSON.stringify([s.map(({ pos: _p, hat_nhan: _h, ...x }) => x), e, tieng])
     if (dau === van.current) return
     van.current = dau
     /* ⚠ KHÔNG dọn bằng hàm trả về của effect, và đây là một cuộc đua ĐÃ CẮN THẬT.
@@ -384,7 +389,7 @@ function SoDoTrong() {
           ? { ...n, data: { ...n.data, card: c } } : n
       }))
     }, 60)
-  }, [nodes, edges, coMay, sanSang, setNodes])
+  }, [nodes, edges, coMay, sanSang, setNodes, tieng])
 
   // Đóng cửa sổ giữa lúc đang hẹn thì bỏ hẹn — chỉ ở đây mới đúng là "dọn".
   useEffect(() => () => clearTimeout(henSoat.current), [])
@@ -1376,7 +1381,8 @@ function SoDoTrong() {
       .map(x => (x.data as { step?: Step }).step?.mau)
       .filter((m): m is string => !!m && !m.startsWith('var(')))]
     const bangMau: [string, string][] = [
-      ...MAU_KHOI.map(([ten, bien]) => [ten, `var(${bien})`] as [string, string]),
+      // `tr` Ở ĐÂY, không ở bảng: bảng hằng bọc lúc nạp tệp là chốt cứng một thứ tiếng.
+      ...MAU_KHOI.map(([ten, bien]) => [tr(ten), `var(${bien})`] as [string, string]),
       ...mauTuChon.map(m => [m, m] as [string, string]),
     ]
     const mauDangDat = st.mau

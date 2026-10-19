@@ -35,6 +35,16 @@ import { tr } from '../ngon_ngu'
  *
  *  Nhóm nào đổi bề ngang thì đo lại cả bảng — và nhớ `@media` tương ứng ở `app.css`.
  *
+ *  ⚠ ĐO LẠI NGÀY 19/10/2026, lúc app thành SONG NGỮ — và phải đo CẢ HAI TIẾNG, vì
+ *  bảng này chỉ đúng nếu nó đủ cho tiếng RỘNG HƠN:
+ *                 Thêm khối  Sửa  Hạt nhân  Hoàn tác  Strategy  Cỗ máy   tổng
+ *      tiếng Việt      373   147       137       142       136     331   1266
+ *      tiếng Anh       354   145       137       137       136     331   1240
+ *  Tiếng Việt rộng hơn ở mọi nhóm, nên BẢNG GIỮ NGUYÊN theo số tiếng Việt: ở tiếng
+ *  Anh nhóm ẩn sớm hơn cần một chút (ngưỡng thật chỉ cần 830 · 966 · 1111 · 1248),
+ *  mà ẩn sớm thì chỉ mất một nhóm còn đường khác, còn ẩn muộn là ribbon tràn ngang.
+ *  Đừng hạ bảng này theo số tiếng Anh: hạ xuống là bản tiếng Việt tràn.
+ *
  *  MỘT BẢNG DUY NHẤT, vì mỗi số ở đây phải có một `@media (max-width: <số-1>px)
  *  .hien-tu-<số>` trong `app.css`. Thiếu dòng CSS thì lớp sinh ra CHẲNG ẨN GÌ CẢ:
  *  không lỗi, không cảnh báo, `tsc` sạch, build sạch — chỉ có ribbon tràn ngang và
@@ -169,7 +179,7 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
       {/* HẠT NHÂN KHÔNG CÒN CỤM PHÍM NÀO (Ctrl+G nay là của Nhóm, như Jenifer), nên
           ribbon và menu chuột phải là hai đường duy nhất — ẩn nhóm này sau cùng. */}
       <Nhom ten={tr('Hạt nhân')} hienTu={HIEN_TU.hatNhan}>
-        <Nut ten="Gom" icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
+        <Nut ten={tr('Gom')} icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
              title={tr('Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi')} />
         <Nut ten={tr('Tách')} icon="unlink" onClick={v.taHatNhan} tat={!soChon}
              title={tr('Đưa các khối đang chọn ra khỏi hạt nhân của chúng')} />

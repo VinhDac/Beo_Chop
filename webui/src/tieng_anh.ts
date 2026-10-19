@@ -12,7 +12,7 @@
  *
  *  THUẬT NGỮ — giữ một chữ cho một khái niệm, giao diện mới đọc ra một hệ thống:
  *    khối → block              sơ đồ → diagram            dây / đường nối → wire
- *    Bắt đầu → Start           Xác nhận → Check           Hành động → Action
+ *    Bắt đầu → Start           Xác nhận → Confirm         Hành động → Action
  *    Nhóm → Group              Quay về → Loop back        Hạt nhân → Core
  *    Cỗ máy → Engine           cổng → gate                thẻ (khối) → card
  *    vế → side                 đại lượng → quantity       phép so → comparison
@@ -291,7 +291,8 @@ const TIENG_ANH: Record<string, string> = {
   'Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt (Ctrl+G gom khối đang chọn)': 'A chain of actions wrapped in one box — runs straight through (Ctrl+G groups the selected blocks)',
   'Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp': 'Jump back to an earlier block — the anchor block for drawing a loop',
   'Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi': 'Wrap the selected blocks in one frame — a VIEW only, the diagram does not change',
-  'Tách': 'Split',
+  'Gom': 'Wrap',
+  'Tách': 'Unwrap',
   'Đưa các khối đang chọn ra khỏi hạt nhân của chúng': 'Take the selected blocks out of their Core',
   'Hoàn tác': 'Undo',
   'Làm lại': 'Redo',
@@ -327,7 +328,10 @@ const TIENG_ANH: Record<string, string> = {
   '— mã của cỗ máy này': '— one of this engine\'s symbols',
   'Khác': 'Other',
   // ── components/StepNode.tsx
-  'Khối lẻ': 'Single block',
+  // Huy hiệu ở GÓC THẺ, cạnh tên khối người dùng gõ: 'Single block' rộng 60px, gấp
+  // rưỡi «Khối lẻ», và chỗ ấy lấy thẳng vào tên khối. Trong bộ ba START · GROUP ·
+  // SINGLE thì một chữ là đủ nghĩa. Câu đầy đủ vẫn còn ở 'Thêm Khối lẻ'.
+  'Khối lẻ': 'Single',
   'Bước {0} — số = đi được bao xa, chữ = đi nhánh nào': 'Step {0} — the number is how far it gets, the letter is which branch',
   'Không có đường nối dẫn tới — sẽ không chạy': 'No wire leads here — it will not run',
   'Quay về khối {0}': 'Loop back to block {0}',
@@ -400,13 +404,13 @@ const TIENG_ANH: Record<string, string> = {
   'Không đọc được khối này': 'Could not read this block',
   'Chưa nạp được từ điển {0} — mở lại app một lần. Còn lỗi thì xem Nhật ký.': 'The {0} dictionary did not load — reopen the app once. If the error stays, check the Log.',
   'BẮT ĐẦU': 'START',
-  'XÁC NHẬN': 'CHECK',
+  'XÁC NHẬN': 'CONFIRM',
   'HÀNH ĐỘNG': 'ACTION',
   'Khối loại "{0}" chưa có hộp sửa': 'A "{0}" block has no edit box yet',
   'mở sơ đồ từ Optimize · đặt {0} núm: {1}': 'opened the diagram from Optimize · set {0} {0|knob|knobs}: {1}',
   'mở sơ đồ từ Optimize': 'opened the diagram from Optimize',
   'Không kết nối được tới Python sau 30 giây. Đóng hẳn app rồi mở lại; còn lỗi thì xem Nhật ký.': 'Could not reach Python after 30 seconds. Close the app completely and reopen it; if the error stays, check the Log.',
-  'XÁC NHẬN ({0})': 'CHECK ({0})',
+  'XÁC NHẬN ({0})': 'CONFIRM ({0})',
   'HÀNH ĐỘNG ({0})': 'ACTION ({0})',
   'BẮT ĐẦU ({0})': 'START ({0})',
   'Không nạp được từ điển: {0}. Mấy họ khối tương ứng sẽ không mở hộp sửa được.': 'Dictionaries did not load: {0}. The matching block families will not open an edit box.',

@@ -94,7 +94,7 @@ export default function HopKhoLuot({ onDong }: { onDong: () => void }) {
               <span className="luot-luc">{doc(t.ma_luot)}</span>
               <span className="luot-so">
                 {Object.entries(t.so).map(([k, v]) => (
-                  <i key={k}><b>{CHU[k] ?? k}</b> {v}</i>
+                  <i key={k}><b>{CHU[k] ? tr(CHU[k]) : k}</b> {v}</i>
                 ))}
               </span>
             </button>

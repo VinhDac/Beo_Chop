@@ -77,7 +77,8 @@ DAU = re.compile("[ăâđêôơưáàảãạấầẩẫậắằẳẵặéè�
 # Tiếng Việt KHÔNG DẤU mà không trùng chữ tiếng Anh — cùng bảng với `webui/dich/chung.mjs`.
 KHONG_DAU = {"sau", "cao", "xong", "mua", "trong", "ngay", "qua", "khung", "chung", "sang", "cam",
              "lam", "khi", "nhanh", "thanh", "xanh", "trang", "tay", "chia", "giao", "kho", "cho",
-             "sao", "theo", "xem", "bao", "doanh"}
+             "sao", "theo", "xem", "bao", "doanh",
+             "gom"}
 PHEP_CHUOI = {"startswith", "endswith", "find", "rfind", "index", "rindex", "replace", "split",
               "rsplit", "partition", "rpartition", "count", "strip", "lstrip", "rstrip",
               "removeprefix", "removesuffix"}

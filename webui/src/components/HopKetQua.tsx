@@ -95,7 +95,9 @@ export function RuotKetQua({ kq }: { kq: KetQuaChay }) {
           {O_SO.filter(([k]) => k in oSo).map(([k, nhan]) => (
             <div className={'o-so-lon' + huong(oSo[k])} key={k}>
               <b>{oSo[k]}</b>
-              <span>{nhan}</span>
+              {/* `tr` Ở ĐÂY, không ở bảng `O_SO`: bảng hằng bọc lúc nạp tệp là chốt
+                  cứng một thứ tiếng. Xem đầu `ngon_ngu.ts`. */}
+              <span>{tr(nhan)}</span>
             </div>
           ))}
         </div>

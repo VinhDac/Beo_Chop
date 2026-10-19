@@ -47,7 +47,7 @@ export default function HopTienDo({ td, onHuy, onDung }: {
 
         <div className="td-buoc">
           {GIAI_DOAN.map((g, j) => (
-            <span key={g} className={j < i ? 'qua' : j === i ? 'dang' : ''}>{g}</span>
+            <span key={g} className={j < i ? 'qua' : j === i ? 'dang' : ''}>{tr(g)}</span>
           ))}
         </div>
 

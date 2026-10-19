@@ -75,7 +75,7 @@ kiem("ô ấy đứng ở NHÓM ĐẦU — mắt chạy từ trên xuống",
 kiem("nhãn nhóm ghi CẢ HAI tiếng", "Language" in cai_dat.NHOM[0][1]
      and "Ngôn ngữ" in cai_dat.NHOM[0][1])
 kiem("nhãn ô cũng ghi cả hai tiếng",
-     bool(o) and "Show the app in" in o["nhan"] and "Hiện giao diện bằng" in o["nhan"])
+     bool(o) and "Language" in o["nhan"] and "Tiếng" in o["nhan"])
 # ⚠ Phép kiểm này bắt đúng cái lỗi đã dính lúc dựng hộp Cài đặt: khoá ghi xuống file
 # rồi BIẾN MẤT ở lần đọc kế, vì `doc_cai_dat` chỉ giữ khoá có trong bảng mặc định.
 kiem("có mặt trong bảng mặc định — không thì ghi xuống rồi biến mất",

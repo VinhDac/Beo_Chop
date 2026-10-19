@@ -52,7 +52,9 @@ NHOM = (
     # "Language" nhận ra được mà không cần đọc chữ nào khác. Hai nhãn này KHÔNG đi qua
     # bộ dịch (dòng `# không dịch`) vì dịch chúng là phá đúng cái lối về ấy.
     ("ngon_ngu", "Ngôn ngữ · Language", (  # không dịch
-        _o(KHOA_NGON_NGU, "Hiện giao diện bằng · Show the app in",  # không dịch
+        # Nhãn NGẮN, vì tiêu đề nhóm ngay trên đã nói đủ: để dài thì nó xuống hai dòng
+        # và ô chọn tụt xuống một hàng riêng — mọi hàng khác của hộp là nhãn|ô một dòng.
+        _o(KHOA_NGON_NGU, "Tiếng · Language",  # không dịch
            O_CHON, NGON_NGU[0][0], chon=NGON_NGU),
     )),
     ("chay", "Chạy backtest", (

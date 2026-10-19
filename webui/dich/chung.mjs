@@ -22,14 +22,16 @@ export const BO_TEP = new Set(['ngon_ngu.ts', 'tieng_anh.ts', 'tim.ts'])
  *  `cauTrongMa`. Dịch chúng là phá đúng cái lối về của người lỡ chọn tiếng mình không
  *  đọc được. */
 export const BO_CAU = new Set(['Ngôn ngữ · Language', 'Tiếng Việt',
-  'Hiện giao diện bằng · Show the app in'])
+  'Tiếng · Language'])
 
 const DAU = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i
 /** Tiếng Việt KHÔNG DẤU mà không trùng chữ tiếng Anh. Lọc theo dấu thì sót đúng những
  *  chữ này — đã sót thật: "Sang {0}", <b>cao</b>, "Mua xong", tab "Chung", màu "Cam". */
 const KHONG_DAU = new Set(['sau', 'cao', 'xong', 'mua', 'trong', 'ngay', 'qua', 'khung',
   'chung', 'sang', 'cam', 'lam', 'khi', 'nhanh', 'thanh', 'xanh', 'trang', 'tay', 'chia',
-  'giao', 'kho', 'cho', 'sao', 'theo', 'xem', 'bao', 'doanh'])
+  'giao', 'kho', 'cho', 'sao', 'theo', 'xem', 'bao', 'doanh',
+  // riêng của Cat: nút «Gom» ở nhóm Hạt nhân — đã sót thật, chỉ ảnh chụp mới lòi ra.
+  'gom'])
 
 /** Câu này là tiếng Việt (cần dịch) không.
  *

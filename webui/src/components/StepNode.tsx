@@ -147,7 +147,7 @@ function StepNode({ data, selected }: NodeProps) {
           {veNhan && (
             <span className="ve-nhan" title={tr('Quay về khối {0}', veNhan)}>↻ {veNhan}</span>
           )}
-          <span className="loai">{TEN_LOAI[card.kind]}</span>
+          <span className="loai">{tr(TEN_LOAI[card.kind])}</span>
         </div>
 
         {(hien.length > 0 || card.kind === 'group') && (
