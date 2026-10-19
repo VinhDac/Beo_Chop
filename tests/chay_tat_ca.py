@@ -24,6 +24,9 @@ BAI = [
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_cai_dat.py", "Cài đặt app — cái núm phải NỐI VÀO ĐÂU ĐÓ, không phải núm giả"),
     ("test_o_so.py", "Ô số — gõ TỪNG PHÍM, số thập phân không được nuốt"),
+    # ĐỨNG SAU mấy bài kia vì nó gọi cả bộ công cụ song ngữ (Node + một lượt Python
+    # riêng) nên chậm nhất; và nó là bài DUY NHẤT đi qua cả hai thứ tiếng.
+    ("test_ngon_ngu.py", "SONG NGỮ — mặc định tiếng Anh, và KHÔNG SÓT chữ nào"),
     # ĐỨNG CUỐI vì nó soi NGANG qua tất cả những bài trên: mấy bài kia soi từng bảng
     # với chính nó, bài này soi chỗ hai bảng phải khớp nhau. Dựng lại ví dụ 1 lôi ra
     # tám lỗi trong một buổi, và cả tám đều nằm ở mối nối chứ không nằm trong hộp.
