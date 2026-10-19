@@ -37,6 +37,7 @@ from . import bat_dau
 from . import core
 from . import hoi
 from . import lam
+from .ngon_ngu import tr
 
 #: Trần số khối sinh ra trong một lượt — chốt chặn, như `core.MAX_PROCESS_STEPS`.
 MAX_KHOI = 2000
@@ -214,8 +215,8 @@ def _sym_py(nc, ve, sid):
     m = str((ve or {}).get("ma") or "").strip().upper()
     if not m:
         if nc.ca_danh_muc:
-            nc.loi(sid, "Khối Bắt đầu chạy MỘT LƯỢT cho cả rổ nên không có «mã đang "
-                        "xét» — khối này phải gõ rõ tên mã.")
+            nc.loi(sid, tr("Khối Bắt đầu chạy MỘT LƯỢT cho cả rổ nên không có «mã đang xét» — khối "
+                           "này phải gõ rõ tên mã."))
         return "sym"
     if m not in nc.ma_khai:
         # RỔ ĐỘNG thì KHÔNG mã nào gõ được tên: rổ gồm những mã nào là chuyện LEAN
@@ -223,13 +224,13 @@ def _sym_py(nc, ve, sid):
         # phải nói đúng chuyện đó, chứ bảo "thêm mã ấy vào khối Bắt đầu" là bảo
         # người chơi làm một việc mà hộp thoại không có chỗ để làm.
         if nc.ro:
-            nc.loi(sid, f'Khối Bắt đầu chạy trên một RỔ nên không khối nào gõ được '
-                        f'tên mã — rổ gồm những mã nào là chuyện LEAN quyết lại mỗi '
-                        f'ngày. Bỏ mã "{m}" khỏi khối này để nó chạy cho MÃ ĐANG '
-                        f"XÉT, hoặc đổi khối Bắt đầu về gõ mã sẵn.")
+            nc.loi(sid, tr("Khối Bắt đầu chạy trên một RỔ nên không khối nào gõ được tên mã — rổ "
+                           "gồm những mã nào là chuyện LEAN quyết lại mỗi ngày. Bỏ mã \"{0}\" khỏi "
+                           "khối này để nó chạy cho MÃ ĐANG XÉT, hoặc đổi khối Bắt đầu về gõ mã "
+                           "sẵn.", m))
         else:
-            nc.loi(sid, f'Điều kiện trỏ tới mã "{m}" mà khối Bắt đầu chưa khai nó. '
-                        f"Thêm mã ấy vào khối Bắt đầu, hoặc bỏ nó khỏi điều kiện.")
+            nc.loi(sid, tr("Điều kiện trỏ tới mã \"{0}\" mà khối Bắt đầu chưa khai nó. Thêm mã ấy "
+                           "vào khối Bắt đầu, hoặc bỏ nó khỏi điều kiện.", m))
         return "sym"
     return f"self._ten[{m!r}]"
 
@@ -274,7 +275,7 @@ def _ve_py(nc, ve, sid):
     for t in hoi.ds_ghep(ve):
         phep = t["phep"]
         if phep not in [m for m, _n in hoi.PHEP_GHEP]:
-            nc.loi(sid, f'Không có phép ghép "{phep}".')
+            nc.loi(sid, tr("Không có phép ghép \"{0}\".", phep))
             continue
         b = _he_so_py(nc, t, _mot_dai_luong(nc, t, sid), sid)
         if phep == "/":
@@ -294,7 +295,7 @@ def _mot_dai_luong(nc, ve, sid):
         return _so_py(ve, "so", ve.get("so", 0))
     dl = hoi.dai_luong(ve["ma_dl"])
     if not dl:
-        nc.loi(sid, f'Không có đại lượng "{ve["ma_dl"]}".')
+        nc.loi(sid, tr("Không có đại lượng \"{0}\".", ve["ma_dl"]))
         return "0"
     sym = _sym_py(nc, ve, sid)
     if hoi.la_chi_bao(ve["ma_dl"]):
@@ -312,7 +313,7 @@ def _dieu_kien_py(nc, step):
     ds = step.get("dieu_kien") or []
     if not ds:
         # Cổng rỗng LUÔN khớp — `soat_khoi_hoi` đã cảnh báo, ở đây sinh đúng như thế.
-        return "True", "không điều kiện"
+        return "True", tr("không điều kiện")
     ve = []
     for dk in ds:
         trai = _ve_py(nc, dk.get("trai"), step["id"])
@@ -324,7 +325,7 @@ def _dieu_kien_py(nc, step):
             ve.append(f"({trai} {phep} {_ve_py(nc, dk.get('phai'), step['id'])})")
     # Chữ mô tả phải nói CẢ cổng, không phải mỗi dòng đầu: một cổng hai điều kiện mà
     # `tag` chỉ ghi một dòng thì đọc nhật ký lệnh sẽ tưởng nó khớp vì lý do khác.
-    return " and ".join(ve), " và ".join(core.mo_ta_dieu_kien(dk) for dk in ds)
+    return " and ".join(ve), tr(" và ").join(core.mo_ta_dieu_kien(dk) for dk in ds)
 
 
 # ---------------------------------------------------------------------------
@@ -336,7 +337,7 @@ def _lam_py(nc, a, sid, mach):
     t = a.get("type")
     d = lam.LOAI_LAM.get(t)
     if not d:
-        nc.loi(sid, f'Chưa sinh được khối loại "{t}".')
+        nc.loi(sid, tr("Chưa sinh được khối loại \"{0}\".", t))
         return []
     mau = lam.ham_lean(t, a)
     # Mã lấy từ ô `ma` của CHÍNH khối ấy — thiếu chỗ này thì mọi hành động đều viết
@@ -366,22 +367,22 @@ def _lam_py(nc, a, sid, mach):
     if t == lam.LAM_GHI_NHO:
         o = hoi.o_nho_cua(str(core.o_lam(a, "o_nho") or "").strip())
         if not o:
-            nc.loi(sid, 'Khối «Ghi nhớ» chưa chọn ô nhớ nào. Khai một ô ở khối '
-                        'Bắt đầu rồi chọn nó ở đây.')
+            nc.loi(sid, tr("Khối «Ghi nhớ» chưa chọn ô nhớ nào. Khai một ô ở khối Bắt đầu rồi chọn "
+                           "nó ở đây."))
             return []
         gt["o_nho"] = _thay(o["lean"], {"sym": _sym_py(nc, a, sid)
                                         if o["can_ma"] else "sym"})
     try:
         return [mau.format(**gt)]
     except KeyError as e:
-        nc.loi(sid, f'Mẫu LEAN của khối cần ô {e} mà khối không có.')
+        nc.loi(sid, tr("Mẫu LEAN của khối cần ô {0} mà khối không có.", e))
         return []
 
 
 def _chu_tag(nc, sid, mach):
     """Chữ đi theo lệnh sang LEAN: số khối + chuỗi điều kiện đã khớp để tới đây."""
     so = nc.thu_tu.get(sid) or "?"
-    return f"[{so}] " + (" · ".join(mach) if mach else "không điều kiện")
+    return f"[{so}] " + (" · ".join(mach) if mach else tr("không điều kiện"))
 
 
 # ---------------------------------------------------------------------------
@@ -395,9 +396,9 @@ def _chuoi(nc, cur, dung_tai, sau, mach):
         if not cur or cur == dung_tai:
             return ra
         if cur in nc.da:
-            nc.loi(cur, "Sơ đồ có VÒNG LẶP — chưa sinh mã được. Trong một nến thì dữ "
-                        "liệu không đổi, nên chạy lại một đoạn chỉ cho đúng kết quả "
-                        "cũ. Vòng «mỗi nến, mỗi mã» thì khối Bắt đầu đã lo.")
+            nc.loi(cur, tr("Sơ đồ có VÒNG LẶP — chưa sinh mã được. Trong một nến thì dữ liệu không "
+                           "đổi, nên chạy lại một đoạn chỉ cho đúng kết quả cũ. Vòng «mỗi nến, mỗi "
+                           "mã» thì khối Bắt đầu đã lo."))
             return ra
         nc.da.add(cur)
         st = nc.theo_id.get(cur)
@@ -406,7 +407,7 @@ def _chuoi(nc, cur, dung_tai, sau, mach):
         nhanh = list(nc.ke.get(cur) or [])
 
         if st.get("type") == core.QUAY_VE:
-            nc.loi(cur, "Khối QUAY VỀ — chưa sinh mã được (xem đầu `sinh_ma.py`).")
+            nc.loi(cur, tr("Khối QUAY VỀ — chưa sinh mã được (xem đầu `sinh_ma.py`)."))
             return ra
 
         # ---- khối HỎI: điều kiện BAO phần còn lại của nhánh -------------------
@@ -431,7 +432,7 @@ def _chuoi(nc, cur, dung_tai, sau, mach):
             ra += _toa(nc, cur, nhanh, dung_tai, sau, mach)
             return ra
         cur = nhanh[0] if nhanh else None
-    nc.loi(cur, "Sơ đồ quá dài — dừng ở đây để khỏi chạy mãi.")
+    nc.loi(cur, tr("Sơ đồ quá dài — dừng ở đây để khỏi chạy mãi."))
     return ra
 
 
@@ -491,9 +492,9 @@ def _toa(nc, cur, nhanh, dung_tai, sau, mach):
                 ra.append("else:")
                 ra += [TAB + d for d in (than or ["pass"])]
             if i < len(nhanh) - 1:
-                nc.loi(head, f'Nhánh "{core.step_title(st)}" không có cổng nên nó luôn '
-                             f"chạy — {len(nhanh) - i - 1} nhánh xếp sau nó không bao "
-                             f"giờ tới lượt.", "warning")
+                nc.loi(head, tr("Nhánh \"{0}\" không có cổng nên nó luôn chạy — {1} nhánh xếp sau "
+                                "nó không bao giờ tới lượt.",
+                                core.step_title(st), len(nhanh) - i - 1), "warning")
             break
     if gop and gop != dung_tai:
         if co_cua_chot and not het:
@@ -528,7 +529,7 @@ def _khai_ro(nc, gt_ma, st):
     # tình cờ: tám trong chín rổ cũ không nhận tham số nào. Thêm một rổ CÓ tham số
     # (`EmaCrossUniverseSelectionModel`) là sinh ra lời gọi rỗng, chạy ở mặc định
     # của LEAN, không một lời nào. Nay mỗi rổ tự khai câu của mình.
-    ra = ["# RỔ ĐỘNG: không gõ mã nào, LEAN tự quyết hôm nay rổ gồm những gì.",
+    ra = [tr("# RỔ ĐỘNG: không gõ mã nào, LEAN tự quyết hôm nay rổ gồm những gì."),
           f"self.universe_settings.resolution = {nc.res}"]
     # ⚠ CŨNG PHẢI ĐỨNG TRƯỚC `set_universe_selection`, cùng lý do với `resolution`:
     # model chụp lấy `universe_settings` ở ngay lúc dựng, nên đặt sau là đặt vào hư
@@ -553,8 +554,8 @@ def _ham_loc_ro(nc, st):
     if lay <= 0:
         return []
     return ["def _loc_ro(self, ds):",
-            TAB + '"""Rổ ETF -> mấy mã NẶNG nhất. `weight` là trường có thật của',
-            TAB + '`ETFConstituentData`, và nó NULLABLE nên phải gạn trước khi xếp."""',
+            TAB + tr("\"\"\"Rổ ETF -> mấy mã NẶNG nhất. `weight` là trường có thật của"),
+            TAB + tr("`ETFConstituentData`, và nó NULLABLE nên phải gạn trước khi xếp.\"\"\""),
             ] + [TAB + d.format(lay=lay) for d in bat_dau.LOC_TRONG_SO]
 
 
@@ -591,7 +592,7 @@ def _khai_tri_nho(may):
     mã ấy — đúng một chỗ, dùng cho cả hai kiểu ô «Chạy trên mã nào»."""
     if not bat_dau.tri_nho_cua(may):
         return []
-    return ["", "# TRÍ NHỚ: cất lại quyết định của chính sơ đồ, cho nhịp sau đọc.",
+    return ["", tr("# TRÍ NHỚ: cất lại quyết định của chính sơ đồ, cho nhịp sau đọc."),
             f"self._nho = {_than_nho(may, False)}",
             f"self._nho_mau = {_than_nho(may, True)}",
             "self._nho_ma = {}"]
@@ -602,8 +603,8 @@ def _ham_nho_cua(may):
     if not bat_dau.tri_nho_cua(may):
         return []
     return ["", TAB + "def _nho_cua(self, sym):",
-            TAB * 2 + '"""Ô nhớ THEO MÃ của một mã — đẻ bản sao lần đầu gặp mã ấy,',
-            TAB * 2 + 'nên rổ động thêm mã giữa chừng vẫn có đủ ô nhớ."""',
+            TAB * 2 + tr("\"\"\"Ô nhớ THEO MÃ của một mã — đẻ bản sao lần đầu gặp mã ấy,"),
+            TAB * 2 + tr("nên rổ động thêm mã giữa chừng vẫn có đủ ô nhớ.\"\"\""),
             TAB * 2 + "d = self._nho_ma.get(sym)",
             TAB * 2 + "if d is None:",
             TAB * 3 + "d = self._nho_ma[sym] = dict(self._nho_mau)",
@@ -682,7 +683,7 @@ def _khai_mo(nc, st):
         # Nhịp lạ = file sửa tay. Báo rồi đi tiếp: `bat_dau.ham_chay` và
         # `do_phan_giai` đều rơi về nhịp «mỗi nến ngày», nên phần còn lại vẫn sinh
         # ra được và người dùng thấy bảng Vấn đề chỉ đúng một chỗ hỏng.
-        nc.loi(st.get("id"), "Khối Bắt đầu chưa có nhịp chạy.")
+        nc.loi(st.get("id"), tr("Khối Bắt đầu chưa có nhịp chạy."))
     nc.res = f"Resolution.{bat_dau.do_phan_giai(st)}"
 
     ra.append("")
@@ -734,7 +735,7 @@ def _ham_khoi_tao_ma(may):
     if not cau:
         return []
     return ["", "    def _khoi_tao_ma(self, s):",
-            '        """Phí và trượt giá cho từng mã — chồng lên mặc định của Sàn."""'
+            tr("        \"\"\"Phí và trượt giá cho từng mã — chồng lên mặc định của Sàn.\"\"\"")
             ] + [TAB * 2 + c for c in cau]
 
 
@@ -773,7 +774,7 @@ def sinh(doc):
     bd = kq["entry"]
     st_bd = nc.theo_id.get(bd)
     if st_bd is None or not core.is_start_step(st_bd):
-        nc.loi(None, "Sơ đồ chưa có khối Bắt đầu — không biết chạy trên mã gì.")
+        nc.loi(None, tr("Sơ đồ chưa có khối Bắt đầu — không biết chạy trên mã gì."))
         return {"ok": False, "ma": "", "ten_lop": lop, "van_de": nc.van_de}
 
     dong_mo = _khai_mo(nc, st_bd)
@@ -785,7 +786,7 @@ def sinh(doc):
     chua_toi = [s["id"] for s in steps
                 if s.get("id") not in nc.da and s.get("id") not in nc.thu_tu]
     for sid in chua_toi:
-        nc.loi(sid, "Khối này không nối vào sơ đồ nên không sinh mã.", "warning")
+        nc.loi(sid, tr("Khối này không nối vào sơ đồ nên không sinh mã."), "warning")
 
     # --- chỉ báo + làm nóng ---
     dong_doi_ro = []
@@ -885,10 +886,10 @@ def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
           loc_ro=(), co_cb=False, khoi_tao=()):
     """Ghép thành một file Python hoàn chỉnh."""
     r = [
-        '"""Thuật toán sinh bởi Cat_Studio — ' + str(ten or "") + ".",
+        tr("\"\"\"Thuật toán sinh bởi Cat_Studio — ") + str(ten or "") + ".",
         "",
-        "ĐỪNG SỬA TAY: mở lại sơ đồ trong Cat_Studio rồi sinh lại, bản sửa tay sẽ bị",
-        "ghi đè. Mỗi câu LEAN dưới đây lấy thẳng từ ô `lean` của từ điển khối.",
+        tr("ĐỪNG SỬA TAY: mở lại sơ đồ trong Cat_Studio rồi sinh lại, bản sửa tay sẽ bị"),
+        tr("ghi đè. Mỗi câu LEAN dưới đây lấy thẳng từ ô `lean` của từ điển khối."),
         '"""',
         "from AlgorithmImports import *",
         "",
@@ -908,14 +909,14 @@ def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
         r += [""] + [TAB + d if d else "" for d in loc_ro]
     if ro:
         r += ["", TAB + "def on_securities_changed(self, changes):",
-              TAB * 2 + "# Rổ đổi thì LEAN gọi vào đây — mã vào rổ thì khai chỉ báo",
-              TAB * 2 + "# cho nó, mã ra rổ thì bỏ. `initialize` khai không được:",
-              TAB * 2 + "# lúc ấy rổ còn rỗng."]
+              TAB * 2 + tr("# Rổ đổi thì LEAN gọi vào đây — mã vào rổ thì khai chỉ báo"),
+              TAB * 2 + tr("# cho nó, mã ra rổ thì bỏ. `initialize` khai không được:"),
+              TAB * 2 + tr("# lúc ấy rổ còn rỗng.")]
         r += [TAB * 2 + d if d else "" for d in doi_ro]
 
     r += ["", TAB + "def on_data(self, data):"]
     if hen:
-        r += [TAB * 2 + "# Nhịp hẹn giờ: ruột chạy ở `_nhip`, không chạy theo nến.",
+        r += [TAB * 2 + tr("# Nhịp hẹn giờ: ruột chạy ở `_nhip`, không chạy theo nến."),
               TAB * 2 + "pass", "",
               TAB + "def _nhip(self):",
               TAB * 2 + "data = self.current_slice"]
@@ -956,8 +957,8 @@ def _ghep(lop, ten, hen, dong_mo, than, ca_danh_muc=False, ro=None, doi_ro=(),
             # `RSI < 60` trên dạng thứ hai: CÒN chặn thì 0 lệnh; BỎ chặn thì **17
             # lệnh khớp hết** trên một chỉ báo chưa bao giờ chín. Backtest sạch cả
             # hai lần. Đó là lý do dòng này có mặt.
-            r += [TAB * 2 + "# Mã mới vào rổ mà chưa đủ nến thì chỉ báo chưa chín —",
-                  TAB * 2 + "# nó vẫn đọc ra một con số, chỉ là số ấy chưa có nghĩa.",
+            r += [TAB * 2 + tr("# Mã mới vào rổ mà chưa đủ nến thì chỉ báo chưa chín —"),
+                  TAB * 2 + tr("# nó vẫn đọc ra một con số, chỉ là số ấy chưa có nghĩa."),
                   TAB * 2 + "if not all(x.is_ready for x in self._cb[sym].values()):",
                   TAB * 3 + "return"]
     r += [TAB * 2 + d if d else "" for d in (than or ["pass"])]

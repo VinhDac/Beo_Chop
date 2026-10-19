@@ -35,7 +35,7 @@ KHOA_NGON_NGU = "ngon_ngu"
 #: ⚠ MỘT CHỖ DUY NHẤT biết có mấy nấc và mặc định là nấc nào: `core.ngon_ngu` đọc
 #: bảng này, `ngon_ngu.dat` rơi về cùng một giá trị, và hộp Cài đặt dựng ô chọn từ
 #: chính nó. Gõ "en" lần thứ hai ở đâu đó là mở đường cho hai bên lệch nhau.
-NGON_NGU = (("en", "English"), ("vi", "Tiếng Việt"))
+NGON_NGU = (("en", "English"), ("vi", "Tiếng Việt"))   # không dịch
 
 
 def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi="", chon=()):

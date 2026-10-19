@@ -31,6 +31,7 @@ from . import cai_dat
 from . import chay_lean
 from . import luu_tru
 from . import toi_uu
+from .ngon_ngu import tr
 
 #: Thẻ tóm tắt ghi cạnh kết quả, để màn Kho đọc được mà không phải mở từng file.
 TEN_THE = "_the.json"
@@ -99,14 +100,14 @@ def san_sang():
     exe = _exe_optimizer(sb["goc"])
     if not exe:
         return {"ok": False, "exe": "", "lean_dll": "",
-                "loi": "Chưa thấy QuantConnect.Optimizer.Launcher.exe — bản LEAN ở "
-                       "máy chưa build phần Optimizer."}
+                "loi": tr("Chưa thấy QuantConnect.Optimizer.Launcher.exe — bản LEAN ở máy chưa "
+                          "build phần Optimizer.")}
     # Optimizer gọi LEAN qua FILE .DLL, không phải .exe.
     dll = os.path.splitext(sb["launcher"])[0] + ".dll"
     if not os.path.isfile(dll):
         return {"ok": False, "exe": exe, "lean_dll": "",
-                "loi": f"Chưa thấy {os.path.basename(dll)} — optimizer cần file .dll "
-                       f"của launcher backtest để chạy từng lượt."}
+                "loi": tr("Chưa thấy {0} — optimizer cần file .dll của launcher backtest để chạy "
+                          "từng lượt.", os.path.basename(dll))}
     return {"ok": True, "loi": "", "exe": exe, "lean_dll": dll, "goc": sb["goc"]}
 
 
@@ -192,10 +193,10 @@ def chay(ma, ten_lop, cai, so_do=None):
     uoc = toi_uu.uoc_luong(cai.get("tham_so") or {}, cai.get("cung_luc") or 0)
     if uoc["thieu"]:
         return {"ok": False,
-                "loi": f'Mấy núm này chưa khai nổi một khoảng quét: '
-                       f'{", ".join(uoc["thieu"])}.'}
+                "loi": tr("Mấy núm này chưa khai nổi một khoảng quét: {0}.",
+                          ", ".join(uoc["thieu"]))}
     if not uoc["so_luot"]:
-        return {"ok": False, "loi": "Chưa ghim núm nào để quét."}
+        return {"ok": False, "loi": tr("Chưa ghim núm nào để quét.")}
 
     duong_ma = luu_tru.ghi_ma(ten_lop, ma)
     ma_luot = time.strftime("%Y%m%d-%H%M%S")
@@ -219,7 +220,7 @@ def chay(ma, ten_lop, cai, so_do=None):
                              text=True, encoding="utf-8", errors="replace",
                              bufsize=1)
     except OSError as e:
-        return {"ok": False, "loi": f"Không chạy được optimizer: {e}"}
+        return {"ok": False, "loi": tr("Không chạy được optimizer: {0}", e)}
     _dat(tien_trinh=p)
     with _KHOA:
         if _TRANG_THAI["da_dung"]:
@@ -243,8 +244,8 @@ def chay(ma, ten_lop, cai, so_do=None):
     ket_qua = doc_luot(ra_thu_muc, (cai.get("tham_so") or {}))
     if not ket_qua:
         return {"ok": False, "thu_muc": ra_thu_muc, "ket_qua": [],
-                "loi": ("Bạn đã dừng mẻ này." if da_dung else
-                        "Optimizer chạy xong mà không lượt nào ghi ra kết quả."),
+                "loi": (tr("Bạn đã dừng mẻ này.") if da_dung else
+                        tr("Optimizer chạy xong mà không lượt nào ghi ra kết quả.")),
                 "nhat_ky": "".join(dong)[-20000:]}
     kq = {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
           "ma_luot": ma_luot, "id": f"{ten_lop}/{ma_luot}",
@@ -290,7 +291,7 @@ def doc_me(ma_id):
     ten_lop, _, ma_luot = str(ma_id or "").partition("/")
     d = os.path.join(thu_muc_goc(), ten_lop, ma_luot)
     if not ten_lop or not ma_luot or not os.path.isdir(d):
-        return {"ok": False, "loi": "Không có mẻ này."}
+        return {"ok": False, "loi": tr("Không có mẻ này.")}
     the = {}
     try:
         with open(os.path.join(d, TEN_THE), encoding="utf-8") as fh:
@@ -306,12 +307,12 @@ def xoa_me(ma_id):
     ten_lop, _, ma_luot = str(ma_id or "").partition("/")
     d = os.path.join(thu_muc_goc(), ten_lop, ma_luot)
     if not ten_lop or not ma_luot or not os.path.isdir(d):
-        return {"ok": False, "loi": f'Không có mẻ "{ma_id}".'}
+        return {"ok": False, "loi": tr("Không có mẻ \"{0}\".", ma_id)}
     import shutil
     try:
         shutil.rmtree(d)
     except OSError as e:
-        return {"ok": False, "loi": f"Không xoá được: {e}"}
+        return {"ok": False, "loi": tr("Không xoá được: {0}", e)}
     return {"ok": True, "loi": ""}
 
 
@@ -332,7 +333,7 @@ def bat_dau_chay(ma, ten_lop, cai, so_do=None):
     """Khởi động một mẻ trong luồng riêng rồi trả về NGAY. Xem `chay_lean`."""
     with _KHOA:
         if _TRANG_THAI["dang_chay"]:
-            return {"ok": False, "loi": "Đang có một mẻ chạy rồi — chờ nó xong đã."}
+            return {"ok": False, "loi": tr("Đang có một mẻ chạy rồi — chờ nó xong đã.")}
         _TRANG_THAI.update({"dang_chay": True, "xong": False, "bat_dau": time.time(),
                             "dong_cuoi": "", "kq": None, "tien_trinh": None,
                             "da_dung": False, "thu_muc": "", "so_luot": 0,

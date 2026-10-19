@@ -33,6 +33,7 @@ from . import hoi
 from . import lam
 from . import ngon_ngu
 from . import toi_uu
+from .ngon_ngu import tr
 if sys.platform == "win32":
     from . import khung_cua_so
 else:
@@ -288,7 +289,7 @@ class ApiToiUu(NenCuaSo):
         Đặt số xong ở ĐÂY rồi mới đẩy sang: cửa sổ chính chỉ việc nạp một tài liệu
         đã sẵn sàng, khỏi phải biết luật «con số nằm ở đâu trong khối»."""
         if not self._bao_chinh:
-            return _loi("Không nối được tới cửa sổ sơ đồ.")
+            return _loi(tr("Không nối được tới cửa sổ sơ đồ."))
         me = chay_toi_uu.doc_me(self._ma_id)
         sd = (me.get("so_do") or {}) if me.get("ok") else {}
         if not sd.get("steps"):
@@ -297,20 +298,18 @@ class ApiToiUu(NenCuaSo):
             # nên dò ngược trong kho Strategy là tìm đúng sơ đồ, không phải đoán.
             sd = _so_do_theo_ten_lop(me.get("ten_lop") or "")
         if not sd.get("steps"):
-            return _loi(f'Mẻ này chạy từ bản cũ nên không lưu sơ đồ, mà kho '
-                        f'Strategy cũng không còn cái nào sinh ra lớp '
-                        f'"{me.get("ten_lop") or "?"}". Chạy lại một mẻ mới thì bấm '
-                        f'đúp sẽ mở được.')
+            return _loi(tr("Mẻ này chạy từ bản cũ nên không lưu sơ đồ, mà kho Strategy cũng không "
+                           "còn cái nào sinh ra lớp \"{0}\". Chạy lại một mẻ mới thì bấm đúp sẽ mở "
+                           "được.", me.get("ten_lop") or "?"))
         ds, dat = core.dat_tham_so(sd.get("steps") or [], tham_so or {})
         if not dat:
             # ĐẶT ĐƯỢC 0 NÚM = mở ra cũng chẳng đổi gì, mà lại ghi đè sơ đồ đang vẽ.
             # Gặp khi sơ đồ dò được từ kho Strategy chưa ghim núm nào — bản đã lưu
             # cũ hơn lúc ghim. Nói thẳng, đừng mở một sơ đồ y hệt rồi để người dùng
             # ngồi tìm xem con số nào vừa đổi.
-            return _loi(f'Sơ đồ của mẻ này không còn ô nào ghim '
-                        f'{", ".join(sorted(tham_so or {})) or "núm nào"} — bản đã '
-                        f'lưu cũ hơn lúc ghim. Mở sơ đồ ra ghim lại rồi chạy một mẻ '
-                        f'mới, mẻ ấy sẽ bấm đúp được.')
+            return _loi(tr("Sơ đồ của mẻ này không còn ô nào ghim {0} — bản đã lưu cũ hơn lúc "
+                           "ghim. Mở sơ đồ ra ghim lại rồi chạy một mẻ mới, mẻ ấy sẽ bấm đúp được.",
+                           ", ".join(sorted(tham_so or {})) or tr("núm nào")))
         self._bao_chinh({"name": sd.get("name") or me.get("ten_lop") or "",
                          "steps": ds, "edges": sd.get("edges") or [],
                          "dat": dat})
@@ -368,7 +367,7 @@ class Api(NenCuaSo):
         # một cửa sổ bị dọn HAI LẦN: `del BrowserView.instances[uid]` của pywebview
         # ném `KeyError('child_…')` ra thẳng hộp thoại .NET. Đã dính thật.
         phu = ApiKetQua(ma_id)
-        tieu_de = f"Kết quả · {kq['ten_lop']} · {_doc_ma_luot(kq['ma_luot'])}"
+        tieu_de = tr("Kết quả · {0} · {1}", kq['ten_lop'], _doc_ma_luot(kq['ma_luot']))
         w = webview.create_window(
             tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?kq={ma_id}",
             js_api=phu,
@@ -507,8 +506,8 @@ class Api(NenCuaSo):
         thông báo của LEAN khó hiểu hơn hẳn bảng Vấn đề."""
         kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges, co_may))
         if not kq["ok"]:
-            return _ok({"ok": False, "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng "
-                                            "Vấn đề.", "van_de": kq["van_de"]})
+            return _ok({"ok": False, "van_de": kq["van_de"],
+                        "loi": tr("Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề.")})
         # TÊN MỐC phải nói thật. LEAN KHÔNG ghi lại nó trong file kết quả, mà để trống
         # thì nó lặng lẽ lấy SPY — biểu đồ ghi "Mốc so sánh" chung chung là giấu mất
         # chuyện cỗ máy vàng đang bị đem so với cổ phiếu Mỹ.
@@ -517,7 +516,7 @@ class Api(NenCuaSo):
         # Những thứ chỉ LÚC SINH mới biết, giữ lại để gắn vào kết quả lúc xong.
         self._kem = {"van_de": kq["van_de"], "ma": kq["ma"],
                      "ten_lop": kq["ten_lop"],
-                     "moc_ten": m or "SPY — LEAN tự chọn"}
+                     "moc_ten": m or tr("SPY — LEAN tự chọn")}
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
 
     @_bat_loi
@@ -544,7 +543,7 @@ class Api(NenCuaSo):
         kq = sinh_ma.sinh(doc)
         if not kq["ok"]:
             return _ok({"ok": False, "van_de": kq["van_de"],
-                        "loi": "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề."})
+                        "loi": tr("Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề.")})
         # SƠ ĐỒ đi theo mẻ: bấm đúp một dòng xếp hạng sau này phải mở lại ĐÚNG sơ đồ
         # ấy, kể cả khi canvas đang trống hay đang vẽ chiến thuật khác.
         return _ok(chay_toi_uu.bat_dau_chay(kq["ma"], kq["ten_lop"], cai or {}, doc))
@@ -795,11 +794,11 @@ class Api(NenCuaSo):
         cu = (cu or "").strip()
         moi = (moi or "").strip()
         if not moi:
-            return _loi("Tên mới không được để trống.")
+            return _loi(tr("Tên mới không được để trống."))
         if moi == cu:
             return _ok({"ten": cu})
         if moi in luu_tru.liet_ke_strategy():
-            return _loi(f'Đã có Strategy tên "{moi}". Hãy chọn tên khác.')
+            return _loi(tr("Đã có Strategy tên \"{0}\". Hãy chọn tên khác.", moi))
         doc = core.normalize_process(luu_tru.doc_strategy(cu))
         doc["name"] = moi
         luu_tru.ghi_strategy(moi, doc)
@@ -814,9 +813,9 @@ class Api(NenCuaSo):
         """Chép một Strategy sang tên khác. Không đè bản đã có."""
         ten_moi = (ten_moi or "").strip()
         if not ten_moi:
-            return _loi("Tên bản sao không được để trống.")
+            return _loi(tr("Tên bản sao không được để trống."))
         if ten_moi in luu_tru.liet_ke_strategy():
-            return _loi(f'Đã có Strategy tên "{ten_moi}". Hãy chọn tên khác.')
+            return _loi(tr("Đã có Strategy tên \"{0}\". Hãy chọn tên khác.", ten_moi))
         doc = core.normalize_process(luu_tru.doc_strategy(ten))
         doc["name"] = ten_moi
         # Cấp id MỚI cho mọi khối: hai bản dùng chung id thì dán khối của bản này sang
@@ -930,10 +929,10 @@ class Api(NenCuaSo):
         }
         f = bang.get(str(loai or "goc"))
         if not f:
-            return _loi(f'Không có thư mục "{loai}".')
+            return _loi(tr("Không có thư mục \"{0}\".", loai))
         d = f()
         if not os.path.isdir(d):
-            return _loi(f"Chưa có thư mục {d}.")
+            return _loi(tr("Chưa có thư mục {0}.", d))
         # `explorer.exe` trả mã thoát 1 KỂ CẢ KHI MỞ ĐƯỢC — đừng đọc mã thoát của nó.
         subprocess.Popen(["explorer.exe", os.path.normpath(d)])
         return _ok(True)
@@ -943,7 +942,7 @@ class Api(NenCuaSo):
         """Mở trang backtest trên quantconnect.com bằng trình duyệt của máy. CHỈ link của QC."""
         url = str(url or "")
         if not url.startswith("https://www.quantconnect.com/"):
-            return _loi("Chỉ mở link của quantconnect.com.")
+            return _loi(tr("Chỉ mở link của quantconnect.com."))
         import webbrowser
         webbrowser.open(url)
         return _ok(True)

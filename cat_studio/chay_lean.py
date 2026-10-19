@@ -32,6 +32,7 @@ import time
 
 from . import cai_dat
 from . import luu_tru
+from .ngon_ngu import tr
 
 #: Tên cấu hình: thư mục gốc của bản LEAN đã build (chỗ có `Launcher/`).
 KHOA_LEAN = cai_dat.KHOA_LEAN
@@ -112,7 +113,7 @@ def dung():
     không có trình xử lý tín hiệu nào để dọn dẹp tử tế. Giết là giết."""
     with _KHOA:
         if not _TRANG_THAI["dang_chay"]:
-            return {"ok": False, "loi": "Không có lượt nào đang chạy."}
+            return {"ok": False, "loi": tr("Không có lượt nào đang chạy.")}
         p = _TRANG_THAI["tien_trinh"]
         _TRANG_THAI["da_dung"] = True
     if p is None:
@@ -122,7 +123,7 @@ def dung():
     try:
         p.kill()
     except Exception as e:                          # noqa: BLE001
-        return {"ok": False, "loi": f"Không dừng được: {type(e).__name__}: {e}"}
+        return {"ok": False, "loi": tr("Không dừng được: {0}: {1}", type(e).__name__, e)}
     return {"ok": True, "loi": ""}
 
 
@@ -230,23 +231,22 @@ def san_sang():
     _e, dll = _moi_truong()
     if not goc:
         return {"ok": False, "goc": "", "launcher": "", "dll": dll,
-                "loi": "Chưa chỉ chỗ đặt LEAN. Mở Cài đặt rồi trỏ vào thư mục LEAN "
-                       "đã build (thư mục có `Launcher/`)."}
+                "loi": tr("Chưa chỉ chỗ đặt LEAN. Mở Cài đặt rồi trỏ vào thư mục LEAN đã build "
+                          "(thư mục có `Launcher/`).")}
     if not os.path.isdir(goc):
         return {"ok": False, "goc": goc, "launcher": "", "dll": dll,
-                "loi": f"Không có thư mục «{goc}»."}
+                "loi": tr("Không có thư mục «{0}».", goc)}
     exe = _duong_launcher(goc)
     if not exe:
         return {"ok": False, "goc": goc, "launcher": "", "dll": dll,
-                "loi": "Có thư mục nhưng chưa thấy `QuantConnect.Lean.Launcher.exe` "
-                       "trong `Launcher/bin/Release`. LEAN đã build chưa?"}
+                "loi": tr("Có thư mục nhưng chưa thấy `QuantConnect.Lean.Launcher.exe` trong "
+                          "`Launcher/bin/Release`. LEAN đã build chưa?")}
     if not os.path.isdir(os.path.join(goc, "Data")):
         return {"ok": False, "goc": goc, "launcher": exe, "dll": dll,
-                "loi": "Không thấy thư mục `Data` của LEAN."}
+                "loi": tr("Không thấy thư mục `Data` của LEAN.")}
     if not dll:
         return {"ok": False, "goc": goc, "launcher": exe, "dll": "",
-                "loi": "Không tìm ra python3xx.dll — LEAN cần nó để chạy thuật toán "
-                       "Python."}
+                "loi": tr("Không tìm ra python3xx.dll — LEAN cần nó để chạy thuật toán Python.")}
     return {"ok": True, "goc": goc, "launcher": exe, "dll": dll, "loi": ""}
 
 
@@ -515,11 +515,11 @@ def doc_luot_chay(ma_id):
     """Mở lại một lượt đã lưu. -> {ok, loi, ...phần màn Kết quả cần}"""
     d = _thu_muc_luot(ma_id)
     if not d:
-        return {"ok": False, "loi": f'Không có lượt chạy "{ma_id}".'}
+        return {"ok": False, "loi": tr("Không có lượt chạy \"{0}\".", ma_id)}
     ten_lop = os.path.basename(os.path.dirname(d))
     dl, nk = _doc_ket_qua(d, ten_lop)
     if dl is None:
-        return {"ok": False, "loi": "Lượt chạy này không có file kết quả."}
+        return {"ok": False, "loi": tr("Lượt chạy này không có file kết quả.")}
     return {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": d,
             "ma_luot": os.path.basename(d), "id": f"{ten_lop}/{os.path.basename(d)}",
             **_gon(dl, nk)}
@@ -529,12 +529,12 @@ def xoa_luot_chay(ma_id):
     """Xoá hẳn một lượt đã lưu. -> {ok, loi}"""
     d = _thu_muc_luot(ma_id)
     if not d:
-        return {"ok": False, "loi": f'Không có lượt chạy "{ma_id}".'}
+        return {"ok": False, "loi": tr("Không có lượt chạy \"{0}\".", ma_id)}
     import shutil
     try:
         shutil.rmtree(d)
     except OSError as e:
-        return {"ok": False, "loi": f"Không xoá được: {e}"}
+        return {"ok": False, "loi": tr("Không xoá được: {0}", e)}
     return {"ok": True, "loi": ""}
 
 
@@ -580,7 +580,7 @@ def chay(ma, ten_lop):
         with open(goc_cfg, encoding="utf-8") as f:
             cfg = json.loads(_got_json(f.read()))
     except (OSError, ValueError) as e:
-        return {"ok": False, "loi": f"Không đọc được config.json của LEAN: {e}"}
+        return {"ok": False, "loi": tr("Không đọc được config.json của LEAN: {0}", e)}
 
     cfg.update({
         "algorithm-type-name": ten_lop,
@@ -618,7 +618,7 @@ def chay(ma, ten_lop):
                              text=True, encoding="utf-8", errors="replace",
                              bufsize=1)
     except OSError as e:
-        return {"ok": False, "loi": f"Không chạy được LEAN: {e}"}
+        return {"ok": False, "loi": tr("Không chạy được LEAN: {0}", e)}
     _dat(tien_trinh=p)
     # Bấm Dừng TRONG LÚC LEAN đang khởi động thì lúc ấy chưa có tiến trình để giết —
     # `dung()` chỉ kịp dựng cờ. Kiểm ngay sau khi dựng xong, không thì lượt ấy cứ
@@ -637,8 +637,8 @@ def chay(ma, ten_lop):
             if time.time() > het:
                 p.kill()
                 return {"ok": False,
-                        "loi": f"LEAN chạy quá {han // 60} phút nên bị dừng. "
-                               f"Thử rút ngắn khoảng ngày hoặc đổi nhịp thưa hơn."}
+                        "loi": tr("LEAN chạy quá {0} phút nên bị dừng. Thử rút ngắn khoảng ngày "
+                                  "hoặc đổi nhịp thưa hơn.", han // 60)}
     finally:
         try:
             p.stdout.close()
@@ -649,12 +649,12 @@ def chay(ma, ten_lop):
 
     with _KHOA:
         if _TRANG_THAI["da_dung"]:
-            return {"ok": False, "loi": "Bạn đã dừng lượt chạy này."}
+            return {"ok": False, "loi": tr("Bạn đã dừng lượt chạy này.")}
 
     d, nk = _doc_ket_qua(ra_thu_muc, ten_lop)
     if d is None:
         # Không có file kết quả mới là hỏng thật. Lúc ấy màn hình mới đáng đọc.
-        return {"ok": False, "loi": "LEAN chạy xong mà không ghi ra kết quả.",
+        return {"ok": False, "loi": tr("LEAN chạy xong mà không ghi ra kết quả."),
                 "nhat_ky": man_hinh[-20000:]}
     kq = {"ok": True, "loi": "", "ten_lop": ten_lop, "thu_muc": ra_thu_muc,
           "ma_luot": ma_luot, "id": f"{ten_lop}/{ma_luot}",
@@ -675,9 +675,9 @@ def bat_dau_chay(ma, ten_lop):
     -> {ok, loi} — mới là "đã khởi động được chưa", chưa phải kết quả backtest."""
     with _KHOA:
         if _TRANG_THAI["dang_chay"]:
-            return {"ok": False, "loi": "Đang có một lượt chạy rồi — chờ nó xong đã."}
+            return {"ok": False, "loi": tr("Đang có một lượt chạy rồi — chờ nó xong đã.")}
         _TRANG_THAI.update({"dang_chay": True, "xong": False, "bat_dau": time.time(),
-                            "giai_doan": "Khởi động LEAN", "gd_i": 99,
+                            "giai_doan": tr("Khởi động LEAN"), "gd_i": 99,
                             "dong_cuoi": "", "so_dong": 0, "kq": None,
                             "tien_trinh": None, "da_dung": False})
 

@@ -18,6 +18,7 @@ import re
 import sys
 
 from . import cai_dat
+from .ngon_ngu import tr
 
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
@@ -358,7 +359,7 @@ def tom_tat():
             {"ten": "Strategy", "duong_dan": thu_muc_strategy(),
              "so_luong": len(liet_ke_strategy()),
              "danh_sach": liet_ke_strategy()},
-            {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
+            {"ten": tr("Nhật ký chạy"), "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],
     }

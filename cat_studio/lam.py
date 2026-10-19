@@ -558,7 +558,7 @@ def tu_dien():
              "co_dai_luong": d.get("co_dai_luong", False),
              # Nhãn và "có nhận số không" phải đi KÈM, không thì giao diện lại gõ
              # cứng "Giá trị vẽ" cho mọi khối có ô đại lượng.
-             "nhan_dai_luong": d.get("nhan_dai_luong", "Giá trị"),
+             "nhan_dai_luong": d.get("nhan_dai_luong", "Giá trị"),   # web dịch
              "dai_luong_so": d.get("dai_luong_so", False)}
             for ma, d in LOAI_LAM.items()
         ],

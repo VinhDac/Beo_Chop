@@ -309,8 +309,8 @@ def _o_phut(nhan, mac_dinh=10):
     # ⚠ `goi_y=` CÓ TÊN, không truyền chay: vị trí thứ sáu của `_o` là `don_vi`, nên
     # "Từ 0 đến 390." vẫn nằm ở ô ĐƠN VỊ suốt từ đầu — hiện ra cạnh ô số như một đơn
     # vị đo, còn ô gợi ý thì trống trơn.
-    return _o("so_phut", nhan, O_SO, mac_dinh, "", goi_y="Từ 0 đến 390 phút.",
-              nguyen=True)
+    return _o("so_phut", nhan, O_SO, mac_dinh, "",
+              goi_y="Từ 0 đến 390 phút.", nguyen=True)   # web dịch
 
 
 # ⚠ Ô THỨ SÁU — CÙNG MỘT NHỊP, HAI CÂU LEAN, vì RỔ ĐỘNG không có mã nào để neo lịch
@@ -788,8 +788,8 @@ def _o_nguong(nhan):
 
     Cùng tên ô cho cả bốn (`nguong`), nên đổi model thì con số người dùng vừa gõ
     còn nguyên, không bị reset về mặc định."""
-    return _o("nguong", nhan, O_SO, 0.05, "", don_vi="phần",
-              goi_y="0.05 = 5%. Mặc định của LEAN cũng là 0.05.")
+    return _o("nguong", nhan, O_SO, 0.05, "", don_vi="phần",   # web dịch
+              goi_y="0.05 = 5%. Mặc định của LEAN cũng là 0.05.")   # web dịch
 
 
 #: Chạy SAU khi chia vốn, được quyền chỉnh lại tỷ trọng.
@@ -1122,8 +1122,10 @@ def nhan_ro(r):
     giá nhất. THẺ KHỐI thì chỉ in `r[1]`, cái tên trần — xem `core.mo_ta_bat_dau`."""
     if not r or len(r) < 6 or not r[5]:
         return r[1]
+    # Câu GHÉP, mà ghép ra một chuỗi TĨNH (mốc ngày là hằng trong `RO`): nên chính câu
+    # tiếng Việt đã ghép là một khoá dịch dùng được, và giao diện dịch nó lúc hiện ra.
     return f"{r[1]} (cần dữ liệu doanh nghiệp: chỉ có " \
-           f"{_dd_mm(r[5][0])}–{_dd_mm(r[5][1])}/{str(r[5][1])[:4]})"
+           f"{_dd_mm(r[5][0])}–{_dd_mm(r[5][1])}/{str(r[5][1])[:4]})"   # web dịch
 
 
 def khoang_du_lieu(gia_tri):

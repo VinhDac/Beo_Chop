@@ -23,6 +23,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from cat_studio import bat_dau, cai_dat, core, hoi, lam  # noqa: E402
+# ⚠ BÀI NÀY CHỐT TIẾNG VIỆT. Nó soát CHỮ do Python dựng — mặt khối, bảng Vấn đề,
+# câu lỗi — mà app nay MẶC ĐỊNH TIẾNG ANH. Không chốt thì nó đọc bản dịch và mọi
+# câu khẳng định dưới đây thành vô nghĩa. Bản gốc tiếng Việt cũng là KHOÁ của bảng
+# dịch, nên khẳng định bằng tiếng Việt là khẳng định đúng thứ lõi sinh ra.
+# Bản tiếng Anh có bài canh riêng: `test_ngon_ngu.py`.
+from cat_studio import ngon_ngu  # noqa: E402
+ngon_ngu.dat("vi")
+
 
 dung = sai = 0
 

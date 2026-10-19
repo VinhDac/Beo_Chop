@@ -25,7 +25,16 @@ CỐ Ý KHÔNG BỌC:
     .split…), của `re.*`, của `print` và `help=` của argparse (cho người viết mã), câu của
     `assert`, docstring, chuỗi đứng riêng một câu lệnh, và khối `if __name__ == "__main__"`.
     Bọc mấy thứ ấy là đổi LOGIC chứ không chỉ đổi chữ;
-  · dòng có ghi chú `# không dịch` — chuỗi là dữ liệu (đuôi tên tệp, chữ dò trong game…).
+  · dòng có ghi chú `# không dịch` — chuỗi là dữ liệu (đuôi tên tệp, tên khoá trong file…);
+  · dòng có ghi chú `# web dịch` — NHÃN của một từ điển mà GIAO DIỆN dịch lúc hiện ra.
+    Dấu này riêng của Cat, Jenifer không có, và nó có vì luật nền "Python khai, giao diện chỉ
+    bày lại": năm từ điển (`hoi`, `lam`, `bat_dau`, `cai_dat`, `toi_uu`) là nguồn của gần hết
+    chữ trong các hộp thoại, mà nhãn của chúng phần lớn nằm NGOÀI hàm nên đã tự miễn. Mấy cái
+    còn lại do một hàm DỰNG BẢNG sinh ra (`_o_phut`, `_o_nguong`, `nhan_ro`) — tức chạy một
+    lần lúc nạp tệp hay lúc giao diện hỏi từ điển, chứ không phải mỗi lần hiện. Bọc `tr` ở đó
+    là CHỐT CỨNG thứ tiếng của lúc ấy: gạt sang tiếng Việt thì đúng mấy nhãn ấy đứng im bằng
+    tiếng Anh, mà không lỗi, không cảnh báo. Nên chúng ở lại tiếng Việt và `tr(nhãn)` bên web
+    lo — `tools/nhan_python_dich.py` kê chúng ra cho cổng bên ấy đòi bản tiếng Anh.
 
 CỔNG (mọi tệp `cat_studio/*.py`): không còn câu Việt trần; mọi câu trong tr("…") và mọi nhãn
 bảng hằng có bản tiếng Anh; ô điền hai bên khớp nhau; bản tiếng Anh không lẫn chữ có dấu; câu
@@ -58,6 +67,9 @@ TEP_XONG = None
 #: thì cổng vốn đã bỏ qua) — để ngoài cho rõ, chứ không phải một ngoại lệ phải nhớ.
 BO_TEP = {"ngon_ngu.py", "tieng_anh.py", "__init__.py"}
 DAU_BO = "# không dịch"
+#: Nhãn từ điển — giao diện dịch lúc hiện ra. Xem lời tựa; cổng bên web đòi bản tiếng Anh của
+#: nó, nên bỏ qua ở đây KHÔNG phải là bỏ nó ra ngoài song ngữ.
+DAU_WEB = "# web dịch"
 HAM_DICH = "tr"
 NHAP = "from .ngon_ngu import tr"
 
@@ -270,7 +282,8 @@ class Tep:
         if isinstance(cha, (ast.arg, ast.AnnAssign)) and getattr(cha, "annotation", None) is n:
             return None
         d, c = self.khoang(n)
-        if DAU_BO in self.nguon[self._dong(d)[0]:self._dong(c)[1]]:
+        vung = self.nguon[self._dong(d)[0]:self._dong(c)[1]]
+        if DAU_BO in vung or DAU_WEB in vung:
             return None
         return self._noi_chay(n)
 
@@ -462,7 +475,8 @@ class Tep:
             if self._noi_chay(n) != "boc":
                 continue
             d0, c0 = self.khoang(n)
-            if DAU_BO in self.nguon[self._dong(d0)[0]:self._dong(c0)[1]]:
+            vung = self.nguon[self._dong(d0)[0]:self._dong(c0)[1]]
+            if DAU_BO in vung or DAU_WEB in vung:
                 continue
             for e in ds:
                 e = self._ruot(e)

@@ -21,6 +21,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from cat_studio import core, lam, luu_tru  # noqa: E402
+# ⚠ BÀI NÀY CHỐT TIẾNG VIỆT. Nó soát CHỮ do Python dựng — mặt khối, bảng Vấn đề,
+# câu lỗi — mà app nay MẶC ĐỊNH TIẾNG ANH. Không chốt thì nó đọc bản dịch và mọi
+# câu khẳng định dưới đây thành vô nghĩa. Bản gốc tiếng Việt cũng là KHOÁ của bảng
+# dịch, nên khẳng định bằng tiếng Việt là khẳng định đúng thứ lõi sinh ra.
+# Bản tiếng Anh có bài canh riêng: `test_ngon_ngu.py`.
+from cat_studio import ngon_ngu  # noqa: E402
+ngon_ngu.dat("vi")
+
 
 TAM = tempfile.mkdtemp(prefix="catso-")
 luu_tru._GOC_MA_NGUON = TAM          # mọi thứ app ghi ra sẽ rơi vào đây
@@ -46,6 +54,10 @@ def val(r):
 
 
 A = api.Api()
+# ⚠ CHỐT LẠI SAU KHI DỰNG `Api`. `Api.__init__` tự chốt ngôn ngữ theo cài đặt — đúng
+# việc của nó, nhưng nó ĐÈ mất lời chốt ở đầu file, nên ba câu khẳng định tiếng Việt
+# dưới đây đã đỏ thật. Dòng ở đầu file vẫn cần: mấy lời gọi `core` không qua `Api`.
+ngon_ngu.dat("vi")
 
 
 def so_do():
