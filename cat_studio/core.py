@@ -13,6 +13,7 @@ import re
 import uuid
 
 from . import bat_dau
+from . import cai_dat
 from . import hoi
 from . import lam
 from . import luu_tru
@@ -26,6 +27,18 @@ PHIEN_BAN = "0.2"
 
 
 load_settings = luu_tru.doc_cai_dat
+
+
+def ngon_ngu(s=None):
+    """Ngôn ngữ giao diện đang chọn — "en" (mặc định) hay "vi".
+
+    CHỖ DUY NHẤT trả lời câu ấy. `ngon_ngu.hien()` hỏi hàm này, `api.Api.__init__` chốt
+    theo nó lúc dựng, và cửa `khoi_dong` gửi chính nó sang cho cả ba cửa sổ. Giá trị lạ
+    (gõ tay vào `cai_dat.json`, file của bản cũ) về MẶC ĐỊNH chứ không làm giao diện
+    hỏng — và về đúng cái mặc định `cai_dat.NGON_NGU` khai, không gõ lại ở đây."""
+    hop = [m for m, _n in cai_dat.NGON_NGU]
+    v = (load_settings() if s is None else s).get(cai_dat.KHOA_NGON_NGU)
+    return v if v in hop else hop[0]
 
 
 # ---------------------------------------------------------------------------

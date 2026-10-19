@@ -35,6 +35,8 @@ import type {
   VanDe,
 } from './types'
 
+import { datNgonNgu, tr } from './ngon_ngu'
+
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
 declare global {
@@ -55,14 +57,19 @@ declare global {
  */
 export function cho_cau_noi(ham = 'ping', timeout = 10000): Promise<void> {
   const t0 = Date.now()
-  return new Promise((ok, hong) => {
+  return new Promise<void>((ok, hong) => {
     const thu = () => {
       if (typeof window.pywebview?.api?.[ham] === 'function') return ok()
-      if (Date.now() - t0 > timeout) return hong(new Error('Không kết nối được tới Python'))
+      if (Date.now() - t0 > timeout) return hong(new Error(tr('Không kết nối được tới Python')))
       setTimeout(thu, 40)
     }
     thu()
-  })
+  // NGÔN NGỮ TỚI TRƯỚC NỘI DUNG. Cả ba cửa sổ (sơ đồ, Kết quả, Optimize) chờ ở đây rồi mới
+  // dựng gì, nên đặt ngay sau lúc cầu nối sẵn sàng là đúng một chỗ cho cả ba — `khoi_dong`
+  // nằm trên lớp nền `NenCuaSo` của Python chính vì thế. Hỏng thì BỎ QUA: không nói được
+  // tiếng của người dùng vẫn hơn là không mở nổi cửa sổ, và mặc định (tiếng Anh) đã sẵn.
+  }).then(() => goi<{ ngon_ngu?: string }>('khoi_dong').then(
+    r => { datNgonNgu(r.value?.ngon_ngu) }, () => {}))
 }
 
 async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {

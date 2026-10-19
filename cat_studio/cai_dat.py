@@ -13,6 +13,7 @@ ngồi đợi một thứ không bao giờ đổi.
 """
 O_SO = "so"
 O_CHU = "chu"
+O_CHON = "chon"
 O_CO_KHONG = "co_khong"
 
 #: Khoá trong `cai_dat.json`. `lean_goc` là khoá CÓ SẴN, giữ nguyên tên — đổi tên là
@@ -26,17 +27,34 @@ KHOA_HAN_GIO = "han_gio_phut"
 KHOA_MO_KET_QUA = "mo_ket_qua"
 KHOA_KHO_BACKTEST = "kho_backtest"
 KHOA_KHO_TOI_UU = "kho_toi_uu"
+KHOA_NGON_NGU = "ngon_ngu"
+
+#: NGÔN NGỮ GIAO DIỆN. Nấc ĐẦU là mặc định — tiếng Anh, vì người đọc được tiếng Anh
+#: thì mở app lên là dùng được ngay, còn người Việt bật lại một lần là xong.
+#:
+#: ⚠ MỘT CHỖ DUY NHẤT biết có mấy nấc và mặc định là nấc nào: `core.ngon_ngu` đọc
+#: bảng này, `ngon_ngu.dat` rơi về cùng một giá trị, và hộp Cài đặt dựng ô chọn từ
+#: chính nó. Gõ "en" lần thứ hai ở đâu đó là mở đường cho hai bên lệch nhau.
+NGON_NGU = (("en", "English"), ("vi", "Tiếng Việt"))
 
 
-def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi=""):
+def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi="", chon=()):
     return {"ten": ten, "nhan": nhan, "kieu": kieu, "mac_dinh": mac_dinh,
             "goi_y": goi_y, "nguyen": nguyen, "don_vi": don_vi,
-            "chon": [], "bat_buoc": False, "lean": ""}
+            "chon": [list(c) for c in chon], "bat_buoc": False, "lean": ""}
 
 
 #: (mã nhóm, nhãn nhóm, các ô). Nhóm chứ không phải tab: ba ô thì chia tab là chia
 #: cho có, mà mỗi tab lại là một chỗ để quên không lưu.
 NHOM = (
+    # ĐỨNG ĐẦU, và nhãn ghi CẢ HAI TIẾNG — cố ý, cả hai thứ. Ai lỡ chọn tiếng mình
+    # không đọc được thì vẫn phải tìm ra đường về: mắt chạy từ trên xuống, và chữ
+    # "Language" nhận ra được mà không cần đọc chữ nào khác. Hai nhãn này KHÔNG đi qua
+    # bộ dịch (dòng `# không dịch`) vì dịch chúng là phá đúng cái lối về ấy.
+    ("ngon_ngu", "Ngôn ngữ · Language", (  # không dịch
+        _o(KHOA_NGON_NGU, "Hiện giao diện bằng · Show the app in",  # không dịch
+           O_CHON, NGON_NGU[0][0], chon=NGON_NGU),
+    )),
     ("chay", "Chạy backtest", (
         _o(KHOA_LEAN, "Thư mục LEAN", O_CHU, "",
            "Thư mục gốc của LEAN trên máy này — chỗ có Launcher/ và Data/."),
@@ -85,6 +103,13 @@ def doc(s):
                 continue
         elif o["kieu"] == O_CO_KHONG:
             v = bool(v)
+        elif o["kieu"] == O_CHON:
+            # Giá trị KHÔNG CÓ trong danh sách nấc thì rơi về mặc định. Không có nhánh
+            # này thì `ngon_ngu: "fr"` gõ tay vào file đi thẳng vào giao diện, và cả
+            # hai bên — Python lẫn web — mỗi bên tự đoán một kiểu.
+            if str(v) not in [m for m, _n in o["chon"]]:
+                continue
+            v = str(v)
         else:
             v = str(v)
         ra[ten] = v

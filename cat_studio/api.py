@@ -31,6 +31,7 @@ from . import sinh_ma
 from . import bat_dau
 from . import hoi
 from . import lam
+from . import ngon_ngu
 from . import toi_uu
 if sys.platform == "win32":
     from . import khung_cua_so
@@ -111,6 +112,17 @@ class NenCuaSo:
         # Gạch dưới hết — xem chú thích đầu file.
         self._window = None
         self._khung = khung_cua_so.KhungTuVe()
+
+    # ------------------------------------------------------- ngôn ngữ
+    @_bat_loi
+    def khoi_dong(self):
+        """CỬA ĐẦU TIÊN mọi cửa sổ gọi — trả thứ phải biết TRƯỚC khi vẽ khung hình đầu.
+
+        Hôm nay đúng một thứ: ngôn ngữ. Đặt ở lớp NỀN nên cả ba cửa sổ (sơ đồ, Kết quả,
+        Optimize) cùng có, và `api.ts` chỉ phải gọi một chỗ — xem `cho_cau_noi`. Thiếu
+        cửa này thì cửa sổ nào cũng vẽ bằng mặc định rồi mới đổi tiếng: người chọn tiếng
+        Việt thấy một nháy tiếng Anh mỗi lần mở app."""
+        return _ok({"ngon_ngu": core.ngon_ngu()})
 
     # -- gắn cửa sổ (Python gọi, không phải JS) --
     def _gan_window(self, w):
@@ -403,6 +415,10 @@ class Api(NenCuaSo):
     def __init__(self):
         super().__init__()
         self._cai_dat = core.load_settings()
+        # CHỐT NGÔN NGỮ NGAY ĐÂY, trước khi một câu nào của Python được dựng. `ngon_ngu.hien`
+        # có lối tự đọc cài đặt khi chưa ai báo, nhưng đó là lưới an toàn cho lúc chạy rời —
+        # đường chính phải là một lời khai rõ ràng, ở chỗ app bắt đầu.
+        ngon_ngu.dat(core.ngon_ngu(self._cai_dat))
 
     # ------------------------------------------------------------------ cơ bản
     @_bat_loi
@@ -474,6 +490,9 @@ class Api(NenCuaSo):
         s = luu_tru.doc_cai_dat()
         s.update(cai_dat.doc(gia_tri or {}))
         luu_tru.ghi_cai_dat(s)
+        # Đổi tiếng thì PHÍA PYTHON phải biết ngay, không đợi mở lại app: mặt khối và bảng
+        # Vấn đề do Python dựng, mà giao diện vẽ lại chúng ngay sau khi hộp Cài đặt đóng.
+        ngon_ngu.dat(core.ngon_ngu(s))
         return _ok({"gia_tri": cai_dat.doc(s), "lean": chay_lean.san_sang()})
 
     @_bat_loi
