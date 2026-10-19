@@ -432,8 +432,8 @@ def tom_tat_co_may(co_may):
             n = len(v) if isinstance(v, list) else 0
             ra.append(tr("{0} ô nhớ", n))
             continue
-        ra.append(_ngan(_nhan_chon(o, v)) if o["kieu"] == bat_dau.O_CHON else
-                  f"{_ngan(o['nhan'])} {v}")
+        ra.append(_ngan(tr(_nhan_chon(o, v))) if o["kieu"] == bat_dau.O_CHON else
+                  f"{_ngan(tr(o['nhan']))} {v}")
     return ra
 
 
@@ -466,7 +466,7 @@ def mo_ta_bat_dau(step):
         o_con = [o for o in bat_dau.o_ro_cua(gt_ma) if o["ten"] != "ma_etf"]
         if ro[0] != "etf" and o_con:
             dong.append(" · ".join(
-                f"{o['nhan']}: {_so_gon(_f(bat_dau.gt_ro(gt_ma, o['ten'])))}"
+                f"{tr(o['nhan'])}: {_so_gon(_f(bat_dau.gt_ro(gt_ma, o['ten'])))}"
                 for o in o_con))
         if ro[0] == "etf":
             lay = _f(bat_dau.gt_ro(gt_ma, "lay")) or 0
@@ -477,7 +477,7 @@ def mo_ta_bat_dau(step):
         dong = [tr("chưa chọn mã nào")]
     elif len(ds) == 1:
         m = ds[0]
-        dong = [f"{m.get('ma') or '?'} · {ten_loai.get(m.get('loai'), m.get('loai'))}"]
+        dong = [f"{m.get('ma') or '?'} · {tr(ten_loai.get(m.get('loai'), m.get('loai')))}"]
     else:
         dong = [tr("{0} mã: ", len(ds)) + ", ".join(str(m.get("ma") or "?") for m in ds)]
     k = o_bat_dau(step, "khoang") or {}
@@ -715,7 +715,8 @@ def _ve_dieu_kien(ve):
     # Ô NHỚ gọi bằng TÊN NGƯỜI DÙNG ĐẶT. Nhãn từ điển («Trí nhớ THEO MÃ — đúng/sai
     # 1») là chỗ CẤT, không phải thứ người ta đọc; thẻ mà in nó thì câu «đang chờ
     # mua lại» biến mất khỏi sơ đồ đúng lúc người đọc cần nó nhất.
-    chu = _TEN_NHO.get(ve["ma_dl"]) or dl["nhan"]
+    # `tr` quanh NHÃN TỪ ĐIỂN, không quanh tên ô nhớ: tên ô nhớ là chữ NGƯỜI DÙNG gõ.
+    chu = _TEN_NHO.get(ve["ma_dl"]) or tr(dl["nhan"])
     # Tham số hiện trong ngoặc: "EMA — trung bình trượt luỹ thừa" quá dài trên thẻ,
     # nên lấy phần TRƯỚC dấu gạch làm tên ngắn.
     ngan = chu.split(" — ")[0]

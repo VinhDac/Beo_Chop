@@ -175,6 +175,84 @@ kiem("chạy hết một lượt mà không câu nào thiếu bản dịch",
      not ngon_ngu.thieu, f"— {sorted(ngon_ngu.thieu)[:3]}")
 ngon_ngu.dat(cai_dat.NGON_NGU[0][0])
 
+# ------------------------------- 4b. LƯỚI THỨ HAI: nhãn đi qua một BIẾN
+print("\n▸ Nhãn đi qua một BIẾN — chỗ cổng tĩnh KHÔNG thấy nổi")
+# ⚠ VÌ SAO CẦN LƯỚI NÀY. Cổng chỉ thấy chuỗi VIẾT THẲNG trong mã. Nhãn lấy ra từ từ
+# điển rồi ghép vào câu — `dl["nhan"]`, `o["nhan"]`, `ten_loai[...]` — thì nó chỉ thấy
+# một BIẾN, nên thiếu `tr` ở đấy là cổng vẫn xanh mà thẻ khối nói tiếng Việt giữa bản
+# tiếng Anh. Đã sót thật CHÍN chỗ, và chỉ lưới này tìm ra.
+#
+# Cách nhận ra chữ của APP giữa chữ của NGƯỜI DÙNG: dựng CÙNG một sơ đồ ở hai tiếng
+# rồi so. Tên Strategy, tên khối, tên ô nhớ, mã chứng khoán giống nhau ở cả hai bản —
+# nhưng chúng không có dấu tiếng Việt do app sinh ra. Chỗ nào hai bản GIỐNG HỆT mà
+# CÓ DẤU thì đó là nhãn của app chưa ai dịch.
+import re  # noqa: E402
+
+DAU = re.compile("[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]",
+                 re.I)
+# Mỗi khối dưới đây đóng MỘT lối nhãn-qua-biến đã từng sót:
+#   rổ có ô con   -> nhãn ô con  ·  một mã  -> nhãn loại tài sản
+#   điều kiện     -> nhãn đại lượng          ·  cỗ máy -> nhãn ô và nấc đang chọn
+SOI = [
+    {"id": "r1", "kind": "start", "ma": {"ro": "gtgd", "giu_n": 10},
+     "khoang": {"tu": "2014-03-25", "den": "2014-04-07"}, "von": 100000, "nhip": "ngay"},
+    {"id": "r2", "kind": "start", "ma": [{"ma": "XAUUSD", "loai": "cfd"}],
+     "khoang": {"tu": "2019-01-01", "den": "2020-01-01"}, "von": 100000, "nhip": "ngay"},
+    {"id": "h2", "kind": "action", "type": hoi.HOI_THI_TRUONG, "dieu_kien": [
+        {"trai": {"ma_dl": "gia"}, "phep": "<",
+         "phai": {"ma_dl": "sma", "tham_so": {"n": 200}}}]},
+]
+SOI_MAY = {"chia_von": "InsightWeightingPortfolioConstructionModel",
+           "dat_lenh": "ImmediateExecutionModel", "san": "InteractiveBrokersBrokerageModel"}
+
+
+def chu_app(tieng):
+    """Mọi chữ APP DỰNG cho `SOI` ở tiếng `tieng` — mặt khối và thẻ cỗ máy."""
+    ngon_ngu.dat(tieng)
+    ra = []
+    for b in SOI:
+        t = core.the_buoc(b)
+        ra += list(t["badges"]) + [d["text"] for d in t["lines"]]
+    ra += list(core.tom_tat_co_may(SOI_MAY) or [])
+    return ra
+
+
+_vi, _en = chu_app("vi"), chu_app("en")
+_sot = sorted({b for a, b in zip(_vi, _en) if a == b and DAU.search(b)})
+kiem("không nhãn nào còn nguyên tiếng Việt ở bản tiếng Anh", not _sot, f"— {_sot[:3]}")
+# Và quét luôn mấy Strategy THẬT trên máy này nếu có — chúng dùng tới những lối mà
+# một bộ mẫu viết tay không nghĩ ra hết. `du_lieu/` không nằm trong kho nên máy nào
+# chưa có thì bỏ qua, không phải đỏ oan.
+_kho = os.path.join(GOC, "du_lieu", "strategy")
+_tep = sorted(f for f in os.listdir(_kho) if f.endswith(".json")) \
+    if os.path.isdir(_kho) else []
+if _tep:
+    import json  # noqa: E402
+    _sot2 = {}
+    for _t in _tep:
+        _d = json.load(io.open(os.path.join(_kho, _t), encoding="utf-8"))
+        _s, _e = _d.get("steps") or [], _d.get("edges") or []
+
+        def _chu():
+            ra = []
+            for b in _s:
+                t = core.the_buoc(b)
+                ra += list(t["badges"]) + [d["text"] for d in t["lines"]]
+            ra += [v["message"] for v in core.validate_flow_graph(_s, _e) or []]
+            return ra
+        ngon_ngu.dat("vi")
+        _a = _chu()
+        ngon_ngu.dat("en")
+        _b = _chu()
+        for _x, _y in zip(_a, _b):
+            if _x == _y and DAU.search(_y or ""):
+                _sot2[_y.strip()] = _t
+    kiem(f"…kể cả {len(_tep)} Strategy thật trên máy này", not _sot2,
+         f"— {list(_sot2)[:3]}")
+else:
+    print("  · bỏ qua phần quét Strategy thật — máy này chưa có du_lieu/strategy")
+ngon_ngu.dat(cai_dat.NGON_NGU[0][0])
+
 # ------------------------------------------------------------------- 5. CỔNG
 print("\n▸ CỔNG song ngữ — cả hai nửa, đúng lối `npm run build` và `tools\\dich.bat` dùng")
 # Gọi CHÍNH công cụ, không viết lại phép soát ở đây: hai bộ luật thì sớm muộn lệch
