@@ -810,6 +810,101 @@ kiem("và NÓI RÕ là chưa có luật chấm", _td["co_luat_cham"] is False)
 kiem("bản đồ bày lời ấy ra", "co_luat_cham" in _mht)
 
 
+print("\n▸ MỐI NỐI 14 — LUẬT CHƠI: màn ẩn, boss, ba sao, màn Chấm")
+# ⚠ NGÀY CỦA MÀN ẨN LÀ CẢ TRÒ CHƠI. Ngôi sao thứ ba nói "cỗ máy còn chạy được trên
+# khoảng ngày nó chưa từng thấy". Người chơi biết ngày ấy là vặn máy cho vừa khít đúng
+# khoảng ấy — và ngôi sao thứ ba mất sạch nghĩa mà vẫn sáng lên y như thật. Nên mọi cửa
+# đi ra giao diện phải được soát: không cửa nào được mang ngày màn ẩn theo.
+import importlib  # noqa: E402
+import json as _json  # noqa: E402
+_ht = importlib.import_module("cat_studio.hanh_trinh")
+_lc = importlib.import_module("cat_studio.luat_choi")
+_apip = importlib.import_module("cat_studio.api")
+
+_co_an = [m for m in _ht.MAN if m.get("an")]
+kiem(f"có màn khai màn ẩn ({len(_co_an)} màn)", bool(_co_an))
+_ngay_an = {d for m in _co_an for d in m["an"]}
+_bang = _json.dumps(_ht.tu_dien(), ensure_ascii=False)
+kiem("bảng hành trình KHÔNG mang một ngày màn ẩn nào",
+     not any(d in _bang for d in _ngay_an),
+     "— biết ngày màn ẩn là ngôi sao thứ ba hết nghĩa")
+for _m in _co_an[:3]:
+    _ck = _json.dumps(_ht.cong_khai(_m), ensure_ascii=False)
+    kiem(f"`cong_khai({_m['ma']})` cũng sạch",
+         not any(d in _ck for d in _m["an"]) and "an" not in _ht.cong_khai(_m))
+kiem("màn ẩn tả bằng LỜI, không bằng ngày",
+     all(_ht.cong_khai(m).get("an_mo_ta") for m in _co_an))
+
+print("\n▸ Ba sao — và mỗi sao cần mọi sao trước nó")
+_sach = {"sach": True, "thang_boss": False}
+_thang = {"sach": True, "thang_boss": True}
+kiem("không chạy sạch -> 0 sao", _lc.sao({"sach": False, "thang_boss": True}) == 0,
+     "— thua boss mà còn thắng thì cũng không tính")
+kiem("chạy sạch -> 1 sao", _lc.sao(_sach) == 1)
+kiem("thắng boss màn đã thấy -> 2 sao", _lc.sao(_thang) == 2)
+kiem("nộp mà thua trên màn ẩn -> vẫn 2 sao",
+     _lc.sao(_thang, {"sach": True, "thang_boss": False}) == 2)
+kiem("thắng cả màn ẩn -> 3 sao", _lc.sao(_thang, _thang) == 3)
+# Cỗ máy không bao giờ giao dịch thì "không thua" chẳng nói lên điều gì.
+kiem("không lệnh đóng nào thì KHÔNG sạch",
+     _lc.cham({"ok": True, "giao_dich": [], "thong_ke": {"Net Profit": "5%"}})["sach"]
+     is False)
+# Thiếu số của boss thì KHÔNG AI THẮNG AI — chứ không phải người chơi thắng.
+kiem("thiếu đường Benchmark -> không ai thắng ai",
+     _lc.cham({"ok": True, "giao_dich": [1], "thong_ke": {"Net Profit": "5%"},
+               "bieu_do": []})["thang_boss"] is False)
+
+print("\n▸ ⚠ Màn 0 KHÔNG CHẤM — hệ quả bắt buộc của luật sao")
+_m0 = _ht.MAN[0]
+kiem("màn 0 khai `khong_cham`", bool(_m0.get("khong_cham")),
+     "— nó bảo dựng «Mua rồi giữ», mà mua rồi giữ không đóng lệnh nào, nên ⭐ "
+     "không bao giờ ăn được; chấm nó là phạt người chơi vì đã làm ĐÚNG lời dặn")
+kiem("và cửa `cham_man` nói thẳng ra", '"khong_cham": True' in _api_src)
+
+print("\n▸ ⚠ BOSS LÀ ĐƯỜNG BENCHMARK CỦA CHÍNH LEAN")
+# Chạy một lượt backtest THỨ HAI chỉ để biết mua-giữ lãi bao nhiêu là làm lại việc
+# LEAN đã làm sẵn — và là một bản sự thật thứ hai về con số ấy.
+kiem("mỗi màn có sân ép `moc_so_sanh` về mã của nó",
+     'may["moc_so_sanh"] = man["symbol"]' in doc("cat_studio", "luat_choi.py"),
+     "— thiếu nó thì LEAN lặng lẽ lấy SPY, và người chơi vàng bị đem so với cổ phiếu Mỹ")
+kiem("và `boss_pt` đọc đúng đường ấy",
+     'bang.get("ten") != "Benchmark"' in doc("cat_studio", "luat_choi.py"))
+
+print("\n▸ ⚠ SÂN CỦA MÀN ÉP Ở PYTHON, LÚC CHẠY")
+# Ô khoá trong giao diện chỉ là lời đề nghị: ai mở tệp sơ đồ ra sửa tay cũng qua được.
+_than_chay = _api_src.split("def chay_backtest(")[1].split("\n    @_bat_loi")[0]
+kiem("`chay_backtest` ép sân TRƯỚC khi sinh mã",
+     "luat_choi.ap_man(" in _than_chay
+     and _than_chay.find("ap_man(") < _than_chay.find("sinh_ma.sinh("),
+     "— ép sau khi sinh mã thì mã đã mang mã và ngày của người chơi rồi")
+kiem("và nó nhận `man` + `loai`", "def chay_backtest(self, ten, steps, edges=None, "
+     "co_may=None,\n                      man=None, loai=\"thay\")" in _api_src)
+kiem("`chay_toi_uu` KHÔNG ép sân — Optimize không thuộc màn nào",
+     "ap_man(" not in _api_src.split("def chay_toi_uu(")[1].split(
+         "\n    @_bat_loi")[0])
+
+print("\n▸ NỘP chạy KÍN, không phát lại")
+_than_nop = _api_src.split("def nop_man(")[1].split("\n    @_bat_loi")[0]
+kiem("`nop_man` KHÔNG trả mã lượt về giao diện",
+     '"ma_luot"' not in _than_nop and "'ma_luot'" not in _than_nop,
+     "— cầm mã lượt là mở được file kết quả, mà trong đó có đủ ngày tháng")
+kiem("và nó đòi một lượt SẠCH trên màn đã thấy trước",
+     '"sach"' in _than_nop,
+     "— nộp một cỗ máy chưa từng chạy trọn màn đã thấy thì hai sao đầu lấy gì mà chấm")
+
+print("\n▸ Màn Chấm — bày lại, không tự tính")
+_ch = doc("webui", "src", "man", "ManCham.tsx")
+kiem("màn Chấm hỏi Python rồi bày", "py.cham_man(" in _ch and "py.nop_man(" in _ch)
+kiem("và KHÔNG tự tính sao",
+     "sao =" not in _ch and "thang_boss =" not in _ch,
+     "— «mấy sao» là luật chơi, mà luật chơi chỉ được có một bản")
+kiem("sao vẽ bằng ký hiệu ĐƠN SẮC, không emoji",
+     "★" in _ch and "⭐" not in _ch,
+     "— emoji không ăn theo màu theme; cùng lý do thẻ «khoá» ở bản đồ dùng chữ")
+_tc = doc("webui", "src", "TroChoi.tsx")
+kiem("vỏ trò chơi có vai màn Chấm", "<ManCham" in _tc and "'cham'" in _tc)
+
+
 print("\n▸ Và ghim rồi thì BACKTEST THƯỜNG phải chạy y như cũ")
 # `get_parameter(ten, mac_dinh)` trả mặc định khi không ai truyền gì vào, nên con số
 # cũ phải ở lại làm mặc định. Mất nó thì ghim một ô là đổi luôn kết quả backtest

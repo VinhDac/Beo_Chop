@@ -618,6 +618,38 @@ export interface HoiHT {
   cau: string
 }
 
+/** Phần chấm của MỘT lượt. Do `cat_studio/luat_choi.cham` tính — giao diện không
+ *  tính lại con số nào. */
+export interface PhanCham {
+  lai_pt: number | null
+  boss_pt: number | null
+  thang_boss: boolean
+  so_dong: number
+  /** Chạy trọn VÀ có ít nhất một lệnh đóng. */
+  sach: boolean
+}
+
+/** Độ gọn: khối + núm. Ít hơn là khó quá khớp hơn. */
+export interface DoGon {
+  so_khoi: number
+  so_num: number
+  tong: number
+}
+
+/** Kết quả chấm một màn. `an` chỉ có sau khi NỘP — và nó KHÔNG bao giờ kèm ngày
+ *  tháng của màn ẩn (xem `api.nop_man`). */
+export interface ChamMan {
+  khong_cham: boolean
+  ok?: boolean
+  loi?: string
+  thay?: PhanCham
+  an?: PhanCham | null
+  gon?: DoGon
+  sao: number
+  sao_lan_nay?: number
+  boss?: { ma: string; ten: string; mo_ta: string }
+}
+
 /** Một MÀN. Chữ đã do Python dịch sẵn, trang bản đồ không ghép câu nào. */
 export interface ManHT {
   ma: string
@@ -634,6 +666,22 @@ export interface ManHT {
   khoa: boolean
   xong: boolean
   sao: number
+  /** Màn đã có sân chơi thật (mã + khoảng ngày) chưa. False thì vẽ được mà chưa
+   *  chạy chấm được — bản đồ phải NÓI RA. */
+  co_san?: boolean
+  symbol?: string
+  von?: number
+  /** Khoảng ngày ĐÃ THẤY. Khoảng ẩn KHÔNG bao giờ ra tới đây. */
+  thay?: [string, string] | string[]
+  /** Màn ẩn tả bằng lời, không bằng ngày — "12 tháng ngay sau màn đã thấy". */
+  an_mo_ta?: string
+  co_man_an?: boolean
+  /** Màn 0: dựng chính con boss, nên không có gì để chấm. */
+  khong_cham?: boolean
+  /** Ngưỡng độ gọn để ăn huy chương. */
+  gon?: number
+  loi_dan?: string
+  boss?: { ma: string; ten: string; mo_ta: string } | null
 }
 
 /** Cả hành trình. Giao diện KHÔNG khai lại một màn nào — xem `hanh_trinh.py`. */

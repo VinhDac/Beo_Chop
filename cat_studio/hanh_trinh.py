@@ -53,17 +53,49 @@ MAN = (
     {"ma": "m00", "hoi": "h0", "ten": "Bạn chính là boss",
      "day": "Lắp máy hai khối: Bắt đầu → Đặt tỷ trọng 100%. Chạy thử. Nó CHÍNH LÀ "
             "«Mua rồi giữ» — con boss mà cả trò chơi phải đánh bại.",
-     "mo": ("Khối Bắt đầu", "Đặt tỷ trọng", "Nút Chạy"), "dau": True},
+     "mo": ("Khối Bắt đầu", "Đặt tỷ trọng", "Nút Chạy"), "dau": True,
+     # ⚠ MÀN NÀY KHÔNG CHẤM, và đó là hệ quả bắt buộc của luật sao chứ không phải
+     # lười. ⭐ đòi ÍT NHẤT MỘT LỆNH ĐÓNG (xem `luat_choi`), mà màn này bảo người
+     # chơi dựng đúng «Mua rồi giữ» — thứ không đóng lệnh nào. Chấm nó là bắt người
+     # chơi nhìn 0 sao ngay màn đầu tiên vì đã làm ĐÚNG lời dặn.
+     "khong_cham": True,
+     "symbol": "SPY", "loai_ma": "equity", "von": 100_000.0,
+     "thay": ("2013-01-01", "2013-12-31"),
+     "loi_dan": "Năm 2013 chứng khoán Mỹ lên gần như một mạch. Lắp cái máy đơn giản "
+                "nhất có thể rồi bấm chạy — để thấy con số mà cả hành trình này phải "
+                "vượt qua trông như thế nào."},
 
     {"ma": "m01", "hoi": "h1", "ten": "Cái van đầu tiên",
      "day": "Chỉ mua khi giá trên một ngưỡng. Cổng Hỏi là cái van của cỗ máy.",
-     "mo": ("Hỏi thị trường", "Nhóm Giá — 8 đại lượng")},
+     "mo": ("Hỏi thị trường", "Nhóm Giá — 8 đại lượng"),
+     "symbol": "XAUUSD", "loai_ma": "cfd", "von": 100_000.0,
+     "thay": ("2012-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
+     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 3,
+     "loi_dan": "Ba năm vàng đi xuống. Mua rồi giữ là lỗ — nên lần này boss YẾU, và "
+                "thứ đánh bại nó không phải là giỏi mua, mà là biết lúc nào đứng "
+                "ngoài."},
+
     {"ma": "m02", "hoi": "h1", "ten": "Vào thì phải có đường ra",
      "day": "Hai nhánh: một nhánh vào, một nhánh thoát.",
-     "mo": ("Đóng", "Nhánh rẽ")},
-    {"ma": "m03", "hoi": "h1", "ten": "Mã này có mua được không",
-     "day": "Hỏi trạng thái mã trước khi đặt lệnh — sàn đóng cửa thì lệnh thành rác.",
-     "mo": ("Nhóm Trạng thái mã — 5 đại lượng",)},
+     "mo": ("Đóng", "Nhánh rẽ"),
+     "symbol": "SPY", "loai_ma": "equity", "von": 100_000.0,
+     "thay": ("2007-01-01", "2009-12-31"), "an": ("2010-01-01", "2010-12-31"),
+     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": "2008. Ai mua rồi giữ thì mất gần một nửa rồi ngồi chờ lấy lại. Màn "
+                "này dạy đúng một chuyện: cái máy phải có đường RA, không chỉ có "
+                "đường vào."},
+
+    {"ma": "m03", "hoi": "h1", "ten": "Ngày mã chia tách",
+     "day": "Ngày 09/06/2014 Apple chia tách 7 ăn 1: giá rơi từ 645 xuống 92 chỉ sau "
+            "một đêm, mà công ty không hề mất gì. Cỗ máy nhìn giá mà không hỏi hôm "
+            "nay có chia tách không thì tưởng trời sập.",
+     "mo": ("Nhóm Trạng thái mã — 5 đại lượng",),
+     "symbol": "AAPL", "loai_ma": "equity", "von": 100_000.0,
+     "thay": ("2014-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
+     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": "Apple năm 2014, có đúng một ngày chia tách nằm giữa. Boss khoẻ — "
+                "mua rồi giữ năm ấy lãi đậm. Muốn hơn nó thì phải vào đúng nhịp, mà "
+                "muốn vào đúng nhịp thì trước hết đừng để cái ngày 09/06 lừa."},
 
     {"ma": "m04", "hoi": "h2", "ten": "Mở kho",
      "day": "Chỉ báo đầu tiên (RSI) và tham số của nó. Đây là lúc KHO mở ra — "
@@ -177,15 +209,64 @@ def _mo_toi_man(so):
     return mo
 
 
+def man(ma):
+    """Một màn theo mã. -> dict đầy đủ (CÓ ngày màn ẩn) hay None.
+
+    ⚠ Bản ĐẦY ĐỦ chỉ dùng trong Python. Thứ đi ra giao diện phải qua `cong_khai`."""
+    for m in MAN:
+        if m["ma"] == str(ma):
+            return m
+    return None
+
+
+def co_san(m):
+    """Màn này đã có sân chơi thật chưa (mã + khoảng ngày).
+
+    26 màn đã khai đủ BỘ KHUNG, nhưng mỗi màn còn cần một mã và hai khoảng ngày có
+    thật, có chuyện để kể — chỗ ấy làm dần. Màn chưa có sân thì vào Xưởng vẽ được,
+    chỉ chưa chạy chấm được, và bản đồ phải NÓI RA chứ đừng để người chơi bấm vào
+    rồi mới thấy không có gì."""
+    return bool((m or {}).get("symbol") and (m or {}).get("thay"))
+
+
+def cong_khai(m):
+    """Một màn -> phần giao diện được biết. KHÔNG có ngày của màn ẩn.
+
+    ⚠ ĐÂY LÀ CẢ TRÒ CHƠI, không phải chuyện giấu cho vui. Ngôi sao thứ ba nói "cỗ máy
+    này còn chạy được trên khoảng ngày nó chưa từng thấy". Người chơi biết ngày màn ẩn
+    là vặn được máy cho vừa khít chính khoảng ấy, và ngôi sao thứ ba mất sạch nghĩa —
+    mà mất nghĩa thì không ai biết, vì nó vẫn sáng lên y như thật."""
+    from . import luat_choi
+    if not co_san(m):
+        return {"co_san": False}
+    return {
+        "co_san": True,
+        "symbol": m["symbol"],
+        "von": m["von"],
+        "thay": list(m["thay"]),
+        "an_mo_ta": tr(m.get("an_mo_ta") or ""),
+        "co_man_an": bool(m.get("an")),
+        "khong_cham": bool(m.get("khong_cham")),
+        "gon": m.get("gon"),
+        "loi_dan": tr(m.get("loi_dan") or ""),
+        "boss": luat_choi.ten_boss(m["boss"]) if m.get("boss") else None,
+    }
+
+
 def tu_dien():
     """Cả hành trình, đã dịch sẵn. -> {hoi: [...], man: [...], dang_o}
 
     Giao diện KHÔNG khai lại một màn nào — nó hỏi cửa này rồi vẽ. `mo` và `sao` đi kèm
     luôn, nên bản đồ không phải tự suy ra màn nào khoá."""
+    from . import luat_choi
     so = _so()
     mo = _mo_toi_man(so)
-    sao = so.get("sao") or {}
-    xong = {str(x) for x in (so.get("xong") or [])}
+    # SAO LẤY TỪ SỔ ĐIỂM, không giữ bản thứ hai trong sổ hành trình: hai nơi cùng ghi
+    # một con số thì hôm chúng lệch nhau, bản đồ khoe sao mà màn Chấm bảo chưa có.
+    diem = luat_choi.doc_so()["man"]
+    sao = {k: int((v or {}).get("sao") or 0) for k, v in diem.items()}
+    xong = {k for k, v in sao.items() if v >= 1} | {
+        k for k, v in diem.items() if (v or {}).get("thay")}
     return {
         "hoi": [{"ma": h["ma"], "ten": tr(h["ten"]), "cau": tr(h["cau"])} for h in HOI],
         "man": [{
@@ -199,6 +280,7 @@ def tu_dien():
             "khoa": m["ma"] not in mo,
             "xong": m["ma"] in xong,
             "sao": int(sao.get(m["ma"]) or 0),
+            **cong_khai(m),
         } for i, m in enumerate(MAN)],
         # Màn người chơi đang đứng: màn mở mới nhất chưa xong.
         "dang_o": next((m["ma"] for m in MAN

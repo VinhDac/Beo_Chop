@@ -3,6 +3,9 @@ import SoDo from './SoDo'
 import ManMoMay from './man/ManMoMay'
 import ManHanhTrinh from './man/ManHanhTrinh'
 import ManChayMay, { type ViecChayMay } from './man/ManChayMay'
+import ManCham from './man/ManCham'
+import { py } from './api'
+import type { ManHT } from './types'
 
 /** VỎ TRÒ CHƠI — giữ màn hình nào đang hiện, và chuyển cảnh giữa chúng.
  *
@@ -23,7 +26,7 @@ import ManChayMay, { type ViecChayMay } from './man/ManChayMay'
  *  nên rời Xưởng ngay sau một nét sửa là nét ấy chưa kịp ghi mà bộ đếm giờ đã bị huỷ
  *  theo component. `SoDo` phải ghi nốt TRƯỚC khi gọi `onRa` — xem chỗ ấy trong `SoDo`.
  */
-export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may'
+export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may' | 'cham'
 
 /** Màn che lúc chuyển cảnh tối trong bao lâu (ms). Phải khớp `--chuyen-canh` trong CSS.
  *
@@ -42,7 +45,26 @@ export default function TroChoi() {
    *  Giữ Ở ĐÂY chứ không trong `ManChayMay`, vì `SoDo` bị THÁO lúc chuyển cảnh (luật
    *  một màn hình sống) — sơ đồ phải đi qua tay vỏ trò chơi mới sang được màn kia. */
   const [viecChay, setViecChay] = useState<ViecChayMay | null>(null)
+  /** Lượt vừa chạy xong của một màn, chờ chấm. */
+  const [luotCham, setLuotCham] = useState('')
+  /** Màn đang chơi, bản đầy đủ — màn Chấm cần `co_man_an`, `gon`, `ten`.
+   *
+   *  Hỏi lại Python mỗi lần vào màn chứ không giữ bản chép: danh sách màn chỉ có một
+   *  chỗ (`hanh_trinh.py`), và giữ bản chép ở đây là chỗ thứ hai. */
+  const [manDay, setManDay] = useState<ManHT | null>(null)
   const hen = useRef(0)
+
+  useEffect(() => {
+    if (!manChoi) { setManDay(null); return }
+    let song = true
+    void (async () => {
+      const r = await py.hanh_trinh()
+      if (song && r.ok && r.value) {
+        setManDay(r.value.man.find(m => m.ma === manChoi) ?? null)
+      }
+    })()
+    return () => { song = false }
+  }, [manChoi])
 
   useEffect(() => () => window.clearTimeout(hen.current), [])
 
@@ -82,7 +104,14 @@ export default function TroChoi() {
           bị tháo hẳn (luật một màn hình sống), nên không có cuộn phim cũ nào còn đứng
           ở nhịp 300 để phải dọn. */}
       {man === 'chay-may' && viecChay && (
-        <ManChayMay viec={viecChay} onRa={() => doi('xuong', manChoi)} />
+        <ManChayMay viec={viecChay} onRa={() => doi('xuong', manChoi)}
+                    onCham={ml => { setLuotCham(ml); doi('cham', manChoi) }} />
+      )}
+      {/* CHẤM — vai thứ năm. Chỉ có khi đang chơi một màn: Sáng tạo không chấm. */}
+      {man === 'cham' && manDay && viecChay && (
+        <ManCham man={manDay} maLuot={luotCham} viec={viecChay}
+                 onSuaTiep={() => doi('xuong', manChoi)}
+                 onRa={() => doi('hanh-trinh')} />
       )}
       <div className={'man-che' + (dangChe ? ' hien' : '')} aria-hidden />
     </>

@@ -10,6 +10,7 @@
 import type {
   CaiToiUu,
   CoMay,
+  ChamMan,
   HanhTrinh,
   Edge,
   GoiYKe,
@@ -104,6 +105,18 @@ export const py = {
   /** CẢ HÀNH TRÌNH — 9 hồi, 26 màn, màn nào đang mở. Bản đồ KHÔNG tự khai một màn
    *  nào: hai nơi cùng giữ danh sách màn thì sớm muộn lệch nhau. */
   hanh_trinh: () => goi<HanhTrinh>('hanh_trinh'),
+  /** Chấm lượt vừa chạy trên MÀN ĐÃ THẤY rồi ghi sổ. Luật chấm ở Python — giao diện
+   *  KHÔNG tính sao. */
+  /** Dán SÂN của màn lên sơ đồ — để người chơi NHÌN THẤY mình đang chơi ở đâu.
+   *  Chỉ khoảng ĐÃ THẤY; ngày màn ẩn không đi qua cửa này. */
+  san_cua_man: (man: string, steps: Step[]) =>
+    goi<{ steps: Step[] }>('san_cua_man', man, steps),
+  cham_man: (man: string, maLuot: string, steps: Step[]) =>
+    goi<ChamMan>('cham_man', man, maLuot, steps),
+  /** NỘP: chạy đúng cỗ máy này trên MÀN ẨN rồi chấm. Chỉ trả về ĐIỂM — không mã
+   *  lượt, không ngày tháng: biết ngày màn ẩn là ngôi sao thứ ba hết nghĩa. */
+  nop_man: (man: string, ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<ChamMan>('nop_man', man, ten, steps, edges, coMay),
   /** Từ điển XÁC NHẬN. Giao diện KHÔNG tự khai danh sách này — nó hỏi Python, vì hai
    *  nơi cùng giữ một bảng thì sớm muộn lệch nhau. */
   tu_dien_hoi: () => goi<TuDienHoi>('tu_dien_hoi'),
@@ -123,9 +136,10 @@ export const py = {
   lean_san_sang: () => goi<LeanSanSang>('lean_san_sang'),
   lean_dat_goc: (duong: string) => goi<LeanSanSang>('lean_dat_goc', duong),
   /** Vẽ -> sinh -> KHỎI ĐỘNG backtest. Trả về NGAY, chưa phải kết quả. */
-  chay_backtest: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+  chay_backtest: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay,
+                  man?: string, loai: 'thay' | 'an' = 'thay') =>
     goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
-      'chay_backtest', ten, steps, edges, coMay),
+      'chay_backtest', ten, steps, edges, coMay, man, loai),
   // --- cài đặt app. Giao diện KHÔNG tự khai có bao nhiêu ô — hỏi Python. ---
   cai_dat_tu_dien: () => goi<{ nhom: { ma: string; nhan: string; o: OLam[] }[] }>(
     'cai_dat_tu_dien'),

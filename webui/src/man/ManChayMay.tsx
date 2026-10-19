@@ -47,6 +47,12 @@ export interface ViecChayMay {
   edges: Edge[]
   coMay: CoMay
   soat: KetQuaSoat
+  /** Mã màn đang chơi. Rỗng = chế độ Sáng tạo, không ép sân và không chấm.
+   *
+   *  ⚠ Chỉ GỬI mã màn, không gửi mã/ngày của màn: Python tự ép sân lên sơ đồ
+   *  (`luat_choi.ap_man`). Để giao diện gửi khoảng ngày lên là mở đúng cái cửa mà cả
+   *  trò chơi dựa vào để đóng — ai sửa gói tin là chơi màn ẩn lúc nào cũng được. */
+  man?: string
 }
 
 /** Một nhịp dài bao nhiêu ở ×1 (ms). 380ms ≈ hai nhịp rưỡi mỗi giây: đủ chậm để
@@ -294,9 +300,11 @@ const soTien = (v: number) =>
 const ngayCua = (t: number) =>
   t > 0 ? new Date(t * 1000).toISOString().slice(0, 10) : '—'
 
-function ManChayMayTrong({ viec, onRa }: {
+function ManChayMayTrong({ viec, onRa, onCham }: {
   viec: ViecChayMay
   onRa: () => void
+  /** Chạy xong một lượt của MÀN thì mời đi chấm. Thiếu = đang ở Sáng tạo. */
+  onCham?: (maLuot: string) => void
 }) {
   const nn = useNgonNgu()
   const { fitView } = useReactFlow()
@@ -321,7 +329,7 @@ function ManChayMayTrong({ viec, onRa }: {
     let nhip = 0
     void (async () => {
       const r = await py.chay_backtest(viec.ten || 'Co May', viec.steps, viec.edges,
-                                       viec.coMay)
+                                       viec.coMay, viec.man || undefined, 'thay')
       if (!song) return
       if (!r.ok || !r.value) { setLoi(r.error ?? tr('không chạy được')); return }
       if (!r.value.ok) { setLoi(r.value.loi); return }
@@ -553,7 +561,9 @@ function ManChayMayTrong({ viec, onRa }: {
           <ThanhDieu mach={mach} i={i} dangPhat={dangPhat} toc={toc}
                      onPhat={() => setDangPhat(p => !p)}
                      onToc={setToc} onToi={setI}
-                     onKetQua={kq?.id ? () => void py.mo_cua_so_ket_qua(kq.id!) : undefined} />
+                     onKetQua={kq?.id ? () => void py.mo_cua_so_ket_qua(kq.id!) : undefined}
+                     onCham={viec.man && kq?.id && onCham
+                       ? () => onCham(kq.id!) : undefined} />
         </>
       )}
     </div>
@@ -567,7 +577,8 @@ function ManChayMayTrong({ viec, onRa }: {
  *  Hai nút ◀ ▶ chỉ hiện lúc đã dừng, và đó là cả câu trả lời cho "dừng lại được ở
  *  một nến để soi": dừng rồi thì đi từng nhịp một, xem van nào đổi, lệnh nào ra.
  */
-function ThanhDieu({ mach, i, dangPhat, toc, onPhat, onToc, onToi, onKetQua }: {
+function ThanhDieu({ mach, i, dangPhat, toc, onPhat, onToc, onToi, onKetQua,
+                    onCham }: {
   mach: MachChay
   i: number
   dangPhat: boolean
@@ -576,6 +587,8 @@ function ThanhDieu({ mach, i, dangPhat, toc, onPhat, onToc, onToi, onKetQua }: {
   onToc: (t: number) => void
   onToi: (i: number) => void
   onKetQua?: () => void
+  /** Có màn để chấm thì hiện nút; Sáng tạo thì không. */
+  onCham?: () => void
 }) {
   const het = mach.nhip.length - 1
   const nhip = mach.nhip[i]
@@ -644,11 +657,18 @@ function ThanhDieu({ mach, i, dangPhat, toc, onPhat, onToc, onToi, onKetQua }: {
       {onKetQua && (
         <button className="cm-nut rong" onClick={onKetQua}>{tr('Bảng kết quả…')}</button>
       )}
+      {/* CHẤM ĐIỂM chỉ hiện khi đang chơi một MÀN và lượt đã chạy xong. Ở Sáng tạo
+          không có gì để chấm, mà bày một nút chết là mời người ta bấm hụt. */}
+      {onCham && (
+        <button className="cm-nut chinh" onClick={onCham}>{tr('Chấm điểm')}</button>
+      )}
     </div>
   )
 }
 
 /** `useReactFlow` chỉ chạy được bên trong Provider — nên màn thật nằm ở trong. */
-export default function ManChayMay(p: { viec: ViecChayMay; onRa: () => void }) {
+export default function ManChayMay(
+  p: { viec: ViecChayMay; onRa: () => void; onCham?: (maLuot: string) => void },
+) {
   return <ReactFlowProvider><ManChayMayTrong {...p} /></ReactFlowProvider>
 }

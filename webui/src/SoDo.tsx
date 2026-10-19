@@ -217,7 +217,7 @@ interface ViecXuong {
   onChayMay?: (v: ViecChayMay) => void
 }
 
-function SoDoTrong({ onRa, onChayMay }: ViecXuong) {
+function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
   // ĐỔI TIẾNG THÌ VẼ LẠI. Gốc cửa sổ gọi là đủ cho gần hết cây — gốc vẽ lại thì con vẽ
   // lại theo. Chỉ hai component bọc `memo` (`StepNode`, `HatNhan`) phải tự gọi, vì
   // `memo` chặn đúng cái lượt vẽ lại ấy.
@@ -494,7 +494,20 @@ function SoDoTrong({ onRa, onChayMay }: ViecXuong) {
                          + 'tương ứng sẽ không mở hộp sửa được.', hong.join(' · ')) })
       }
       const r = await py.doc_ban_nhap()
-      if (r.ok && r.value) await nap(r.value)
+      let doc = r.ok ? r.value : null
+      // ⚠ VÀO MỘT MÀN THÌ DÁN SÂN CỦA MÀN LÊN KHỐI BẮT ĐẦU, TRƯỚC khi nạp. Lượt chạy
+      // đã bị Python ép sân rồi (`luat_choi.ap_man`) — dán ở đây là để người chơi
+      // NHÌN THẤY mình đang chơi ở đâu. Không dán thì khối Bắt đầu trưng mã và khoảng
+      // ngày của bản nháp cũ, còn kết quả lại của một thị trường khác: trông như hỏng.
+      //
+      // Dán vào thứ VỪA ĐỌC VỀ, không vào `nodes`: lúc này `nodes` còn là giá trị cũ
+      // trong closure của hiệu ứng (nạp xong mới có khối), nên dán vào nó là dán vào
+      // một sơ đồ rỗng.
+      if (doc && manChoi) {
+        const sn = await py.san_cua_man(manChoi, doc.steps ?? [])
+        if (sn.ok && sn.value) doc = { ...doc, steps: sn.value.steps }
+      }
+      if (doc) await nap(doc)
       setSanSang(true)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1552,7 +1565,8 @@ function SoDoTrong({ onRa, onChayMay }: ViecXuong) {
         await py.luu_ban_nhap(ten, s, e, coMay)
       } catch { /* ghi hụt thì vẫn cho chạy — chặn lại vì một lần ghi hỏng còn tệ hơn */ }
       ghi(tr('vào màn Chạy máy'))
-      onChayMay?.({ ten: ten || 'Co May', steps: s, edges: e, coMay, soat: st.value })
+      onChayMay?.({ ten: ten || 'Co May', steps: s, edges: e, coMay,
+                   soat: st.value, man: manChoi })
     })(),
     dung: dungChay,
     moKetQua: () => setMoKhoLuot(true),

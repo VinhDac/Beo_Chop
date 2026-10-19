@@ -28,6 +28,7 @@ from . import chay_lean
 from . import chay_toi_uu
 from . import core
 from . import hanh_trinh
+from . import luat_choi
 from . import sinh_ma
 from . import bat_dau
 from . import hoi
@@ -515,7 +516,8 @@ class Api(NenCuaSo):
         return _ok({"gia_tri": cai_dat.doc(s), "lean": chay_lean.san_sang()})
 
     @_bat_loi
-    def chay_backtest(self, ten, steps, edges=None, co_may=None):
+    def chay_backtest(self, ten, steps, edges=None, co_may=None,
+                      man=None, loai="thay"):
         """Vẽ -> sinh -> KHỞdI ĐỘNG backtest, rồi trả về NGAY.
 
         KHÔNG chờ chạy xong: một lượt mất từ chục giây tới vài phút, mà cầu nối chặn
@@ -524,7 +526,18 @@ class Api(NenCuaSo):
 
         Sinh mã còn lỗi thì DỪNG LẠI: chạy một file sinh từ sơ đồ đã hỏng chỉ ra một
         thông báo của LEAN khó hiểu hơn hẳn bảng Vấn đề."""
-        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges, co_may))
+        doc = core.make_process_template(ten, steps, edges, co_may)
+        # ⚠ ÉP SÂN CỦA MÀN Ở ĐÂY, không tin mấy ô trên sơ đồ. Màn chơi mà người chơi
+        # đổi được mã hay khoảng ngày thì chẳng còn là màn nào cả — mà ô khoá trong
+        # giao diện chỉ là lời đề nghị: mở tệp sơ đồ ra sửa tay là qua. Xem `ap_man`.
+        if man:
+            m = hanh_trinh.man(man)
+            if m is None or not hanh_trinh.co_san(m):
+                return _ok({"ok": False, "loi": tr("Màn «{0}» chưa có sân chơi.", man)})
+            if loai == "an" and not m.get("an"):
+                return _ok({"ok": False, "loi": tr("Màn «{0}» không có màn ẩn.", man)})
+            doc = luat_choi.ap_man(doc, m, loai)
+        kq = sinh_ma.sinh(doc)
         if not kq["ok"]:
             return _ok({"ok": False, "van_de": kq["van_de"],
                         "loi": tr("Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề.")})
@@ -538,6 +551,87 @@ class Api(NenCuaSo):
                      "ten_lop": kq["ten_lop"],
                      "moc_ten": m or tr("SPY — LEAN tự chọn")}
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
+
+    @_bat_loi
+    def san_cua_man(self, man, steps=None):
+        """Dán SÂN của màn lên sơ đồ đang vẽ. -> {steps} đã sửa khối Bắt đầu.
+
+        VÌ SAO CẦN, trong khi `chay_backtest` đã ép sân rồi: ép lúc chạy là để không ai
+        gian được, còn cái này là để người chơi NHÌN THẤY mình đang chơi ở đâu. Không
+        dán thì khối Bắt đầu vẫn trưng mã và khoảng ngày của bản nháp cũ, mà lượt chạy
+        lại ra số của một thị trường khác — trông y như app hỏng.
+
+        CHỈ KHOẢNG ĐÃ THẤY. Ngày của màn ẩn không bao giờ đi qua cửa này."""
+        m = hanh_trinh.man(man)
+        if m is None or not hanh_trinh.co_san(m):
+            return _loi(tr("Màn «{0}» chưa có sân chơi.", man))
+        d = luat_choi.ap_man({"steps": [core.chuan_hoa_khoi(x) for x in (steps or [])]},
+                             m, "thay")
+        return _ok({"steps": d["steps"]})
+
+    @_bat_loi
+    def cham_man(self, man, ma_luot, steps=None):
+        """Chấm lượt vừa chạy trên MÀN ĐÃ THẤY, rồi ghi sổ. -> phần chấm + sao.
+
+        Chấm ở PYTHON, không ở giao diện: "mấy sao" là luật chơi, mà luật chơi chỉ
+        được có một bản (xem `luat_choi`). Giao diện bày lại con số, không tự tính."""
+        m = hanh_trinh.man(man)
+        if m is None:
+            return _loi(tr("Không có màn «{0}».", man))
+        if m.get("khong_cham"):
+            return _ok({"khong_cham": True})
+        kq = chay_lean.doc_luot_chay(ma_luot)
+        if not kq["ok"]:
+            return _loi(kq["loi"])
+        thay = luat_choi.cham(kq)
+        # ĐỘ GỌN tính từ SƠ ĐỒ NƠI GỌI VỪA CHẠY, không dò lại trong lượt đã lưu: lượt
+        # chạy chỉ cất mã Python sinh ra, không cất sơ đồ, nên đếm ngược từ đó là đếm
+        # một thứ không có ở đấy.
+        gon = luat_choi.do_gon([core.chuan_hoa_khoi(x) for x in (steps or [])])
+        cu = luat_choi.doc_so()["man"].get(man) or {}
+        ghi = luat_choi.ghi_man(man, thay=thay, an=cu.get("an"), gon=gon)
+        return _ok({"khong_cham": False, "thay": thay, "an": ghi.get("an"),
+                    "gon": gon, "sao": ghi["sao"], "sao_lan_nay": ghi["sao_lan_nay"],
+                    "boss": luat_choi.ten_boss(m.get("boss") or "mua_giu")})
+
+    @_bat_loi
+    def nop_man(self, man, ten, steps, edges=None, co_may=None):
+        """NỘP: chạy đúng cỗ máy này trên MÀN ẨN rồi chấm. -> {ok, ...}
+
+        ⚠ CHẠY KÍN, KHÔNG PHÁT LẠI. Màn «Chạy máy» in NGÀY của từng nhịp lên góc màn
+        hình — cho nó phát lượt màn ẩn là đưa thẳng khoảng ngày bí mật cho người chơi,
+        và ngôi sao thứ ba mất sạch nghĩa. Cửa này chỉ trả về ĐIỂM.
+
+        ⚠ VÀ PHẢI CÓ MỘT LƯỢT SẠCH TRÊN MÀN ĐÃ THẤY TRƯỚC. Nộp một cỗ máy chưa từng
+        chạy trọn màn đã thấy thì ⭐ và ⭐⭐ lấy gì mà chấm — xem `luat_choi.sao`."""
+        m = hanh_trinh.man(man)
+        if m is None or not hanh_trinh.co_san(m):
+            return _loi(tr("Màn «{0}» chưa có sân chơi.", man))
+        if not m.get("an"):
+            return _loi(tr("Màn «{0}» không có màn ẩn.", man))
+        cu = luat_choi.doc_so()["man"].get(man) or {}
+        if not (cu.get("thay") or {}).get("sach"):
+            return _ok({"ok": False, "loi": tr(
+                "Chạy trọn màn đã thấy một lượt sạch rồi hãy nộp — chưa có lượt nào "
+                "thì hai sao đầu lấy gì mà chấm.")})
+        doc = luat_choi.ap_man(
+            core.make_process_template(ten, steps, edges, co_may), m, "an")
+        kq = sinh_ma.sinh(doc)
+        if not kq["ok"]:
+            return _ok({"ok": False, "loi": tr("Sơ đồ còn chỗ chưa diễn đạt hết."),
+                        "van_de": kq["van_de"]})
+        r = chay_lean.chay(kq["ma"], kq["ten_lop"])
+        if not r.get("ok"):
+            return _ok({"ok": False, "loi": r.get("loi") or ""})
+        an = luat_choi.cham(r)
+        gon = luat_choi.do_gon([core.chuan_hoa_khoi(x) for x in (steps or [])])
+        ghi = luat_choi.ghi_man(man, thay=cu.get("thay"), an=an, gon=gon)
+        # KHÔNG trả `ma_luot` của lượt màn ẩn: cầm mã lượt là mở được file kết quả,
+        # mà trong đó có đủ ngày tháng.
+        return _ok({"ok": True, "thay": cu.get("thay"), "an": an,
+                    "gon": gon, "sao": ghi["sao"],
+                    "sao_lan_nay": ghi["sao_lan_nay"],
+                    "boss": luat_choi.ten_boss(m.get("boss") or "mua_giu")})
 
     @_bat_loi
     def tu_dien_toi_uu(self):
@@ -559,8 +653,7 @@ class Api(NenCuaSo):
 
         Cùng lý do không chờ như `chay_backtest`, chỉ là nặng hơn hẳn: một mẻ là
         HÀNG TRĂM lượt backtest."""
-        doc = core.make_process_template(ten, steps, edges, co_may)
-        kq = sinh_ma.sinh(doc)
+        kq = sinh_ma.sinh(core.make_process_template(ten, steps, edges, co_may))
         if not kq["ok"]:
             return _ok({"ok": False, "van_de": kq["van_de"],
                         "loi": tr("Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề.")})
