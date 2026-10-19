@@ -579,3 +579,40 @@ lại mỗi ngày.
   mà `self._ma[0]` trên một rổ là `IndexError` ở dòng đầu `initialize`. LEAN có sẵn
   mấy hàm KHÔNG MÃ (`after_market_open(so_phut)` lấy giờ mở sớm nhất trong các mã
   đang có, mặc định SPY), nên mỗi nhịp khai thêm một câu cho nhánh rổ.
+
+---
+
+## D-18 · Vệt của nến KHÔNG vào lệnh: SUY RA, không chèn dòng chẩn đoán  (chốt 2026-10-19)
+
+Màn «Chạy máy» (thiết kế §5) muốn đóng **van** lại cho người xem thấy thì phải biết nến
+ấy hỏng ở cổng nào. LEAN ngắt ở điều kiện sai đầu tiên nên nó không tự biết — đây chính
+là rủi ro mở §8.2 của bản thiết kế.
+
+- **Phương án đã cân nhắc:**
+  (a) **suy ra từ thứ LEAN đã trả về** ← **chọn** /
+  (b) bộ sinh mã tự chèn thêm một dòng log cho mỗi cổng.
+- **Lý do:** (b) biết ĐÚNG cổng nào đóng trong mọi trường hợp, nhưng phải trả hai giá:
+  mã ở tab Mã không còn là thứ người chơi vẽ ra — app bắt đầu tự viết code — và nhật ký
+  phụt to (6 năm × 10 mã × 5 cổng là hàng triệu dòng, mà chỗ đọc nhật ký đang cắt ở
+  60.000 ký tự), nên nó còn đẻ thêm một bài toán hạn mức. (a) không đụng một dòng nào
+  của bộ sinh mã.
+- **Suy được tới đâu** (`webui/src/man/mach_chay.ts`):
+  - **MỞ** — chắc chắn: nhịp ấy có một lệnh ra từ dưới cổng.
+  - **ĐÓNG** — dưới cổng không còn cổng nào nữa mà cũng không có lệnh nào ra.
+  - **LẶNG / chưa rõ** — dưới cổng còn cổng khác: dòng dừng ở KHÚC ấy, mà đúng cái nào
+    thì không suy ra được. Vẽ mờ, KHÔNG đánh *cạch*.
+- **⚠ Hệ quả phải nói thẳng:** `set_holdings` không sinh lệnh khi tỷ trọng đang đúng rồi
+  — cổng mở, hành động chạy, mà LEAN im, nhìn y hệt cổng đóng. Nên chữ trên màn hình nói
+  về **DÒNG** («dòng dừng ở đây»), không bao giờ nói về **điều kiện** («RSI chưa đủ
+  thấp»): câu thứ hai là câu app không chứng minh được. `tests/test_giao_dien.py` canh
+  đúng chuyện ấy.
+- **⚠ Và chỉ suy từ khối ĐÃ TỪNG NỔ trong cả lượt.** Năm loại khối hành động không bao
+  giờ sinh lệnh (Ghi chú, Vẽ bảng, Ghi nhớ, Báo tin, Phát tín hiệu). Lấy sự im lặng của
+  chúng làm bằng chứng thì mọi cổng nằm trên chúng đóng vĩnh viễn suốt cả lượt — một màn
+  hình đầy van đóng, sai hết, mà trông rất thuyết phục. Bản đầu đã sai đúng kiểu ấy.
+- **Hàng rào:** `webui/kiem/mach_chay.mjs` (38 phép kiểm, chạy qua
+  `tests/test_chay_lean.py`), dựng trên hình dạng dữ liệu của một lượt LEAN thật. Đã ép
+  hỏng năm kiểu để xem nó có kêu không — cả năm đều bị bắt.
+- **Để ngỏ:** muốn chắc hẳn thì (b) vẫn còn đó. Chốt này không khoá đường ấy, nó chỉ nói
+  M2 không đi đường ấy.
+- **Trạng thái:** locked

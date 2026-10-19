@@ -24,9 +24,7 @@ import HopDieuKien from './components/HopDieuKien'
 import HopHanhDong, { laHanhDong } from './components/HopHanhDong'
 import HopBatDau from './components/HopBatDau'
 import HopSinhMa from './components/HopSinhMa'
-import HopKetQua from './components/HopKetQua'
 import HopNhom from './components/HopNhom'
-import HopTienDo from './components/HopTienDo'
 import HopToiUu from './components/HopToiUu'
 import HopTienDoToiUu from './components/HopTienDoToiUu'
 import Icon from './components/Icon'
@@ -36,13 +34,13 @@ import HopHoi, { bao, nhapChu } from './components/Hoi'
 import TitleBar, { type NhomMenu } from './components/TitleBar'
 import KhoDialog from './components/KhoDialog'
 import HopKhoa from './qc/HopKhoa'
+import type { ViecChayMay } from './man/ManChayMay'
 import type {
   Card,
   CoMay,
   Edge,
   GoiYKe,
   HatNhanTag,
-  KetQuaChay,
   KetQuaSinh,
   KetQuaSoat,
   KhoaQC,
@@ -50,7 +48,6 @@ import type {
   Step,
   StepKind,
   Strategy,
-  TienDoChay,
   TuDienBatDau,
   TuDienHoi,
   TuDienLam,
@@ -210,10 +207,17 @@ const idHatNhanMoi = () =>
 /* ------------------------------------- App ------------------------------------- */
 
 /** `manChoi` = mã màn đang chơi; rỗng là chế độ SÁNG TẠO. `onRa` = rời Xưởng.
- *  Thiếu `onRa` thì Xưởng không có cửa ra — đúng cho lúc chạy một mình (bài kiểm). */
-interface ViecXuong { manChoi?: string; onRa?: () => void }
+ *  Thiếu `onRa` thì Xưởng không có cửa ra — đúng cho lúc chạy một mình (bài kiểm).
+ *
+ *  `onChayMay` = GIAO VIỆC cho màn «Chạy máy». Xưởng không còn tự chạy backtest: màn
+ *  ấy chiếm trọn màn hình, mà vỏ trò chơi chỉ cho ĐÚNG MỘT màn hình sống một lúc. */
+interface ViecXuong {
+  manChoi?: string
+  onRa?: () => void
+  onChayMay?: (v: ViecChayMay) => void
+}
 
-function SoDoTrong({ onRa }: ViecXuong) {
+function SoDoTrong({ onRa, onChayMay }: ViecXuong) {
   // ĐỔI TIẾNG THÌ VẼ LẠI. Gốc cửa sổ gọi là đủ cho gần hết cây — gốc vẽ lại thì con vẽ
   // lại theo. Chỉ hai component bọc `memo` (`StepNode`, `HatNhan`) phải tự gọi, vì
   // `memo` chặn đúng cái lượt vẽ lại ấy.
@@ -289,12 +293,11 @@ function SoDoTrong({ onRa }: ViecXuong) {
     if (!tuDienLam) return thieu(tr('HÀNH ĐỘNG'))
     return tr('Khối loại "{0}" chưa có hộp sửa', st.type ?? '?')
   }, [tuDien, tuDienLam, tuDienBD])
-  /** Kết quả lượt backtest vừa chạy — giữ lại để mở lại được sau khi đóng. */
-  const [ketQua, setKetQua] = useState<KetQuaChay | null>(null)
-  const [moKetQua, setMoKetQua] = useState(false)
+  /** Có một mẻ Optimize đang chạy không — ribbon đổi nút Backtest thành Dừng.
+   *
+   *  ⚠ CHỈ CÒN OPTIMIZE đặt cờ này. Backtest nay chạy trong màn «Chạy máy», và Xưởng
+   *  bị tháo suốt lúc ấy, nên không có lượt backtest nào để Xưởng canh. */
   const [dangChay, setDangChay] = useState(false)
-  /** Tiến độ lượt backtest đang chạy — null = không hiện hộp. */
-  const [tienDo, setTienDo] = useState<TienDoChay | null>(null)
   const [moToiUu, setMoToiUu] = useState(false)
   const [tdToiUu, setTdToiUu] = useState<TuDienToiUu | null>(null)
   const [numSoDo, setNumSoDo] = useState<NumSoDo[]>([])
@@ -440,7 +443,7 @@ function SoDoTrong({ onRa }: ViecXuong) {
     // CỐ Ý KHÔNG đóng hộp tiến độ (`tienDo`, `tdToiUuChay`): chúng nói về việc ĐANG
     // CHẠY, và chúng cầm luôn cái nút Dừng — đóng hộ là cướp mất lối dừng.
     setMoKho(false); setMoKhoStrategy(false); setMoKhoLuot(false)
-    setMoKetQua(false); setMoToiUu(false); setMoCaiDat(false); setMoBangPhim(false)
+    setMoToiUu(false); setMoCaiDat(false); setMoBangPhim(false)
     setMoCoMay(false)
     chong.current.push({ s: rfSangSteps(nodes), e: rfSangEdges(edges), m: coMay })
     await nap({ schema: 1, type: 'strategy', name: doc.name || 'Strategy',
@@ -773,7 +776,7 @@ function SoDoTrong({ onRa }: ViecXuong) {
    *  tiến độ sẽ thấy `xong` ở lượt kế tiếp và dọn đúng một lần. Dọn cả hai nơi thì
    *  nửa giây sau cái còn lại vẫn bắn. */
   const dungChay = useCallback(() => void (async () => {
-    const r = await py.dung_backtest()
+    const r = await py.dung_toi_uu()
     if (!r.ok) await bao({ loi: r.error ?? tr('không dừng được') })
   })(), [bao])
 
@@ -1253,7 +1256,7 @@ function SoDoTrong({ onRa }: ViecXuong) {
           if (n) setDoiTen({ loai: 'khoi', id: n.id,
                              ten: (n.data as { card: Card }).card.title })
         },
-        'dung-backtest': dungChay,
+        'dung-chay': dungChay,
         'cai-dat': () => setMoCaiDat(true),
         'strategy-moi': strategyMoi,
         'mo-strategy': () => void mo(),
@@ -1526,40 +1529,30 @@ function SoDoTrong({ onRa }: ViecXuong) {
           return
         }
       }
-      const r = await py.chay_backtest(ten || 'Co May', rfSangSteps(nodes),
-                                       rfSangEdges(edges), coMay)
-      if (!r.ok || !r.value) { await bao({ loi: r.error ?? tr('không chạy được') }); return }
-      if (!r.value.ok) { await bao({ loi: r.value.loi }); return }
-
-      // Backtest chạy ở LUỒNG RIÊNG bên Python, nên ở đây chỉ HỎI mỗi nửa giây.
-      // Chặn thật thì cửa sổ đứng im không vẽ gì, và người dùng tưởng app treo.
-      setDangChay(true)
-      setTienDo({ dang_chay: true, xong: false, giay: 0, giai_doan: '',
-                  dong_cuoi: '', so_dong: 0, da_dung: false })
-      const nhip = window.setInterval(() => void (async () => {
-        const t = await py.tien_do_backtest()
-        if (!t.ok || !t.value) return
-        setTienDo(t.value)
-        if (!t.value.xong) return
-        window.clearInterval(nhip)
-        setDangChay(false)
-        setTienDo(null)
-        // ⚠ DỪNG KHÔNG PHẢI LỖI. Bấm Dừng thì Python trả về `ok: false` kèm câu
-        // «Bạn đã dừng lượt chạy này» — đúng với lõi, nhưng ném nó vào hộp báo lỗi
-        // thì người dùng vừa cố ý dừng xong lại bị mắng. Ghi một dòng nhật ký là đủ.
-        if (t.value.da_dung) { ghi(tr('đã dừng backtest')); return }
-        const kq = t.value.ket_qua
-        if (!kq) { await bao({ loi: tr('chạy xong mà không có kết quả') }); return }
-        if (!kq.ok) { await bao({ loi: kq.loi }); return }
-        setKetQua(kq)
-        ghi(`backtest ${kq.ten_lop ?? ''}`)
-        // MỘT CỬA SỔ RIÊNG cho lượt vừa chạy, không phải một hộp thoại đè lên sơ đồ:
-        // chạy lần nữa là có cái thứ hai, xếp cạnh nhau mà so. Tắt được ở Cài đặt.
-        const cd = await py.cai_dat_doc()
-        if (cd.ok && cd.value?.mo_ket_qua === false) return
-        if (kq.id) await py.mo_cua_so_ket_qua(kq.id)
-        else setMoKetQua(true)
-      })(), 500)
+      /* ---- và từ đây, XƯỞNG KHÔNG CHẠY BACKTEST NỮA: nó GIAO VIỆC ----
+       *
+       * Màn «Chạy máy» chiếm trọn màn hình (thiết kế §5.1), mà luật cứng của vỏ trò
+       * chơi là ĐÚNG MỘT màn hình sống tại một lúc — xem đầu `TroChoi.tsx`. Nên bấm
+       * Chạy là rời Xưởng, và chỗ gọi LEAN, hỏi tiến độ, nhận kết quả chuyển hết sang
+       * màn ấy. Vì thế hộp Tiến độ và hộp Kết quả cũng đã rời khỏi tệp này.
+       *
+       * SOÁT LẠI MỘT LƯỢT NGAY TRƯỚC KHI GIAO, không gửi bản Xưởng đang giữ: nhãn
+       * `[4A.2]` trên mỗi lệnh LEAN trả về chỉ nối được về khối nhờ `thu_tu`, nên bảng
+       * số ấy phải là của ĐÚNG sơ đồ sắp sinh mã. Lấy bản cũ là cuộn phim kể chuyện
+       * một sơ đồ khác, mà sai kiểu ấy thì trông vẫn rất thuyết phục. */
+      const s = rfSangSteps(nodes)
+      const e = rfSangEdges(edges)
+      const st = await py.soat(s, e, coMay)
+      if (!st.ok || !st.value) {
+        await bao({ loi: st.error ?? tr('không soát được sơ đồ') }); return
+      }
+      // GHI NỐT BẢN NHÁP TRƯỚC KHI ĐI, đúng lý do `raXuong` phải làm thế: rời Xưởng là
+      // `SoDo` bị tháo, và hàm dọn huỷ luôn bộ đếm giờ 1,2 giây đang chờ ghi.
+      try {
+        await py.luu_ban_nhap(ten, s, e, coMay)
+      } catch { /* ghi hụt thì vẫn cho chạy — chặn lại vì một lần ghi hỏng còn tệ hơn */ }
+      ghi(tr('vào màn Chạy máy'))
+      onChayMay?.({ ten: ten || 'Co May', steps: s, edges: e, coMay, soat: st.value })
     })(),
     dung: dungChay,
     moKetQua: () => setMoKhoLuot(true),
@@ -1903,9 +1896,6 @@ function SoDoTrong({ onRa }: ViecXuong) {
       )}
       {moCaiDat && <HopCaiDat onDong={() => setMoCaiDat(false)} />}
       {moKhoLuot && <HopKhoLuot onDong={() => setMoKhoLuot(false)} />}
-      {tienDo && (
-        <HopTienDo td={tienDo} onHuy={() => setTienDo(null)} onDung={dungChay} />
-      )}
       {tdToiUuChay && (
         <HopTienDoToiUu td={tdToiUuChay}
           onHuy={() => setTdToiUuChay(null)}
@@ -1955,10 +1945,6 @@ function SoDoTrong({ onRa }: ViecXuong) {
                       else if (v.kq && !v.kq.ok) await bao({ loi: v.kq.loi ?? '' })
                     })(), 1000)
                   })()} />
-      )}
-      {moKetQua && ketQua && (
-        <HopKetQua kq={ketQua} onDong={() => setMoKetQua(false)}
-                   onChayLai={() => { setMoKetQua(false); viec.chay() }} />
       )}
       {maSinh && (
         <HopSinhMa kq={maSinh} onDong={() => setMaSinh(null)}

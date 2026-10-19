@@ -669,5 +669,120 @@ kiem("dòng khai LEAN nằm NGOÀI tấm cuộn, nên nó ghim ở chân",
                _hdk) is not None,
      "— để trong `.bn-chinh` là nó cuộn mất")
 
+print("\n▸ MÀN CHẠY MÁY — vai thứ tư của vỏ trò chơi, không phải hộp thoại đè lên Xưởng")
+# ⚠ LUẬT CỨNG, không phải chuyện gọn mã: ĐÚNG MỘT màn hình sống tại một lúc, vì
+# `TitleBar` mang `useKhungCuaSo` — bộ bắt kéo cửa sổ nghe chuột ở mức `document`. Hai
+# cái cùng sống là hai bộ cùng bảo Windows "bắt đầu kéo". Nên màn «Chạy máy» phải là
+# MỘT VAI của `TroChoi`, và Xưởng phải RỜI ĐI chứ không treo thêm một hộp.
+_tc = doc("TroChoi.tsx")
+_cm = doc("man/ManChayMay.tsx")
+_sodo = doc("SoDo.tsx")
+kiem("`TroChoi` có vai 'chay-may'", "'chay-may'" in _tc)
+kiem("và nó dựng ĐỘC LẬP, không chồng lên Xưởng",
+     re.search(r"man === 'chay-may' && viecChay && \(\s*<ManChayMay", _tc) is not None)
+kiem("vỏ trò chơi GIỮ việc chạy, vì `SoDo` bị tháo lúc chuyển cảnh",
+     "setViecChay" in _tc and "onChayMay" in _tc)
+
+# Xưởng KHÔNG được còn một đường chạy backtest thứ hai: hai chỗ cùng gọi LEAN rồi cùng
+# hỏi tiến độ thì chúng tranh nhau một tiến trình, và cái thua cuộc im lặng.
+kiem("Xưởng KHÔNG còn tự gọi LEAN", "py.chay_backtest(" not in bo_chu_thich_ts(_sodo))
+kiem("cũng không còn tự hỏi tiến độ",
+     "py.tien_do_backtest(" not in bo_chu_thich_ts(_sodo))
+# ⚠ RANH TỪ (`\b`), không phải `in`. Xưởng VẪN còn `HopTienDoToiUu` — hộp tiến độ của
+# một mẻ Optimize, thứ chẳng liên quan gì — mà chuỗi "HopTienDo" nằm gọn trong tên nó.
+# Bắt bằng `in` là bài kiểm kêu oan, mà bài kiểm kêu oan thì sớm muộn bị bỏ qua.
+kiem("và đã bỏ hẳn hộp Tiến độ, hộp Kết quả khỏi Xưởng",
+     not re.search(r"\bHopTienDo\b", _sodo) and not re.search(r"\bHopKetQua\b", _sodo))
+kiem("màn Chạy máy mới là chỗ gọi LEAN và hỏi tiến độ",
+     "py.chay_backtest(" in _cm and "py.tien_do_backtest(" in _cm)
+
+# ⚠ SOÁT LẠI NGAY TRƯỚC KHI GIAO. Nhãn `[4A.2]` trên mỗi lệnh LEAN trả về chỉ nối được
+# về khối nhờ bảng `thu_tu`, nên bảng ấy phải là của ĐÚNG sơ đồ sắp sinh mã. Lấy bản
+# Xưởng đang giữ là cuộn phim kể chuyện một sơ đồ khác — mà sai kiểu ấy trông vẫn rất
+# thuyết phục.
+kiem("Xưởng soát lại rồi mới giao việc",
+     re.search(r"py\.soat\([\s\S]{0,1200}?onChayMay\?\.\(", _sodo) is not None)
+kiem("và GHI NỐT bản nháp trước khi đi (bài học M1: hẹn 1,2 giây bị huỷ theo component)",
+     re.search(r"py\.luu_ban_nhap\([\s\S]{0,600}?onChayMay\?\.\(", _sodo) is not None)
+# ⚠ CANH ĐÚNG HÀM DỌN của hiệu ứng, không canh cả tệp. `py.dung_backtest()` còn một
+# chỗ gọi nữa — cái nút Dừng — nên phép kiểm "có chuỗi ấy trong tệp" vẫn xanh kể cả khi
+# hàm dọn đã bị gỡ sạch. Đã để lọt một lượt bẻ thật.
+kiem("rời màn giữa lúc chạy thì DỪNG hẳn lượt LEAN",
+     re.search(r"return \(\) => \{[\s\S]{0,400}?conChay[\s\S]{0,200}?"
+               r"py\.dung_backtest\(\)", _cm) is not None,
+     "— để nó chạy tiếp là để một tiến trình cày máy mà kết quả không rơi vào đâu")
+
+print("\n▸ Dây có dòng phải là HAI ĐƯỜNG CHỒNG NHAU  (bài học của màn Mở máy)")
+# Một đường không thể vừa là sợi dây vừa là vệt sáng chạy trên nó: muốn vệt sáng thì
+# phải đặt `stroke-dasharray`, mà đặt lên CHÍNH sợi dây thì gần hết sợi dây thành
+# khoảng trống — mấy cái khối rời nhau với mẩu dây cụt 8 pixel. Nhìn ảnh mới thấy.
+kiem("`DayDien` vẽ cả đường NỀN lẫn đường SÁNG",
+     "day-nen" in _cm and "day-dong" in _cm)
+_nen = re.search(r"\.react-flow__edge-path\.day-nen\s*\{[^}]*\}", app)
+_sang = re.search(r"\.day-dong\s*\{[^}]*\}", app)
+kiem("đường SÁNG mới có nét đứt", bool(_sang) and "stroke-dasharray" in _sang.group(0))
+kiem("đường NỀN thì KHÔNG — nó phải liền nét",
+     bool(_nen) and "stroke-dasharray" not in _nen.group(0),
+     f"— {_nen.group(0) if _nen else 'KHÔNG CÓ LUẬT NÀO'}")
+
+print("\n▸ Đường vốn kéo giãn một chiều — nét vẽ KHÔNG được giãn theo")
+# `preserveAspectRatio: none` kéo khung 100 đơn vị ra cả nghìn pixel, mà nét vẽ giãn
+# THEO: nét dày 1 đơn vị thành ~16px ngang và ~2px dọc, tức một vệt bè nhoè. Đo bằng
+# JavaScript không thấy — chỉ ảnh chụp ở cỡ cửa sổ 1600 mới lòi ra.
+kiem("SVG đường vốn kéo giãn tự do", 'preserveAspectRatio="none"' in _cm)
+_ve = re.search(r"\.cm-von-moc, \.cm-von-nen, \.cm-von-sang, \.cm-von-kim\s*\{[^}]*\}", app)
+kiem("nên MỌI nét trong đó khai `non-scaling-stroke`",
+     bool(_ve) and "non-scaling-stroke" in _ve.group(0),
+     f"— {_ve.group(0) if _ve else 'KHÔNG CÓ LUẬT NÀO'}")
+
+print("\n▸ Đổi cỡ cửa sổ phải VỪA KHUNG LẠI — và hai chỗ gọi dùng CHUNG một bộ số")
+# `fitView` chỉ chạy lúc dựng. Phóng to cửa sổ giữa lượt chiếu thì NỬA CÁI MÁY nằm
+# ngoài màn hình, mà màn này cố ý không có thanh zoom nào để bấm về.
+kiem("có nghe sự kiện đổi cỡ cửa sổ",
+     "addEventListener('resize'" in _cm and "fitView(" in _cm)
+kiem("bộ số vừa khung khai MỘT LẦN, cả hai chỗ cùng dùng",
+     bo_chu_thich_ts(_cm).count("VUA_KHUNG") >= 3,
+     "— hai bộ số khác nhau thì kéo cửa sổ là sơ đồ nhảy mức phóng")
+
+print("\n▸ VAN có BA trạng thái, và chữ của nó nói về DÒNG chứ không về điều kiện")
+# LEAN ngắt ở điều kiện sai đầu tiên nên app không chứng minh được câu "điều kiện sai"
+# (xem đầu `webui/src/man/mach_chay.ts`). Ba trạng thái — qua / dừng / chưa rõ — là
+# đúng những gì suy ra được, không hơn. Bỏ mất cái thứ ba là màn hình bắt đầu chỉ bừa.
+# ⚠ CANH CHỮ, không canh mỗi cái khoá. Ba khoá thì `tsc` đã bắt rồi (`Record` đòi đủ
+# cả ba) — phép kiểm chép lại việc ấy là một phép kiểm không gác gì. Thứ KHÔNG ai bắt
+# được là lời văn: đổi câu của nấc «dòng dừng» thành "điều kiện sai" là màn hình bắt
+# đầu nói một câu app không chứng minh nổi, mà mọi bài kiểm vẫn xanh.
+_chu_van = re.search(r"CHU_VAN[^=]*=\s*\{(.*?)\n\}", _cm, re.S)
+kiem("có bảng `CHU_VAN`", _chu_van is not None)
+_than_van = _chu_van.group(1) if _chu_van else ""
+for _tt in ("mo:", "dong:", "lang:"):
+    kiem(f"`CHU_VAN` có nấc `{_tt[:-1]}`", _tt in _than_van)
+kiem("nấc «chưa rõ» thật sự nói là CHƯA BIẾT",
+     "Chưa rõ" in _than_van and "không suy ra được" in _than_van,
+     "— bỏ cái ngập ngừng ấy đi là màn hình bắt đầu chỉ đích danh một cổng, có khi sai")
+# `.lower()` chứ không so thẳng: "Điều kiện sai" viết hoa đã lọt qua một lượt bẻ thật.
+kiem("và KHÔNG câu nào đổ cho điều kiện — LEAN không nói ra điều ấy",
+     "điều kiện" not in _than_van.lower(),
+     "— câu duy nhất chứng minh được là câu về DÒNG")
+for _lop in ("van-mo", "van-dong", "van-lang"):
+    kiem(f"`.{_lop}` có luật CSS", f".{_lop} " in app or f".{_lop}." in app)
+# `(?<![-\w])` để `fill-opacity:` KHÔNG được tính là `opacity:` — nó chứa trọn chuỗi ấy,
+# và một lượt bẻ thật đã luồn qua đúng kẽ này.
+kiem("`.van-lang` mờ hẳn đi — nhìn là biết nó KHÁC hai nấc chắc chắn kia",
+     bool(re.search(r"\.van-lang\s*\{[^}]*(?<![-\w])opacity:", app)))
+kiem("tiếng *cạch* nằm trong PHÉP CHUYỂN, không phải @keyframes",
+     bool(re.search(r"\.van-canh\s*\{[^}]*transition:[^}]*cubic-bezier", app, re.S)),
+     "— van đóng suốt 95% số nến, nhịp nào cũng đánh thì màn hình thành đèn nháy")
+
+print("\n▸ Hoạt ảnh phải tắt được  (`prefers-reduced-motion`)")
+_giam = re.findall(r"@media \(prefers-reduced-motion: reduce\)\s*\{(.*?)\n\}",
+                   app, re.S)
+kiem("có khối @media cho màn Chạy máy",
+     any("day-dong" in k for k in _giam),
+     f"— {len(_giam)} khối giảm hoạt ảnh")
+kiem("và hạt sáng bị GIẤU HẲN, không để đứng im cạnh hộp",
+     any("chay-hat" in k and "display: none" in k for k in _giam),
+     "— một chấm cam đứng im cạnh hộp trông như lỗi")
+
 print(f"\n{'─' * 60}\n  {dung} đúng · {sai} sai\n{'─' * 60}")
 sys.exit(1 if sai else 0)

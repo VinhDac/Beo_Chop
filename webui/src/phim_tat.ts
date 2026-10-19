@@ -65,8 +65,12 @@ export const LENH: Lenh[] = [
   { ma: 'luu', nhan: 'Lưu Strategy', nhom: 'file', phim: ['ctrl+s'] },
   /* F6 DỪNG, đúng phím Jenifer_Studio dùng. Chỉ có DỪNG chứ không có CHẠY: chạy là
      việc có chủ đích, bấm nút là xong; còn dừng là việc gấp — LEAN đang ngốn CPU và
-     người ta muốn nó thôi NGAY, không phải đi tìm cái nút. */
-  { ma: 'dung-backtest', nhan: 'Dừng backtest đang chạy', nhom: 'file', phim: ['f6'] },
+     người ta muốn nó thôi NGAY, không phải đi tìm cái nút.
+
+     ⚠ TRONG XƯỞNG NÓ DỪNG MẺ OPTIMIZE, không dừng backtest, và tên phải nói đúng thế.
+     Backtest nay chạy ở màn «Chạy máy» — màn ấy chiếm trọn màn hình nên Xưởng bị tháo
+     suốt lượt chạy, và nó tự nghe F6 của mình. Bảng này là bảng phím của Xưởng. */
+  { ma: 'dung-chay', nhan: 'Dừng mẻ Optimize đang chạy', nhom: 'file', phim: ['f6'] },
   { ma: 'o-tim', nhan: 'Nhảy vào ô tìm khối', nhom: 'file', phim: ['ctrl+f'] },
   { ma: 'cai-dat', nhan: 'Cài đặt app', nhom: 'file', phim: ['ctrl+,'] },
   { ma: 'bang-phim-tat', nhan: 'Bảng phím tắt (bảng này)', nhom: 'file', phim: ['f2'] },

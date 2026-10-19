@@ -2242,3 +2242,238 @@ mark.tim-chu {
   color: var(--muted); background: var(--field); border: 1px solid var(--border-soft);
 }
 .ht-dang-o { margin-top: 8px; font-size: 11px; color: var(--accent); font-weight: 600; }
+
+/* ========================= MÀN CHẠY MÁY =========================
+   Màn hình bán cả sản phẩm (thiết kế §5). TOÀN MÀN HÌNH, sơ đồ ở giữa, không ribbon
+   và không bảng dưới: hai dải duy nhất ở đây — đường vốn và thanh điều khiển — là
+   phần của CHÍNH màn này, không phải đồ của Xưởng treo sang.
+   Xem `webui/src/man/ManChayMay.tsx`. */
+.cm { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.cm-than { position: relative; flex: 1; min-height: 0; background: var(--canvas-bg); }
+.cm-than .react-flow { width: 100%; height: 100%; }
+
+/* ---- mặt khối lúc máy chạy ---- */
+/* Dùng CHUNG `.hop` với Xưởng — nhìn vào là nhận ra khối mình vừa vẽ. Ở đây chỉ thêm
+   đèn trạng thái, nên mọi luật dưới đây phải là luật THÊM, không viết lại `.hop`. */
+.chay-boc { position: relative; }
+.chay-hop { cursor: default; }
+.chay-hop:hover { border-color: var(--border); }
+/* Máy chạy KHÔNG TẢI — LEAN còn đang nạp, chưa có cuộn phim nào. Khối thở nhẹ để nói
+   "đang sống", chứ không phải đứng im như đã xong. */
+.chay-hop.chay-khong-tai { animation: cm-tho 2.4s ease-in-out infinite; }
+@keyframes cm-tho {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: color-mix(in srgb, var(--dong) 45%, var(--border)); }
+}
+/* DÒNG TỚI ĐƯỢC KHỐI NÀY: cổng mở thì khối sáng màu dòng điện. */
+.chay-hop.chay-mo {
+  border-color: var(--dong);
+  box-shadow: 0 0 0 1px var(--dong), var(--shadow-lg);
+}
+.chay-hop.chay-dong { border-color: var(--border); opacity: .82; }
+.chay-hop.chay-lang { border-style: dashed; opacity: .64; }
+/* LỆNH NỔ — khối NẢY một cái. Hoạt ảnh chạy MỘT lần nhờ `key` đổi mỗi lần nổ
+   (xem `KhoiChayTrong`); viền cam là "máy vừa làm xong một việc". */
+.chay-boc.da-no .chay-hop { animation: cm-nay 460ms cubic-bezier(.26, 1.7, .45, 1); }
+@keyframes cm-nay {
+  0% { transform: scale(1); }
+  26% { transform: scale(1.085); border-color: var(--accent); }
+  100% { transform: scale(1); }
+}
+.chay-hop.chay-no {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
+}
+/* ĐỎ CHỈ DÙNG CHO LỖ VÀ LỆNH BỊ TỪ CHỐI (thiết kế §1) — không dùng cho gì khác, đỏ
+   phải hiếm thì nó mới còn nghĩa. */
+.chay-hop.chay-tu-choi {
+  border-color: var(--err);
+  box-shadow: 0 0 0 1px var(--err), var(--shadow-lg);
+}
+
+/* HẠT SÁNG bắn ra khỏi khối lúc lệnh nổ. Bay ra mép PHẢI — cùng chiều dòng chảy. */
+.chay-hat {
+  position: absolute; right: -4px; top: 50%;
+  width: 9px; height: 9px; border-radius: 999px;
+  background: var(--accent); box-shadow: 0 0 10px 3px var(--accent-soft);
+  pointer-events: none;
+  animation: cm-hat 620ms ease-out forwards;
+}
+@keyframes cm-hat {
+  0% { transform: translate(0, -50%) scale(.5); opacity: 0; }
+  18% { transform: translate(6px, -50%) scale(1.25); opacity: 1; }
+  100% { transform: translate(88px, -50%) scale(.3); opacity: 0; }
+}
+
+/* ---- CÁI VAN của một cổng Hỏi ---- */
+/* ĐỨNG NGAY NGOÀI mép phải của hộp, trên chính sợi dây đi ra — không đè lên thân hộp.
+   Bản đầu đặt nó đè lên mép và vẽ bé bằng một con tem: nhìn ảnh chụp thì nó ra hai cái
+   chấm vuông, không ai đọc được đó là cái van. Chỉ ảnh chụp mới thấy. */
+.van {
+  position: absolute; right: -42px; top: 50%; transform: translateY(-50%);
+  width: 52px; height: 37px;
+}
+.van svg { width: 100%; height: 100%; overflow: visible; }
+.van-ong { fill: none; stroke: var(--border); stroke-width: 3; stroke-linecap: round; }
+/* THÂN VAN — cái vỏ cố định. Phải ĐẶC: nó nằm trên sợi dây, mà dây xuyên qua giữa thân
+   van thì cái van trông như một khung rỗng chứ không phải một cơ cấu chặn. */
+.van-than {
+  fill: var(--surface); stroke: var(--border); stroke-width: 1.5;
+  transition: stroke 110ms linear;
+}
+.van-canh {
+  fill: var(--raised-hover); stroke: none;
+  /* ⚠ TIẾNG *CẠCH* NẰM TRONG PHÉP CHUYỂN NÀY, không nằm trong một @keyframes. Nhún
+     quá đà một nhịp rồi về, nên nó chỉ đánh ĐÚNG LÚC trạng thái đổi — mà van đóng
+     suốt 95% số nến, nhịp nào cũng đánh thì cả màn hình thành cái đèn nháy. */
+  transition: transform 110ms cubic-bezier(.3, 1.8, .5, 1), fill 110ms linear;
+}
+/* MỞ: hai cánh lùi sát hai mép thân, chừa một KHE ở giữa — chỗ dòng điện chui qua. */
+.van-mo .van-canh.tren { transform: translateY(-4px); }
+.van-mo .van-canh.duoi { transform: translateY(4px); }
+.van-mo .van-canh { fill: var(--dong); }
+.van-mo .van-than { stroke: var(--dong); fill: color-mix(in srgb, var(--dong) 14%, var(--surface)); }
+.van-mo .van-ong { stroke: var(--dong); }
+/* ĐÓNG: hai cánh gặp nhau ở giữa, bịt kín. */
+.van-dong .van-canh { fill: var(--text); }
+.van-dong .van-than { stroke: var(--muted); }
+/* CHƯA RÕ — hé một nửa, mờ, và KHÔNG đánh *cạch*. Nói "chưa biết" bằng hình, chứ không
+   chỉ đích danh một cổng rồi có khi chỉ sai (xem đầu `mach_chay.ts`). */
+.van-lang { opacity: .45; }
+.van-lang .van-canh.tren { transform: translateY(-2px); }
+.van-lang .van-canh.duoi { transform: translateY(2px); }
+.van-lang .van-canh { fill: var(--dim); }
+
+/* ---- dây dẫn và dòng điện ---- */
+/* HAI ĐƯỜNG CHỒNG NHAU: nền liền nét lúc nào cũng có, vệt sáng đứt nét chạy đè lên.
+   Đặt `stroke-dasharray` lên CHÍNH sợi dây thì gần hết sợi dây thành khoảng trống —
+   đã dính thật ở màn Mở máy, nhìn ảnh chụp mới thấy. */
+.react-flow__edge-path.day-nen { stroke: var(--border); stroke-width: 2; }
+.day-dong {
+  fill: none; stroke: var(--dong); stroke-width: 2.6; stroke-linecap: round;
+  stroke-dasharray: 15 150; stroke-dashoffset: 160;
+  animation: cm-dong 1.5s linear infinite;
+  filter: drop-shadow(0 0 4px var(--dong));
+}
+@keyframes cm-dong {
+  from { stroke-dashoffset: 160; }
+  to { stroke-dashoffset: -60; }
+}
+
+/* ---- đồng hồ tiền: đầu ra của cái máy ---- */
+.cm-dongho {
+  position: absolute; right: 14px; top: 12px; z-index: 6;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  padding: 9px 13px; pointer-events: none;
+  background: color-mix(in srgb, var(--chrome) 88%, transparent);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.cm-tien { font: 600 25px/1.1 var(--font-mono); color: var(--text); }
+/* TIỀN GIẬT lúc có lệnh (§5.4). `key` đổi theo nhịp có lệnh nên hoạt ảnh chạy lại. */
+.cm-tien.giat { animation: cm-giat 420ms cubic-bezier(.3, 1.7, .5, 1); }
+@keyframes cm-giat {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.14); color: var(--accent); }
+  100% { transform: scale(1); }
+}
+.cm-lai { font: 600 12.5px/1.3 var(--font-mono); }
+.cm-lai.len { color: var(--ok); }
+.cm-lai.xuong { color: var(--err); }
+.cm-ngay { font: 400 11.5px/1.3 var(--font-mono); color: var(--muted); }
+
+/* ---- LEAN còn đang nạp, và lỗi ---- */
+.cm-cho, .cm-loi {
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 320px; max-width: min(620px, 88vw); padding: 13px 18px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg); text-align: center;
+}
+.cm-cho b, .cm-loi b { font-size: 13.5px; }
+.cm-cho-giay { font: 400 11.5px/1 var(--font-mono); color: var(--muted); }
+/* DÒNG LEAN VỪA IN. Một dòng, cắt bớt: nó chỉ để nói "còn sống và đang làm gì". */
+.cm-cho-dong {
+  width: 100%; font: 400 11px/1.5 var(--font-mono); color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cm-cho .nut, .cm-loi .nut { margin-top: 4px; }
+.cm-loi { border-color: var(--err); }
+.cm-loi-cau { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ---- đường vốn ở mép dưới (§5.5) ---- */
+.cm-von {
+  flex: 0 0 auto; height: 76px; padding: 6px 0 0;
+  background: var(--chrome); border-top: 1px solid var(--border-soft);
+}
+/* `preserveAspectRatio: none` nên SVG kéo giãn hết chiều ngang — trục X là CHỈ SỐ
+   nhịp, mỗi nhịp một bước đều nhau, đúng với thứ người xem đang đếm. */
+.cm-von-ve { display: block; width: 100%; height: 70px; }
+/* ⚠ `non-scaling-stroke` CHO MỌI NÉT TRONG ĐÂY, và thiếu nó thì hỏng thấy rõ. Khung
+   nhìn rộng 100 đơn vị kéo giãn ra cả nghìn pixel, mà nét vẽ bị kéo giãn THEO: nét
+   dày 1 đơn vị thành ~16px ngang và ~2px dọc, tức một vệt bè nhoè chứ không còn là
+   một đường. Với `non-scaling-stroke` thì nét giữ đúng bề dày pixel dù khung co giãn
+   thế nào. Đo bằng JavaScript không thấy — chỉ ảnh chụp ở cỡ cửa sổ 1600 mới lòi ra. */
+.cm-von-moc, .cm-von-nen, .cm-von-sang, .cm-von-kim { vector-effect: non-scaling-stroke; }
+.cm-von-moc { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.cm-von-nen { fill: none; stroke: var(--border); stroke-width: 1; }
+.cm-von-sang { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.cm-von-kim { stroke: var(--dong); stroke-width: 1.4; }
+.cm-von-khong {
+  padding: 18px 16px; font-size: 11.5px; color: var(--dim); text-align: center;
+}
+
+/* ---- thanh điều khiển: tua nhanh, nhảy cuối, dừng soi (§5.6 · §5.7) ---- */
+.cm-dieu {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  padding: 7px 12px;
+  background: var(--chrome); border-top: 1px solid var(--border);
+}
+.cm-dieu .day { flex: 1; }
+.cm-nut {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 30px; height: 26px; padding: 0 8px;
+  font: 500 12px/1 var(--font); cursor: pointer; color: var(--text);
+  background: var(--raised); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cm-nut:hover:not(:disabled) { background: var(--raised-hover); border-color: var(--accent); }
+.cm-nut:disabled { opacity: .4; cursor: default; }
+.cm-nut.chinh { background: var(--accent); border-color: var(--accent); color: #1a1a1a; }
+.cm-nut.dang { border-color: var(--accent); color: var(--accent); }
+.cm-nut.rong { background: none; }
+.cm-toc { display: flex; gap: 4px; margin-left: 4px; }
+/* Kéo tới một nhịp bất kỳ. Co lại được nhưng có sàn: dưới 120px thì một nhịp nhỏ hơn
+   một pixel và không ai kéo nổi tới chỗ mình muốn. */
+.cm-keo { flex: 1 1 180px; min-width: 120px; accent-color: var(--accent); }
+.cm-dem { font: 400 11px/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+/* CHÚ GIẢI ba trạng thái van — không phải lời xin lỗi dán thêm, nó nói đúng cái màn
+   hình này biết và cái nó KHÔNG biết. */
+.cm-chu { display: flex; gap: 8px; }
+.cm-chu-muc {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+}
+.cm-chu-muc::before {
+  content: ''; width: 8px; height: 8px; border-radius: 2px;
+  border: 1px solid var(--border);
+}
+.cm-chu-muc.mo::before { background: var(--dong); border-color: var(--dong); }
+.cm-chu-muc.dong::before { background: var(--raised-hover); border-color: var(--text); }
+.cm-chu-muc.lang::before { background: none; border-style: dashed; }
+.cm-lenh-nay {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+}
+.cm-lenh-nay b { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.cm-lenh-nay b.tu-choi { color: var(--err); text-decoration: line-through; }
+.cm-lac { font-size: 11px; color: var(--warn); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chay-hop.chay-khong-tai, .chay-boc.da-no .chay-hop, .cm-tien.giat { animation: none; }
+  .day-dong { animation: none; stroke-dasharray: none; }
+  /* Hạt sáng không có hoạt ảnh thì nó là một chấm cam đứng im cạnh hộp, trông như
+     lỗi — giấu hẳn đi, cùng cách màn Mở máy xử vệt sáng. */
+  .chay-hat { display: none; }
+}

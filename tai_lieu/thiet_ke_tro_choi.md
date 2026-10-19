@@ -308,12 +308,16 @@ Chỉ đúng nút **Chạy** đụng tường.
 Nghĩa là: dựng được cả trò chơi mà người lạ vẫn không chơi được. **Phải giải trước khi
 phát hành, không cần giải trước khi dựng.** Để sau, nhưng đừng quên.
 
-### ⚠ 8.2 · Vệt của nến KHÔNG vào lệnh
+### ✅ 8.2 · Vệt của nến KHÔNG vào lệnh — ĐÃ CHỐT 19/10/2026
 
 Màn «Chạy máy» muốn đóng **van** lại cho người xem thấy thì phải biết nến ấy hỏng ở điều
-kiện nào. LEAN ngắt ở điều kiện sai đầu tiên nên nó không tự biết. Muốn có thì bộ sinh mã
-phải tự chèn thêm dòng vào thuật toán — tức app bắt đầu tự viết code người chơi không vẽ.
-**Chưa chốt.**
+kiện nào. LEAN ngắt ở điều kiện sai đầu tiên nên nó không tự biết.
+
+**Chốt: SUY RA, không chèn dòng chẩn đoán** — xem `DECISIONS.md` D-18. Bộ sinh mã không
+đổi một dòng. Van có **ba** trạng thái chứ không phải hai: *dòng qua* (chắc chắn), *dòng
+dừng* (dưới cổng không còn cổng nào mà cũng không lệnh nào ra), và *chưa rõ* (chuỗi nhiều
+cổng — dừng ở khúc ấy, mà đúng cái nào thì chịu). Cái thứ ba là giá phải trả, và nó rẻ
+hơn một màn hình chỉ bừa.
 
 ### ⚠ 8.3 · Dữ liệu doanh nghiệp phải trả tiền
 
@@ -328,7 +332,7 @@ Mỗi mốc phải **nhìn thấy được**, không mốc nào là "hạ tầng
 | Mốc | Làm gì | Xong là thấy gì |
 |---|---|---|
 | **M1** | Tách canvas khỏi Home. Dựng màn MỞ MÁY + HÀNH TRÌNH + XƯỞNG, chuyển cảnh. | App mở ra **không còn là canvas**. Đã ra dáng trò chơi. |
-| **M2** | Màn CHẠY MÁY có hình (dây có dòng, van, lệnh nổ, tua nhanh). | **Quay được video đầu tiên.** |
+| **M2** ✅ | Màn CHẠY MÁY có hình (dây có dòng, van, lệnh nổ, tua nhanh). | **Quay được video đầu tiên.** |
 | **M3** | Chép luật chơi từ `main`. Màn 0 + Hồi 1 + màn CHẤM + màn ẩn. | **Chơi thật được 4 màn.** |
 | **M4** | Hệ mở khoá + màn hình KHO. Hồi 2 (gồm màn 8 — màn gãy). | Trò chơi **biết dạy**. |
 | **M5** | Hồi 3→9. Nội dung là chính, không phải cơ chế. | Đủ 26 màn. |
@@ -346,4 +350,5 @@ Không phải bây giờ, nhưng sớm muộn phải có:
 1. **Con mèo trông thế nào.** Tôi tả được tính cách, không vẽ được nó.
 2. **Thị trường của 26 màn.** Mỗi màn cần một mã + hai khoảng ngày có thật và có chuyện để
    kể. Chỗ này cần bạn — bạn biết thị trường, tôi không.
-3. **§8.2** — có cho bộ sinh mã tự chèn dòng chẩn đoán không.
+3. ~~**§8.2** — có cho bộ sinh mã tự chèn dòng chẩn đoán không.~~ ✅ chốt 19/10/2026:
+   KHÔNG chèn, suy ra (D-18).

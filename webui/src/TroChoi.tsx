@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import SoDo from './SoDo'
 import ManMoMay from './man/ManMoMay'
 import ManHanhTrinh from './man/ManHanhTrinh'
+import ManChayMay, { type ViecChayMay } from './man/ManChayMay'
 
 /** VỎ TRÒ CHƠI — giữ màn hình nào đang hiện, và chuyển cảnh giữa chúng.
  *
@@ -22,7 +23,7 @@ import ManHanhTrinh from './man/ManHanhTrinh'
  *  nên rời Xưởng ngay sau một nét sửa là nét ấy chưa kịp ghi mà bộ đếm giờ đã bị huỷ
  *  theo component. `SoDo` phải ghi nốt TRƯỚC khi gọi `onRa` — xem chỗ ấy trong `SoDo`.
  */
-export type Man = 'mo-may' | 'hanh-trinh' | 'xuong'
+export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may'
 
 /** Màn che lúc chuyển cảnh tối trong bao lâu (ms). Phải khớp `--chuyen-canh` trong CSS.
  *
@@ -36,6 +37,11 @@ export default function TroChoi() {
   const [manChoi, setManChoi] = useState('')
   /** Đang kéo màn che — trong lúc này màn hình cũ đã gỡ, màn mới chưa lắp. */
   const [dangChe, setDangChe] = useState(false)
+  /** Việc của màn CHẠY MÁY: sơ đồ Xưởng vừa giao, kèm lượt soát của đúng sơ đồ ấy.
+   *
+   *  Giữ Ở ĐÂY chứ không trong `ManChayMay`, vì `SoDo` bị THÁO lúc chuyển cảnh (luật
+   *  một màn hình sống) — sơ đồ phải đi qua tay vỏ trò chơi mới sang được màn kia. */
+  const [viecChay, setViecChay] = useState<ViecChayMay | null>(null)
   const hen = useRef(0)
 
   useEffect(() => () => window.clearTimeout(hen.current), [])
@@ -69,7 +75,14 @@ export default function TroChoi() {
       )}
       {man === 'xuong' && (
         <SoDo manChoi={manChoi}
-              onRa={() => doi(manChoi ? 'hanh-trinh' : 'mo-may')} />
+              onRa={() => doi(manChoi ? 'hanh-trinh' : 'mo-may')}
+              onChayMay={v => { setViecChay(v); doi('chay-may', manChoi) }} />
+      )}
+      {/* CHẠY MÁY — vai thứ tư. Vào màn này là MỘT lượt chạy mới: rời màn là component
+          bị tháo hẳn (luật một màn hình sống), nên không có cuộn phim cũ nào còn đứng
+          ở nhịp 300 để phải dọn. */}
+      {man === 'chay-may' && viecChay && (
+        <ManChayMay viec={viecChay} onRa={() => doi('xuong', manChoi)} />
       )}
       <div className={'man-che' + (dangChe ? ' hien' : '')} aria-hidden />
     </>

@@ -20,6 +20,7 @@ mốc** — LEAN lặng lẽ lấy SPY, tức cỗ máy vàng bị đem so với
 """
 import io
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -278,6 +279,31 @@ kiem("trạng thái gửi đi KHÔNG kèm tiến trình",
      "— một `Popen` không đóng gói JSON được")
 kiem("có cờ `da_dung` để phân biệt «ta giết nó» với «nó chết»",
      "da_dung" in chay_lean.trang_thai())
+
+print("\n▸ MẠCH CHẠY — kết quả LEAN thành cuộn phim của màn «Chạy máy»")
+# Cầu nối sang `webui/kiem/mach_chay.mjs`, cùng lối `test_o_so.py` đi sang `o_so.mjs`.
+#
+# ĐẶT TRONG BÀI NÀY, không thành một bài riêng: việc nó canh đúng là đề bài của bài này
+# — MỘT KẾT QUẢ LEAN ĐƯỢC ĐỌC RA CHO ĐÚNG — chỉ là ở phía giao diện. Màn «Chạy máy»
+# nói với người xem một câu rất mạnh: *"nó không vào lệnh vì dòng dừng ở cổng này"*. Mà
+# LEAN ngắt ở điều kiện sai đầu tiên nên nó KHÔNG nói ra điều ấy; phía web SUY RA
+# (thiết kế §8.2, chốt 19/10/2026). Suy sai thì không hỏng ồn ào — màn hình vẫn chạy
+# mượt, van vẫn đóng mở, chỉ là nó CHỈ SAI CỔNG, rất thuyết phục. Không bắt được bằng mắt.
+#
+# Thiếu Node thì BÁO RÕ và trượt, không lặng lẽ bỏ qua: một bài kiểm tự tắt khi thiếu
+# công cụ là một bài kiểm nói dối.
+_bai = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "webui", "kiem", "mach_chay.mjs")
+_r = subprocess.run(["node", _bai], cwd=os.path.dirname(os.path.dirname(_bai)),
+                    shell=(os.name == "nt"), capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+for _d in (_r.stdout or "").splitlines():
+    if _d.strip():
+        print("  " + _d.strip() if _d.startswith("\u25b8") else _d)
+if not (_r.stdout or "").strip():
+    print((_r.stderr or "").rstrip())
+kiem("bài kiểm mạch chạy (node) qua", _r.returncode == 0,
+     "" if _r.returncode == 0 else "— xem mấy dòng ✘ ở trên")
 
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)
