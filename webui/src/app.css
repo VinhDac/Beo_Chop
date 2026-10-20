@@ -2311,93 +2311,29 @@ mark.tim-chu {
 .mm-chan { padding: 10px 14px; display: flex; justify-content: flex-end; }
 .mm-tieng { width: auto; min-width: 128px; }
 
-/* --------------------------------------------------------------- MÈO VÀ MÁY */
-/* Con mèo đứng cạnh cỗ máy — nó lắp ra cái máy ấy. Bản tạm, xem `Meo` trong
-   `ManMoMay.tsx`: hình thật là việc của chủ dự án. */
-.mm-canh {
-  display: flex; align-items: center; gap: 30px;
-  flex-wrap: wrap; justify-content: center; width: min(760px, 92vw);
-}
-.mm-meo {
-  width: 118px; height: auto; flex: 0 0 auto; overflow: visible;
-  animation: mm-len .7s cubic-bezier(.2, .8, .3, 1) .15s both;
-}
-.mm-meo-net { fill: none; stroke: var(--border); stroke-width: 3; stroke-linejoin: round; }
-.mm-meo-ria path { stroke: var(--border); stroke-width: 2; stroke-linecap: round; }
-.mm-meo-mat path {
-  stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
-  animation: mm-chop 5.2s ease-in-out infinite;
-  transform-origin: center;
-}
-/* Chớp mắt: nháy một cái rồi thôi — mắt chớp liên tục thì trông như hỏng. */
-@keyframes mm-chop {
-  0%, 92%, 100% { opacity: 1; }
-  94%, 96% { opacity: .15; }
-}
+/* ------------------------------------------------------------------- LOGO
+   Logo THẬT của app (`assets/logo.png`, cũng là icon cửa sổ và favicon), không phải
+   hình vẽ tay. Chỗ này từng là một con mèo SVG cộng một cỗ máy bốn khối tự lắp lên —
+   dựng lúc app chưa có mặt mũi nào. Có logo thật rồi thì giữ hình tạm là cho sản phẩm
+   hai bộ mặt: một cái trên thanh tiêu đề, một cái khác hẳn ngay giữa màn hình đầu.
 
-/* Cỗ máy TỰ LẮP LÊN rồi mới chạy. Xem `MayChay` trong `ManMoMay.tsx`.
-   ⚠ MỖI SỢI DÂY LÀ HAI ĐƯỜNG CHỒNG NHAU, và đây là chỗ bản đầu làm sai. Một đường
-   không thể vừa là sợi dây vừa là vệt sáng chạy trên nó: muốn vệt sáng thì phải đặt
-   `stroke-dasharray`, mà đặt lên chính sợi dây thì gần hết sợi dây thành KHOẢNG TRỐNG
-   — bốn khối rời nhau với mấy mẩu dây cụt 8 pixel, không ra cái máy nào. Nay: một
-   đường NỀN liền nét lúc nào cũng có, một đường SÁNG đứt nét chạy đè lên.
-   ⚠ VÀ MỖI MÓN CHẠY HAI HOẠT ẢNH: một lượt MỌC LÊN đúng một lần, rồi một lượt lặp mãi.
-   Mốc của cả hai tính từ `--d` mà TSX truyền xuống (`calc`), nên đổi nhịp là sửa một
-   con số ở một chỗ. `both` để trước mốc của nó, món ấy CHƯA hiện — thiếu `both` thì cả
-   cỗ máy loè ra đủ ngay khung hình đầu rồi mới biến đi để mọc lại. */
-/* ⚠ `--d` PHẢI CÓ MẶC ĐỊNH Ở ĐÂY dù TSX luôn truyền nó xuống, và vì hai lẽ. Một:
-   `calc(var(--d) + 1.2s)` mà thiếu biến là cả câu `animation` HỎNG, nên cỗ máy đứng
-   nguyên ở `opacity: 0` của `both` — màn hình đầu tiên mất hẳn hình chính mà không
-   một lỗi nào. Hai: hàng rào biến CSS ma (`tests/test_giao_dien.py`) không đọc được
-   style gắn thẳng trong TSX, nên với nó `--d` là một biến không ai khai. Khai ở đây
-   thì vừa có lối lui, vừa hết kêu oan. */
-.mm-may {
-  --d: 0s;
-  width: min(560px, 60vw); min-width: 300px; height: auto; overflow: visible;
+   Quầng cam lấy bằng `drop-shadow` chứ không bằng một khối nền tròn: `drop-shadow` ăn
+   theo ĐÚNG hình con mèo (kể cả cái đuôi cong), còn khối tròn thì lòi ra bốn góc. */
+.mm-logo {
+  width: 132px; height: 132px; flex: 0 0 auto;
+  filter: drop-shadow(0 0 34px color-mix(in srgb, var(--accent) 26%, transparent));
+  animation: mm-vao .75s cubic-bezier(.2, .8, .3, 1) .12s both,
+             mm-noi 6.5s ease-in-out 1.2s infinite;
 }
-.mm-nen path, .mm-dong path { fill: none; stroke-width: 3; stroke-linecap: round; }
-.mm-nen path {
-  stroke: var(--border);
-  stroke-dasharray: 1; stroke-dashoffset: 1;
-  animation: mm-ve .34s ease-out var(--d) both;
-}
-.mm-dong path {
-  stroke: var(--dong); stroke-dasharray: 16 170; stroke-dashoffset: 180;
-  animation: mm-chay 2.05s linear calc(var(--d) + 1.2s) infinite;
-}
-@keyframes mm-chay {
-  from { stroke-dashoffset: 180; }
-  to   { stroke-dashoffset: -80; }
-}
-.mm-khoi rect, .mm-khoi circle {
-  fill: var(--surface); stroke: var(--border); stroke-width: 2;
-  transform-box: fill-box; transform-origin: center;
-  animation: mm-moc .44s cubic-bezier(.2, .9, .3, 1.4) var(--d) both,
-             mm-sang 2.05s ease-in-out calc(var(--d) + 1.2s) infinite;
-}
-@keyframes mm-moc {
-  from { opacity: 0; transform: scale(.72); }
+@keyframes mm-vao {
+  from { opacity: 0; transform: scale(.84) translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
-@keyframes mm-sang {
-  0%, 52%, 100% { stroke: var(--border); fill: var(--surface); }
-  10%, 28% {
-    stroke: var(--accent);
-    fill: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  }
-}
-/* KHỐI CUỐI loè XANH, không loè cam: nó là chỗ trả lời «nó sống được không». */
-.mm-khoi .mm-ket {
-  animation: mm-moc .44s cubic-bezier(.2, .9, .3, 1.4) var(--d) both,
-             mm-song 2.05s ease-in-out calc(var(--d) + 1.2s) infinite;
-}
-@keyframes mm-song {
-  0%, 52%, 100% { stroke: var(--border); fill: var(--surface); transform: none; }
-  10%, 28% {
-    stroke: var(--ok);
-    fill: color-mix(in srgb, var(--ok) 18%, var(--surface));
-    transform: scale(1.08);
-  }
+/* Nổi lên xuống rất chậm — đủ để màn hình không chết cứng sau khi mọi thứ đã vào chỗ,
+   không đủ để ai nhận ra là một hoạt ảnh. */
+@keyframes mm-noi {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
 }
 
 /* ⚠ TẮT HOẠT ẢNH THÌ PHẢI ĐỂ MỌI THỨ Ở TRẠNG THÁI CUỐI, không chỉ `animation: none`.
@@ -2405,15 +2341,14 @@ mark.tim-chu {
    đầu; tắt animation mà quên trả lại thì cả trang chủ TRẮNG TRƠN với người đã bật
    "giảm chuyển động" — và đó đúng là người sẽ không bao giờ báo lỗi cho mình. */
 @media (prefers-reduced-motion: reduce) {
-  .mm-meo, .mm-ten, .mm-cau, .mm-nut, .mm-so, .mm-meo-mat path,
-  .mm-khoi rect, .mm-khoi circle, .mm-nen path, .mm-luoi path, .mm-to, .mm-duong {
+  .mm-logo, .mm-ten, .mm-cau, .mm-nut, .mm-so, .mm-luoi path, .mm-to, .mm-duong {
     animation: none;
     opacity: 1; transform: none;
     stroke-dashoffset: 0;
   }
   .nut-to.chinh { animation: none; }
-  /* Vệt quét và vệt sáng trong dây đứng im giữa đường thì trông như lỗi — giấu hẳn. */
-  .mm-dong, .mm-vet { display: none; }
+  /* Vệt quét đứng im giữa đường thì trông như lỗi — giấu hẳn. */
+  .mm-vet { display: none; }
 }
 
 /* ========================= MÀN HÀNH TRÌNH =========================

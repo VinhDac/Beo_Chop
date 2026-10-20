@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import TitleBar from '../components/TitleBar'
 import { CAC_NGON_NGU, datNgonNgu, tr, trx, useNgonNgu } from '../ngon_ngu'
 import { cho_cau_noi, py } from '../api'
@@ -67,10 +67,12 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
             và phần tràn lên phía trên thì không cuộn tới được, lỗi kinh điển của
             flexbox. Hộp này thì đủ chỗ là căn giữa, thiếu chỗ là tự cao lên và cuộn. */}
         <div className="mm-giua">
-          <div className="mm-canh">
-            <Meo />
-            <MayChay />
-          </div>
+          {/* LOGO THẬT của app, không phải hình vẽ tay nữa.
+              Trước đây chỗ này là một con mèo vẽ bằng SVG cộng một cỗ máy bốn khối —
+              hình TẠM, dựng lúc app chưa có mặt mũi nào ngoài một file `.ico`. App có
+              logo thật rồi thì màn hình đầu tiên phải là nó: một hình vẽ tay cạnh một
+              logo khác là hai bộ mặt cho cùng một sản phẩm. */}
+          <img className="mm-logo" src="./logo.png" alt="" />
 
           <h1 className="mm-ten">Cat Studio</h1>
           <p className="mm-cau">{tr('Vẽ một cỗ máy. Thả nó vào thị trường. Xem nó sống được không.')}</p>
@@ -173,89 +175,6 @@ function BieuDoNen() {
       <path className="mm-duong" d={DUONG} pathLength={1} />
       <rect className="mm-vet" x="-180" y="0" width="180" height="420"
             fill="url(#mm-quet)" />
-    </svg>
-  )
-}
-
-/** CON MÈO — kỹ sư của cái xưởng này.
- *
- *  ⚠ ĐÂY LÀ BẢN TẠM, và cố ý vẽ tối giản để dễ thay. Tên app đã là Cat Studio nhưng
- *  trước mốc này "con mèo" là đúng một file `favicon.ico`; app không có mặt mũi nào.
- *  Hình thật là việc của chủ dự án (thiết kế §10.1) — chỗ này chỉ giữ sẵn khoảng
- *  trống đúng kích thước, đúng bảng màu, và đúng TÍNH CÁCH: thợ máy, không phải linh
- *  vật. Nó ngồi CẠNH cái máy vì chính nó lắp ra cái máy ấy.
- *
- *  Chớp mắt bằng CSS, không bằng JS: một thuộc tính chạy trên GPU, không tốn khung
- *  hình nào, và tắt được bằng `prefers-reduced-motion` như mọi hoạt ảnh khác. */
-function Meo() {
-  return (
-    <svg className="mm-meo" viewBox="0 0 96 104" aria-hidden>
-      {/* tai */}
-      <path className="mm-meo-net" d="M20 40 L24 12 L46 30" />
-      <path className="mm-meo-net" d="M76 40 L72 12 L50 30" />
-      {/* đầu */}
-      <path className="mm-meo-net" d="M48 26 C72 26 84 42 84 60 C84 80 68 92 48 92
-                                      C28 92 12 80 12 60 C12 42 24 26 48 26 Z" />
-      {/* mắt — hai vạch, nheo lại chứ không tròn xoe: nó đang NHÌN cái máy */}
-      <g className="mm-meo-mat">
-        <path d="M30 58 h12" /><path d="M54 58 h12" />
-      </g>
-      {/* mũi và ria */}
-      <path className="mm-meo-net" d="M48 68 l-5 5 h10 Z" />
-      <g className="mm-meo-ria">
-        <path d="M18 64 h14" /><path d="M64 64 h14" />
-        <path d="M18 72 h14" /><path d="M64 72 h14" />
-      </g>
-    </svg>
-  )
-}
-
-/** CỖ MÁY ĐANG CHẠY — hình nền sống của màn mở.
- *
- *  Vẽ bằng SVG ngay tại đây chứ không nhét một file ảnh: đây CHÍNH LÀ thứ app làm ra —
- *  mấy khối nối nhau và dòng điện chạy trong dây — nên nó phải sống, không phải một bức
- *  hình chết. Và nó là bản xem trước của màn «Chạy máy» ở mốc sau.
- *
- *  ⚠ MỖI SỢI DÂY LÀ HAI ĐƯỜNG CHỒNG NHAU, và đây là chỗ bản đầu làm sai. Một đường
- *  không thể vừa là sợi dây vừa là vệt sáng chạy trên nó: muốn vệt sáng thì phải đặt
- *  `stroke-dasharray`, mà đặt lên chính sợi dây thì gần hết sợi dây thành KHOẢNG TRỐNG.
- *  Nhìn ảnh chụp mới thấy — bốn cái khối rời nhau với mấy mẩu dây cụt 8 pixel, không ra
- *  cái máy nào cả. Nay: một đường NỀN liền nét lúc nào cũng có, một đường SÁNG đứt nét
- *  chạy đè lên.
- *
- *  Dòng chảy làm bằng `stroke-dashoffset` chạy vòng: một thuộc tính, chạy trên GPU,
- *  không tốn một khung hình JS nào và không bao giờ giật khi máy đang bận. */
-function MayChay() {
-  /** Ba chặng dây, viết một lần dùng hai lần (nền + vệt sáng) — chép tay hai bản là
-   *  sớm muộn sửa toạ độ một bên mà quên bên kia. */
-  const day = ['M96 64 H176', 'M232 64 H312', 'M368 64 H440']
-  /** Nhịp của cả cụm, giây. Mỗi khối mọc lên sau khối trước một nhịp; sợi dây nối
-   *  chúng mọc xen vào giữa. Một con số, sửa một chỗ. */
-  const n = 0.26
-  /** Mốc thời gian của từng món, truyền xuống CSS bằng `--d`.
-   *
-   *  ⚠ MỘT BIẾN CSS, KHÔNG PHẢI `animationDelay`. Mỗi món nay chạy HAI hoạt ảnh — một
-   *  lượt MỌC LÊN chạy đúng một lần, rồi một lượt SÁNG lặp mãi — mà `animationDelay`
-   *  viết thẳng thì phải ghi hai giá trị dính nhau và đếm tay cái thứ hai. Đưa mốc vào
-   *  biến rồi để CSS tự cộng (`calc(var(--d) + …)`) thì sửa nhịp là xong. */
-  const d = (i: number) => ({ '--d': `${0.5 + i * n}s` } as CSSProperties)
-  return (
-    <svg className="mm-may" viewBox="0 0 520 128" aria-hidden>
-      <g className="mm-nen">
-        {day.map((x, i) => <path key={x} d={x} pathLength={1} style={d(i * 2 + 1)} />)}
-      </g>
-      <g className="mm-dong">
-        {day.map((x, i) => <path key={x} d={x} style={d(i * 2 + 1)} />)}
-      </g>
-      <g className="mm-khoi">
-        <rect x="30" y="40" width="66" height="48" rx="9" style={d(0)} />
-        <rect x="176" y="40" width="56" height="48" rx="9" style={d(2)} />
-        <rect x="312" y="40" width="56" height="48" rx="9" style={d(4)} />
-        {/* KHỐI CUỐI là chỗ trả lời «nó sống được không», nên nó không sáng màu
-            thương hiệu như ba khối kia mà LOÉ XANH — đúng màu app dùng cho «được»
-            ở mọi nơi khác. Cả câu quảng cáo gói trong một nhịp sáng. */}
-        <circle className="mm-ket" cx="462" cy="64" r="22" style={d(6)} />
-      </g>
     </svg>
   )
 }

@@ -387,8 +387,10 @@ Mỗi mốc phải **nhìn thấy được**, không mốc nào là "hạ tầng
 > **Còn lại, và đều là việc của chủ dự án:**
 > 1. **Ba màn chưa có sân** — m17 · m18 · m19, cả ba cần kho `fine` của QuantConnect
 >    (hàng trả tiền). Hoặc mua dữ liệu, hoặc đổi ba màn ấy sang bài khác.
-> 2. **Hình con mèo** — bản trong app là hình tạm vẽ bằng SVG, giữ đúng cỡ và đúng
->    tính cách để thay.
+> 2. ~~**Hình con mèo**~~ ✅ xong 20/10/2026: trang chủ nay dùng LOGO THẬT của app
+>    (`assets/logo.png`, cũng là icon cửa sổ và favicon). Con mèo vẽ bằng SVG và cỗ
+>    máy bốn khối đã gỡ hẳn — một hình vẽ tay cạnh một logo khác là hai bộ mặt cho
+>    cùng một sản phẩm.
 > 3. **M7 còn ba chỗ vướng:** .NET 10 phải có sẵn (hoặc build LEAN self-contained,
 >    +~70 MB), Python phải gói kèm cho pythonnet, và **điều khoản dữ liệu** —
 >    `Data/` không có file giấy phép nào, phải hỏi QuantConnect trước khi phát hành kèm.
@@ -401,7 +403,9 @@ Mỗi mốc phải **nhìn thấy được**, không mốc nào là "hạ tầng
 
 Không phải bây giờ, nhưng sớm muộn phải có:
 
-1. **Con mèo trông thế nào.** Tôi tả được tính cách, không vẽ được nó.
+1. ~~**Con mèo trông thế nào.**~~ ✅ chốt 20/10/2026: logo của app LÀ con mèo, và
+   nay nó đứng giữa trang chủ. Còn mở: một hình MINH HOẠ cho thế giới trong game
+   (§1 — con mèo kỹ sư trong xưởng) nếu sau này muốn, nhưng app đã có mặt rồi.
 2. **Thị trường của 26 màn.** Mỗi màn cần một mã + hai khoảng ngày có thật và có chuyện để
    kể. Chỗ này cần bạn — bạn biết thị trường, tôi không.
 3. ~~**§8.2** — có cho bộ sinh mã tự chèn dòng chẩn đoán không.~~ ✅ chốt 19/10/2026:
