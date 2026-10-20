@@ -347,12 +347,42 @@ def _f(v):
         return None
 
 
+#: Mấy mẩu CÓ NGHĨA của dòng thẻ ĐANG dựng. `None` = không ở trong lúc dựng thẻ, nên
+#: mọi chỗ gọi khác (hộp thoại, bộ sinh mã, bảng Vấn đề) không tốn gì cả.
+_NET = None
+
+#: Nghĩa của một mẩu. Giao diện tô màu theo đây, xem `.net-*` trong `app.css`.
+NET_MA = "ma"      # mã chứng khoán: SPY, XAUUSD
+NET_SO = "so"      # con số, phần trăm, ngày, tiền
+NET_DL = "dl"      # tên đại lượng hay chỉ báo: RSI, Giá đóng cửa
+NET_PHEP = "phep"  # phép so: > < >=
+
+
+def _net(chu, y):
+    """Ghi: mẩu `chu` trong dòng đang dựng mang nghĩa `y`. Trả lại chính `chu`.
+
+    ⚠ PYTHON PHẢI NÓI RA, GIAO DIỆN KHÔNG ĐƯỢC ĐOÁN — đúng lời đã viết cho `num` ở
+    `_the_buoc`, và ở đây lý do còn nặng hơn. Muốn tự tô, giao diện phải tự nhận ra đâu
+    là tên đại lượng, đâu là con số, đâu là phép so: tức là viết lại bằng TypeScript
+    một bộ đọc câu mà chính Python vừa GHÉP RA từ dữ liệu. Nó sẽ tô «14» nằm trong
+    «2014-06-09», và sẽ không bao giờ nhận ra «Trí nhớ: đang chờ mua lại» là một cái
+    tên NGƯỜI DÙNG tự gõ chứ không phải câu nói.
+
+    ⚠ GÀI VÀO MẤY HÀM DỰNG ATOM, KHÔNG GÀI VÀO TỪNG CÂU. Câu trên thẻ thì có hàng
+    chục (`mo_ta_lam` một mình đã mười mấy nhánh), nhưng chúng đều đi qua đúng năm cái
+    phễu: `_so_gon`, `_tien`, `_ngay_vn`, `_so_the`, `_ve_dieu_kien`. Gài ở phễu thì
+    thêm một loại khối mới là nó có màu sẵn, không phải nhớ quay lại đây."""
+    if _NET is not None and str(chu or "").strip():
+        _NET.append({"chu": str(chu), "y": y})
+    return chu
+
+
 def _so_gon(n):
     """Số -> chữ gọn, bỏ đuôi `.0`: "30%" đọc dễ hơn "30.0%"."""
     f = _f(n)
     if f is None:
         return str(n)
-    return str(int(f)) if f.is_integer() else str(round(f, 6))
+    return _net(str(int(f)) if f.is_integer() else str(round(f, 6)), NET_SO)
 
 
 def _pt(v):
@@ -364,7 +394,8 @@ def _pt(v):
 def _ngay_vn(s):
     """"2010-01-01" -> "01/01/2010". Hỏng khuôn thì trả nguyên xi, đừng ném."""
     p = str(s or "").split("-")
-    return f"{p[2]}/{p[1]}/{p[0]}" if len(p) == 3 and all(p) else str(s or "?")
+    return _net(f"{p[2]}/{p[1]}/{p[0]}" if len(p) == 3 and all(p) else str(s or "?"),
+                NET_SO)
 
 
 def _tien(n):
@@ -378,7 +409,7 @@ def _tien(n):
     if f is None:
         return str(n)
     s = f"{int(f):,}"
-    return s if hien() == "en" else s.replace(",", ".")
+    return _net(s if hien() == "en" else s.replace(",", "."), NET_SO)
 
 
 def _nhan_chon(o, v):
@@ -470,16 +501,19 @@ def mo_ta_bat_dau(step):
                 for o in o_con))
         if ro[0] == "etf":
             lay = _f(bat_dau.gt_ro(gt_ma, "lay")) or 0
-            etf = str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper() or "?"
+            etf = _net(str(bat_dau.gt_ro(gt_ma, "ma_etf") or "").strip().upper()
+                       or "?", NET_MA)
             dong = [tr("rổ {0}", etf) + (tr(" · {0} mã nặng nhất", int(lay)) if lay > 0
                                    else tr(" · cả rổ"))]
     elif not ds:
         dong = [tr("chưa chọn mã nào")]
     elif len(ds) == 1:
         m = ds[0]
-        dong = [f"{m.get('ma') or '?'} · {tr(ten_loai.get(m.get('loai'), m.get('loai')))}"]
+        dong = [f"{_net(m.get('ma') or '?', NET_MA)} · "
+                f"{tr(ten_loai.get(m.get('loai'), m.get('loai')))}"]
     else:
-        dong = [tr("{0} mã: ", len(ds)) + ", ".join(str(m.get("ma") or "?") for m in ds)]
+        dong = [tr("{0} mã: ", len(ds))
+                + ", ".join(_net(str(m.get("ma") or "?"), NET_MA) for m in ds)]
     k = o_bat_dau(step, "khoang") or {}
     dong.append(f"{_ngay_vn(k.get('tu'))} → {_ngay_vn(k.get('den'))}")
     dong.append(tr("vốn {0}$", _tien(o_bat_dau(step, 'von'))))
@@ -708,7 +742,7 @@ def _ve_dieu_kien(ve):
         n = ve["so"]
         # Số nguyên thì đừng in ".0" — "RSI < 30" đọc dễ hơn "RSI < 30.0".
         chu = str(int(n)) if isinstance(n, float) and n.is_integer() else str(n)
-        return _ghep_chu(ve, _so_the(ve, "so", chu))
+        return _ghep_chu(ve, _so_the(ve, "so", chu))  # `_so_the` tự ghi mẩu
     dl = hoi.dai_luong(ve.get("ma_dl"))
     if not dl:
         return str(ve.get("ma_dl") or "?")
@@ -719,14 +753,14 @@ def _ve_dieu_kien(ve):
     chu = _TEN_NHO.get(ve["ma_dl"]) or tr(dl["nhan"])
     # Tham số hiện trong ngoặc: "EMA — trung bình trượt luỹ thừa" quá dài trên thẻ,
     # nên lấy phần TRƯỚC dấu gạch làm tên ngắn.
-    ngan = chu.split(" — ")[0]
+    ngan = _net(chu.split(" — ")[0], NET_DL)
     ts = ve.get("tham_so") or {}
     if ts:
         ngan += "(" + ",".join(_so_the(ve, k, v) for k, v in ts.items()) + ")"
     if ve.get("duong"):
         ngan += "." + str(ve["duong"])
     if ve.get("ma"):
-        ngan = f"{ve['ma']}·{ngan}"
+        ngan = f"{_net(ve['ma'], NET_MA)}·{ngan}"
     return _ghep_chu(ve, ngan)
 
 
@@ -738,6 +772,7 @@ def _so_the(chu, ten_o, gia_tri):
     luôn thứ quan trọng không kém: BẢN VẼ NÀY ĐANG CHẠY Ở MỨC NÀO — vì ghim xong,
     backtest thường vẫn chạy bằng con số ấy."""
     ten = str(((chu or {}).get("ghim_num") or {}).get(ten_o) or "").strip()
+    _net(gia_tri, NET_SO)
     return f"{ten}={gia_tri}" if ten else str(gia_tri)
 
 
@@ -781,7 +816,7 @@ def mo_ta_dieu_kien(dk):
     # Đại lượng ĐÚNG/SAI không so với số nào — "Đang giữ mã này là SAI".
     if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
         return f"{trai} {tr("là SAI") if phep == 'khong' else tr("là ĐÚNG")}"
-    return f"{trai} {phep} {_ve_dieu_kien(dk.get('phai'))}"
+    return f"{trai} {_net(phep, NET_PHEP)} {_ve_dieu_kien(dk.get('phai'))}"
 
 
 def mo_ta_hanh_dong(a):
@@ -963,6 +998,31 @@ def the_buoc(step, ten_nho=None):
 
 
 def _the_buoc(step):
+    """Dựng thẻ, rồi gắn MẤY MẨU CÓ NGHĨA vào từng dòng — xem `_net`."""
+    global _NET
+    truoc, _NET = _NET, []
+    try:
+        the = _dung_the(step)
+        mau = _NET
+    finally:
+        # Trả về như cũ dù có ném: để sót thì thẻ dựng sau ăn mẩu của thẻ trước, và
+        # một cái mã chứng khoán sẽ sáng lên ở đúng chỗ nó không có mặt.
+        _NET = truoc
+    for d in the["lines"]:
+        t = d.get("text") or ""
+        da, ds = set(), []
+        # ⚠ MẨU DÀI TRƯỚC. «>=» phải ăn trước «>», «100» trước «1», «2014» trước
+        # «14» — giao diện cắt câu theo đúng thứ tự này. Xếp sai thì một con số bị
+        # chẻ đôi và nửa sau đổi màu giữa chừng.
+        for m in sorted(mau, key=lambda m: len(m["chu"]), reverse=True):
+            if m["chu"] in t and m["chu"] not in da:
+                da.add(m["chu"])
+                ds.append(m)
+        d["net"] = ds
+    return the
+
+
+def _dung_the(step):
     kind = step.get("kind")
     hd = hanh_dong_cua(step)
 

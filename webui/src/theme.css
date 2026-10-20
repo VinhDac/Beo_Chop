@@ -10,33 +10,57 @@
      ở thanh công cụ tester); khai ở gốc thì chỗ nào sau này cũng đúng sẵn. */
   color-scheme: dark;
 
-  --bg: #202020;
-  /* Màu "khung app": ribbon, bảng dưới, thanh trạng thái.
-     Đặt ĐÚNG BẰNG màu thanh tiêu đề Windows (#202020, đã lấy mẫu pixel để chắc),
-     để phần khung liền một mảng với thanh tiêu đề.
-     Không đi đường ngược lại được: DwmSetWindowAttribute(DWMWA_CAPTION_COLOR=35)
-     trả E_INVALIDARG trên Windows 10 — thuộc tính đó chỉ có từ Windows 11. */
-  --chrome: #202020;
-  /* Bề mặt của ĐỒ VẬT nổi lên trên khung: hộp trên canvas, hộp thoại. */
-  --surface: #2b2b2b;
-  --field: #2d2d2d;
-  --raised: #383838;
-  --raised-hover: #454545;
-  --border: #3f3f3f;
-  --border-soft: #353535;
-  --text: #e8e8e8;
-  --muted: #9a9a9a;
-  --dim: #7a7a7a;
+  /* ⭐ THANG MÀU — chép CẤU TRÚC của TradingView, không chép màu thương hiệu của họ.
+     Soi thẳng bảng biến của tradingview.com (nền tối): họ có một THANG XÁM có tên
+     (`cold-gray-900 #0f0f0f` → `850 #1f1f1f` → `800 #2e2e2e` → `750 #3d3d3d`) rồi ánh
+     xạ sang VAI TRÒ (`--color-body-bg`, `--color-bg-primary`, `--color-text-primary`…).
+     Hai điều rút ra, và cả hai đều là chỗ bản cũ hỏng:
+
+       ① NỀN CHƯA ĐỦ SÂU. Cũ: nền #202020, thẻ #2b2b2b — cách nhau 11 nấc, nên thẻ
+          KHÔNG nổi lên được và cả màn hình phẳng lì. TradingView đi từ #0f0f0f lên
+          #1f1f1f rồi #2e2e2e: bước 16 nấc trên một nền sâu hơn hẳn, nên mỗi lớp tự
+          tách ra mà không cần một cái viền nào.
+       ② MỖI LỚP MỘT VAI. Nền trang sâu nhất; khung app nhỉnh hơn; đồ vật (khối, hộp
+          thoại) nổi trên cùng. Đọc một cái là biết thứ nào nằm trên thứ nào.
+
+     Màu TÍN HIỆU thì lấy thẳng của họ, vì chúng đã được chọn cho đúng nền tối này:
+     xanh `#22ab94` / đỏ `#f23645`. Xanh cũ (#4ec96a) là xanh lá chung chung, trên nền
+     sâu nó chói mà không nói được gì. */
+  --bg: #0e0e0e;
+  /* Màu "khung app": ribbon, bảng dưới, thanh trạng thái, thanh tiêu đề tự vẽ.
+     ⚠ PHẢI KHỚP `MAU_CUA_SO` trong `cat_studio/khung_cua_so.py` — đó là màu Windows
+     tô TRƯỚC khi web kịp chạy. Lệch thì mỗi lần mở cửa sổ có một nháy sai màu. */
+  --chrome: #1a1a1a;
+  /* Bề mặt của ĐỒ VẬT nổi lên trên khung: khối trên canvas, hộp thoại, thẻ. */
+  --surface: #1f1f1f;
+  --field: #161616;
+  --raised: #2b2b2b;
+  --raised-hover: #363636;
+  --border: #303030;
+  --border-soft: #242424;
+  --text: #dbdbdb;
+  --muted: #8c8c8c;
+  --dim: #636363;
 
   /* NẾN XÁM — giá là bối cảnh, không phải nhân vật. Xanh/đỏ để dành CHỈ cho lãi/lỗ,
      cam để dành CHỈ cho mức lệnh. Một cặp màu mang ba nghĩa thì chẳng còn nghĩa nào. */
   --nen-len: #9aa0a6;
   --nen-xuong: #5c6166;
-  --ok: #4ec96a;
-  --err: #e5534b;
-  --warn: #d9a441;
+  --ok: #22ab94;
+  --err: #f23645;
+  --warn: #fbc02d;
   --accent: #ffa657;
   --accent-soft: rgba(255, 166, 87, 0.16);
+  /* Cam đậm hơn một nấc — dùng cho lúc rê chuột và lúc nhấn. Một nút chỉ đổi NỀN mà
+     không đổi màu viền thì nhìn như không ăn. */
+  --accent-manh: #ff8c2e;
+  /* LAM — tên ĐẠI LƯỢNG và CHỈ BÁO trong câu trên thẻ khối (`.net-dl`).
+     ⚠ Phải là một sắc MỚI, không mượn được sắc nào đang có: xanh `--ok` và đỏ `--err`
+     là màu TÍN HIỆU (được/mất), cam `--accent` là thứ đáng bấm, vàng `--warn` vừa nhận
+     vai con số. Mượn bất kỳ cái nào thì trên canvas «RSI» sẽ mang đúng màu mà ở màn
+     Kết quả nghĩa là "lãi". Lam thì chưa nói gì trong app này — và lam vốn là màu
+     người ta vẫn tô định danh trong mọi bộ tô chữ lập trình, nên nó đọc được ngay. */
+  --lam: #6aa5f5;
 
   /* Màu nhận dạng các loại khối. Cố ý nhạt: 20 hộp trên canvas mà hộp nào cũng
      rực lên thì không còn gì nổi bật nữa. */

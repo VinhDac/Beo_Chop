@@ -1,6 +1,6 @@
 import { memo, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { Card, Step, StepKind } from '../types'
+import type { Card, MauNet, Step, StepKind } from '../types'
 import IconNet from './Icon'
 import { doanTim } from '../tim'
 import { tr, trx, useNgonNgu } from '../ngon_ngu'
@@ -61,24 +61,61 @@ function ChuTim({ text, tim }: { text: string; tim: string }) {
     d.khop ? <mark key={i} className="tim-chu">{d.chu}</mark> : d.chu)}</>
 }
 
-/** Một dòng trên thẻ, có TÔ SÁNG TÊN NÚM.
+/** Nghĩa của một mẩu -> lớp CSS.
  *
- *  Ghim một con số rồi mà thẻ vẫn vẽ «RSI(chu_ky)» bằng đúng màu chữ thường thì nó
- *  trông y hệt «RSI(14)» — nhìn cả sơ đồ không biết mình đã ghim những gì.
+ *  ⚠ VIẾT THẲNG TỪNG TÊN LỚP, không ghép `'net-' + y`. Hàng rào lớp CSS ma (MỐI NỐI 6)
+ *  đọc CHỮ trong tệp: ghép chuỗi thì nó chỉ thấy một lớp tên «net-» không có thật, kêu
+ *  oan, mà bốn lớp có thật thì nó không canh được cái nào — gõ sai `net-dl` thành
+ *  `net-dL` là chữ mất màu lặng thinh. Cùng lý do `className` của thẻ màn trên bản đồ
+ *  hành trình phải ghép thẳng chứ không gom qua một biến. */
+/** Một mẩu đã biết nghĩa -> thẻ `<span>` có màu.
  *
- *  Tên núm do PYTHON gửi sang (`DongThe.num`), giao diện không tự đoán chữ nào là
- *  tên: đoán thì tô nhầm một chữ trùng tên, hoặc bỏ sót một núm. Cắt theo tên trước,
- *  rồi mới chạy tô-sáng-tìm-kiếm trên mấy mẩu còn lại — hai bộ tô sáng lồng vào nhau
- *  thì sinh thẻ `<mark>` trong `<mark>`. */
-function DongChu({ text, num, tim }: {
-  text: string; num?: string[]; tim: string
+ *  ⚠ NĂM DÒNG `if` CHỨ KHÔNG PHẢI MỘT BẢNG TRA, và cũng không phải `'net-' + y`. Hàng
+ *  rào lớp CSS ma (MỐI NỐI 6) đọc CHỮ trong tệp: ghép chuỗi thì nó chỉ thấy một lớp
+ *  tên «net-» không có thật, còn `className={lop}` thì nó thấy một lớp tên «lop» —
+ *  cả hai cách đều vừa kêu oan, vừa bỏ lọt đủ năm lớp có thật, nên gõ `net-dl` thành
+ *  `net-dL` là chữ mất màu lặng thinh. Viết thẳng ra thì hàng rào canh được từng cái.
+ *  Cùng lý do `className` của thẻ màn trên bản đồ hành trình phải ghép thẳng. */
+function MauChu({ chu, y }: { chu: string; y: string }) {
+  if (y === 'num') return <span className="num-ghim">{chu}</span>
+  if (y === 'ma') return <span className="net-ma">{chu}</span>
+  if (y === 'so') return <span className="net-so">{chu}</span>
+  if (y === 'dl') return <span className="net-dl">{chu}</span>
+  if (y === 'phep') return <span className="net-phep">{chu}</span>
+  return <>{chu}</>
+}
+
+/** Một dòng trên thẻ, TÔ THEO NGHĨA.
+ *
+ *  Một dòng khối là một câu đặc chữ: «RSI(14) < 30», «SPY · Equity», «Đặt tỷ trọng
+ *  100%». In tất cả bằng một màu thì cả canvas thành một bức tường xám, và thứ người
+ *  đọc thật sự tìm — cái mã, con số đang vặn, tên chỉ báo — chìm nghỉm trong đó.
+ *
+ *  HAI THỨ ĐƯỢC TÔ, và CẢ HAI ĐỀU DO PYTHON NÓI RA:
+ *    · `num` — tên núm đã ghim. Ghim một con số rồi mà thẻ vẫn vẽ «RSI(chu_ky)» bằng
+ *      màu chữ thường thì nó trông y hệt «RSI(14)».
+ *    · `net` — mẩu có nghĩa: mã, số, tên đại lượng, phép so (xem `core._net`).
+ *
+ *  ⚠ GIAO DIỆN KHÔNG TỰ ĐỌC CÂU ĐỂ ĐOÁN. Câu ấy do chính Python vừa ghép ra từ dữ
+ *  liệu; đoán lại bằng TypeScript là dựng bản thứ hai của một bộ đọc đã có, và nó sẽ
+ *  tô «14» nằm trong «2014-06-09».
+ *
+ *  NÚM THẮNG khi một mẩu trùng chữ với nó: núm là thứ người chơi vừa tự tay đặt.
+ *  Cắt theo mẩu trước, rồi mới chạy tô-sáng-tìm-kiếm trên phần còn lại — hai bộ tô
+ *  sáng lồng vào nhau thì sinh thẻ `<mark>` trong `<mark>`. */
+export function DongChu({ text, num, net, tim }: {
+  text: string; num?: string[]; net?: MauNet[]; tim: string
 }) {
-  if (!num?.length) return <ChuTim text={text} tim={tim} />
-  // Tên dài trước, để `chu_ky` không bị `chu` cắt mất (Python đã xếp sẵn thế).
-  const re = new RegExp(`(${num.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|')})`, 'g')
-  return <>{text.split(re).map((m, i) => (num.includes(m)
-    ? <span key={i} className="num-ghim">{m}</span>
+  const theo = new Map<string, string>()
+  for (const t of num ?? []) if (t) theo.set(t, 'num')
+  for (const m of net ?? []) if (m.chu && !theo.has(m.chu)) theo.set(m.chu, m.y)
+  if (!theo.size) return <ChuTim text={text} tim={tim} />
+  // Mẩu DÀI trước, để `chu_ky` không bị `chu` cắt mất và `>=` ăn trước `>`.
+  const re = new RegExp(`(${[...theo.keys()]
+    .sort((a, b) => b.length - a.length)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
+  return <>{text.split(re).map((m, i) => (theo.has(m)
+    ? <MauChu key={i} chu={m} y={theo.get(m)!} />
     : <ChuTim key={i} text={m} tim={tim} />))}</>
 }
 
@@ -157,7 +194,7 @@ function StepNode({ data, selected }: NodeProps) {
               <div key={i} className="dong" title={d.text}>
                 <span className="danh">{card.kind === 'group' ? '·' : ''}</span>
                 <IconNet name={d.icon ?? ''} size={12} />
-                <span><DongChu text={d.text} num={d.num} tim={tim} /></span>
+                <span><DongChu text={d.text} num={d.num} net={d.net} tim={tim} /></span>
               </div>
             ))}
             {con > 0 && (

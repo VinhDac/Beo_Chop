@@ -49,6 +49,15 @@ xấu nhưng dùng được — thà thế còn hơn không mở nổi cửa s�
 import ctypes
 from ctypes import wintypes
 
+#: Màu Windows tô cửa sổ TRƯỚC khi web kịp chạy — tránh một nháy trắng mỗi lần mở.
+#:
+#: ⚠ MỘT CHỖ DUY NHẤT, và phải khớp `--chrome` trong `webui/src/theme.css`. Trước đây
+#: cùng một mã màu chép tay ở BA chỗ `create_window` cộng một chỗ trong CSS; đổi tông
+#: một lần là phải nhớ sửa đủ bốn, mà quên chỗ nào thì cửa sổ ấy nháy sai màu lúc mở —
+#: nửa giây, không ai bắt được bằng bài kiểm.
+MAU_CUA_SO = "#1a1a1a"
+
+
 u = ctypes.windll.user32
 dwm = ctypes.windll.dwmapi
 

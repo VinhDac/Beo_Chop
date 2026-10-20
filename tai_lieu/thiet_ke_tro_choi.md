@@ -253,6 +253,45 @@ chuỗi điều kiện đã khớp. Thiếu đúng một thứ — vệt của n
 
 ---
 
+## 5b. NGÔN NGỮ MÀU — chép TradingView, không tự nghĩ
+
+Chốt 20/10/2026, sau khi soi thẳng bảng biến của `tradingview.com` ở nền tối.
+
+**Ba điều học được, và cả ba đều là chỗ bản cũ hỏng:**
+
+1. **NỀN PHẢI SÂU.** Cũ: nền `#202020`, thẻ `#2b2b2b` — cách nhau 11 nấc, nên không gì
+   nổi lên được và cả app phẳng lì. Họ đi `#0f0f0f` → `#1f1f1f` → `#2e2e2e`: bước 16
+   nấc trên một nền sâu hơn hẳn, nên mỗi lớp tự tách ra mà **không cần một cái viền
+   nào**. Nay: `--bg #0e0e0e` (trang) → `--chrome #1a1a1a` (khung app) → `--surface
+   #1f1f1f` (đồ vật) → `--raised #2b2b2b`.
+2. **MÀU THƯƠNG HIỆU CHỈ DÀNH CHO THỨ ĐÁNG BẤM.** Trước đây cam rải khắp nơi — chín câu
+   phụ in nghiêng màu cam trên bản đồ hành trình, không cái nào bấm được. Nay cam chỉ
+   còn ở **một** chỗ mỗi màn hình: nút chính, và màn người chơi đang đứng.
+3. **MÀU TÍN HIỆU LÀ MỘT VAI RIÊNG,** không trộn với trang trí: xanh `#22ab94` / đỏ
+   `#f23645` lấy thẳng của họ (đã chọn cho đúng nền tối này). Vàng `--warn` đẩy hẳn
+   sang `#fbc02d` để thôi va vào cam.
+
+**Và chữ trên thẻ khối tô THEO NGHĨA.** Một dòng khối là một câu đặc chữ — «RSI(14) <
+30», «SPY · CFD», «Đặt tỷ trọng 100%». In cả câu một màu thì canvas thành bức tường
+xám. Nay bốn vai, chép đúng cách mọi bộ tô chữ lập trình:
+
+| vai | màu | ví dụ |
+|---|---|---|
+| tên đại lượng / chỉ báo | lam `--lam` | **RSI**(14) |
+| con số, ngày, tiền | vàng `--warn` | RSI(**14**) < **30** |
+| mã chứng khoán | trắng đậm | **SPY** · CFD |
+| phép so | mờ `--dim` | RSI(14) **<** 30 |
+| núm đã ghim | chip cam (có sẵn) | **chu_ky**=14 |
+
+> ⚠ **PYTHON CẮT, GIAO DIỆN CHỈ TÔ.** Chữ nào mang vai nào do `core._net` nói ra, gài
+> vào năm hàm dựng atom (`_so_gon`, `_tien`, `_ngay_vn`, `_so_the`, `_ve_dieu_kien`) —
+> không gài vào từng câu, vì câu thì có hàng chục mà atom chỉ có năm. Để giao diện tự
+> đọc câu mà đoán là dựng **bản thứ hai** của một bộ đọc Python vừa dùng để ghép ra
+> chính câu ấy; nó sẽ tô «14» nằm trong «2014-06-09», và không bao giờ nhận ra «Trí
+> nhớ: đang chờ mua lại» là cái tên người dùng tự gõ. Cùng một lời đã viết cho `num`.
+
+---
+
 ## 6. ÂM THANH
 
 Hiện tại: **không một file âm thanh nào trong cả dự án.** Đây là thứ phải dựng từ con số
@@ -339,7 +378,9 @@ Mỗi mốc phải **nhìn thấy được**, không mốc nào là "hạ tầng
 | **M6** | Con mèo, âm thanh, đánh bóng, khoe điểm. | **Sản phẩm.** |
 | **M7** | Giải bức tường LEAN (§8.1). | Người lạ chơi được. |
 
-> **Đã làm tới đâu (20/10/2026).** M1→M6 xong, M7 mới xong nửa mã.
+> **Đã làm tới đâu (20/10/2026).** M1→M6 xong, M7 mới xong nửa mã. Sau đó là một
+> lượt **đánh bóng mắt nhìn** — thang màu dựng lại theo TradingView, bản đồ hành
+> trình vẽ lại, chữ trên thẻ khối tô theo nghĩa (xem §5b).
 > M1 `db9b06f` · M2 `2157c12` · M3 `71487e2` · M4 `cdbdb46` · M5 `458b94f` ·
 > M6 `8de9af8` · M7 nửa mã `961b59c`.
 >

@@ -306,8 +306,16 @@ NHAN_KHAC = {
 }
 
 
-def nhan_mo(khoa):
-    """Một khoá mở -> chữ bày cho người chơi. -> str
+def the_mo(khoa):
+    """Một khoá mở -> thẻ bày cho người chơi. -> {nhan, loai}
+
+    `loai` nói thẻ này mở đồ Ở ĐÂU: "kho" là mấy đại lượng mới trong Kho, "xuong" là
+    một món đồ nghề mới trong Xưởng.
+
+    ⚠ PYTHON PHẢI NÓI RA, giao diện không được tự đoán. Bản màu của thẻ ăn theo chỗ ấy,
+    và cách duy nhất để giao diện tự biết là nó đọc lại tiền tố `nhom:` của khoá — tức
+    là luật phân loại nằm hai nơi, bằng hai thứ tiếng. Đúng cái bẫy `num` trong
+    `core.the_buoc` đã mắc một lần rồi.
 
     ⚠ DỰNG TỪ TỪ ĐIỂN THẬT, không gõ sẵn. Bản đầu viết tay "Nhóm Giá — 8 đại lượng"
     vào từng màn: một con số chép tay, nằm cách chỗ sinh ra nó ba tệp. Thêm một đại
@@ -317,7 +325,7 @@ def nhan_mo(khoa):
     loai, _, gt = str(khoa).partition(":")
     if loai == "nhom":
         n = sum(1 for m in hoi.tu_dien()["kho"] if m.get("nhom") == gt)
-        return tr("Nhóm {0} — {1} đại lượng", tr(gt), n)
+        return {"nhan": tr("Nhóm {0} — {1} đại lượng", tr(gt), n), "loai": "kho"}
     # ⚠ `tr()` cả nhãn từ điển. Chúng là hằng bên Python nên không bọc được lúc
     # nạp tệp; ở những chỗ nhãn đi NGUYÊN sang giao diện thì chính giao diện dịch,
     # nhưng ở đây Python đã GHÉP nó vào một câu rồi — nên phải dịch tại chỗ, không
@@ -325,20 +333,20 @@ def nhan_mo(khoa):
     if loai == "ho":
         for h in hoi.tu_dien()["loai"]:
             if h["ma"] == gt:
-                return tr(h["nhan"])
-        return gt
+                return {"nhan": tr(h["nhan"]), "loai": "xuong"}
+        return {"nhan": gt, "loai": "xuong"}
     if loai == "lam":
         for x in lam.tu_dien()["loai"]:
             if x["ma"] == gt:
-                return tr(x["nhan"])
-        return gt
+                return {"nhan": tr(x["nhan"]), "loai": "xuong"}
+        return {"nhan": gt, "loai": "xuong"}
     if loai == "o_may":
         from . import bat_dau
         for o in bat_dau.o_co_may():
             if o["ten"] == gt:
-                return tr(o["nhan"])
-        return gt
-    return tr(NHAN_KHAC.get(khoa, khoa))
+                return {"nhan": tr(o["nhan"]), "loai": "xuong"}
+        return {"nhan": gt, "loai": "xuong"}
+    return {"nhan": tr(NHAN_KHAC.get(khoa, khoa)), "loai": "xuong"}
 
 
 def da_mo(sao):
@@ -403,6 +411,14 @@ def cong_khai(m):
     }
 
 
+def _cham_duoc(m):
+    """Màn này có ba ngôi sao để ăn không. -> bool
+
+    MỘT CHỖ DUY NHẤT. Vừa dùng cho từng thẻ trên bản đồ, vừa dùng để cộng tổng sao —
+    tách ra hai nơi là có ngày thanh tiến trình chạy tới đủ mà vẫn còn màn chưa chơi."""
+    return not m.get("khong_cham") and co_san(m)
+
+
 def tu_dien():
     """Cả hành trình, đã dịch sẵn. -> {hoi: [...], man: [...], dang_o}
 
@@ -424,16 +440,23 @@ def tu_dien():
             "so": i,
             "ten": tr(m["ten"]),
             "day": tr(m["day"]),
-            "mo": [nhan_mo(x) for x in m["mo"]],
+            "mo": [the_mo(x) for x in m["mo"]],
             "dau": bool(m.get("dau")),
             "khoa": m["ma"] not in mo,
             "xong": m["ma"] in xong,
             "sao": int(sao.get(m["ma"]) or 0),
+            # Màn này có ba ngôi sao để ăn không. Màn 0 dựng chính con boss nên không
+            # chấm; ba màn chưa có sân thì chưa chạy được. Giao diện CHỈ việc đọc.
+            "cham_duoc": _cham_duoc(m),
             **cong_khai(m),
         } for i, m in enumerate(MAN)],
         # Màn người chơi đang đứng: màn mở mới nhất chưa xong.
         "dang_o": next((m["ma"] for m in MAN
                         if m["ma"] in mo and m["ma"] not in xong), MAN[-1]["ma"]),
-        # ⚠ Nói thẳng ra là luật chấm CHƯA có, để giao diện đừng vẽ sao như thật.
-        "co_luat_cham": False,
+        # ⚠ TỔNG SAO DO PYTHON ĐẾM. Giao diện muốn tự tính thì phải tự biết màn nào
+        # chấm được — tức là nhắc lại luật "màn 0 không chấm" và "chưa có sân thì không
+        # chấm" bằng TypeScript. Hai bản luật thì hôm nào lệch nhau, thanh tiến trình
+        # chạy tới 72/72 mà vẫn còn màn chưa chơi.
+        "sao_toi_da": 3 * sum(1 for m in MAN if _cham_duoc(m)),
+        "sao_dang_co": sum(int(sao.get(m["ma"]) or 0) for m in MAN),
     }

@@ -376,7 +376,7 @@ class Api(NenCuaSo):
             tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?kq={ma_id}",
             js_api=phu,
             width=1180, height=800, min_size=(900, 600),
-            background_color="#202020",
+            background_color=khung_cua_so.MAU_CUA_SO,
             # Cùng kiểu khung với cửa sổ chính: Windows 10 không cho đổi màu thanh
             # tiêu đề gốc, nên không bỏ khung thì cửa sổ kết quả đội một dải trắng.
             frameless=True, easy_drag=False,
@@ -755,7 +755,7 @@ class Api(NenCuaSo):
             tieu_de,
             url=f"{self._window.get_current_url().split('?')[0]}?tu={ma_id}",
             js_api=phu, width=1180, height=800, min_size=(900, 600),
-            background_color="#202020", frameless=True, easy_drag=False)
+            background_color=khung_cua_so.MAU_CUA_SO, frameless=True, easy_drag=False)
         phu._gan_window(w)
         self._cua_so_tu[ma_id] = (w, phu)
         w.events.closed += lambda: self._cua_so_tu.pop(ma_id, None)

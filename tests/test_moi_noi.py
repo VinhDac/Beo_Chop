@@ -155,6 +155,58 @@ for _f, _s in moi_tsx():
 kiem("giao diện KHÔNG gõ tên loại khối ra để tự tra", not _bang_hai,
      f"— {_bang_hai}")
 
+print("\n▸ MỐI NỐI 3b — CHỮ TRÊN THẺ TÔ THEO NGHĨA: Python cắt, giao diện chỉ tô")
+# Cùng một lời như `num` ngay trên: giao diện KHÔNG được tự đọc câu để đoán chữ nào là
+# tên đại lượng, chữ nào là con số. Câu ấy do chính Python ghép ra từ dữ liệu; đoán lại
+# bằng TypeScript là dựng bản thứ hai của một bộ đọc đã có — và nó sẽ tô «14» nằm trong
+# «2014-06-09». Nên Python gửi kèm `net`, và bài này canh ba điều kiện của `net`.
+_man_hoi = core.the_buoc({
+    "id": "n1", "kind": "step", "type": list(hoi.LOAI_HOI)[0],
+    "dieu_kien": [{"trai": {"ma_dl": "rsi", "tham_so": {"chu_ky": 14}},
+                   "phep": "<", "phai": {"so": 30}}]})
+_y = {m["chu"]: m["y"] for m in _man_hoi["lines"][0]["net"]}
+kiem(f"«RSI(14) < 30» -> RSI là ĐẠI LƯỢNG ({_man_hoi['lines'][0]['text']})",
+     _y.get("RSI") == core.NET_DL, f"— {_y}")
+kiem("14 và 30 là SỐ",
+     _y.get("14") == core.NET_SO and _y.get("30") == core.NET_SO, f"— {_y}")
+kiem("< là PHÉP SO", _y.get("<") == core.NET_PHEP, f"— {_y}")
+
+_man_bd = core.the_buoc({
+    "id": "n2", "kind": "start", "ma": [{"ma": "SPY", "loai": "equity"}],
+    "khoang": {"tu": "2012-01-01", "den": "2014-12-31"}, "von": 100000})
+_y2 = {m["chu"]: m["y"] for d in _man_bd["lines"] for m in d["net"]}
+kiem("mã chứng khoán là MÃ", _y2.get("SPY") == core.NET_MA, f"— {_y2}")
+kiem("ngày và vốn là SỐ",
+     all(v == core.NET_SO for k, v in _y2.items() if k != "SPY"), f"— {_y2}")
+
+# ⚠ MẨU PHẢI NẰM TRONG CHÍNH DÒNG ẤY. Giao diện cắt câu bằng `split` theo mấy mẩu này;
+# một mẩu không có trong câu thì vô hại, nhưng một mẩu CỦA DÒNG KHÁC lọt sang là nó tô
+# đúng một chữ ở sai chỗ — và chuyện ấy chỉ xảy ra với mấy loại khối ít ai mở ra xem.
+_moi_the = [core.the_buoc(core.make_lam_step(t)) for t in lam.LOAI_LAM]
+_moi_the += [core.the_buoc(core.make_hoi_step(t)) for t in hoi.LOAI_HOI]
+_moi_the += [core.the_buoc(core.make_quay_ve_step()), _man_hoi, _man_bd]
+_lac = [(d["text"], m["chu"]) for t in _moi_the for d in t["lines"]
+        for m in d["net"] if m["chu"] not in d["text"]]
+kiem(f"mọi mẩu đều nằm trong chính dòng của nó ({len(_moi_the)} loại khối)",
+     not _lac, f"— {_lac[:3]}")
+# ⚠ DÀI TRƯỚC. «>=» phải ăn trước «>», «100» trước «1», «2014» trước «14». Xếp sai thì
+# `split` chẻ đôi một con số và nửa sau đổi màu giữa chừng.
+_xeo = [[m["chu"] for m in d["net"]] for t in _moi_the for d in t["lines"]
+        if [len(m["chu"]) for m in d["net"]]
+        != sorted((len(m["chu"]) for m in d["net"]), reverse=True)]
+kiem("và xếp DÀI TRƯỚC", not _xeo, f"— {_xeo[:3]}")
+# ⚠ KHÔNG RÒ. Bộ gom là biến toàn cục (cùng lối với `_TEN_NHO` ngay trên nó). Để sót
+# thì thẻ dựng sau ăn mẩu của thẻ trước, và một cái mã chứng khoán sáng lên ở đúng chỗ
+# nó không hề có mặt.
+kiem("dựng xong thì bộ gom trả về như cũ", core._NET is None)
+try:
+    core.the_buoc(None)
+except Exception:
+    pass
+kiem("và ném giữa chừng thì cũng thế", core._NET is None,
+     "— thiếu `finally` là thẻ sau ăn mẩu của thẻ trước")
+
+
 print("\n▸ MỐI NỐI 4 — cả kho ĐẠI LƯỢNG × sinh mã · thẻ · soát")
 # 68 đại lượng đi qua ba hàm. Một cái rơi về lối im lặng ở bất kỳ hàm nào thì người
 # dùng vẽ ra một điều kiện VÔ NGHĨA mà soát vẫn sạch.
@@ -818,10 +870,30 @@ kiem("xong màn đầu thì mở thêm ĐÚNG một màn",
 kiem("và tiến trình chỉ có MỘT sổ — sổ điểm",
      "def _so()" not in doc("cat_studio", "hanh_trinh.py"),
      "— hai nơi cùng giữ một sự thật thì sớm muộn chúng lệch nhau")
-# Luật chấm sao là mốc sau. Im lặng ở đây là vẽ sẵn ô sao rỗng, và người chơi tưởng
-# mình chơi mãi không ăn được sao nào.
-kiem("và NÓI RÕ là chưa có luật chấm", _td["co_luat_cham"] is False)
-kiem("bản đồ bày lời ấy ra", "co_luat_cham" in _mht)
+# ⚠ MỘT BẢN LUẬT, KHÔNG HAI — và đây là lần hàng rào tự nó thành cái lỗi. Bản đầu gắn
+# vào bản đồ một lá cờ `co_luat_cham: False` GÕ CỨNG từ mốc M1, rồi bài kiểm này đi
+# khẳng định nó đúng là False. Luật chấm làm xong ở M3; không ai gỡ lá cờ, mà bài kiểm
+# thì không kêu — nó được viết để canh đúng cái sai ấy. Suốt bốn mốc sau, thứ ĐẦU TIÊN
+# người chơi thấy khi mở bản đồ là một dải cam kín bề ngang báo "chưa màn nào chấm
+# được", trong khi chơi tới ba sao đã chạy được từ lâu. Chỉ ảnh chụp mới bắt ra.
+# Nay không còn cờ gõ cứng nào: màn nào chấm được thì ĐẾM từ chính luật.
+kiem("bản đồ không còn cờ gõ cứng về luật chấm",
+     "co_luat_cham" not in _td and "co_luat_cham" not in _mht,
+     "— một lá cờ chép tay thì chỉ đúng tới hôm luật đổi")
+kiem(f"tổng sao khớp với số màn chấm được ({_td['sao_toi_da']})",
+     _td["sao_toi_da"] == 3 * sum(1 for x in _td["man"] if x["cham_duoc"]),
+     "— lệch thì thanh tiến trình chạy tới đủ mà vẫn còn màn chưa chơi")
+kiem("màn 0 dựng chính con boss nên KHÔNG chấm",
+     _td["man"][0]["cham_duoc"] is False)
+kiem("màn chưa có sân thì cũng không chấm",
+     all(x["cham_duoc"] is False for x in _td["man"] if x.get("co_san") is False),
+     "— vẽ sẵn ba ô sao không bao giờ ăn được là hứa suông")
+# ⚠ PYTHON PHÂN LOẠI THẺ MỞ KHOÁ, giao diện không đoán. Cách duy nhất để giao diện tự
+# biết thẻ nào thuộc Kho là nó đọc lại tiền tố `nhom:` của khoá — tức luật phân loại
+# nằm hai nơi, bằng hai thứ tiếng, và lệch nhau ở đúng chỗ không ai ngó.
+kiem("thẻ mở khoá nào cũng do Python nói rõ nằm ở Kho hay ở Xưởng",
+     all(x["loai"] in ("kho", "xuong") for m in _td["man"] for x in m["mo"]),
+     "— màu chấm trên thẻ ăn theo đấy")
 
 
 print("\n▸ MỐI NỐI 14 — LUẬT CHƠI: màn ẩn, boss, ba sao, màn Chấm")

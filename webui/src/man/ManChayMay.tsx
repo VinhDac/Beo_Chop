@@ -14,6 +14,8 @@ import { keu } from '../am_thanh'
 import type {
   Card, CoMay, Edge, KetQuaChay, KetQuaSoat, Step, TienDoChay,
 } from '../types'
+import { soTien } from '../so'
+import { DongChu } from '../components/StepNode'
 import { dungMach, idDay, type MachChay, type NhipChay, type TrangThaiVan }
   from './mach_chay'
 
@@ -192,7 +194,11 @@ function KhoiChayTrong({ id, data }: NodeProps) {
               <div key={i} className="dong" title={d.text}>
                 <span className="danh">{card.kind === 'group' ? '·' : ''}</span>
                 <Icon name={d.icon ?? ''} size={12} />
-                <span>{d.text}</span>
+                {/* CÙNG MỘT BỘ TÔ với thẻ khối trên canvas (`DongChu` của
+                    `StepNode`). Vẽ lại bằng chữ trơn ở đây thì cùng một khối mang
+                    hai bộ mặt: vào Xưởng thì «RSI» xanh lam, sang màn Chạy máy thì
+                    xám — và người chơi phải học lại cách đọc ở màn quan trọng nhất. */}
+                <span><DongChu text={d.text} num={d.num} net={d.net} tim="" /></span>
               </div>
             ))}
           </div>
@@ -288,13 +294,6 @@ function DuongVon({ mach, i }: { mach: MachChay; i: number }) {
 }
 
 /* ------------------------------------ màn ------------------------------------ */
-
-/** ⚠ `vi-VN` CHỨ KHÔNG PHẢI `en-US`, và đây là chuyện khớp nhau chứ không phải gu.
- *  Cả app đã định dạng số bằng `vi-VN` (`BangBieuDo`, `HopKetQua`, `HopToiUu`). Đồng
- *  hồ ở đây viết `100,000` còn bảng Kết quả viết `100.000` thì cùng một con số hiện ra
- *  hai kiểu, và người đọc phải tự đoán bên nào là hàng nghìn. Một quy ước, một chỗ. */
-const soTien = (v: number) =>
-  v.toLocaleString('vi-VN', { maximumFractionDigits: 0 })
 
 /** Giây UNIX -> `2020-03-12`. Giờ UTC, đúng như LEAN ghi, và không theo máy người
  *  dùng: cùng một lượt chạy xem ở hai múi giờ phải ra cùng một ngày. */

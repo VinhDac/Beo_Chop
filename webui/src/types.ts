@@ -71,6 +71,17 @@ export interface DongThe {
   /** Tên mấy NÚM đã ghim xuất hiện trong dòng này, để thẻ tô sáng chúng lên. Python
    *  nói ra; giao diện không tự đoán chữ nào là tên núm. Xếp dài-trước. */
   num?: string[]
+  /** MẨU CÓ NGHĨA trong dòng này — mã chứng khoán, con số, tên đại lượng, phép so.
+   *  Python nói ra (`core._net`); giao diện KHÔNG tự đọc câu để đoán, vì câu ấy do
+   *  chính Python vừa ghép từ dữ liệu, và đoán lại thì nó sẽ tô «14» nằm trong
+   *  «2014-06-09». Xếp dài-trước, để «>=» ăn trước «>». */
+  net?: MauNet[]
+}
+
+/** Một mẩu có nghĩa trong dòng thẻ. `y` quyết màu — xem `.net-*` trong `app.css`. */
+export interface MauNet {
+  chu: string
+  y: 'ma' | 'so' | 'dl' | 'phep'
 }
 
 /** Thẻ vẽ một khối. Mọi chuỗi trong đây do Python sinh. */
@@ -651,6 +662,16 @@ export interface ChamMan {
 }
 
 /** Một MÀN. Chữ đã do Python dịch sẵn, trang bản đồ không ghép câu nào. */
+/** Một món màn này mở khoá.
+ *
+ *  `loai` nói món ấy nằm Ở ĐÂU — "kho" là đại lượng mới trong Kho, "xuong" là đồ nghề
+ *  mới trong Xưởng. Chấm màu trên thẻ ăn theo đấy; giao diện KHÔNG tự đoán bằng cách
+ *  đọc lại tiền tố của khoá, xem `hanh_trinh.the_mo`. */
+export interface TheMo {
+  nhan: string
+  loai: 'kho' | 'xuong'
+}
+
 export interface ManHT {
   ma: string
   hoi: string
@@ -660,12 +681,14 @@ export interface ManHT {
   /** MỘT ý mới duy nhất của màn này. */
   day: string
   /** Màn này mở khoá những gì. */
-  mo: string[]
+  mo: TheMo[]
   /** Màn gánh cả trò chơi — bản đồ vẽ khác đi. */
   dau: boolean
   khoa: boolean
   xong: boolean
   sao: number
+  /** Màn này có ba ngôi sao để ăn không — xem `hanh_trinh._cham_duoc`. */
+  cham_duoc: boolean
   /** Màn đã có sân chơi thật (mã + khoảng ngày) chưa. False thì vẽ được mà chưa
    *  chạy chấm được — bản đồ phải NÓI RA. */
   co_san?: boolean
@@ -692,8 +715,10 @@ export interface HanhTrinh {
   man: ManHT[]
   /** Màn người chơi đang đứng. */
   dang_o: string
-  /** Luật chấm sao đã có chưa. False thì bản đồ phải NÓI RA, đừng vẽ sao như thật. */
-  co_luat_cham: boolean
+  /** Ăn được mấy sao trên TỔNG số sao của cả hành trình. Python đếm, xem
+   *  `hanh_trinh._cham_duoc` — giao diện tự cộng là chép lại luật chơi. */
+  sao_dang_co: number
+  sao_toi_da: number
 }
 
 /** Một món trong KHO. `lean` là CÂU LEAN THẬT của nó — lời hứa D-11: mỗi đại lượng

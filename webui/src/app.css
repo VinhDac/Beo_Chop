@@ -562,6 +562,30 @@ mark.tim-chu {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border-radius: 3px; padding: 0 3px;
 }
+/* ---------------- MẨU CÓ NGHĨA trong một dòng thẻ khối ----------------
+   Một dòng khối là một câu đặc chữ: «RSI(14) < 30», «SPY · Equity», «Đặt tỷ trọng
+   100%». In cả câu bằng một màu thì canvas thành một bức tường xám, và thứ người đọc
+   thật sự tìm — cái mã, con số đang vặn, tên chỉ báo — chìm nghỉm.
+
+   Chép đúng cách mọi bộ tô chữ lập trình (và cách TradingView bày một dòng giá): BA
+   vai, ba màu, phần nối vẫn là chữ thường.
+     · tên đại lượng  -> LAM. Định danh.
+     · con số         -> VÀNG. Giá trị.
+     · mã chứng khoán -> trắng ĐẬM. Tên riêng, sáng nhất dòng.
+     · phép so        -> mờ. Nó là dấu câu, không phải tin.
+   Chữ nào thuộc vai nào thì PYTHON nói (`core._net`), giao diện không đoán. */
+.net-dl { color: var(--lam); }
+.net-so { color: var(--warn); }
+.net-ma { color: var(--text); font-weight: 600; letter-spacing: .03em; }
+.net-phep { color: var(--dim); }
+/* Dòng đã mang màu riêng (mục tiêu, mốc phụ, dòng mờ) thì ĐỪNG tô chen vào: màu của
+   cả dòng ở đấy là một lời nói khác, và hai lời chồng lên nhau thì không nghe ra lời
+   nào. Chỉ phép so vẫn mờ đi, vì nó mờ ở mọi nơi. */
+.hop .dong.mo-dau .net-dl, .hop .dong.mo-dau .net-so, .hop .dong.mo-dau .net-ma,
+.hop .dong.muc-tieu .net-dl, .hop .dong.muc-tieu .net-so, .hop .dong.muc-tieu .net-ma,
+.hop .dong.moc-phu .net-dl, .hop .dong.moc-phu .net-so, .hop .dong.moc-phu .net-ma {
+  color: inherit;
+}
 /* Huy hiệu "↻ 4A.2" trên đầu khối Quay về: đọc sơ đồ khỏi phải mở hộp thoại. */
 .hop .dau .ve-nhan {
   flex: 0 0 auto;
@@ -2119,40 +2143,82 @@ mark.tim-chu {
 }
 .man-che.hien { opacity: 1; }
 
-/* ========================= MÀN MỞ MÁY ========================= */
+/* ========================= MÀN MỞ MÁY =========================
+   ⚠ BA CHỖ BẢN ĐẦU LÀM SAI, và cả ba chỉ thấy khi nhìn ảnh chụp cả màn hình:
+
+     ① NHÂN VẬT CHÍNH QUÁ NHỎ. Con mèo và cỗ máy — thứ DUY NHẤT nói app này là gì —
+        chiếm chừng một phần mười bề ngang, nổi giữa một khoảng trống mênh mông. Nay
+        nó là HÌNH CHÍNH: rộng tới 640px, và cả cụm chữ bám theo nó.
+     ② HAI NÚT NẶNG NGANG NHAU. «Hành trình» và «Vẽ tiếp» cùng viền, cùng nền, khác
+        mỗi cái viền cam mảnh — nên mắt không biết nên bấm cái nào. Nay nút chính TÔ
+        ĐẶC màu thương hiệu, nút kia là nút bóng. Một màn hình chỉ nên có một nút
+        sáng nhất.
+     ③ KHÔNG CÓ CHIỀU SÂU. Nền phẳng lì một màu. Nay có một quầng sáng rất mờ sau cỗ
+        máy — đủ để tâm màn hình nặng hơn mép, không đủ để ai nhận ra là gradient. */
 .mm { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .mm-than {
-  flex: 1; min-height: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; padding: 16px; text-align: center;
+  position: relative;
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; padding: 16px; text-align: center;
 }
-.mm-ten {
-  margin: 10px 0 0; font-size: 38px; font-weight: 600; letter-spacing: .02em;
-  color: var(--text);
+/* ⚠ CĂN GIỮA BẰNG `margin: auto`, KHÔNG BẰNG `justify-content`. Cửa sổ thấp hơn cụm
+   mèo + máy + chữ thì bản trước để nó TRÀN RA CẢ HAI ĐẦU: con mèo trèo lên thanh tiêu
+   đề, đè lên đúng chữ «Cat Studio» của thanh ấy. Căn bằng `justify-content: center`
+   còn một tật nữa là phần tràn lên phía TRÊN không cuộn tới được — lỗi kinh điển của
+   flexbox. Hai cái lề tự động thì vừa căn giữa lúc đủ chỗ, vừa cuộn được lúc thiếu.
+   (Cửa sổ thật tối thiểu 900×600 nên hiếm khi tới đây — nhưng hiếm không phải là
+   không, và lúc ấy thì nó là một vết đè chình ình giữa màn hình đầu tiên.) */
+.mm-than > *:first-child { margin-top: auto; }
+.mm-than > *:last-child { margin-bottom: auto; }
+/* Quầng sáng sau cỗ máy — tâm màn hình phải NẶNG hơn mép. */
+.mm-than::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(58% 46% at 50% 38%,
+              color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 70%);
 }
-.mm-cau { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); max-width: 520px; }
+.mm-than > * { position: relative; }
 
-.mm-nut { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+.mm-ten {
+  margin: 26px 0 0; font-size: 46px; font-weight: 600; letter-spacing: -0.015em;
+  color: var(--text); line-height: 1;
+}
+.mm-cau {
+  margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: var(--muted);
+  max-width: 460px;
+}
+
+.mm-nut { display: flex; gap: 10px; margin-top: 34px; flex-wrap: wrap; justify-content: center; }
 /* Nút TO vì đây là hai lựa chọn duy nhất của cả màn hình — và nút của trò chơi thì
    không nên trông như nút của hộp thoại. */
 .nut-to {
-  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
-  min-width: 232px; padding: 13px 17px; font: inherit; font-size: 15px;
-  cursor: pointer; text-align: left; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  min-width: 236px; padding: 12px 18px; font: inherit; font-size: 14.5px;
+  font-weight: 600; cursor: pointer; text-align: left; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
-.nut-to:hover { background: var(--raised); border-color: var(--accent); transform: translateY(-1px); }
-.nut-to.chinh { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.nut-to:hover { background: var(--raised); border-color: var(--dim); transform: translateY(-1px); }
 .nut-to small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+/* NÚT CHÍNH tô đặc — một màn hình chỉ có một nút sáng nhất. */
+.nut-to.chinh {
+  color: #1a1200; background: var(--accent); border-color: var(--accent);
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset,
+              0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.nut-to.chinh:hover { background: var(--accent-manh); border-color: var(--accent-manh); }
+.nut-to.chinh small { color: color-mix(in srgb, #1a1200 72%, transparent); }
 
 .mm-chan { padding: 10px 14px; display: flex; justify-content: flex-end; }
 .mm-tieng { width: auto; min-width: 128px; }
 
 /* Con mèo đứng cạnh cỗ máy — nó lắp ra cái máy ấy. Bản tạm, xem `Meo` trong
    `ManMoMay.tsx`: hình thật là việc của chủ dự án. */
-.mm-canh { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; justify-content: center; }
-.mm-meo { width: 84px; height: auto; flex: 0 0 auto; overflow: visible; }
+.mm-canh {
+  display: flex; align-items: center; gap: 30px;
+  flex-wrap: wrap; justify-content: center; width: min(760px, 92vw);
+}
+.mm-meo { width: 118px; height: auto; flex: 0 0 auto; overflow: visible; }
 .mm-meo-net { fill: none; stroke: var(--border); stroke-width: 3; stroke-linejoin: round; }
 .mm-meo-ria path { stroke: var(--border); stroke-width: 2; stroke-linecap: round; }
 .mm-meo-mat path {
@@ -2169,7 +2235,7 @@ mark.tim-chu {
 
 /* Cỗ máy đang chạy — hình nền sống của màn mở. Xem `MayChay` trong `ManMoMay.tsx`:
    mỗi sợi dây là HAI đường chồng nhau, nền liền nét và vệt sáng đứt nét chạy đè lên. */
-.mm-may { width: min(520px, 86vw); height: auto; overflow: visible; }
+.mm-may { width: min(560px, 60vw); min-width: 300px; height: auto; overflow: visible; }
 .mm-nen path, .mm-dong path {
   fill: none; stroke-width: 3; stroke-linecap: round;
 }
@@ -2199,74 +2265,195 @@ mark.tim-chu {
   .mm-dong { display: none; }
 }
 
-/* ========================= MÀN HÀNH TRÌNH ========================= */
-/* `position: relative` để nút Kho (`.ht-kho`, absolute) neo vào CHÍNH màn này —
-   thiếu nó thì nó neo vào khung nhìn, và ở cửa sổ khác cỡ là lệch chỗ. */
-.ht { position: relative; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+/* ========================= MÀN HÀNH TRÌNH =========================
+   ⚠ BỐN CHỖ BẢN ĐẦU LÀM SAI. Cả bốn chỉ thấy khi nhìn ẢNH CHỤP cả màn hình:
+
+     ① THỨ ỒN NHẤT LẠI LÀ THỨ VÔ NGHĨA NHẤT. Mở bản đồ ra là một dải cam kín bề ngang
+        báo "hành trình mới dựng xong bộ khung". Mắt bị kéo lên đấy trước cả tên hồi —
+        mà đó là một lời nhắn về chuyện LÀM app, không phải chuyện chơi; tệ hơn, nó sai
+        từ hôm luật chấm xong mà không ai gỡ. Nay chỗ ấy là tiến trình của người chơi:
+        đi được mấy màn, ăn được mấy sao.
+     ② HAI MƯƠI SÁU THẺ NẶNG NHƯ NHAU. Khoá hay mở, đã qua hay chưa, chỉ khác nhau mỗi
+        cái viền đứt với `opacity: .58` — nhìn lướt là một mảng xám đều. Nay trạng thái
+        đọc được từ xa: một VẠCH 3px ở mép trái (xanh = đã qua, cam = đang đứng), và màn
+        khoá tụt xuống nền tối hơn mặt thẻ chứ không nổi lên.
+     ③ CAM TIÊU PHÍ. Câu phụ của mỗi hồi in nghiêng màu cam, nên cả trang có chín vệt
+        cam không bấm được. Chép cách TradingView: màu thương hiệu CHỈ tô vào đúng thứ
+        đáng bấm, chữ phụ là xám. Nay cam chỉ còn ở màn người chơi đang đứng.
+     ④ SAO KHÔNG VẼ. `sao` có trong payload từ đầu mà bản đồ không hề bày ra — tức là
+        màn hình bản đồ của một trò chơi không có lấy một chỗ nói người chơi được gì. */
+.ht { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .ht > .ht-loi { margin: 12px 14px; }
 .ht-cho {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 24px; color: var(--dim); font-size: 12.5px;
 }
-.ht-than { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 24px; }
-.ht-nhac {
-  margin: 10px 0 14px; padding: 9px 11px; font-size: 12px; line-height: 1.55;
-  color: var(--text); background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 6px;
-}
+.ht-than { flex: 1; min-height: 0; overflow-y: auto; padding: 0 22px 28px; }
 
-.ht-hoi { margin-bottom: 22px; }
+/* ----------------------------------------------------------- đầu trang: THÀNH TÍCH */
+.ht-tong {
+  display: flex; align-items: center; gap: 26px;
+  padding: 16px 2px 15px;
+}
+.ht-tong-o { display: flex; flex-direction: column; gap: 1px; }
+/* Con số TO, nhãn nhỏ — cách TradingView bày mọi con số: số trước, chữ sau, và số thì
+   dùng chữ đều ô (`tabular-nums`) để hàng đơn vị không nhảy khi nó đổi. */
+.ht-tong-so {
+  font-family: var(--mono); font-size: 24px; font-weight: 600; line-height: 1.1;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.ht-tong-so i { font-style: normal; font-size: 13px; font-weight: 400; color: var(--dim); }
+.ht-tong-so.sao { color: var(--warn); }
+/* Ngôi sao: phông chữ thường (xem lời trong `ManHanhTrinh`), và phải thắng luật
+   `.ht-tong-so i` ngay trên — luật ấy tô mọi `<i>` thành xám vì nó sinh ra cho phần
+   "/66". Thiếu một nấc riêng thì ngôi sao vàng hoá xám, lặng thinh. */
+.ht-tong-so .ht-ngoi {
+  font-family: var(--font); font-style: normal; font-size: 19px; color: var(--warn);
+}
+.ht-tong-nhan { font-size: 11px; color: var(--dim); }
+.ht-tong .day { flex: 1; }
+.ht-kho {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font: inherit; font-size: 12.5px; cursor: pointer;
+  color: var(--text); background: var(--raised);
+  border: 1px solid transparent; border-radius: 6px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.ht-kho:hover { background: var(--raised-hover); border-color: var(--border); }
+
+/* ------------------------------------------------------------------------- một HỒI */
+.ht-hoi { margin-bottom: 26px; }
 .ht-hoi-dau {
   position: sticky; top: 0; z-index: 1;
-  display: flex; align-items: baseline; gap: 9px;
-  padding: 9px 0 7px; background: var(--bg);
-  border-bottom: 1px solid var(--border-soft); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 9px; background: var(--bg);
+  border-bottom: 1px solid var(--border-soft); margin-bottom: 12px;
 }
-.ht-hoi-dau h2 { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--text); }
-.ht-hoi-cau { font-size: 12px; color: var(--accent); font-style: italic; }
+.ht-hoi-dau h2 {
+  margin: 0; font-size: 15px; font-weight: 600; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.ht-hoi-cau { font-size: 12px; color: var(--muted); }
 .ht-hoi-dau .day { flex: 1; }
-.ht-hoi-dem { font-size: 11.5px; color: var(--dim); font-family: var(--mono); }
+.ht-hoi-dem {
+  font-family: var(--mono); font-size: 11.5px; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.ht-hoi-dem.du { color: var(--ok); }
+/* Vạch tiến trình của hồi. Nền của vạch phải SÁNG hơn nền trang, không thì lúc trống
+   nó biến mất và người chơi chỉ thấy một con số lẻ loi. */
+.ht-vach {
+  width: 56px; height: 3px; border-radius: 2px;
+  background: var(--raised); overflow: hidden;
+}
+.ht-vach i { display: block; height: 100%; background: var(--accent); transition: width 240ms ease; }
+.ht-vach i.du { background: var(--ok); }
 
+/* ------------------------------------------------------------------------ một MÀN */
 /* Lưới tự giãn: cửa sổ hẹp thì một cột, rộng thì ba — không cần luật @media nào, nên
    cũng không có bảng ngưỡng nào phải đo lại sau này. */
-.ht-day { display: grid; gap: 9px; grid-template-columns: repeat(auto-fill, minmax(282px, 1fr)); }
+.ht-day { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(286px, 1fr)); }
 
 .ht-man {
-  display: block; width: 100%; text-align: left; padding: 11px 13px; font: inherit;
-  cursor: pointer; color: var(--text); background: var(--surface);
-  border: 1px solid var(--border-soft); border-radius: 7px;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  position: relative; display: flex; flex-direction: column; width: 100%;
+  text-align: left; padding: 12px 14px 13px 16px; font: inherit; cursor: pointer;
+  color: var(--text); background: var(--surface);
+  border: 1px solid transparent; border-radius: 8px;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
-.ht-man:hover:not(:disabled) {
-  background: var(--raised); border-color: var(--accent); transform: translateY(-1px);
+/* VẠCH TRẠNG THÁI ở mép trái. Một cột 3px đọc được từ đầu kia căn phòng, trong khi
+   `opacity` và viền đứt thì phải ghé sát mới phân biệt nổi. */
+.ht-man::before {
+  content: ''; position: absolute; left: 0; top: 11px; bottom: 11px; width: 3px;
+  border-radius: 0 3px 3px 0; background: transparent;
 }
+.ht-man:hover:not(:disabled) { background: var(--raised); transform: translateY(-1px); }
+.ht-man.xong::before { background: var(--ok); }
 /* MÀN KHOÁ vẫn đọc được tên và câu dạy — giấu hẳn thì người chơi không thấy hành
-   trình dài bao nhiêu, mà biết mình đang đi tới đâu chính là thứ giữ người ta lại. */
-.ht-man.khoa { cursor: default; opacity: .58; border-style: dashed; }
-.ht-man.dang-o { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
-/* Mấy màn gánh cả trò chơi (xem thiết kế §3) — một vạch vàng ở mép trên. */
-.ht-man.dau { border-top: 2px solid var(--warn); }
+   trình dài bao nhiêu, mà biết mình đang đi tới đâu chính là thứ giữ người ta lại.
+   Nó TỤT XUỐNG dưới nền trang: thẻ chơi được nổi lên, thẻ khoá chìm đi. */
+.ht-man.khoa { cursor: default; background: var(--field); }
+.ht-man.khoa .ht-man-ten { color: var(--muted); font-weight: 500; }
+/* MÀN ĐANG ĐỨNG — thứ duy nhất cả trang được tô màu thương hiệu. */
+.ht-man.dang-o {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 52%, transparent);
+}
+.ht-man.dang-o::before { background: var(--accent); }
+.ht-man.dang-o:hover { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); }
 
-.ht-man-dau { display: flex; align-items: baseline; gap: 7px; }
-.ht-man-so { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
-.ht-man-ten { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; }
+.ht-man-dau { display: flex; align-items: baseline; gap: 8px; }
+.ht-man-so {
+  font-family: var(--mono); font-size: 11.5px; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+/* Mấy màn gánh cả trò chơi (xem thiết kế §3): SỐ của chúng in màu vàng. Bản trước kẻ
+   một vạch vàng ở mép trên, nhưng mép trái đã có vạch trạng thái rồi — hai vạch hai
+   màu trên cùng một thẻ thì không vạch nào còn nói được gì. */
+.ht-man.dau .ht-man-so { color: var(--warn); }
+.ht-man-ten { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
 .ht-khoa {
-  padding: 1px 5px; border-radius: 3px; font-size: 10px; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--dim); border: 1px solid var(--border);
+  padding: 0 1px; font-size: 9px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--dim);
 }
-.ht-man-day { margin-top: 5px; font-size: 11.8px; line-height: 1.5; color: var(--muted); }
-.ht-mo { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.ht-sao { flex: 0 0 auto; font-size: 11px; letter-spacing: 1px; color: var(--border); }
+.ht-sao i { font-style: normal; }
+.ht-sao i.an { color: var(--warn); }
+
+/* Câu dạy CẮT Ở BA DÒNG. Thẻ so le nhau 20px là thứ làm cả lưới trông như chưa ai
+   ngó tới; câu đầy đủ vẫn còn trong `title` khi rê chuột. */
+.ht-man-day {
+  margin-top: 6px; font-size: 11.8px; line-height: 1.55; color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ht-man.khoa .ht-man-day { color: var(--dim); }
+.ht-man.khoa .ht-man-so { color: var(--border); }
+
+/* SÂN THẬT, viết bằng chữ ĐỀU Ô. Chép đúng cách TradingView bày một thị trường: mã in
+   đậm sáng nhất, mấy con số quanh nó mờ hơn một bậc — mắt bắt được cái mã trước, rồi
+   mới đọc tới ngày và vốn. */
+.ht-san {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 9px;
+  font-family: var(--mono); font-size: 11px; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.ht-san-ma { font-size: 12px; font-weight: 600; letter-spacing: .03em; color: var(--text); }
+.ht-san-boss { color: var(--muted); }
+/* Thẻ đang đứng giãn hết bề ngang khi cả hồi chỉ có nó, nên câu dạy phải có mép phải —
+   một dòng chữ dài 1300px thì mắt lạc hàng khi xuống dòng. */
+.ht-man.dang-o .ht-man-day { max-width: 72ch; }
+
+.ht-mo { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 10px; }
+/* Thẻ mở khoá — thứ TRẢ CÔNG cho màn này, nên phải đọc được. Chấm màu nói món ấy nằm
+   đâu: xanh là đại lượng mới trong Kho, cam là đồ nghề mới trong Xưởng. */
 .ht-the {
-  padding: 2px 6px; font-size: 10.5px; border-radius: 3px;
-  color: var(--muted); background: var(--field); border: 1px solid var(--border-soft);
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 7px 3px 6px; font-size: 10.5px; border-radius: 4px;
+  color: var(--muted); background: var(--raised);
 }
+.ht-the::before {
+  content: ''; flex: 0 0 auto; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--dim);
+}
+.ht-the.kho::before { background: var(--ok); }
+.ht-the.xuong::before { background: var(--accent); }
+.ht-man.khoa .ht-the { background: var(--surface); color: var(--dim); }
+.ht-man.khoa .ht-the::before { background: var(--border); }
+
 .ht-chua {
-  margin-top: 7px; padding: 6px 8px; font-size: 11px; line-height: 1.5;
+  margin-top: 8px; padding: 6px 9px; font-size: 11px; line-height: 1.5;
   color: var(--muted); background: var(--field);
   border-left: 2px solid var(--warn); border-radius: 0 4px 4px 0;
 }
-.ht-dang-o { margin-top: 8px; font-size: 11px; color: var(--accent); font-weight: 600; }
+.ht-man.khoa .ht-chua { background: var(--bg); }
+/* "Bạn đang ở đây" là LỜI MỜI BẤM, nên nó trông như một cái nút. */
+.ht-dang-o {
+  align-self: flex-start; margin-top: 10px; padding: 3.5px 10px; border-radius: 4px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  color: #1a1200; background: var(--accent);
+}
 
 /* ========================= MÀN CHẠY MÁY =========================
    Màn hình bán cả sản phẩm (thiết kế §5). TOÀN MÀN HÌNH, sơ đồ ở giữa, không ribbon
@@ -2633,11 +2820,4 @@ mark.tim-chu {
   background: var(--field); border: 1px solid var(--border-soft);
 }
 
-/* Nút Kho nổi ở góc phải trên bản đồ hành trình. */
-.ht-kho {
-  position: absolute; top: 40px; right: 18px; z-index: 2;
-  padding: 5px 13px; font: inherit; font-size: 12px; cursor: pointer;
-  color: var(--text); background: var(--surface);
-  border: 1px solid var(--border); border-radius: 5px;
-}
-.ht-kho:hover { border-color: var(--accent); background: var(--raised); }
+
