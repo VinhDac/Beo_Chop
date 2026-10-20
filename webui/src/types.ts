@@ -723,6 +723,15 @@ export interface HanhTrinh {
 
 /** Một món trong KHO. `lean` là CÂU LEAN THẬT của nó — lời hứa D-11: mỗi đại lượng
  *  khai đúng một thứ có thật của LEAN, không phải cái tên app tự nghĩ. */
+/** Mấy con số khoe ở màn Mở máy. ĐẾM bên Python (`api.so_lieu`), không gõ tay bên
+ *  này: gõ tay thì thêm một đại lượng vào kho là câu quảng cáo của app thành sai. */
+export interface SoLieu {
+  dai_luong: number
+  nhom: number
+  man: number
+  viec: number
+}
+
 export interface MucKho {
   ma: string
   nhan: string

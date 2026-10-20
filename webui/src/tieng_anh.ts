@@ -426,7 +426,11 @@ const TIENG_ANH: Record<string, string> = {
   'tham số: {0}': 'params: {0}',
   // ── man/ManMoMay.tsx
   'Vẽ một cỗ máy. Thả nó vào thị trường. Xem nó sống được không.': 'Draw an engine. Drop it into the market. See if it survives.',
-  '26 màn — học từ cái máy hai khối tới boss cuối': '26 levels — from a two-block engine to the final boss',
+  'Học từ cái máy hai khối tới boss cuối': 'From a two-block engine to the final boss',
+  '{0} nhóm': '{0} {0|group|groups}',
+  '{0} màn': '{0} {0|level|levels}',
+  '{0} việc làm được': '{0} {0|action|actions}',
+  'chạy trên LEAN thật': 'runs on the real LEAN',
   'Vẽ tiếp': 'Keep drawing',
   'Sáng tạo': 'Creative',
   'Mở lại cỗ máy đang vẽ dở': 'Reopen the engine you were drawing',

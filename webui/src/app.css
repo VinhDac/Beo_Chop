@@ -2144,51 +2144,120 @@ mark.tim-chu {
 .man-che.hien { opacity: 1; }
 
 /* ========================= MÀN MỞ MÁY =========================
-   ⚠ BA CHỖ BẢN ĐẦU LÀM SAI, và cả ba chỉ thấy khi nhìn ảnh chụp cả màn hình:
+   Màn hình đầu tiên, và là thứ DUY NHẤT người lạ nhìn trước khi quyết định có bấm
+   không. Nó phải nói app này là gì trong ba giây mà không cần đọc chữ.
 
-     ① NHÂN VẬT CHÍNH QUÁ NHỎ. Con mèo và cỗ máy — thứ DUY NHẤT nói app này là gì —
-        chiếm chừng một phần mười bề ngang, nổi giữa một khoảng trống mênh mông. Nay
-        nó là HÌNH CHÍNH: rộng tới 640px, và cả cụm chữ bám theo nó.
-     ② HAI NÚT NẶNG NGANG NHAU. «Hành trình» và «Vẽ tiếp» cùng viền, cùng nền, khác
-        mỗi cái viền cam mảnh — nên mắt không biết nên bấm cái nào. Nay nút chính TÔ
-        ĐẶC màu thương hiệu, nút kia là nút bóng. Một màn hình chỉ nên có một nút
-        sáng nhất.
-     ③ KHÔNG CÓ CHIỀU SÂU. Nền phẳng lì một màu. Nay có một quầng sáng rất mờ sau cỗ
-        máy — đủ để tâm màn hình nặng hơn mép, không đủ để ai nhận ra là gradient. */
-.mm { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-.mm-than {
-  position: relative;
-  flex: 1; min-height: 0; overflow: auto;
-  display: flex; flex-direction: column; align-items: center;
-  gap: 0; padding: 16px; text-align: center;
+   ⚠ NĂM CHỖ BẢN TRƯỚC LÀM SAI. Cả năm chỉ thấy khi nhìn ẢNH CHỤP cả màn hình:
+
+     ① NHÂN VẬT CHÍNH QUÁ NHỎ. Con mèo và cỗ máy chiếm một phần mười bề ngang, nổi
+        giữa khoảng trống mênh mông. Nay nó là HÌNH CHÍNH.
+     ② HAI NÚT NẶNG NGANG NHAU, nên mắt không biết bấm cái nào. Nay nút chính tô đặc,
+        nút kia là nút bóng. Một màn hình chỉ nên có một nút sáng nhất.
+     ③ KHÔNG CÓ CHIỀU SÂU. Nền phẳng lì một màu.
+     ④ NỬA DƯỚI BỎ HOANG. Hai cái nút nằm ở khoảng giữa rồi bên dưới là ba trăm pixel
+        đen trơn — màn hình trông như chưa làm xong. Nay có dải số của app.
+     ⑤ KHÔNG CÓ GÌ CHUYỂN ĐỘNG LÚC MỞ. App bật lên là mọi thứ đã nằm sẵn đó, nên không
+        có một giây nào bắt được mắt. Nay cả màn hình TỰ DỰNG LÊN trong hai giây rưỡi:
+        thị trường vẽ ra trước, cỗ máy lắp lên từng khối trên nền ấy, rồi chữ và nút
+        mới vào. Xem bảng nhịp ngay dưới.
+
+   NHỊP (giây, tính từ lúc mở):
+     0,00  lưới nền hiện
+     0,25  đường thị trường bắt đầu vẽ, vệt quét chạy theo
+     0,50  khối đầu của cỗ máy mọc lên; cứ 0,26s một món, dây xen vào giữa
+     1,15  tên app, rồi câu giới thiệu, rồi hai nút, rồi dải số — mỗi thứ cách 0,16s
+     2,10  cỗ máy bắt đầu chạy vòng lặp, và từ đây màn hình đứng yên có nhịp
+
+   ⚠ TẤT CẢ BẰNG CSS, KHÔNG MỘT KHUNG HÌNH JS. Đây là lúc app vừa bật, Python đang dựng
+   từ điển và `cho_cau_noi` đang chờ cầu nối — tức luồng chính đang BẬN NHẤT trong cả
+   phiên. Hoạt ảnh chạy bằng JS ở đúng lúc này thì giật, mà giật ở màn hình đầu tiên
+   thì người ta kết luận app chậm. `transform`/`opacity`/`stroke-dashoffset` chạy thẳng
+   trên GPU nên luồng chính có kẹt cũng không ảnh hưởng. */
+.mm { position: relative; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+/* Nền nằm DƯỚI tất cả; mọi thứ khác nổi lên trên. Một luật, không phải nhớ gắn
+   `z-index` vào từng chỗ — thiếu một chỗ là nó chìm xuống dưới nền mà không ai hiểu. */
+.mm > *:not(.mm-bieu-do) { position: relative; z-index: 1; }
+
+.mm-than { position: relative; flex: 1; min-height: 0; overflow: auto; }
+/* `min-height: 100%` chứ không `height`: đủ chỗ thì căn giữa, thiếu chỗ thì hộp tự
+   cao lên và khung ngoài cuộn. Căn bằng `justify-content` trên chính khung cuộn thì
+   phần tràn lên phía TRÊN không cuộn tới được — lỗi kinh điển của flexbox, và ở đây
+   nó làm con mèo trèo lên đè chữ của thanh tiêu đề. */
+.mm-giua {
+  position: relative; min-height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 18px; text-align: center;
 }
-/* ⚠ CĂN GIỮA BẰNG `margin: auto`, KHÔNG BẰNG `justify-content`. Cửa sổ thấp hơn cụm
-   mèo + máy + chữ thì bản trước để nó TRÀN RA CẢ HAI ĐẦU: con mèo trèo lên thanh tiêu
-   đề, đè lên đúng chữ «Cat Studio» của thanh ấy. Căn bằng `justify-content: center`
-   còn một tật nữa là phần tràn lên phía TRÊN không cuộn tới được — lỗi kinh điển của
-   flexbox. Hai cái lề tự động thì vừa căn giữa lúc đủ chỗ, vừa cuộn được lúc thiếu.
-   (Cửa sổ thật tối thiểu 900×600 nên hiếm khi tới đây — nhưng hiếm không phải là
-   không, và lúc ấy thì nó là một vết đè chình ình giữa màn hình đầu tiên.) */
-.mm-than > *:first-child { margin-top: auto; }
-.mm-than > *:last-child { margin-bottom: auto; }
 /* Quầng sáng sau cỗ máy — tâm màn hình phải NẶNG hơn mép. */
-.mm-than::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(58% 46% at 50% 38%,
-              color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 70%);
+.mm-giua::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1;
+  background: radial-gradient(54% 42% at 50% 36%,
+              color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 70%);
 }
-.mm-than > * { position: relative; }
 
+/* ---------------------------------------------------- NỀN: ĐƯỜNG THỊ TRƯỜNG
+   Xem `BieuDoNen` trong `ManMoMay.tsx` — ở đó có lời cảnh báo quan trọng nhất về nó:
+   đây là HOA VĂN, không phải số liệu, và không ai được gắn trục hay nhãn giá vào. */
+.mm-bieu-do {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+  /* ⚠ MỜ, VÀ MỜ HƠN NHIỀU SO VỚI BẢN ĐẦU. Bản đầu vẽ đường thị trường bằng cam 52%,
+     nét 2px: nó thành thứ SÁNG NHẤT màn hình, cắt ngang qua đúng chữ «Cat Studio» và
+     át cả cái nút đáng bấm — tức là phá đúng cái luật vừa dựng cho cả app (cam chỉ
+     dành cho thứ đáng bấm). Chỉ ảnh chụp mới thấy; đo bằng JS thì mọi giá trị đều
+     "đúng". Nền phải là KHÔNG KHÍ, không phải nội dung.
+     Mặt nạ cắt dần phía trên: chỗ ấy là con mèo với cỗ máy, mà hai đường cùng loại
+     chồng lên nhau thì không đường nào đọc được. */
+  opacity: .5;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 4%, #000 46%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 4%, #000 46%, #000 100%);
+}
+/* `non-scaling-stroke` vì khung nhìn bị kéo giãn theo cửa sổ (`preserveAspectRatio`
+   = none): không có nó thì ở cửa sổ rộng, nét ngang mảnh như sợi tóc còn nét dọc to
+   như cái đũa. */
+.mm-luoi path, .mm-duong { fill: none; vector-effect: non-scaling-stroke; }
+.mm-luoi path {
+  stroke: var(--border-soft); stroke-width: 1;
+  opacity: 0; animation: mm-hien 1.1s ease .05s forwards;
+}
+.mm-duong {
+  stroke: color-mix(in srgb, var(--accent) 34%, transparent); stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: mm-ve 2.4s cubic-bezier(.3, .6, .35, 1) .25s forwards;
+}
+@keyframes mm-ve { to { stroke-dashoffset: 0; } }
+.mm-to { opacity: 0; animation: mm-hien 1.4s ease 1.5s forwards; }
+/* Vệt quét chạy qua MỘT LẦN, cùng lúc với đường đang vẽ — như lúc tua lại một đoạn
+   lịch sử. Chạy vòng thì nó thành đèn quảng cáo. */
+.mm-vet { animation: mm-quet 2.65s cubic-bezier(.3, .6, .35, 1) .25s forwards; }
+@keyframes mm-quet {
+  from { transform: translateX(0); opacity: .9; }
+  85%  { opacity: .9; }
+  to   { transform: translateX(1380px); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ CHỮ VÀ NÚT */
 .mm-ten {
   margin: 26px 0 0; font-size: 46px; font-weight: 600; letter-spacing: -0.015em;
   color: var(--text); line-height: 1;
+  animation: mm-len .6s cubic-bezier(.2, .8, .3, 1) 1.15s both;
 }
 .mm-cau {
   margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: var(--muted);
   max-width: 460px;
+  animation: mm-len .6s cubic-bezier(.2, .8, .3, 1) 1.31s both;
 }
+@keyframes mm-len {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mm-hien { to { opacity: 1; } }
 
-.mm-nut { display: flex; gap: 10px; margin-top: 34px; flex-wrap: wrap; justify-content: center; }
+.mm-nut {
+  display: flex; gap: 10px; margin-top: 34px; flex-wrap: wrap; justify-content: center;
+  animation: mm-len .6s cubic-bezier(.2, .8, .3, 1) 1.47s both;
+}
 /* Nút TO vì đây là hai lựa chọn duy nhất của cả màn hình — và nút của trò chơi thì
    không nên trông như nút của hộp thoại. */
 .nut-to {
@@ -2200,25 +2269,59 @@ mark.tim-chu {
 }
 .nut-to:hover { background: var(--raised); border-color: var(--dim); transform: translateY(-1px); }
 .nut-to small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
-/* NÚT CHÍNH tô đặc — một màn hình chỉ có một nút sáng nhất. */
+/* NÚT CHÍNH tô đặc — một màn hình chỉ có một nút sáng nhất. Quầng cam dưới nó THỞ rất
+   chậm: đủ để mắt quay lại chỗ ấy sau khi đã đọc xong màn hình, không đủ để ai gọi là
+   nhấp nháy. */
 .nut-to.chinh {
   color: #1a1200; background: var(--accent); border-color: var(--accent);
   box-shadow: 0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset,
               0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: mm-tho 4.6s ease-in-out 2.4s infinite;
+}
+@keyframes mm-tho {
+  0%, 100% { box-shadow: 0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset,
+                         0 6px 18px color-mix(in srgb, var(--accent) 20%, transparent); }
+  50%      { box-shadow: 0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset,
+                         0 8px 30px color-mix(in srgb, var(--accent) 40%, transparent); }
 }
 .nut-to.chinh:hover { background: var(--accent-manh); border-color: var(--accent-manh); }
 .nut-to.chinh small { color: color-mix(in srgb, #1a1200 72%, transparent); }
 
+/* ------------------------------------------------------------------- DẢI SỐ */
+.mm-so {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 11px; margin-top: 32px; font-size: 12px; color: var(--dim);
+  animation: mm-len .6s cubic-bezier(.2, .8, .3, 1) 1.63s both;
+}
+/* Con số sáng hơn chữ quanh nó một bậc, và viết bằng chữ ĐỀU Ô — cùng cách cả app bày
+   mọi con số, xem dải thành tích ở bản đồ hành trình. */
+.mm-so b {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.mm-so i { width: 3px; height: 3px; border-radius: 50%; background: var(--border); }
+/* «chạy trên LEAN thật» là lời hứa D-11 nói thành một câu, nên nó được một chấm xanh
+   — cùng màu app dùng cho «được» ở mọi nơi khác. */
+.mm-lean { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.mm-lean::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+}
+
 .mm-chan { padding: 10px 14px; display: flex; justify-content: flex-end; }
 .mm-tieng { width: auto; min-width: 128px; }
 
+/* --------------------------------------------------------------- MÈO VÀ MÁY */
 /* Con mèo đứng cạnh cỗ máy — nó lắp ra cái máy ấy. Bản tạm, xem `Meo` trong
    `ManMoMay.tsx`: hình thật là việc của chủ dự án. */
 .mm-canh {
   display: flex; align-items: center; gap: 30px;
   flex-wrap: wrap; justify-content: center; width: min(760px, 92vw);
 }
-.mm-meo { width: 118px; height: auto; flex: 0 0 auto; overflow: visible; }
+.mm-meo {
+  width: 118px; height: auto; flex: 0 0 auto; overflow: visible;
+  animation: mm-len .7s cubic-bezier(.2, .8, .3, 1) .15s both;
+}
 .mm-meo-net { fill: none; stroke: var(--border); stroke-width: 3; stroke-linejoin: round; }
 .mm-meo-ria path { stroke: var(--border); stroke-width: 2; stroke-linecap: round; }
 .mm-meo-mat path {
@@ -2231,18 +2334,36 @@ mark.tim-chu {
   0%, 92%, 100% { opacity: 1; }
   94%, 96% { opacity: .15; }
 }
-@media (prefers-reduced-motion: reduce) { .mm-meo-mat path { animation: none; } }
 
-/* Cỗ máy đang chạy — hình nền sống của màn mở. Xem `MayChay` trong `ManMoMay.tsx`:
-   mỗi sợi dây là HAI đường chồng nhau, nền liền nét và vệt sáng đứt nét chạy đè lên. */
-.mm-may { width: min(560px, 60vw); min-width: 300px; height: auto; overflow: visible; }
-.mm-nen path, .mm-dong path {
-  fill: none; stroke-width: 3; stroke-linecap: round;
+/* Cỗ máy TỰ LẮP LÊN rồi mới chạy. Xem `MayChay` trong `ManMoMay.tsx`.
+   ⚠ MỖI SỢI DÂY LÀ HAI ĐƯỜNG CHỒNG NHAU, và đây là chỗ bản đầu làm sai. Một đường
+   không thể vừa là sợi dây vừa là vệt sáng chạy trên nó: muốn vệt sáng thì phải đặt
+   `stroke-dasharray`, mà đặt lên chính sợi dây thì gần hết sợi dây thành KHOẢNG TRỐNG
+   — bốn khối rời nhau với mấy mẩu dây cụt 8 pixel, không ra cái máy nào. Nay: một
+   đường NỀN liền nét lúc nào cũng có, một đường SÁNG đứt nét chạy đè lên.
+   ⚠ VÀ MỖI MÓN CHẠY HAI HOẠT ẢNH: một lượt MỌC LÊN đúng một lần, rồi một lượt lặp mãi.
+   Mốc của cả hai tính từ `--d` mà TSX truyền xuống (`calc`), nên đổi nhịp là sửa một
+   con số ở một chỗ. `both` để trước mốc của nó, món ấy CHƯA hiện — thiếu `both` thì cả
+   cỗ máy loè ra đủ ngay khung hình đầu rồi mới biến đi để mọc lại. */
+/* ⚠ `--d` PHẢI CÓ MẶC ĐỊNH Ở ĐÂY dù TSX luôn truyền nó xuống, và vì hai lẽ. Một:
+   `calc(var(--d) + 1.2s)` mà thiếu biến là cả câu `animation` HỎNG, nên cỗ máy đứng
+   nguyên ở `opacity: 0` của `both` — màn hình đầu tiên mất hẳn hình chính mà không
+   một lỗi nào. Hai: hàng rào biến CSS ma (`tests/test_giao_dien.py`) không đọc được
+   style gắn thẳng trong TSX, nên với nó `--d` là một biến không ai khai. Khai ở đây
+   thì vừa có lối lui, vừa hết kêu oan. */
+.mm-may {
+  --d: 0s;
+  width: min(560px, 60vw); min-width: 300px; height: auto; overflow: visible;
 }
-.mm-nen path { stroke: var(--border); }
+.mm-nen path, .mm-dong path { fill: none; stroke-width: 3; stroke-linecap: round; }
+.mm-nen path {
+  stroke: var(--border);
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: mm-ve .34s ease-out var(--d) both;
+}
 .mm-dong path {
   stroke: var(--dong); stroke-dasharray: 16 170; stroke-dashoffset: 180;
-  animation: mm-chay 2.05s linear infinite;
+  animation: mm-chay 2.05s linear calc(var(--d) + 1.2s) infinite;
 }
 @keyframes mm-chay {
   from { stroke-dashoffset: 180; }
@@ -2250,7 +2371,13 @@ mark.tim-chu {
 }
 .mm-khoi rect, .mm-khoi circle {
   fill: var(--surface); stroke: var(--border); stroke-width: 2;
-  animation: mm-sang 2.05s ease-in-out infinite;
+  transform-box: fill-box; transform-origin: center;
+  animation: mm-moc .44s cubic-bezier(.2, .9, .3, 1.4) var(--d) both,
+             mm-sang 2.05s ease-in-out calc(var(--d) + 1.2s) infinite;
+}
+@keyframes mm-moc {
+  from { opacity: 0; transform: scale(.72); }
+  to   { opacity: 1; transform: none; }
 }
 @keyframes mm-sang {
   0%, 52%, 100% { stroke: var(--border); fill: var(--surface); }
@@ -2259,10 +2386,34 @@ mark.tim-chu {
     fill: color-mix(in srgb, var(--accent) 16%, var(--surface));
   }
 }
+/* KHỐI CUỐI loè XANH, không loè cam: nó là chỗ trả lời «nó sống được không». */
+.mm-khoi .mm-ket {
+  animation: mm-moc .44s cubic-bezier(.2, .9, .3, 1.4) var(--d) both,
+             mm-song 2.05s ease-in-out calc(var(--d) + 1.2s) infinite;
+}
+@keyframes mm-song {
+  0%, 52%, 100% { stroke: var(--border); fill: var(--surface); transform: none; }
+  10%, 28% {
+    stroke: var(--ok);
+    fill: color-mix(in srgb, var(--ok) 18%, var(--surface));
+    transform: scale(1.08);
+  }
+}
+
+/* ⚠ TẮT HOẠT ẢNH THÌ PHẢI ĐỂ MỌI THỨ Ở TRẠNG THÁI CUỐI, không chỉ `animation: none`.
+   Mấy hoạt ảnh vào màn đều bắt đầu từ `opacity: 0` và `both` giữ nguyên trạng thái
+   đầu; tắt animation mà quên trả lại thì cả trang chủ TRẮNG TRƠN với người đã bật
+   "giảm chuyển động" — và đó đúng là người sẽ không bao giờ báo lỗi cho mình. */
 @media (prefers-reduced-motion: reduce) {
-  .mm-dong path, .mm-khoi rect, .mm-khoi circle { animation: none; }
-  /* Tắt hoạt ảnh thì vệt sáng đứng im giữa dây trông như lỗi — giấu hẳn đi. */
-  .mm-dong { display: none; }
+  .mm-meo, .mm-ten, .mm-cau, .mm-nut, .mm-so, .mm-meo-mat path,
+  .mm-khoi rect, .mm-khoi circle, .mm-nen path, .mm-luoi path, .mm-to, .mm-duong {
+    animation: none;
+    opacity: 1; transform: none;
+    stroke-dashoffset: 0;
+  }
+  .nut-to.chinh { animation: none; }
+  /* Vệt quét và vệt sáng trong dây đứng im giữa đường thì trông như lỗi — giấu hẳn. */
+  .mm-dong, .mm-vet { display: none; }
 }
 
 /* ========================= MÀN HÀNH TRÌNH =========================

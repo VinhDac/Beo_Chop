@@ -12,7 +12,7 @@ import type {
   CoMay,
   ChamMan,
   HanhTrinh,
-  KhoDaiLuong,
+  KhoDaiLuong, SoLieu,
   Edge,
   GoiYKe,
   KetQuaChay,
@@ -109,6 +109,7 @@ export const py = {
   hanh_trinh: () => goi<HanhTrinh>('hanh_trinh'),
   /** KHO — 164 đại lượng theo nhóm, 10 hành động, kèm cái nào đã mở. Chỗ "dạy hết"
    *  sống lâu dài: màn dạy NHÓM, kho dạy từng món. */
+  so_lieu: () => goi<SoLieu>('so_lieu'),
   kho_dai_luong: () => goi<KhoDaiLuong>('kho_dai_luong'),
   /** Chấm lượt vừa chạy trên MÀN ĐÃ THẤY rồi ghi sổ. Luật chấm ở Python — giao diện
    *  KHÔNG tính sao. */

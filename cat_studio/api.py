@@ -555,6 +555,25 @@ class Api(NenCuaSo):
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
 
     @_bat_loi
+    @_bat_loi
+    def so_lieu(self):
+        """Mấy con số khoe ở màn Mở máy. -> {dai_luong, nhom, man, viec}
+
+        ⚠ ĐẾM, KHÔNG GÕ TAY. Màn hình đầu tiên là chỗ dễ gõ cứng "164 đại lượng" nhất —
+        một dòng chữ, không ai kiểm, và nó nằm cách chỗ sinh ra con số ba tệp. Thêm một
+        đại lượng vào kho là câu quảng cáo của chính app thành sai, mà không có gì kêu.
+        Chính lỗi ấy đã dính một lần ở `nhan_mo` trong `hanh_trinh.py`.
+
+        Và mấy con số này KHOE ĐƯỢC THẬT: chúng là thứ phân biệt app với một bản vẽ sơ
+        đồ — 164 đại lượng đều khai đúng một thứ có thật của LEAN (lời hứa D-11)."""
+        kho = hoi.tu_dien()["kho"]
+        return _ok({
+            "dai_luong": len(kho),
+            "nhom": len({m.get("nhom") or "" for m in kho}),
+            "man": len(hanh_trinh.MAN),
+            "viec": len(lam.LOAI_LAM),
+        })
+
     def kho_dai_luong(self):
         """KHO — 164 đại lượng theo nhóm, 10 loại hành động, kèm cái nào đã MỞ.
 
