@@ -28,6 +28,7 @@ KHOA_MO_KET_QUA = "mo_ket_qua"
 KHOA_KHO_BACKTEST = "kho_backtest"
 KHOA_KHO_TOI_UU = "kho_toi_uu"
 KHOA_NGON_NGU = "ngon_ngu"
+KHOA_AM_THANH = "am_thanh"
 
 #: NGÔN NGỮ GIAO DIỆN. Nấc ĐẦU là mặc định — tiếng Anh, vì người đọc được tiếng Anh
 #: thì mở app lên là dùng được ngay, còn người Việt bật lại một lần là xong.
@@ -66,6 +67,9 @@ NHOM = (
         _o(KHOA_MO_KET_QUA, "Xong thì mở luôn bảng kết quả", O_CO_KHONG, True,
            "Tắt đi thì chạy xong chỉ ghi một dòng nhật ký — bấm Results khi nào "
            "muốn xem."),
+        _o(KHOA_AM_THANH, "Tiếng", O_CO_KHONG, True,
+           "Van đóng mở, lệnh nổ, sao rơi. Tiếng dựng ngay trong app chứ không có "
+           "file nhạc nào — tắt là im hẳn."),
     )),
     ("kho", "Kho lượt chạy", (
         _o(KHOA_KHO_BACKTEST, "Giữ mấy lượt backtest", O_SO, 20,

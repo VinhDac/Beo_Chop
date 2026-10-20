@@ -10,6 +10,7 @@ import TitleBar from '../components/TitleBar'
 import Icon from '../components/Icon'
 import { py } from '../api'
 import { tr, trx, useNgonNgu } from '../ngon_ngu'
+import { keu } from '../am_thanh'
 import type {
   Card, CoMay, Edge, KetQuaChay, KetQuaSoat, Step, TienDoChay,
 } from '../types'
@@ -322,6 +323,29 @@ function ManChayMayTrong({ viec, onRa, onCham }: {
    *  sẽ thấy `xong` ở lượt kế và dọn đúng một lần — dọn cả hai nơi thì nửa giây sau
    *  cái còn lại vẫn bắn. */
   const dung = () => { conChay.current = false; void py.dung_backtest() }
+
+  /** KÊU THEO NHỊP — và CHỈ Ở ×1.
+   *
+   *  ⚠ Ở ×64 một giây trôi qua mấy chục nhịp; kêu đủ là một tràng tạch tạch không ai
+   *  chịu nổi, mà lúc tua thì người ta đang TÌM chỗ chứ không XEM. Nên tiếng chỉ có ở
+   *  nấc ×1 — đúng nấc đặt ra để ngồi nhìn cái máy chạy.
+   *
+   *  Van đóng chỉ kêu khi nó VỪA đóng (nhịp trước còn mở): van đóng suốt mười nhịp mà
+   *  kêu mười tiếng thì tiếng ấy hết nghĩa. */
+  const vanTruoc = useRef<Record<string, string>>({})
+  useEffect(() => {
+    const n = mach?.nhip[i]
+    if (!n) return
+    if (toc !== 1 || !dangPhat) { vanTruoc.current = n.van as never; return }
+    if (n.lenh.length) keu.lenh()
+    for (const [id, v] of Object.entries(n.van)) {
+      const cu = vanTruoc.current[id]
+      if (v === cu) continue
+      if (v === 'mo') keu.van_mo()
+      else if (v === 'dong') keu.van_dong()
+    }
+    vanTruoc.current = n.van as never
+  }, [mach, i, toc, dangPhat])
 
   /* --------------------------------- chạy LEAN --------------------------------- */
   useEffect(() => {

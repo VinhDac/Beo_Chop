@@ -378,6 +378,8 @@ const TIENG_ANH: Record<string, string> = {
   '⚠ {0} lệnh không khớp khối nào': '⚠ {0} {0|order|orders} match no block',
   'Bảng kết quả…': 'Results panel…',
   // ── man/ManCham.tsx
+  'đã chép': 'copied',
+  'Chép kết quả': 'Copy result',
   'Không dựng được đường của boss — LEAN cần dữ liệu GIỜ của mã mốc so sánh, mà máy này không có. Chạy vẫn chạy, nhưng chưa chấm được hai sao sau.': 'Could not build the boss line — LEAN needs HOUR data for the benchmark symbol, and this machine has none. The run still works, but the last two stars cannot be scored.',
   '{0} = {1} khối + {2} núm': '{0} = {1} {1|block|blocks} + {2} {2|knob|knobs}',
   'Không chấm được lượt này.': 'Couldn\'t score this run.',
@@ -618,6 +620,8 @@ const TIENG_ANH: Record<string, string> = {
   'Bấm đúp để đặt bộ số này vào sơ đồ': 'Double-click to put this set of numbers into the diagram',
   'không mở được sơ đồ': 'could not open the diagram',
   // ── python
+  'Tiếng': 'Sound',
+  'Van đóng mở, lệnh nổ, sao rơi. Tiếng dựng ngay trong app chứ không có file nhạc nào — tắt là im hẳn.': 'Valves opening and closing, orders firing, stars landing. The sounds are built inside the app, with no audio files at all — switch it off and it is silent.',
   '0.001 = 0,1% giá. Đây là PHẦN, không phải phần trăm — cùng lối ô «Đệm tiền mặt».': '0.001 = 0.1% of price. This is a FRACTION, not a percentage — same as the «Cash buffer» field.',
   '0.05 = 5%. Mặc định của LEAN cũng là 0.05.': '0.05 = 5%. LEAN\'s own default is 0.05 too.',
   '0.05 = chừa 5% không đặt lệnh. Mặc định LEAN là 0.0025.': '0.05 = hold back 5% and place no order with it. LEAN\'s default is 0.0025.',

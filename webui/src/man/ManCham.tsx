@@ -3,6 +3,7 @@ import TitleBar from '../components/TitleBar'
 import Icon from '../components/Icon'
 import { py } from '../api'
 import { tr, trx, useNgonNgu } from '../ngon_ngu'
+import { keu } from '../am_thanh'
 import type { ChamMan, ManHT } from '../types'
 import type { ViecChayMay } from './ManChayMay'
 
@@ -29,11 +30,12 @@ export default function ManCham({ man, maLuot, viec, onSuaTiep, onRa }: {
   const [d, setD] = useState<ChamMan | null>(null)
   const [loi, setLoi] = useState('')
   const [dangNop, setDangNop] = useState(false)
+  const [daChep, setDaChep] = useState(false)
 
   useEffect(() => {
     void (async () => {
       const r = await py.cham_man(man.ma, maLuot, viec.steps)
-      if (r.ok && r.value) setD(r.value)
+      if (r.ok && r.value) { setD(r.value); keu.sao(r.value.sao) }
       else setLoi(r.error ?? tr('Không chấm được lượt này.'))
     })()
   }, [man.ma, maLuot, viec.steps, nn])
@@ -46,6 +48,45 @@ export default function ManCham({ man, maLuot, viec, onSuaTiep, onRa }: {
     if (!r.ok || !r.value) { setLoi(r.error ?? tr('Không nộp được.')); return }
     if (!r.value.ok) { setLoi(r.value.loi ?? tr('Không nộp được.')); return }
     setD(r.value)
+    // ⚠ VẢ THÌ PHẢI NGHE RA LÀ VẢ. Thiết kế §6 gọi đúng tiếng này là "một âm thật
+    // phũ": đây là lúc trò chơi nói rằng cỗ máy vừa tâm đắc chỉ là vẽ lại quá khứ,
+    // mà một tiếng chuông vui ở đây thì phản lại chính bài học.
+    if (r.value.an?.thang_boss) { keu.thang(); keu.sao(r.value.sao) } else keu.vap()
+  }
+
+  /** CHÉP KẾT QUẢ — để khoe.
+   *
+   *  ⚠ KHÔNG CHÉP MỘT NGÀY THÁNG NÀO. Dòng màn ẩn chỉ có hai con số; thêm khoảng ngày
+   *  vào đây là tự tay phát tán đúng thứ cả trò chơi dựa vào để giấu — mà một dòng
+   *  khoe thì được dán đi khắp nơi.
+   *
+   *  `navigator.clipboard` đòi ngữ cảnh an toàn; trong WebView2 có, nhưng vẫn bọc
+   *  try: chép hụt chỉ nên làm nút ấy không ăn, không được ném ra giữa màn Chấm. */
+  async function chep() {
+    if (!d || d.khong_cham) return
+    const sao = '★'.repeat(d.sao) + '☆'.repeat(3 - d.sao)
+    const dong = [
+      `Cat Studio — ${String(man.so).padStart(2, '0')} ${man.ten}`,
+      sao,
+      `${tr('Cỗ máy của bạn')} ${pt(d.thay?.lai_pt)}  ·  `
+      + `${d.boss?.ten ?? tr('Boss')} ${pt(d.thay?.boss_pt)}`,
+    ]
+    if (d.an) {
+      dong.push(`${tr('Trên màn ẩn')}: ${pt(d.an.lai_pt)}  ·  `
+                + `${d.boss?.ten ?? tr('Boss')} ${pt(d.an.boss_pt)}`)
+    }
+    if (d.gon) {
+      dong.push(tr('Độ gọn') + ': '
+                + tr('{0} = {1} khối + {2} núm', d.gon.tong, d.gon.so_khoi,
+                     d.gon.so_num))
+    }
+    try {
+      await navigator.clipboard.writeText(dong.join(String.fromCharCode(10)))
+      setDaChep(true)
+      window.setTimeout(() => setDaChep(false), 1800)
+    } catch {
+      /* chép hụt thì thôi */
+    }
   }
 
   const coTheNop = !!d && !d.khong_cham && !!man.co_man_an
@@ -147,6 +188,11 @@ export default function ManCham({ man, maLuot, viec, onSuaTiep, onRa }: {
 
         <div className="ch-nut">
           <button className="nut" onClick={onSuaTiep}>{tr('Sửa tiếp')}</button>
+          {!!d && !d.khong_cham && (
+            <button className="nut" onClick={() => void chep()}>
+              {daChep ? tr('đã chép') : tr('Chép kết quả')}
+            </button>
+          )}
           {coTheNop && (
             <button className="nut chinh" disabled={dangNop} onClick={() => void nop()}>
               {dangNop ? tr('đang chạy màn ẩn…') : tr('Nộp')}

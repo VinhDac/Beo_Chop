@@ -6,6 +6,7 @@ import {
   type Connection, type Edge as RfEdge, type Node as RfNode, type Viewport,
 } from '@xyflow/react'
 import { cho_cau_noi, nghe, py } from './api'
+import { keu } from './am_thanh'
 import StepNode from './components/StepNode'
 import KhoiHatNhan, { type VeThuNho } from './components/HatNhan'
 import DuongVong from './components/DuongVong'
@@ -833,6 +834,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
    *  rồi bấm Delete cũng không ra gì: dây là thứ vẽ ra được, bấm được, mà không gỡ
    *  được. */
   const ngatMotDay = useCallback((id: string) => {
+    keu.ngat()
     chup()
     setEdges(es => es.filter(e => e.id !== id))
     ghi(tr('ngắt một dây nối'))
@@ -1119,6 +1121,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
   /* --------------------------------------------------------------- thao tác */
   const onConnect = useCallback((c: Connection) => {
     if (c.source === c.target) return
+    keu.noi()
     if (c.source?.startsWith('hn:') || c.target?.startsWith('hn:')) {
       // Nối vào KHUNG = nối vào khối đầu của nó; nối ra từ khung = nối từ MỌI khối cuối.
       const lay = (id: string, dau: boolean) => {

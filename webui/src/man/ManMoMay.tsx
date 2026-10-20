@@ -54,7 +54,10 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
       <TitleBar tieuDe="Cat Studio" menus={[]} />
 
       <div className="mm-than">
-        <MayChay />
+        <div className="mm-canh">
+          <Meo />
+          <MayChay />
+        </div>
 
         <h1 className="mm-ten">Cat Studio</h1>
         <p className="mm-cau">{tr('Vẽ một cỗ máy. Thả nó vào thị trường. Xem nó sống được không.')}</p>
@@ -82,6 +85,39 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
         </select>
       </div>
     </div>
+  )
+}
+
+/** CON MÈO — kỹ sư của cái xưởng này.
+ *
+ *  ⚠ ĐÂY LÀ BẢN TẠM, và cố ý vẽ tối giản để dễ thay. Tên app đã là Cat Studio nhưng
+ *  trước mốc này "con mèo" là đúng một file `favicon.ico`; app không có mặt mũi nào.
+ *  Hình thật là việc của chủ dự án (thiết kế §10.1) — chỗ này chỉ giữ sẵn khoảng
+ *  trống đúng kích thước, đúng bảng màu, và đúng TÍNH CÁCH: thợ máy, không phải linh
+ *  vật. Nó ngồi CẠNH cái máy vì chính nó lắp ra cái máy ấy.
+ *
+ *  Chớp mắt bằng CSS, không bằng JS: một thuộc tính chạy trên GPU, không tốn khung
+ *  hình nào, và tắt được bằng `prefers-reduced-motion` như mọi hoạt ảnh khác. */
+function Meo() {
+  return (
+    <svg className="mm-meo" viewBox="0 0 96 104" aria-hidden>
+      {/* tai */}
+      <path className="mm-meo-net" d="M20 40 L24 12 L46 30" />
+      <path className="mm-meo-net" d="M76 40 L72 12 L50 30" />
+      {/* đầu */}
+      <path className="mm-meo-net" d="M48 26 C72 26 84 42 84 60 C84 80 68 92 48 92
+                                      C28 92 12 80 12 60 C12 42 24 26 48 26 Z" />
+      {/* mắt — hai vạch, nheo lại chứ không tròn xoe: nó đang NHÌN cái máy */}
+      <g className="mm-meo-mat">
+        <path d="M30 58 h12" /><path d="M54 58 h12" />
+      </g>
+      {/* mũi và ria */}
+      <path className="mm-meo-net" d="M48 68 l-5 5 h10 Z" />
+      <g className="mm-meo-ria">
+        <path d="M18 64 h14" /><path d="M64 64 h14" />
+        <path d="M18 72 h14" /><path d="M64 72 h14" />
+      </g>
+    </svg>
   )
 }
 

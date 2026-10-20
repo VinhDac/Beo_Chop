@@ -925,9 +925,25 @@ kiem("và nó đòi một lượt SẠCH trên màn đã thấy trước",
 print("\n▸ Màn Chấm — bày lại, không tự tính")
 _ch = doc("webui", "src", "man", "ManCham.tsx")
 kiem("màn Chấm hỏi Python rồi bày", "py.cham_man(" in _ch and "py.nop_man(" in _ch)
-kiem("và KHÔNG tự tính sao",
-     "sao =" not in _ch and "thang_boss =" not in _ch,
-     "— «mấy sao» là luật chơi, mà luật chơi chỉ được có một bản")
+# ⚠ NHẮM VÀO PHÉP GÁN THẬT, không nhắm vào chữ "sao =". Bản đầu cấm cả cụm ấy và kêu
+# oan vào `const sao = "★".repeat(d.sao)` — một dòng VẼ LẠI con số Python đưa, không
+# phải tính nó. Lần thứ sáu trong dự án này một hàng rào dò chữ bắt nhầm; luật đúng là:
+# mọi phép gán cho `sao` phải lấy vế phải TỪ dữ liệu Python trả về (`d.` hay `r.value.`).
+import re as _re  # noqa: E402
+# ⚠ SO CHUỖI THUẦN, KHÔNG REGEX. Bản regex của luật này từng CHẾT HẲN: `\b` lọt vào
+# một chuỗi không-raw và thành ký tự backspace, nên nó không khớp dòng nào — một hàng
+# rào không bao giờ kêu, mà nhìn vào thì y hệt một hàng rào đang canh. Chỉ lộ ra vì
+# ép hỏng một lượt. Ở đây không cần regex: ba cách khai biến là ba chuỗi cố định.
+#
+# Luật: mọi phép gán cho `sao` phải lấy vế phải TỪ con số Python trả về (`.sao`).
+# `= d.thay?.thang_boss ? 2 : 1` vẫn bắt đầu bằng `d.` nhưng CHÍNH LÀ luật sao viết
+# lại bằng TypeScript, nên chỉ xét "có `.sao` ở vế phải hay không".
+_gan_sao = [d.strip() for d in _bo_chu_thich(_ch).splitlines()
+            if any(d.strip().startswith(t)
+                   for t in ("const sao =", "let sao =", "var sao ="))
+            and ".sao" not in d.split("=", 1)[1]]
+kiem("và KHÔNG tự tính sao", not _gan_sao and "thang_boss =" not in _ch,
+     f"— «mấy sao» là luật chơi, mà luật chơi chỉ được có một bản{' · ' + str(_gan_sao) if _gan_sao else ''}")
 kiem("sao vẽ bằng ký hiệu ĐƠN SẮC, không emoji",
      "★" in _ch and "⭐" not in _bo_chu_thich(_ch),
      "— emoji không ăn theo màu theme; cùng lý do thẻ «khoá» ở bản đồ dùng chữ")

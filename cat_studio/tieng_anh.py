@@ -255,6 +255,8 @@ TIENG_ANH = {
     "Giữ mấy mẻ Optimize": "How many Optimize batches to keep",
     "Đếm MẺ, không đếm lượt: một mẻ có thể chứa hàng trăm lượt backtest, nên nó nặng gấp bội một lượt thường.": "It counts BATCHES, not runs: one batch can hold hundreds of backtests, so it weighs many times more than an ordinary run.",
     "mẻ": "batches",
+    "Tiếng": "Sound",
+    "Van đóng mở, lệnh nổ, sao rơi. Tiếng dựng ngay trong app chứ không có file nhạc nào — tắt là im hẳn.": "Valves opening and closing, orders firing, stars landing. The sounds are built inside the app, with no audio files at all — switch it off and it is silent.",
     # ── chay_lean.py
     "Dựng kết quả": "Building the results",
     "Chuẩn bị thuật toán": "Preparing the algorithm",

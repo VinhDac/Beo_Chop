@@ -121,11 +121,13 @@ class NenCuaSo:
     def khoi_dong(self):
         """CỬA ĐẦU TIÊN mọi cửa sổ gọi — trả thứ phải biết TRƯỚC khi vẽ khung hình đầu.
 
-        Hôm nay đúng một thứ: ngôn ngữ. Đặt ở lớp NỀN nên cả ba cửa sổ (sơ đồ, Kết quả,
+        Hai thứ: ngôn ngữ và tiếng. Đặt ở lớp NỀN nên cả ba cửa sổ (sơ đồ, Kết quả,
         Optimize) cùng có, và `api.ts` chỉ phải gọi một chỗ — xem `cho_cau_noi`. Thiếu
         cửa này thì cửa sổ nào cũng vẽ bằng mặc định rồi mới đổi tiếng: người chọn tiếng
         Việt thấy một nháy tiếng Anh mỗi lần mở app."""
-        return _ok({"ngon_ngu": core.ngon_ngu()})
+        s = luu_tru.doc_cai_dat()
+        return _ok({"ngon_ngu": core.ngon_ngu(),
+                    "am_thanh": cai_dat.doc(s).get(cai_dat.KHOA_AM_THANH, True)})
 
     # -- gắn cửa sổ (Python gọi, không phải JS) --
     def _gan_window(self, w):

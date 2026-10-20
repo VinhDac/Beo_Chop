@@ -39,6 +39,7 @@ import type {
 } from './types'
 
 import { datNgonNgu, tr } from './ngon_ngu'
+import { dat_tieng } from './am_thanh'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -71,8 +72,8 @@ export function cho_cau_noi(ham = 'ping', timeout = 10000): Promise<void> {
   // dựng gì, nên đặt ngay sau lúc cầu nối sẵn sàng là đúng một chỗ cho cả ba — `khoi_dong`
   // nằm trên lớp nền `NenCuaSo` của Python chính vì thế. Hỏng thì BỎ QUA: không nói được
   // tiếng của người dùng vẫn hơn là không mở nổi cửa sổ, và mặc định (tiếng Anh) đã sẵn.
-  }).then(() => goi<{ ngon_ngu?: string }>('khoi_dong').then(
-    r => { datNgonNgu(r.value?.ngon_ngu) }, () => {}))
+  }).then(() => goi<{ ngon_ngu?: string; am_thanh?: boolean }>('khoi_dong').then(
+    r => { datNgonNgu(r.value?.ngon_ngu); dat_tieng(r.value?.am_thanh) }, () => {}))
 }
 
 async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
