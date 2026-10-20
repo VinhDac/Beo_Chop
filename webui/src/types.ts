@@ -681,6 +681,8 @@ export interface ManHT {
   /** Ngưỡng độ gọn để ăn huy chương. */
   gon?: number
   loi_dan?: string
+  /** Màn chưa có sân thì đây nói VÌ SAO — thiếu dữ liệu, không phải chưa làm. */
+  vi_sao_chua?: string
   boss?: { ma: string; ten: string; mo_ta: string } | null
 }
 

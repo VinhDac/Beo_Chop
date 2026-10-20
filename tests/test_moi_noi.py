@@ -837,11 +837,26 @@ _apip = importlib.import_module("cat_studio.api")
 
 _co_an = [m for m in _ht.MAN if m.get("an")]
 kiem(f"có màn khai màn ẩn ({len(_co_an)} màn)", bool(_co_an))
-_ngay_an = {d for m in _co_an for d in m["an"]}
-_bang = _json.dumps(_ht.tu_dien(), ensure_ascii=False)
-kiem("bảng hành trình KHÔNG mang một ngày màn ẩn nào",
-     not any(d in _bang for d in _ngay_an),
-     "— biết ngày màn ẩn là ngôi sao thứ ba hết nghĩa")
+# ⚠ SOÁT THEO TỪNG MÀN, không soát cả bảng một lượt. Hai màn khác nhau trùng ngày là
+# chuyện bình thường — khoảng ĐÃ THẤY của màn sau hay trùng đầu khoảng ẨN của màn
+# trước, vì chúng nằm trên cùng một dòng thời gian. Soát cả bảng thì mọi màn đều "rò",
+# mà thứ thật sự phải cấm là: phần công khai của MỘT màn mang ngày ẩn của CHÍNH nó.
+_ro = [m["ma"] for m in _co_an
+       if any(d in _json.dumps(_ht.cong_khai(m), ensure_ascii=False) for d in m["an"])]
+kiem("không màn nào bày ngày ẩn CỦA CHÍNH NÓ", not _ro,
+     f"— biết ngày màn ẩn là ngôi sao thứ ba hết nghĩa · rò: {_ro}")
+# ⚠ VÀ KHÔNG ĐƯỢC SUY RA. Nói "12 tháng ngay sau màn đã thấy" là tử tế, nhưng cộng với
+# khoảng đã thấy (bày công khai) thì người chơi tính ra ngày ẩn rồi sang Sáng tạo vặn
+# máy cho khít đúng khoảng ấy.
+# ⚠ KIỂM DỮ LIỆU, KHÔNG KIỂM CHỮ TRONG TỆP. Bản đầu dò hai cụm từ ấy trong nguyên văn
+# `hanh_trinh.py` và kêu oan ngay vào LỜI CHÚ THÍCH dặn đừng viết thế — lần thứ năm
+# trong dự án này một hàng rào dò nguyên văn vấp phải chú thích. Thứ phải đúng là GIÁ
+# TRỊ `an_mo_ta`, nên đọc thẳng giá trị ấy.
+_cong_thuc = [m["ma"] for m in _co_an
+              if any(t in str(m.get("an_mo_ta") or "")
+                     for t in ("12 tháng", "ngay sau"))]
+kiem("và lời tả màn ẩn KHÔNG cho suy ra ngày", not _cong_thuc,
+     f"— tả được bằng công thức thì tính ra được · {_cong_thuc}")
 for _m in _co_an[:3]:
     _ck = _json.dumps(_ht.cong_khai(_m), ensure_ascii=False)
     kiem(f"`cong_khai({_m['ma']})` cũng sạch",
@@ -879,7 +894,8 @@ print("\n▸ ⚠ BOSS LÀ ĐƯỜNG BENCHMARK CỦA CHÍNH LEAN")
 # Chạy một lượt backtest THỨ HAI chỉ để biết mua-giữ lãi bao nhiêu là làm lại việc
 # LEAN đã làm sẵn — và là một bản sự thật thứ hai về con số ấy.
 kiem("mỗi màn có sân ép `moc_so_sanh` về mã của nó",
-     'may["moc_so_sanh"] = man["symbol"]' in doc("cat_studio", "luat_choi.py"),
+     'may["moc_so_sanh"] = man.get("moc") or _ds_ma(man)[0]'
+     in doc("cat_studio", "luat_choi.py"),
      "— thiếu nó thì LEAN lặng lẽ lấy SPY, và người chơi vàng bị đem so với cổ phiếu Mỹ")
 kiem("và `boss_pt` đọc đúng đường ấy",
      'bang.get("ten") != "Benchmark"' in doc("cat_studio", "luat_choi.py"))
@@ -913,7 +929,7 @@ kiem("và KHÔNG tự tính sao",
      "sao =" not in _ch and "thang_boss =" not in _ch,
      "— «mấy sao» là luật chơi, mà luật chơi chỉ được có một bản")
 kiem("sao vẽ bằng ký hiệu ĐƠN SẮC, không emoji",
-     "★" in _ch and "⭐" not in _ch,
+     "★" in _ch and "⭐" not in _bo_chu_thich(_ch),
      "— emoji không ăn theo màu theme; cùng lý do thẻ «khoá» ở bản đồ dùng chữ")
 _tc = doc("webui", "src", "TroChoi.tsx")
 kiem("vỏ trò chơi có vai màn Chấm", "<ManCham" in _tc and "'cham'" in _tc)

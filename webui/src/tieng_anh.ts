@@ -378,6 +378,7 @@ const TIENG_ANH: Record<string, string> = {
   '⚠ {0} lệnh không khớp khối nào': '⚠ {0} {0|order|orders} match no block',
   'Bảng kết quả…': 'Results panel…',
   // ── man/ManCham.tsx
+  'Không dựng được đường của boss — LEAN cần dữ liệu GIỜ của mã mốc so sánh, mà máy này không có. Chạy vẫn chạy, nhưng chưa chấm được hai sao sau.': 'Could not build the boss line — LEAN needs HOUR data for the benchmark symbol, and this machine has none. The run still works, but the last two stars cannot be scored.',
   '{0} = {1} khối + {2} núm': '{0} = {1} {1|block|blocks} + {2} {2|knob|knobs}',
   'Không chấm được lượt này.': 'Couldn\'t score this run.',
   'Không nộp được.': 'Couldn\'t submit.',

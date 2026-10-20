@@ -140,6 +140,14 @@ def do_gon(steps):
 # ---------------------------------------------------------------------------
 # Ép màn lên sơ đồ
 # ---------------------------------------------------------------------------
+def _ds_ma(man):
+    """Mã của màn -> danh sách. Nhận cả một chuỗi lẫn một tuple."""
+    sym = man.get("symbol")
+    if isinstance(sym, str):
+        return [sym]
+    return list(sym or ())
+
+
 def ap_man(doc, man, loai):
     """Ép mã · khoảng ngày · vốn · mốc so sánh của MÀN lên sơ đồ. -> doc mới.
 
@@ -156,14 +164,22 @@ def ap_man(doc, man, loai):
     for s in d["steps"]:
         if not core.is_start_step(s):
             continue
-        s["ma"] = [{"ma": man["symbol"], "loai": man["loai_ma"]}]
+        # BA DẠNG SÂN: một mã, nhiều mã, hoặc một RỔ. Khối Bắt đầu nhận cả ba ở cùng
+        # một ô `ma`, nên ép ở đây là xong — không cần ba đường riêng.
+        if man.get("ro"):
+            s["ma"] = {"ro": man["ro"]}
+        else:
+            s["ma"] = [{"ma": x, "loai": man["loai_ma"]} for x in _ds_ma(man)]
         s["khoang"] = {"tu": khoang[0], "den": khoang[1]}
         s["von"] = float(man["von"])
     # MỐC SO SÁNH = mã của màn. Đây là thứ biến đường `Benchmark` của LEAN thành đúng
     # con boss — xem `boss_pt`. Thiếu nó thì LEAN lặng lẽ lấy SPY, và người chơi bị đem
     # so với cổ phiếu Mỹ trong một màn chơi vàng.
     may = dict(d.get(core.KHOA_CO_MAY) or {})
-    may["moc_so_sanh"] = man["symbol"]
+    # MỐC SO SÁNH khi màn có NHIỀU mã: lấy mã đầu, trừ khi màn tự khai `moc`. Mua-giữ
+    # một rổ thì LEAN không có khái niệm ấy — phải chọn MỘT đường để làm boss, và chọn
+    # cái nào thì màn phải nói rõ trong lời dặn.
+    may["moc_so_sanh"] = man.get("moc") or _ds_ma(man)[0]
     d[core.KHOA_CO_MAY] = may
     return d
 

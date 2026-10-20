@@ -115,6 +115,11 @@ function TheMan({ m, dangO, onBam }: {
         {m.khoa && <span className="ht-khoa">{tr('khoá')}</span>}
       </div>
       <div className="ht-man-day">{m.day}</div>
+      {/* Màn chưa có sân thì NÓI VÌ SAO ngay trên thẻ — "chưa làm" và "dữ liệu
+          miễn phí không đỡ nổi" là hai chuyện khác hẳn nhau. */}
+      {m.co_san === false && !!m.vi_sao_chua && (
+        <div className="ht-chua">{m.vi_sao_chua}</div>
+      )}
       {!!m.mo.length && (
         <div className="ht-mo">
           {m.mo.map(x => <span className="ht-the" key={x}>{x}</span>)}

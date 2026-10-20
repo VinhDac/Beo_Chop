@@ -39,6 +39,11 @@ HOI = (
     {"ma": "h9", "ten": "Hợp xưởng", "cau": "Nhiều máy trong một máy"},
 )
 
+#: ⚠ `an_mo_ta` TẢ BẰNG LỜI MƠ HỒ, CÓ CHỦ Ý. Bản đầu viết "12 tháng ngay sau màn đã
+#: thấy" — nghe thì tử tế, nhưng cộng với khoảng ngày ĐÃ THẤY (vốn bày công khai) là
+#: người chơi TÍNH RA được khoảng ẩn, rồi sang Sáng tạo chạy thử đúng khoảng ấy mà vặn
+#: máy cho khít. Ngôi sao thứ ba mất sạch nghĩa mà vẫn sáng lên y như thật.
+#:
 #: 26 màn. `day` là MỘT ý mới duy nhất của màn ấy — và nó phải là thứ GIẢI ĐƯỢC màn đó,
 #: không phải thứ đọc cho biết. `mo` là những gì màn ấy mở khoá.
 #:
@@ -64,7 +69,7 @@ MAN = (
      "mo": ('ho:hoi_thi_truong', 'nhom:Giá'),
      "symbol": "XAUUSD", "loai_ma": "cfd", "von": 100_000.0,
      "thay": ("2012-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
-     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 3,
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 3,
      "loi_dan": "Ba năm vàng đi xuống. Mua rồi giữ là lỗ — nên lần này boss YẾU, và "
                 "thứ đánh bại nó không phải là giỏi mua, mà là biết lúc nào đứng "
                 "ngoài."},
@@ -74,7 +79,7 @@ MAN = (
      "mo": ('lam:lam_dong', 'ngu_phap:nhanh'),
      "symbol": "SPY", "loai_ma": "equity", "von": 100_000.0,
      "thay": ("2007-01-01", "2009-12-31"), "an": ("2010-01-01", "2010-12-31"),
-     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
      "loi_dan": "2008. Ai mua rồi giữ thì mất gần một nửa rồi ngồi chờ lấy lại. Màn "
                 "này dạy đúng một chuyện: cái máy phải có đường RA, không chỉ có "
                 "đường vào."},
@@ -86,7 +91,7 @@ MAN = (
      "mo": ('nhom:Trạng thái mã',),
      "symbol": "AAPL", "loai_ma": "equity", "von": 100_000.0,
      "thay": ("2014-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
-     "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
      "loi_dan": "Apple năm 2014, có đúng một ngày chia tách nằm giữa. Boss khoẻ — "
                 "mua rồi giữ năm ấy lãi đậm. Muốn hơn nó thì phải vào đúng nhịp, mà "
                 "muốn vào đúng nhịp thì trước hết đừng để cái ngày 09/06 lừa."},
@@ -94,85 +99,169 @@ MAN = (
     {"ma": "m04", "hoi": "h2", "ten": "Mở kho",
      "day": "Chỉ báo đầu tiên (RSI) và tham số của nó. Đây là lúc KHO mở ra — "
             "90 chỉ báo, không phải để thuộc, mà để tra.",
-     "mo": ('nhom:Chỉ báo', 'man:kho')},
+     "mo": ('nhom:Chỉ báo', 'man:kho'),
+     "symbol": 'SPY', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2015-01-01', '2017-12-31'), "an": ('2018-01-01', '2018-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 4,
+     "loi_dan": 'Ba năm thị trường đi ngang rồi lên chậm — kiểu thị trường mà chỉ báo quá bán / quá mua ăn tiền. Màn ẩn là 2018, năm có hai cú sụt mạnh: đủ để biết cái máy có thật sự hiểu gì không.'},
     {"ma": "m05", "hoi": "h2", "ten": "Chỉ báo nhiều đường",
      "day": "Bollinger, MACD — một chỉ báo trả về mấy đường, phải chọn đường nào.",
-     "mo": ('nhom:Chỉ báo nhiều đường',)},
+     "mo": ('nhom:Chỉ báo nhiều đường',),
+     "symbol": 'XAUUSD', "loai_ma": 'cfd', "von": 100_000.0,
+     "thay": ('2015-01-01', '2017-12-31'), "an": ('2018-01-01', '2018-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'Vàng đáy 2015 rồi bò lên. Một chỉ báo trả về mấy đường — dải Bollinger chẳng hạn — nói được cả xu hướng lẫn độ rộng, thứ mà một đường đơn không nói nổi.'},
     {"ma": "m06", "hoi": "h2", "ten": "Và, hoặc",
      "day": "Ghép hai điều kiện trong một cổng.",
-     "mo": ('ngu_phap:ghep',)},
+     "mo": ('ngu_phap:ghep',),
+     "symbol": 'AAPL', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Apple ba năm lên mạnh, boss KHOẺ. Một điều kiện không đủ để hơn nó — phải ghép hai cái lại mới lọc ra đúng nhịp.'},
     {"ma": "m07", "hoi": "h2", "ten": "Số nào là số tốt",
      "day": "Ghim một núm rồi quét hai mươi giá trị. Máy tự tìm hộ.",
-     "mo": ('tinh_nang:toi_uu',)},
+     "mo": ('tinh_nang:toi_uu',),
+     "symbol": 'IBM', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2013-01-01', '2016-12-31'), "an": ('2017-01-01', '2017-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'IBM bốn năm đi xuống — boss yếu, nên bạn rảnh tay nghịch. Ghim một núm rồi để máy quét hai mươi giá trị, xem con số nào hợp.'},
     {"ma": "m08", "hoi": "h2", "ten": "Màn ẩn vả cho một cái",
      "day": "Chạy lại đúng cỗ máy vừa ăn hai sao ở màn trước — trên khoảng ngày nó "
             "chưa từng thấy. Nó rụng xuống một sao. Bạn không làm chiến thuật, bạn "
             "vẽ lại quá khứ.",
-     "mo": (), "dau": True},
+     "mo": (), "dau": True,
+     "symbol": 'AAPL', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2018-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 4,
+     "loi_dan": 'Hai năm Apple lên đẹp, vặn núm cho khít là ăn ngay hai sao. Rồi nộp. Màn ẩn là 2020 — năm thị trường rơi một phần ba trong năm tuần rồi dựng lại. Cỗ máy khít 2019 sống qua được không?'},
 
     {"ma": "m09", "hoi": "h3", "ten": "Đang giữ rồi",
      "day": "Hỏi vị thế trước khi mua — không thì mỗi nến lại mua thêm một lần.",
-     "mo": ('ho:hoi_vi_the', 'nhom:Vị thế')},
+     "mo": ('ho:hoi_vi_the', 'nhom:Vị thế'),
+     "symbol": 'AAPL', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2017-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'Máy chưa biết hỏi «đang giữ chưa» thì mỗi nến lại mua thêm một lần, và hết tiền từ tháng thứ hai.'},
     {"ma": "m10", "hoi": "h3", "ten": "Hết tiền",
      "day": "Hỏi tài khoản còn bao nhiêu trước khi đặt lệnh.",
-     "mo": ('ho:hoi_tai_khoan', 'nhom:Tài khoản')},
+     "mo": ('ho:hoi_tai_khoan', 'nhom:Tài khoản'),
+     "symbol": 'BAC', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'Ngân hàng Mỹ ba năm lên rồi chững. Đặt lệnh khi tài khoản không còn tiền thì sàn từ chối — mà lệnh bị từ chối vẫn là một dòng trong nhật ký, không phải một cái máy đang chạy tốt.'},
     {"ma": "m11", "hoi": "h3", "ten": "Đặt lệnh nằm chờ",
      "day": "Lệnh chờ nằm trên sàn, khớp khi giá chạm. Và phải biết huỷ nó.",
-     "mo": ('lam:lam_lenh_cho', 'lam:lam_huy_lenh_cho', 'lam:lam_lenh_thi_truong')},
+     "mo": ('lam:lam_lenh_cho', 'lam:lam_huy_lenh_cho', 'lam:lam_lenh_thi_truong'),
+     "symbol": 'XAUUSD', "loai_ma": 'cfd', "von": 100_000.0,
+     "thay": ('2009-01-01', '2011-12-31'), "an": ('2012-01-01', '2012-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Ba năm vàng lên dữ nhất lịch sử rồi lập đỉnh 2011. Lệnh chờ đặt sẵn ở giá mình muốn thay vì đuổi theo giá — và phải biết huỷ nó khi tình thế đổi.'},
 
     {"ma": "m12", "hoi": "h4", "ten": "Nhớ qua đêm",
      "day": "Cất một quyết định lại cho nhịp sau đọc — «đang chờ mua lại». Đây là thứ "
             "làm cỗ máy thành một chương trình, không còn là một công thức.",
-     "mo": ('lam:lam_ghi_nho', 'ho:hoi_tri_nho', 'nhom:Trí nhớ')},
+     "mo": ('lam:lam_ghi_nho', 'ho:hoi_tri_nho', 'nhom:Trí nhớ'),
+     "symbol": 'SPY', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2017-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": '«Vừa bán xong, chờ giá về rồi mua lại» — câu ấy cần TRÍ NHỚ. Trong một nến thì không có gì để nhớ; qua nến mới cần.'},
     {"ma": "m13", "hoi": "h4", "ten": "Vòng lặp",
      "day": "Khối Quay về — vẽ cái vòng ra, thay vì để nó ngầm.",
-     "mo": ('khoi:quay_ve',)},
+     "mo": ('khoi:quay_ve',),
+     "symbol": 'XAUUSD', "loai_ma": 'cfd', "von": 100_000.0,
+     "thay": ('2006-04-01', '2008-12-31'), "an": ('2009-01-01', '2009-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Vàng qua khủng hoảng 2008 — rơi cùng mọi thứ rồi bật lại trước mọi thứ. Vẽ cái vòng lặp ra thay vì để nó ngầm.'},
 
     {"ma": "m14", "hoi": "h5", "ten": "Đúng giờ mới làm",
      "day": "Chỉ cân lại danh mục đầu tháng. Tránh phiên mở cửa.",
-     "mo": ('ho:hoi_lich', 'nhom:Thời gian', 'o:nhip')},
+     "mo": ('ho:hoi_lich', 'nhom:Thời gian', 'o:nhip'),
+     "symbol": 'SPY', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'Cân lại danh mục mỗi ngày thì phí ăn hết; mỗi tháng một lần thì vừa. Và phiên mở cửa là chỗ giá nhảy loạn nhất ngày.'},
 
     {"ma": "m15", "hoi": "h6", "ten": "Hai cần câu",
      "day": "Một cỗ máy chạy trên hai mã. Chạy cho từng mã, hay cho cả danh mục?",
-     "mo": ('o:chay_cho',)},
+     "mo": ('o:chay_cho',),
+     "symbol": ('SPY', 'QQQ'), "loai_ma": 'equity', "von": 100_000.0,
+     "moc": 'SPY',
+     "thay": ('2017-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Hai mã cùng chạy một cỗ máy. Boss là mua-giữ SPY. Chạy cho TỪNG mã hay cho CẢ danh mục — hai câu trả lời, hai cỗ máy khác hẳn nhau.'},
     {"ma": "m16", "hoi": "h6", "ten": "Cả một rổ",
      "day": "Thả cả rổ vào máy thay vì gõ tên từng mã.",
-     "mo": ('ro:co_san',)},
+     "mo": ('ro:co_san',),
+     "ro": 'nang_luong',
+     "symbol": ('USO',), "loai_ma": 'equity', "von": 100_000.0,
+     "moc": 'SPY',
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Thả cả rổ ETF năng lượng vào máy thay vì gõ tên từng mã. Dữ liệu trên máy này chỉ đỡ được hai mã trong rổ (USO, BNO) — rổ vẫn chạy, chỉ là mỏng. Boss lần này là mua-giữ SPY, tức cả thị trường — khó hơn hẳn, nhưng đó mới là câu hỏi thật: chọn riêng một ngành có hơn được việc mua cả chợ không?'},
     {"ma": "m17", "hoi": "h6", "ten": "Rổ tự lọc",
      "day": "Rổ không cố định — mỗi ngày máy tự chọn lại theo thanh khoản hay theo "
             "đường trung bình.",
-     "mo": ('ro:dong',)},
+     "mo": ('ro:dong',),
+     "vi_sao_chua": 'Ba rổ tự lọc (thanh khoản, cắt EMA) đều cần DỮ LIỆU DOANH NGHIỆP — hàng trả tiền của QuantConnect. Với dữ liệu miễn phí, `has_fundamental_data` trả False cho cả 7.111 mã nên rổ chọn ra số không.'},
 
     {"ma": "m18", "hoi": "h7", "ten": "Nhìn vào sổ sách",
      "day": "P/E, vốn hoá — hỏi về chính công ty, không hỏi về giá của nó.",
-     "mo": ('ho:hoi_doanh_nghiep', 'nhom:Định giá')},
+     "mo": ('ho:hoi_doanh_nghiep', 'nhom:Định giá'),
+     "vi_sao_chua": 'Hỏi doanh nghiệp (P/E, vốn hoá) đọc kho `fine` của QuantConnect — hàng trả tiền. Không có nó thì mọi điều kiện đều rỗng.'},
     {"ma": "m19", "hoi": "h7", "ten": "Năm trăm công ty",
      "day": "Lọc trong rổ lớn, chia theo ngành.",
-     "mo": ('ro:qc500',)},
+     "mo": ('ro:qc500',),
+     "vi_sao_chua": 'Rổ QC500 và rổ theo ngành S&P 500 cũng cần kho `fine`, và dữ liệu trên máy không có mã nào của rổ ngành.'},
 
     {"ma": "m20", "hoi": "h8", "ten": "Phí ăn hết lãi",
      "day": "Chạy lại đúng cỗ máy vừa ăn ba sao, chỉ bật phí sàn và trượt giá lên "
             "cho thật. Nó lỗ.",
-     "mo": ('o_may:san', 'o_may:phi', 'o_may:truot_gia'), "dau": True},
+     "mo": ('o_may:san', 'o_may:phi', 'o_may:truot_gia'), "dau": True,
+     "symbol": 'AAPL', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2015-01-01', '2017-12-31'), "an": ('2018-01-01', '2018-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 5,
+     "loi_dan": 'Lấy đúng cỗ máy bạn tâm đắc nhất, rồi bật phí sàn và trượt giá lên cho THẬT. Nếu nó vẫn sống thì mới là nó sống.'},
     {"ma": "m21", "hoi": "h8", "ten": "Giữ lại một ít",
      "day": "Đệm tiền mặt và phòng rủi ro — cỗ máy không được phép dốc sạch.",
-     "mo": ('o_may:dem_tien_mat', 'o_may:phong_rui_ro', 'o_may:moc_so_sanh')},
+     "mo": ('o_may:dem_tien_mat', 'o_may:phong_rui_ro', 'o_may:moc_so_sanh'),
+     "symbol": 'AIG', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2017-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'AIG — cổ phiếu từng suýt kéo sập cả hệ thống, và vẫn còn nảy rất mạnh. Máy dốc sạch tiền vào một cú là sớm muộn gặp đúng cú sai.'},
     {"ma": "m22", "hoi": "h8", "ten": "Để LEAN chia hộ",
      "day": "Thay vì tự đặt tỷ trọng, chỉ nói «mã này nên LÊN» rồi để LEAN lo chia "
             "vốn, phòng rủi ro và đặt lệnh.",
-     "mo": ('lam:lam_tin_hieu', 'o_may:chia_von', 'o_may:dat_lenh')},
+     "mo": ('lam:lam_tin_hieu', 'o_may:chia_von', 'o_may:dat_lenh'),
+     "symbol": ('SPY', 'QQQ', 'IWM'), "loai_ma": 'equity', "von": 100_000.0,
+     "moc": 'SPY',
+     "thay": ('2017-01-01', '2019-12-31'), "an": ('2020-01-01', '2020-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 6,
+     "loi_dan": 'Thôi tự đặt tỷ trọng. Chỉ nói «mã này nên LÊN» rồi để LEAN lo chia vốn, chặn rủi ro và đặt lệnh — đúng dây chuyền thật của nó.'},
 
     {"ma": "m23", "hoi": "h9", "ten": "Hai máy song song",
      "day": "Hai chiến thuật con chạy cùng lúc rồi trộn tỷ trọng.",
-     "mo": ('ngu_phap:song_song',)},
+     "mo": ('ngu_phap:song_song',),
+     "symbol": ('SPY', 'QQQ'), "loai_ma": 'equity', "von": 100_000.0,
+     "moc": 'SPY',
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 8,
+     "loi_dan": 'Hai chiến thuật con chạy cùng lúc rồi trộn tỷ trọng. Hai cái nửa vời cộng lại có khi hơn một cái giỏi.'},
     {"ma": "m24", "hoi": "h9", "ten": "Gom lại thành một",
      "day": "Cả một cụm khối gói thành một Nhóm, nhìn lại thấy cái máy chứ không "
             "thấy mớ dây.",
-     "mo": ('khoi:nhom', 'khoi:hat_nhan')},
+     "mo": ('khoi:nhom', 'khoi:hat_nhan'),
+     "symbol": 'AAPL', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2016-01-01', '2018-12-31'), "an": ('2019-01-01', '2019-12-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 8,
+     "loi_dan": 'Sơ đồ tới đây đã rậm. Gói cả cụm thành một Nhóm để nhìn lại thấy CÁI MÁY, chứ không thấy mớ dây.'},
     {"ma": "m25", "hoi": "h9", "ten": "Boss cuối",
      "day": "Thị trường xấu, và boss lần này không phải «Mua rồi giữ» — nó là một "
             "cỗ máy.",
-     "mo": ('che_do:sang_tao',), "dau": True},
+     "mo": ('che_do:sang_tao',), "dau": True,
+     "symbol": 'SPY', "loai_ma": 'equity', "von": 100_000.0,
+     "thay": ('2018-01-01', '2020-12-31'), "an": ('2021-01-01', '2021-03-31'),
+     "an_mo_ta": "một khoảng ngày cỗ máy chưa từng thấy", "boss": "mua_giu", "gon": 8,
+     "loi_dan": 'Ba năm có đủ mọi thứ: sụt cuối 2018, sập 2020, rồi dựng lại dữ dội. Boss vẫn là mua-giữ, và lần này nó rất khoẻ. Mang hết những gì đã học ra.'},
 )
 
 
@@ -229,15 +318,19 @@ def nhan_mo(khoa):
     if loai == "nhom":
         n = sum(1 for m in hoi.tu_dien()["kho"] if m.get("nhom") == gt)
         return tr("Nhóm {0} — {1} đại lượng", tr(gt), n)
+    # ⚠ `tr()` cả nhãn từ điển. Chúng là hằng bên Python nên không bọc được lúc
+    # nạp tệp; ở những chỗ nhãn đi NGUYÊN sang giao diện thì chính giao diện dịch,
+    # nhưng ở đây Python đã GHÉP nó vào một câu rồi — nên phải dịch tại chỗ, không
+    # thì vỏ tiếng Anh mà mấy thẻ mở khoá vẫn tiếng Việt.
     if loai == "ho":
         for h in hoi.tu_dien()["loai"]:
             if h["ma"] == gt:
-                return h["nhan"]
+                return tr(h["nhan"])
         return gt
     if loai == "lam":
         for x in lam.tu_dien()["loai"]:
             if x["ma"] == gt:
-                return x["nhan"]
+                return tr(x["nhan"])
         return gt
     if loai == "o_may":
         from . import bat_dau
@@ -292,7 +385,10 @@ def cong_khai(m):
     mà mất nghĩa thì không ai biết, vì nó vẫn sáng lên y như thật."""
     from . import luat_choi
     if not co_san(m):
-        return {"co_san": False}
+        # NÓI VÌ SAO, đừng chỉ nói "chưa có". Ba màn thiếu sân vì DỮ LIỆU MIỄN PHÍ của
+        # LEAN không đỡ nổi, không phải vì chưa ai làm — mà hai chuyện ấy dẫn tới hai
+        # hành động khác hẳn nhau cho người đọc.
+        return {"co_san": False, "vi_sao_chua": tr(m.get("vi_sao_chua") or "")}
     return {
         "co_san": True,
         "symbol": m["symbol"],

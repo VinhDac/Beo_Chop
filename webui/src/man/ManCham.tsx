@@ -108,6 +108,18 @@ export default function ManCham({ man, maLuot, viec, onSuaTiep, onRa }: {
                                           + 'khối cộng núm.', man.gon)}</div>
             )}
 
+            {/* ⚠ BOSS KHÔNG CÓ SỐ THÌ NÓI RA. LEAN nạp đường Benchmark ở độ phân
+                giải GIỜ, nên mã nào thiếu dữ liệu giờ là không có đường ấy — và lúc
+                đó KHÔNG AI THẮNG AI, tức hai sao sau không bao giờ với tới. In một dấu gạch
+                rồi thôi là để người chơi ngồi thử mãi một màn không thể thắng. */}
+            {d.thay?.boss_pt == null && (
+              <div className="ch-nhac">
+                {tr('Không dựng được đường của boss — LEAN cần dữ liệu GIỜ của mã mốc '
+                    + 'so sánh, mà máy này không có. Chạy vẫn chạy, nhưng chưa chấm '
+                    + 'được hai sao sau.')}
+              </div>
+            )}
+
             {d.an ? (
               <div className="ch-an">
                 <div className="ch-an-dau">{tr('Trên màn ẩn')}</div>
