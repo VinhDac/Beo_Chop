@@ -305,5 +305,41 @@ if not (_r.stdout or "").strip():
 kiem("bài kiểm mạch chạy (node) qua", _r.returncode == 0,
      "" if _r.returncode == 0 else "— xem mấy dòng ✘ ở trên")
 
+print("\n▸ ⚠ LEAN ĐẶT KÈM — nửa mã của mốc M7 (thiết kế §8.1)")
+# Muốn người lạ chơi được thì không thể bắt họ tự build LEAN rồi vào Cài đặt dán đường
+# dẫn: vài giờ, và chỉ dân lập trình qua nổi. Có `lean_kem` thì gói LEAN kèm app chỉ còn
+# là một dòng trong `Cat_Studio.spec`, không phải sửa mã.
+import os as _os  # noqa: E402
+import shutil as _shutil  # noqa: E402
+_goc_cu = luu_tru.doc_cai_dat().get(chay_lean.KHOA_LEAN)
+_kem = _os.path.join(luu_tru.thu_muc_app(), chay_lean.TEN_LEAN_KEM)
+_da_co = _os.path.isdir(_kem)
+try:
+    # ⚠ LỰA CHỌN CỦA NGƯỜI DÙNG PHẢI THẮNG. Ai đã trỏ tay vào một bản LEAN riêng thì
+    # bản đặt kèm không được đè lên — không thì hôm gói bản kèm vào, mọi người đang
+    # dùng LEAN của mình bỗng chạy một bản khác mà không ai báo.
+    _s = dict(luu_tru.doc_cai_dat())
+    _s[chay_lean.KHOA_LEAN] = r"C:\Nguoi\Dung\Chon"
+    luu_tru.ghi_cai_dat(_s)
+    kiem("có đường dẫn trong Cài đặt thì KHÔNG dùng bản đặt kèm",
+         chay_lean.san_sang()["goc"] == r"C:\Nguoi\Dung\Chon")
+
+    _s[chay_lean.KHOA_LEAN] = ""
+    luu_tru.ghi_cai_dat(_s)
+    kiem("Cài đặt trống và không có bản kèm -> không tìm ra gì",
+         chay_lean.lean_kem() == "" if not _da_co else True)
+
+    if not _da_co:
+        _os.makedirs(_os.path.join(_kem, "Launcher"), exist_ok=True)
+    kiem("có thư mục Lean cạnh app thì TỰ TÌM RA",
+         chay_lean.lean_kem() == _kem, f"— {chay_lean.lean_kem()!r}")
+    kiem("và `san_sang` lấy đúng nó", chay_lean.san_sang()["goc"] == _kem)
+finally:
+    if not _da_co:
+        _shutil.rmtree(_kem, ignore_errors=True)
+    _s = dict(luu_tru.doc_cai_dat())
+    _s[chay_lean.KHOA_LEAN] = _goc_cu or ""
+    luu_tru.ghi_cai_dat(_s)
+
 print(f"\n{'=' * 52}\n  {dung} đúng, {sai} sai\n{'=' * 52}")
 sys.exit(1 if sai else 0)

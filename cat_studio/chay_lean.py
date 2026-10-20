@@ -225,9 +225,39 @@ def _moi_truong():
     return e, dll
 
 
+#: Tên thư mục LEAN đặt KÈM app. Tìm cạnh exe (bản đóng gói) hoặc ở gốc dự án.
+TEN_LEAN_KEM = "Lean"
+
+
+def lean_kem():
+    """LEAN đặt kèm app, nếu có. -> đường dẫn hay "".
+
+    ⚠ ĐÂY LÀ NỬA MÃ CỦA MỐC M7 (thiết kế §8.1). Muốn người lạ chơi được thì không thể
+    bắt họ tự build LEAN rồi vào Cài đặt dán đường dẫn — vài giờ, và chỉ dân lập trình
+    qua nổi. Có hàm này thì gói LEAN kèm app chỉ còn là một dòng trong `Cat_Studio.spec`
+    (thêm thư mục vào `datas`), không phải sửa mã nữa.
+    Đo thật trên bản LEAN đang chạy: máy 115 MB, còn dữ liệu thì chỉ cần phần NGÀY của
+    mấy mã trong màn — 320 KB cho ba mã. Tức gói kèm khoảng 120 MB, không phải 1,3 GB.
+
+    ⚠ VÀ BA THỨ CÒN VƯỚNG, không phải chuyện mã: bản build hiện tại cần .NET 10 cài sẵn
+    (nó `framework-dependent`, không có `coreclr.dll`); pythonnet cần đúng một
+    `python3xx.dll` phải gói kèm; và ĐIỀU KHOẢN DỮ LIỆU thì trong `Data/` không có file
+    giấy phép nào — mã nguồn LEAN là Apache-2.0 nhưng không đương nhiên kéo theo dữ
+    liệu. Chưa hỏi QuantConnect thì chưa phát hành kèm được."""
+    for goc in (luu_tru.thu_muc_app(), luu_tru.thu_muc_goi()):
+        d = os.path.join(goc, TEN_LEAN_KEM)
+        if os.path.isdir(os.path.join(d, "Launcher")):
+            return d
+    return ""
+
+
 def san_sang():
-    """LEAN đã sẵn sàng chưa. -> {ok, goc, launcher, dll, loi}"""
-    goc = str((luu_tru.doc_cai_dat().get(KHOA_LEAN) or "")).strip()
+    """LEAN đã sẵn sàng chưa. -> {ok, goc, launcher, dll, loi}
+
+    Thứ tự tìm: đường dẫn người dùng ĐẶT TRONG CÀI ĐẶT trước, rồi mới tới bản đặt kèm.
+    Người đã trỏ tay vào một bản LEAN riêng thì phải được tôn trọng — bản kèm chỉ là lối
+    cho người chưa có gì."""
+    goc = str((luu_tru.doc_cai_dat().get(KHOA_LEAN) or "")).strip() or lean_kem()
     _e, dll = _moi_truong()
     if not goc:
         return {"ok": False, "goc": "", "launcher": "", "dll": dll,
