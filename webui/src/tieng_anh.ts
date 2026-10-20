@@ -431,8 +431,7 @@ const TIENG_ANH: Record<string, string> = {
   '{0} màn': '{0} {0|level|levels}',
   '{0} việc làm được': '{0} {0|action|actions}',
   'chạy trên LEAN thật': 'runs on the real LEAN',
-  'Vẽ tiếp': 'Keep drawing',
-  'Sáng tạo': 'Creative',
+  'Chế độ Sáng tạo': 'Creative mode',
   'Mở lại cỗ máy đang vẽ dở': 'Reopen the engine you were drawing',
   'Mở hết đồ nghề, không chấm điểm': 'Every tool unlocked, nothing scored',
   // ── phim_tat.ts

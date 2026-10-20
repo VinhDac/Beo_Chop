@@ -87,7 +87,13 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
               <small>{tr('Học từ cái máy hai khối tới boss cuối')}</small>
             </button>
             <button className="nut-to" onClick={onSangTao}>
-              {coNhap ? tr('Vẽ tiếp') : tr('Sáng tạo')}
+              {/* ⚠ TÊN CHẾ ĐỘ KHÔNG ĐỔI THEO VIỆC CÓ BẢN NHÁP HAY KHÔNG. Trước đây
+                  nút này lúc thì «Vẽ tiếp», lúc thì «Sáng tạo» — cùng một cánh cửa mà
+                  hai cái tên, nên người chơi không bao giờ học được nơi mình sắp vào
+                  là gì, và cái tên app vẫn gọi khắp nơi (`che_do:sang_tao`, màn Chạy
+                  máy, bản thiết kế §2) thì nửa số lần không hiện ra. Tên đứng yên;
+                  chuyện có bản nháp dở hay không là việc của dòng chữ nhỏ bên dưới. */}
+              {tr('Chế độ Sáng tạo')}
               <small>{coNhap
                 ? tr('Mở lại cỗ máy đang vẽ dở')
                 : tr('Mở hết đồ nghề, không chấm điểm')}</small>
