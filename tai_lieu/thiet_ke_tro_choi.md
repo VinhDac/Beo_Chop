@@ -339,6 +339,19 @@ Mỗi mốc phải **nhìn thấy được**, không mốc nào là "hạ tầng
 | **M6** | Con mèo, âm thanh, đánh bóng, khoe điểm. | **Sản phẩm.** |
 | **M7** | Giải bức tường LEAN (§8.1). | Người lạ chơi được. |
 
+> **Đã làm tới đâu (20/10/2026).** M1→M6 xong, M7 mới xong nửa mã.
+> M1 `db9b06f` · M2 `2157c12` · M3 `71487e2` · M4 `cdbdb46` · M5 `458b94f` ·
+> M6 `8de9af8` · M7 nửa mã `961b59c`.
+>
+> **Còn lại, và đều là việc của chủ dự án:**
+> 1. **Ba màn chưa có sân** — m17 · m18 · m19, cả ba cần kho `fine` của QuantConnect
+>    (hàng trả tiền). Hoặc mua dữ liệu, hoặc đổi ba màn ấy sang bài khác.
+> 2. **Hình con mèo** — bản trong app là hình tạm vẽ bằng SVG, giữ đúng cỡ và đúng
+>    tính cách để thay.
+> 3. **M7 còn ba chỗ vướng:** .NET 10 phải có sẵn (hoặc build LEAN self-contained,
+>    +~70 MB), Python phải gói kèm cho pythonnet, và **điều khoản dữ liệu** —
+>    `Data/` không có file giấy phép nào, phải hỏi QuantConnect trước khi phát hành kèm.
+
 > M1 và M2 làm xong là đã có thứ để đăng lên mạng, dù chưa có màn nào. Cố ý xếp thế.
 
 ---
