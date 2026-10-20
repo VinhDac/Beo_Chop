@@ -48,6 +48,7 @@ import type {
   NumSoDo,
   Step,
   StepKind,
+  ManHT,
   Strategy,
   TuDienBatDau,
   TuDienHoi,
@@ -214,11 +215,13 @@ const idHatNhanMoi = () =>
  *  ấy chiếm trọn màn hình, mà vỏ trò chơi chỉ cho ĐÚNG MỘT màn hình sống một lúc. */
 interface ViecXuong {
   manChoi?: string
+  /** Màn đang chơi, bản đầy đủ — CHỈ để bày tên. Xem lời ở chỗ gọi trong `TroChoi`. */
+  man?: ManHT | null
   onRa?: () => void
   onChayMay?: (v: ViecChayMay) => void
 }
 
-function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
+function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
   // ĐỔI TIẾNG THÌ VẼ LẠI. Gốc cửa sổ gọi là đủ cho gần hết cây — gốc vẽ lại thì con vẽ
   // lại theo. Chỉ hai component bọc `memo` (`StepNode`, `HatNhan`) phải tự gọi, vì
   // `memo` chặn đúng cái lượt vẽ lại ấy.
@@ -494,7 +497,9 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
         await bao({ loi: tr('Không nạp được từ điển: {0}. Mấy họ khối '
                          + 'tương ứng sẽ không mở hộp sửa được.', hong.join(' · ')) })
       }
-      const r = await py.doc_ban_nhap()
+      // BẢN NHÁP CỦA ĐÚNG NGĂN NÀY: màn chơi có ngăn riêng, Sáng tạo có ngăn của
+      // nó. Vào màn lần đầu thì không có gì để đọc — và thế là ĐÚNG, canvas phải sạch.
+      const r = await py.doc_ban_nhap(manChoi)
       let doc = r.ok ? r.value : null
       // ⚠ VÀO MỘT MÀN THÌ DÁN SÂN CỦA MÀN LÊN KHỐI BẮT ĐẦU, TRƯỚC khi nạp. Lượt chạy
       // đã bị Python ép sân rồi (`luat_choi.ap_man`) — dán ở đây là để người chơi
@@ -504,9 +509,18 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
       // Dán vào thứ VỪA ĐỌC VỀ, không vào `nodes`: lúc này `nodes` còn là giá trị cũ
       // trong closure của hiệu ứng (nạp xong mới có khối), nên dán vào nó là dán vào
       // một sơ đồ rỗng.
-      if (doc && manChoi) {
-        const sn = await py.san_cua_man(manChoi, doc.steps ?? [])
-        if (sn.ok && sn.value) doc = { ...doc, steps: sn.value.steps }
+      if (manChoi) {
+        const sn = await py.san_cua_man(manChoi, doc?.steps ?? [])
+        // Chưa có bản nháp cho màn này thì dựng một sơ đồ mới quanh khối Bắt đầu mà
+        // `san_cua_man` vừa đẻ ra — canvas sạch, nhưng KHÔNG trắng trơn: mã và khoảng
+        // ngày của màn phải nhìn thấy được ngay.
+        if (sn.ok && sn.value) {
+          doc = {
+            schema: 1, type: 'strategy', name: '', edges: [],
+            ...(doc ?? {}),
+            steps: sn.value.steps,
+          }
+        }
       }
       if (doc) await nap(doc)
       setSanSang(true)
@@ -1301,7 +1315,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
   useEffect(() => {
     if (!sanSang) return
     const t = setTimeout(() => {
-      void py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay)
+      void py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay, manChoi)
     }, 1200)
     return () => clearTimeout(t)
   }, [nodes, edges, ten, sanSang])
@@ -1315,7 +1329,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
    *  và không có lỗi nào báo. */
   async function raXuong() {
     try {
-      await py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay)
+      await py.luu_ban_nhap(ten, rfSangSteps(nodes), rfSangEdges(edges), coMay, manChoi)
     } catch {
       // Ghi hụt thì vẫn cho đi — giam người dùng trong Xưởng vì một lần ghi hỏng
       // còn tệ hơn mất một nét vẽ.
@@ -1565,7 +1579,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
       // GHI NỐT BẢN NHÁP TRƯỚC KHI ĐI, đúng lý do `raXuong` phải làm thế: rời Xưởng là
       // `SoDo` bị tháo, và hàm dọn huỷ luôn bộ đếm giờ 1,2 giây đang chờ ghi.
       try {
-        await py.luu_ban_nhap(ten, s, e, coMay)
+        await py.luu_ban_nhap(ten, s, e, coMay, manChoi)
       } catch { /* ghi hụt thì vẫn cho chạy — chặn lại vì một lần ghi hỏng còn tệ hơn */ }
       ghi(tr('vào màn Chạy máy'))
       onChayMay?.({ ten: ten || 'Co May', steps: s, edges: e, coMay,
@@ -1706,6 +1720,24 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
         onRa && <button className="tb-ve" data-khong-keo onClick={raXuong}
                         title={tr('Rời Xưởng')}>←</button>
       } />
+      {/* DẢI MÀN. Không có nó thì vào màn và vẽ tự do trông Y HỆT nhau: cùng ribbon,
+          cùng bản nháp, thanh tiêu đề thì mang tên bản vẽ. Sân của màn CÓ được dán lên
+          khối Bắt đầu thật, nhưng đó là thay đổi nằm trong một cái hộp giữa canvas —
+          nhìn cả màn hình không một chữ nào nói mình đang chơi màn nào.
+          ⚠ So `man.ma === manChoi` chứ không chỉ kiểm `man` khác null: `manDay` tới
+          SAU, nên ngay sau khi đổi màn nó còn là màn TRƯỚC. Thiếu phép so này thì dải
+          chữ nói tên một màn khác hẳn màn đang vẽ, đúng một nhịp, mỗi lần đổi. */}
+      {!!manChoi && man?.ma === manChoi && (
+        <div className="xu-man">
+          <span className="xu-man-so">{String(man.so).padStart(2, '0')}</span>
+          <b>{man.ten}</b>
+          <span className="xu-man-day">{man.day}</span>
+          <span className="day" />
+          {onRa && (
+            <button className="xu-man-nut" onClick={raXuong}>{tr('Nhận việc')}</button>
+          )}
+        </div>
+      )}
       <Ribbon v={viec} soChon={dangChon.length} trongHatNhan={!!trongHN}
               coHoanTac={coHoanTac} coLamLai={coLamLai} />
       <div className="vung-canvas">
@@ -1733,6 +1765,10 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
             <button className="nut nho" onClick={raHatNhan}>{tr('Đóng — về sơ đồ chính')}</button>
           </div>
         )}
+        {/* ⚠ FIT LÚC MỞ PHẢI CÓ TRẦN. Sơ đồ MỘT khối — đúng cảnh vào một màn lần
+            đầu, canvas sạch chỉ có khối Bắt đầu — thì `fitView` phóng khối ấy tới
+            172%: chữ to như cái biển, và người chơi tưởng mình lỡ tay zoom. Trần
+            bằng 1 thì sơ đồ nhỏ giữ nguyên cỡ thật, sơ đồ lớn vẫn được thu cho vừa. */}
         <ReactFlow
           nodes={nodesVe} edges={edgesVe}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -1783,7 +1819,7 @@ function SoDoTrong({ manChoi = '', onRa, onChayMay }: ViecXuong) {
           deleteKeyCode={null}
           minZoom={ZOOM_SAN} maxZoom={2}
           proOptions={{ hideAttribution: true }}
-          fitView
+          fitView fitViewOptions={{ padding: 0.2, maxZoom: ZOOM_DOC_RO }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1} />
         </ReactFlow>

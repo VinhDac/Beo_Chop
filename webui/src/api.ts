@@ -215,10 +215,12 @@ export const py = {
   tu_luu_strategy: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
     goi<{ ten: string; duong: string } | null>(
       'tu_luu_strategy', ten, steps, edges, coMay),
-  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
-    goi<string>('luu_ban_nhap', ten, steps, edges, coMay),
-  doc_ban_nhap: () => goi<Strategy | null>('doc_ban_nhap'),
-  xoa_ban_nhap: () => goi<boolean>('xoa_ban_nhap'),
+  /** `man` = mã màn đang chơi; rỗng là bản nháp của chế độ Sáng tạo. MỖI MÀN MỘT
+   *  NGĂN — xem `luu_tru.duong_dan_ban_nhap`. */
+  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay, man = '') =>
+    goi<string>('luu_ban_nhap', ten, steps, edges, coMay, man),
+  doc_ban_nhap: (man = '') => goi<Strategy | null>('doc_ban_nhap', man),
+  xoa_ban_nhap: (man = '') => goi<boolean>('xoa_ban_nhap', man),
 
   // --- khoá QuantConnect. Mọi lỗi từ đây đã là một câu tiếng Việt. ---
   qc_khoa: () => goi<KhoaQC>('qc_khoa'),

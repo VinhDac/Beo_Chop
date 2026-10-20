@@ -620,8 +620,15 @@ class Api(NenCuaSo):
         m = hanh_trinh.man(man)
         if m is None or not hanh_trinh.co_san(m):
             return _loi(tr("Màn «{0}» chưa có sân chơi.", man))
-        d = luat_choi.ap_man({"steps": [core.chuan_hoa_khoi(x) for x in (steps or [])]},
-                             m, "thay")
+        ds = [core.chuan_hoa_khoi(x) for x in (steps or [])]
+        # ⚠ SƠ ĐỒ TRỐNG THÌ DỰNG LUÔN KHỐI BẮT ĐẦU. Vào một màn lần đầu là canvas sạch
+        # (mỗi màn một bản nháp riêng), mà `ap_man` chỉ SỬA khối Bắt đầu đang có chứ
+        # không đẻ ra khối nào. Không dựng thì người chơi nhìn một canvas trắng trơn và
+        # không biết màn này chơi mã nào, từ ngày nào — trong khi chính câu trả lời ấy
+        # là thứ đầu tiên màn Nhận việc vừa nói với họ.
+        if not any(core.is_start_step(x) for x in ds):
+            ds.insert(0, core.make_start_step())
+        d = luat_choi.ap_man({"steps": ds}, m, "thay")
         return _ok({"steps": d["steps"]})
 
     @_bat_loi
@@ -1028,19 +1035,19 @@ class Api(NenCuaSo):
 
     # ------------------------------------------------------------- bản nháp
     @_bat_loi
-    def luu_ban_nhap(self, ten, steps, edges=None, co_may=None):
+    def luu_ban_nhap(self, ten, steps, edges=None, co_may=None, man=""):
         """Việc đang dở của cửa sổ — kể cả cỗ máy chưa từng lưu. Không đụng file cỗ máy."""
         doc = core.make_process_template(ten or "", steps, edges, co_may)
-        return _ok(luu_tru.ghi_ban_nhap(doc))
+        return _ok(luu_tru.ghi_ban_nhap(doc, man))
 
     @_bat_loi
-    def doc_ban_nhap(self):
-        d = luu_tru.doc_ban_nhap()
+    def doc_ban_nhap(self, man=""):
+        d = luu_tru.doc_ban_nhap(man)
         return _ok(core.normalize_process(d) if d else None)
 
     @_bat_loi
-    def xoa_ban_nhap(self):
-        return _ok(luu_tru.xoa_ban_nhap())
+    def xoa_ban_nhap(self, man=""):
+        return _ok(luu_tru.xoa_ban_nhap(man))
 
     def dong_app(self):
         """Cửa sổ chính đóng. KHÔNG bọc `_bat_loi`: pywebview gọi nó từ sự kiện `closing`,

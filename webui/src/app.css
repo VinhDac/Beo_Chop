@@ -2541,6 +2541,109 @@ mark.tim-chu {
   color: #1a1200; background: var(--accent);
 }
 
+/* ========================= MÀN NHẬN VIỆC =========================
+   Màn hình số 3 của bản thiết kế, và nó THIẾU suốt từ mốc M1 — bấm một màn trên bản đồ
+   là nhảy thẳng vào Xưởng, mà Xưởng dùng CHUNG với chế độ Sáng tạo. Xem `ManNhanViec`.
+
+   Cả trang là MỘT cột hẹp. Bày thành hai cột cho đỡ phải cuộn thì mắt không biết đọc
+   cái nào trước — mà đây đúng là chỗ phải đọc theo thứ tự: màn này là gì, chơi ở đâu,
+   đánh ai, ăn sao thế nào. */
+.nv { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.nv-cho {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 24px; color: var(--dim); font-size: 12.5px;
+}
+.nv-than { flex: 1; min-height: 0; overflow: auto; }
+.nv-giua {
+  width: min(680px, 92vw); margin: 0 auto; padding: 26px 18px 34px;
+  display: flex; flex-direction: column;
+}
+
+.nv-dau { display: flex; align-items: baseline; gap: 12px; }
+.nv-so {
+  font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.nv-ten {
+  margin: 0; font-size: 27px; font-weight: 600; letter-spacing: -0.015em;
+  color: var(--text); line-height: 1.15;
+}
+.nv-day { margin: 12px 0 0; font-size: 14px; line-height: 1.65; color: var(--text); }
+/* LỜI DẶN là phần KỂ — chuyện của cái thị trường này — nên nó không trông như một ô
+   số liệu: không viền, chỉ một vạch cam ở mép trái và con mèo đứng nói. */
+.nv-dan {
+  display: flex; gap: 11px; align-items: flex-start;
+  margin: 16px 0 0; padding: 11px 13px;
+  font-size: 12.8px; line-height: 1.65; color: var(--muted);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 0 6px 6px 0;
+}
+.nv-meo { width: 26px; height: 26px; flex: 0 0 auto; margin-top: -2px; }
+.nv-chua {
+  margin: 16px 0 0; padding: 10px 12px; font-size: 12.5px; line-height: 1.6;
+  color: var(--muted); background: var(--field);
+  border-left: 2px solid var(--warn); border-radius: 0 6px 6px 0;
+}
+
+/* Lưới tự giãn: cửa sổ hẹp thì Sân và Boss xếp dọc, rộng thì nằm cạnh nhau. */
+.nv-o { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 18px; }
+.nv-hop { padding: 13px 15px; background: var(--surface); border-radius: 8px; }
+.nv-o + .nv-hop, .nv-hop + .nv-hop { margin-top: 10px; }
+.nv-hop h2 {
+  margin: 0 0 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--dim);
+}
+/* SÂN viết bằng chữ ĐỀU Ô, mã sáng nhất — cùng cách thẻ màn trên bản đồ bày nó. */
+.nv-san {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;
+  font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.nv-ma { font-size: 16px; font-weight: 600; letter-spacing: .03em; color: var(--text); }
+.nv-an { margin: 9px 0 0; font-size: 11.5px; line-height: 1.55; color: var(--muted); }
+.nv-boss { font-size: 14px; font-weight: 600; color: var(--err); }
+.nv-boss-ta { margin: 5px 0 0; font-size: 11.8px; line-height: 1.55; color: var(--muted); }
+
+/* Ba ngôi sao rỗng chính là ba mục tiêu — vẽ bằng ĐÚNG thành phần của màn Chấm
+   (`Sao` với `n={0}`), nên dùng lại luôn lớp của nó. */
+.nv-sao .ch-sao { margin: 0; }
+.nv-gon { margin: 9px 0 0; font-size: 11.5px; line-height: 1.55; color: var(--warn); }
+.nv-khong { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.nv-mo { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.nv-nut { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+/* ----------------------------------------------- DẢI MÀN trong Xưởng
+   Xưởng dùng CHUNG cho màn chơi và chế độ Sáng tạo (thiết kế §2). Không có dải này thì
+   hai thứ trông y hệt nhau — đúng chỗ người dùng báo hỏng. Nó mảnh, nằm giữa thanh
+   tiêu đề và ribbon, và không bao giờ che mất một pixel nào của canvas. */
+.xu-man {
+  display: flex; align-items: center; gap: 10px;
+  /* ⚠ MỘT DÒNG, DỨT KHOÁT. Thiếu `nowrap` thì tên màn tự xuống dòng ở cửa sổ hẹp và
+     dải cao gấp đôi — mà nó nằm ngay trên ribbon nên cái cao thêm ấy ăn thẳng vào
+     chiều cao canvas. Chỉ câu dạy được phép bị cắt, vì nó đã có bản đầy đủ ở màn
+     Nhận việc. */
+  white-space: nowrap;
+  padding: 6px 14px; font-size: 12px; color: var(--muted);
+  background: color-mix(in srgb, var(--accent) 7%, var(--chrome));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.xu-man-so {
+  font-family: var(--mono); font-size: 11.5px; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.xu-man b { flex: 0 0 auto; color: var(--text); font-size: 12.5px; }
+/* Câu dạy CẮT MỘT DÒNG: dải này không được cao lên, nó ăn vào chiều cao canvas. */
+.xu-man-day { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xu-man .day { flex: 1 0 12px; }
+.xu-man-nut {
+  flex: 0 0 auto; padding: 3px 10px; font: inherit; font-size: 11.5px; cursor: pointer;
+  color: var(--text); background: var(--raised);
+  border: 1px solid transparent; border-radius: 5px;
+}
+.xu-man-nut:hover { background: var(--raised-hover); border-color: var(--border); }
+
 /* ========================= MÀN CHẠY MÁY =========================
    Màn hình bán cả sản phẩm (thiết kế §5). TOÀN MÀN HÌNH, sơ đồ ở giữa, không ribbon
    và không bảng dưới: hai dải duy nhất ở đây — đường vốn và thanh điều khiển — là

@@ -94,7 +94,7 @@ Trò chơi có **8 màn hình**, mỗi màn một việc:
 |---|---|---|
 | 1 | **MỞ MÁY** | Con mèo, cái máy đang chạy, ba nút: Chơi tiếp · Hành trình · Sáng tạo |
 | 2 | **HÀNH TRÌNH** | Bản đồ các hồi và màn. Sao, khoá, đường đi. Chọn màn. |
-| 3 | **NHẬN VIỆC** | Mèo giao việc: thị trường này, boss này, **màn này mở thêm cái gì** |
+| 3 | **NHẬN VIỆC** | Mèo giao việc: thị trường này, boss này, **màn này mở thêm cái gì** ✅ |
 | 4 | **XƯỞNG** | **Vẽ.** Chỉ có thế. (Chính là canvas hôm nay, đã lột sạch) |
 | 5 | **KHO** | Tra 164 đại lượng · 10 hành động · 11 rổ. Mở dần. |
 | 6 | **CHẠY MÁY** | Toàn màn hình. Máy chạy. **Đây là cảnh để quay video.** |
@@ -112,6 +112,23 @@ việc thật**, mà một công cụ làm việc thì cần nhiều cửa sổ.
 
 Hai chế độ dùng **chung một xưởng**, khác nhau ở chỗ: Chiến dịch khoá bớt đồ và có chấm;
 Sáng tạo mở hết và không chấm.
+
+> ⚠ **NHƯNG CHUNG XƯỞNG KHÔNG PHẢI CHUNG BẢN VẼ** — chốt 20/10/2026, sau khi người dùng
+> báo: *«bấm vào không link tới màn mà lại link sang creative mode»*. Bản trước thiếu cả
+> ba thứ làm nên sự khác nhau ấy, nên hai chế độ trông y hệt:
+>
+> 1. **Màn NHẬN VIỆC chưa dựng** — bấm một màn là nhảy thẳng vào Xưởng. Nay có, và nó
+>    là cánh cửa bắt buộc đi qua.
+> 2. **Xưởng không nói nó đang ở màn nào** — sân của màn CÓ được dán lên khối Bắt đầu,
+>    nhưng đó là thay đổi khuất trong một cái hộp giữa canvas. Nay có dải màn trên đầu.
+> 3. **Chung một `ban_nhap.json`** — vào màn «lắp máy hai khối» là canvas hiện ra với
+>    năm khối của bản vẽ tự do đang dở, khối Bắt đầu nói SPY còn mấy khối kia nói
+>    XAUUSD. Nay **mỗi màn một ngăn nháp riêng**; vào lần đầu là canvas sạch, chỉ có
+>    khối Bắt đầu mang sẵn sân của màn.
+>
+> **Còn lại của §2:** *«Chiến dịch khoá bớt đồ»* — ribbon trong màn chơi vẫn mở đủ
+> Build · Backtest · Optimize · Results như Sáng tạo. Khoá theo `hanh_trinh.da_mo`
+> là việc riêng, chưa làm.
 
 ---
 

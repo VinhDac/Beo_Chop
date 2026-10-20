@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import SoDo from './SoDo'
 import ManMoMay from './man/ManMoMay'
 import ManHanhTrinh from './man/ManHanhTrinh'
+import ManNhanViec from './man/ManNhanViec'
 import ManChayMay, { type ViecChayMay } from './man/ManChayMay'
 import ManCham from './man/ManCham'
 import ManKho from './man/ManKho'
@@ -27,7 +28,8 @@ import type { ManHT } from './types'
  *  nên rời Xưởng ngay sau một nét sửa là nét ấy chưa kịp ghi mà bộ đếm giờ đã bị huỷ
  *  theo component. `SoDo` phải ghi nốt TRƯỚC khi gọi `onRa` — xem chỗ ấy trong `SoDo`.
  */
-export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may' | 'cham' | 'kho'
+export type Man = 'mo-may' | 'hanh-trinh' | 'nhan-viec' | 'xuong' | 'chay-may'
+                | 'cham' | 'kho'
 
 /** Màn che lúc chuyển cảnh tối trong bao lâu (ms). Phải khớp `--chuyen-canh` trong CSS.
  *
@@ -93,16 +95,30 @@ export default function TroChoi() {
                   onSangTao={() => doi('xuong')} />
       )}
       {man === 'hanh-trinh' && (
-        <ManHanhTrinh onVaoMan={ma => doi('xuong', ma)}
+        <ManHanhTrinh onVaoMan={ma => doi('nhan-viec', ma)}
                       onKho={() => doi('kho')}
                       onRa={() => doi('mo-may')} />
+      )}
+      {/* NHẬN VIỆC — màn hình số 3 của bản thiết kế, và nó THIẾU suốt từ mốc M1.
+          Bấm một màn trên bản đồ là nhảy thẳng vào Xưởng, mà Xưởng dùng CHUNG với chế
+          độ Sáng tạo — nên vào màn và vẽ tự do trông y hệt nhau, đúng như người dùng
+          báo. Nay có một cánh cửa nói rõ: màn này là gì, sân ở đâu, boss là ai, ăn sao
+          thế nào. Xem `ManNhanViec`. */}
+      {man === 'nhan-viec' && (
+        <ManNhanViec man={manDay} onVao={() => doi('xuong', manChoi)}
+                     onRa={() => doi('hanh-trinh')} />
       )}
       {/* KHO — vai thứ sáu. Mở được từ bản đồ bất cứ lúc nào: nó là chỗ TRA, không
           phải một chặng phải đi qua. */}
       {man === 'kho' && <ManKho onRa={() => doi('hanh-trinh')} />}
+      {/* ⚠ HAI THỨ, HAI VIỆC, KHÔNG PHẢI HAI BẢN CỦA MỘT THỨ. `manChoi` là MÃ màn —
+          đặt ĐỒNG THỜI với lúc đổi màn hình, nên Xưởng có nó ngay khung hình đầu và
+          kịp dán sân lên khối Bắt đầu. `manDay` là bản ĐẦY ĐỦ, hỏi Python về sau, chỉ
+          để BÀY tên màn. Truyền mỗi `manDay` rồi tự suy ra mã là sân không bao giờ
+          được dán, vì lúc Xưởng dựng thì nó còn `null`. */}
       {man === 'xuong' && (
-        <SoDo manChoi={manChoi}
-              onRa={() => doi(manChoi ? 'hanh-trinh' : 'mo-may')}
+        <SoDo manChoi={manChoi} man={manDay}
+              onRa={() => doi(manChoi ? 'nhan-viec' : 'mo-may')}
               onChayMay={v => { setViecChay(v); doi('chay-may', manChoi) }} />
       )}
       {/* CHẠY MÁY — vai thứ tư. Vào màn này là MỘT lượt chạy mới: rời màn là component

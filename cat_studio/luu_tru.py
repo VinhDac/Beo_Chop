@@ -251,25 +251,38 @@ TEP_BAN_NHAP = "ban_nhap.json"
 HAU_TO_TU_LUU = " (tự lưu)"
 
 
-def duong_dan_ban_nhap():
-    return os.path.join(goc(), TEP_BAN_NHAP)
+def duong_dan_ban_nhap(man=""):
+    """Bản nháp của MÀN `man`, hay của chế độ Sáng tạo khi `man` rỗng.
+
+    ⚠ MỖI MÀN MỘT NGĂN RIÊNG, và đây là chỗ bản trước làm sai. Cả app dùng CHUNG một
+    `ban_nhap.json`, nên bấm vào màn «lắp cỗ máy hai khối» là canvas hiện ra với năm
+    khối RSI của bản vẽ tự do đang dở — mà khối Bắt đầu thì vừa bị dán sân SPY của màn,
+    trong khi mấy khối kia vẫn nói XAUUSD. Vừa không ra màn chơi nào, vừa là một sơ đồ
+    tự mâu thuẫn. Và tệ hơn: vẽ trong màn là ĐÈ LÊN bản vẽ riêng của người ta.
+
+    ⚠ LỌC TÊN TỆP. `man` đi từ giao diện vào; mã màn thật thì chỉ có chữ thường với số,
+    nhưng nhận bừa là mở cửa cho `../` đi ra khỏi thư mục dữ liệu."""
+    m = re.sub(r"[^a-z0-9_]", "", str(man or "").lower())
+    if not m:
+        return os.path.join(goc(), TEP_BAN_NHAP)
+    return os.path.join(goc(), f"ban_nhap__{m}.json")
 
 
-def ghi_ban_nhap(doc_):
-    ghi_json_nguyen_tu(duong_dan_ban_nhap(), doc_)
-    return duong_dan_ban_nhap()
+def ghi_ban_nhap(doc_, man=""):
+    ghi_json_nguyen_tu(duong_dan_ban_nhap(man), doc_)
+    return duong_dan_ban_nhap(man)
 
 
-def doc_ban_nhap():
+def doc_ban_nhap(man=""):
     try:
-        with open(duong_dan_ban_nhap(), encoding="utf-8") as f:
+        with open(duong_dan_ban_nhap(man), encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
 
 
-def xoa_ban_nhap():
-    p = duong_dan_ban_nhap()
+def xoa_ban_nhap(man=""):
+    p = duong_dan_ban_nhap(man)
     if os.path.exists(p):
         os.remove(p)
         return True

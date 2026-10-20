@@ -416,6 +416,18 @@ const TIENG_ANH: Record<string, string> = {
   'Chưa mở — chơi xong màn trước đã': 'Locked — finish the previous level first',
   'Bạn đang ở đây': 'You are here',
   'khoá': 'locked',
+  // ── man/ManNhanViec.tsx
+  'Nhận việc': 'Briefing',
+  'Về bản đồ': 'Back to the map',
+  'đang mở màn…': 'opening the level…',
+  'Sân': 'Arena',
+  'Và một màn ẩn: {0}': 'And a hidden period: {0}',
+  'Ăn sao thế nào': 'How to earn stars',
+  'Màn này KHÔNG chấm sao — nó dựng ra thứ mấy màn sau phải đánh bại.': 'This level is NOT scored — it builds the thing the later levels have to beat.',
+  'Màn này mở thêm': 'This level unlocks',
+  'Vào xưởng': 'Into the workshop',
+  'Vẽ cỗ máy cho màn này': 'Draw the engine for this level',
+  'Chọn màn khác': 'Pick another level',
   // ── man/ManKho.tsx
   'Không mở được kho.': 'Could not open the library.',
   'đang mở kho…': 'opening the library…',

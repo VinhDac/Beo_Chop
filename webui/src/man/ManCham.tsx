@@ -209,8 +209,13 @@ const pt = (x: number | null | undefined) =>
   x == null ? '—' : `${x > 0 ? '+' : ''}${x.toFixed(2)} %`
 
 /** Sao bằng ký hiệu ĐƠN SẮC (★ ☆), không emoji — để ăn theo màu của theme. Cùng lý do
- *  thẻ «khoá» ở bản đồ hành trình dùng chữ chứ không dùng 🔒. */
-function Sao({ n }: { n: number }) {
+ *  thẻ «khoá» ở bản đồ hành trình dùng chữ chứ không dùng 🔒.
+ *
+ *  ⚠ MÀN NHẬN VIỆC DÙNG LẠI CHÍNH CÁI NÀY với `n={0}` — ba ngôi sao rỗng chính là ba
+ *  mục tiêu. Gõ lại ba câu ấy bên kia là bản thứ ba của luật chơi (bản đầu
+ *  `luat_choi.sao`, bản hai là đây), và hôm luật đổi thì màn Nhận việc hứa một đằng
+ *  còn màn Chấm chấm một nẻo. */
+export function Sao({ n }: { n: number }) {
   const k = Math.max(0, Math.min(3, n || 0))
   const nac = [
     tr('chạy sạch'), tr('thắng boss trên màn đã thấy'), tr('và trên màn ẩn cũng thắng'),

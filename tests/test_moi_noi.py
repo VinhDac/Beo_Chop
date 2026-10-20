@@ -896,6 +896,63 @@ kiem("thẻ mở khoá nào cũng do Python nói rõ nằm ở Kho hay ở Xư�
      "— màu chấm trên thẻ ăn theo đấy")
 
 
+# ⚠ BẤM MỘT MÀN PHẢI ĐI QUA NHẬN VIỆC, KHÔNG NHẢY THẲNG VÀO XƯỞNG. Đây là lỗi người
+# dùng báo nguyên văn: «bấm vào không link tới màn mà lại link sang creative mode».
+# Xưởng dùng CHUNG cho màn chơi và chế độ Sáng tạo (thiết kế §2) — cùng ribbon, cùng
+# bản nháp, thanh tiêu đề mang tên bản vẽ. Sân của màn CÓ được dán lên khối Bắt đầu
+# thật, nhưng đó là thay đổi nằm trong một cái hộp giữa canvas: nhìn cả màn hình thì
+# không một chữ nào nói mình đang chơi màn nào. Nên nhảy thẳng là hai thứ trông y hệt.
+# Màn hình NHẬN VIỆC là số 3 của bản thiết kế, và nó thiếu suốt từ mốc M1.
+_nv = doc("webui", "src", "man", "ManNhanViec.tsx")
+_tc_sach = _bo_chu_thich(_tc)
+kiem("bản đồ KHÔNG nhảy thẳng vào Xưởng",
+     "doi('xuong', ma)" not in _tc_sach,
+     "— nhảy thẳng thì vào màn trông y hệt vẽ tự do")
+kiem("mà đi qua NHẬN VIỆC",
+     "doi('nhan-viec'" in _tc_sach and "<ManNhanViec" in _tc_sach)
+kiem("`ManNhanViec` tự vẽ thanh tiêu đề", "<TitleBar" in _nv,
+     "— cửa sổ frameless mà màn hình không có `TitleBar` là một dải chết")
+# ⚠ BA CÂU SAO CHỈ ĐƯỢC CÓ MỘT BẢN. Màn Nhận việc BÀY ba mục tiêu, màn Chấm CHẤM ba
+# mục tiêu. Gõ lại ba câu ấy bên Nhận việc là bản thứ ba của luật chơi (bản đầu là
+# `luat_choi.sao`), và hôm luật đổi thì một bên hứa, một bên chấm khác.
+kiem("ba câu sao dùng CHUNG với màn Chấm",
+     "from './ManCham'" in _nv
+     and "export function Sao" in doc("webui", "src", "man", "ManCham.tsx"))
+# Và vào Xưởng rồi thì vẫn phải biết mình đang ở màn nào — dải màn trên đầu Xưởng.
+# ⚠ NHẮM VÀO PHÉP SO, KHÔNG NHẮM VÀO TÊN LỚP. Bản đầu của rào này dò chuỗi «xu-man»
+# và nó KHÔNG bắt được gì: đổi `className="xu-man"` thành tên khác thì ba lớp con
+# (`xu-man-so`, `xu-man-day`, `xu-man-nut`) vẫn chứa đúng chuỗi ấy, nên phép dò
+# vẫn xanh. Thứ đáng canh là CHÍNH PHÉP SO: chỉ bày tên màn khi bản đầy đủ đã về và
+# đúng là màn đang vẽ — thiếu nó thì dải chữ nói tên màn TRƯỚC, đúng một nhịp, mỗi
+# lần đổi màn.
+# ⚠ MỖI MÀN MỘT BẢN NHÁP RIÊNG. Cả app từng dùng CHUNG một `ban_nhap.json`, nên bấm
+# vào màn «lắp cỗ máy hai khối» là canvas hiện ra với năm khối RSI của bản vẽ tự do
+# đang dở — mà khối Bắt đầu thì vừa bị dán sân SPY của màn, trong khi mấy khối kia vẫn
+# nói XAUUSD. Vừa không ra màn chơi nào, vừa là một sơ đồ tự mâu thuẫn; và tệ hơn, vẽ
+# trong màn là ĐÈ LÊN bản vẽ riêng của người ta.
+from cat_studio import api as _api_mon, luu_tru as _lt  # noqa: E402
+kiem("mỗi màn một ngăn nháp riêng, khác ngăn của Sáng tạo",
+     len({_lt.duong_dan_ban_nhap(""), _lt.duong_dan_ban_nhap("m00"),
+          _lt.duong_dan_ban_nhap("m01")}) == 3)
+# Mã màn đi từ giao diện vào rồi thành TÊN TỆP. Nhận bừa là mở cửa đi ra khỏi thư mục
+# dữ liệu — và chỗ ấy có khoá API của người dùng.
+kiem("và mã màn bị LỌC trước khi thành tên tệp",
+     ".." not in os.path.basename(_lt.duong_dan_ban_nhap("../../hack"))
+     and os.path.dirname(_lt.duong_dan_ban_nhap("../../hack"))
+         == os.path.dirname(_lt.duong_dan_ban_nhap("")))
+# Và canvas sạch KHÔNG có nghĩa là canvas trắng trơn: khối Bắt đầu phải có sẵn, mang
+# đúng mã và khoảng ngày màn Nhận việc vừa hứa.
+_st0 = _api_mon.Api().san_cua_man("m00", [])["value"]["steps"]
+kiem("sơ đồ TRỐNG vào màn thì tự có khối Bắt đầu mang sân của màn",
+     len(_st0) == 1 and core.is_start_step(_st0[0])
+     and (_st0[0].get("khoang") or {}).get("tu"),
+     f"— {_st0}")
+
+kiem("Xưởng BÀY dải màn, và chỉ khi bản đầy đủ đúng là màn đang vẽ",
+     "man?.ma === manChoi" in _bo_chu_thich(_sd),
+     "— chỉ dán sân vào khối Bắt đầu thì thay đổi ấy nằm khuất trong một hộp giữa canvas")
+
+
 print("\n▸ MỐI NỐI 14 — LUẬT CHƠI: màn ẩn, boss, ba sao, màn Chấm")
 # ⚠ NGÀY CỦA MÀN ẨN LÀ CẢ TRÒ CHƠI. Ngôi sao thứ ba nói "cỗ máy còn chạy được trên
 # khoảng ngày nó chưa từng thấy". Người chơi biết ngày ấy là vặn máy cho vừa khít đúng
