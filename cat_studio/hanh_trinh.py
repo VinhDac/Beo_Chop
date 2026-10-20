@@ -23,13 +23,7 @@ dựng BỘ KHUNG của hành trình; luật chơi và chấm sao là mốc M3 (
 NHÃN Ở BẢNG HẰNG không bọc `tr()` được lúc nạp tệp — bọc là chốt cứng một thứ tiếng.
 Dịch lúc DÙNG, trong `tu_dien()`. Xem `ngon_ngu.py`.
 """
-import json
-import os
-
-from . import luu_tru
 from .ngon_ngu import tr
-
-FILE_SO = "hanh_trinh.json"
 
 #: Chín hồi (cộng khúc dạo đầu). `ma` là khoá, đừng đổi — sổ tiến trình ghi theo nó.
 HOI = (
@@ -53,7 +47,7 @@ MAN = (
     {"ma": "m00", "hoi": "h0", "ten": "Bạn chính là boss",
      "day": "Lắp máy hai khối: Bắt đầu → Đặt tỷ trọng 100%. Chạy thử. Nó CHÍNH LÀ "
             "«Mua rồi giữ» — con boss mà cả trò chơi phải đánh bại.",
-     "mo": ("Khối Bắt đầu", "Đặt tỷ trọng", "Nút Chạy"), "dau": True,
+     "mo": ('khoi:bat_dau', 'lam:lam_dat_ty_trong', 'nut:chay'), "dau": True,
      # ⚠ MÀN NÀY KHÔNG CHẤM, và đó là hệ quả bắt buộc của luật sao chứ không phải
      # lười. ⭐ đòi ÍT NHẤT MỘT LỆNH ĐÓNG (xem `luat_choi`), mà màn này bảo người
      # chơi dựng đúng «Mua rồi giữ» — thứ không đóng lệnh nào. Chấm nó là bắt người
@@ -67,7 +61,7 @@ MAN = (
 
     {"ma": "m01", "hoi": "h1", "ten": "Cái van đầu tiên",
      "day": "Chỉ mua khi giá trên một ngưỡng. Cổng Hỏi là cái van của cỗ máy.",
-     "mo": ("Hỏi thị trường", "Nhóm Giá — 8 đại lượng"),
+     "mo": ('ho:hoi_thi_truong', 'nhom:Giá'),
      "symbol": "XAUUSD", "loai_ma": "cfd", "von": 100_000.0,
      "thay": ("2012-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
      "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 3,
@@ -77,7 +71,7 @@ MAN = (
 
     {"ma": "m02", "hoi": "h1", "ten": "Vào thì phải có đường ra",
      "day": "Hai nhánh: một nhánh vào, một nhánh thoát.",
-     "mo": ("Đóng", "Nhánh rẽ"),
+     "mo": ('lam:lam_dong', 'ngu_phap:nhanh'),
      "symbol": "SPY", "loai_ma": "equity", "von": 100_000.0,
      "thay": ("2007-01-01", "2009-12-31"), "an": ("2010-01-01", "2010-12-31"),
      "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
@@ -89,7 +83,7 @@ MAN = (
      "day": "Ngày 09/06/2014 Apple chia tách 7 ăn 1: giá rơi từ 645 xuống 92 chỉ sau "
             "một đêm, mà công ty không hề mất gì. Cỗ máy nhìn giá mà không hỏi hôm "
             "nay có chia tách không thì tưởng trời sập.",
-     "mo": ("Nhóm Trạng thái mã — 5 đại lượng",),
+     "mo": ('nhom:Trạng thái mã',),
      "symbol": "AAPL", "loai_ma": "equity", "von": 100_000.0,
      "thay": ("2014-01-01", "2014-12-31"), "an": ("2015-01-01", "2015-12-31"),
      "an_mo_ta": "12 tháng ngay sau màn đã thấy", "boss": "mua_giu", "gon": 5,
@@ -100,16 +94,16 @@ MAN = (
     {"ma": "m04", "hoi": "h2", "ten": "Mở kho",
      "day": "Chỉ báo đầu tiên (RSI) và tham số của nó. Đây là lúc KHO mở ra — "
             "90 chỉ báo, không phải để thuộc, mà để tra.",
-     "mo": ("Nhóm Chỉ báo — 90 đại lượng", "Màn hình Kho")},
+     "mo": ('nhom:Chỉ báo', 'man:kho')},
     {"ma": "m05", "hoi": "h2", "ten": "Chỉ báo nhiều đường",
      "day": "Bollinger, MACD — một chỉ báo trả về mấy đường, phải chọn đường nào.",
-     "mo": ("Nhóm Chỉ báo nhiều đường — 16 đại lượng",)},
+     "mo": ('nhom:Chỉ báo nhiều đường',)},
     {"ma": "m06", "hoi": "h2", "ten": "Và, hoặc",
      "day": "Ghép hai điều kiện trong một cổng.",
-     "mo": ("Phép ghép và/hoặc",)},
+     "mo": ('ngu_phap:ghep',)},
     {"ma": "m07", "hoi": "h2", "ten": "Số nào là số tốt",
      "day": "Ghim một núm rồi quét hai mươi giá trị. Máy tự tìm hộ.",
-     "mo": ("Optimize", "27 chỉ tiêu chấm")},
+     "mo": ('tinh_nang:toi_uu',)},
     {"ma": "m08", "hoi": "h2", "ten": "Màn ẩn vả cho một cái",
      "day": "Chạy lại đúng cỗ máy vừa ăn hai sao ở màn trước — trên khoảng ngày nó "
             "chưa từng thấy. Nó rụng xuống một sao. Bạn không làm chiến thuật, bạn "
@@ -118,95 +112,155 @@ MAN = (
 
     {"ma": "m09", "hoi": "h3", "ten": "Đang giữ rồi",
      "day": "Hỏi vị thế trước khi mua — không thì mỗi nến lại mua thêm một lần.",
-     "mo": ("Hỏi vị thế", "Nhóm Vị thế — 12 đại lượng")},
+     "mo": ('ho:hoi_vi_the', 'nhom:Vị thế')},
     {"ma": "m10", "hoi": "h3", "ten": "Hết tiền",
      "day": "Hỏi tài khoản còn bao nhiêu trước khi đặt lệnh.",
-     "mo": ("Hỏi tài khoản", "Nhóm Tài khoản — 8 đại lượng")},
+     "mo": ('ho:hoi_tai_khoan', 'nhom:Tài khoản')},
     {"ma": "m11", "hoi": "h3", "ten": "Đặt lệnh nằm chờ",
      "day": "Lệnh chờ nằm trên sàn, khớp khi giá chạm. Và phải biết huỷ nó.",
-     "mo": ("Lệnh chờ", "Huỷ lệnh chờ", "Lệnh thị trường")},
+     "mo": ('lam:lam_lenh_cho', 'lam:lam_huy_lenh_cho', 'lam:lam_lenh_thi_truong')},
 
     {"ma": "m12", "hoi": "h4", "ten": "Nhớ qua đêm",
      "day": "Cất một quyết định lại cho nhịp sau đọc — «đang chờ mua lại». Đây là thứ "
             "làm cỗ máy thành một chương trình, không còn là một công thức.",
-     "mo": ("Ghi nhớ", "Hỏi trí nhớ", "Nhóm Trí nhớ — 12 đại lượng")},
+     "mo": ('lam:lam_ghi_nho', 'ho:hoi_tri_nho', 'nhom:Trí nhớ')},
     {"ma": "m13", "hoi": "h4", "ten": "Vòng lặp",
      "day": "Khối Quay về — vẽ cái vòng ra, thay vì để nó ngầm.",
-     "mo": ("Quay về", "Số vòng")},
+     "mo": ('khoi:quay_ve',)},
 
     {"ma": "m14", "hoi": "h5", "ten": "Đúng giờ mới làm",
      "day": "Chỉ cân lại danh mục đầu tháng. Tránh phiên mở cửa.",
-     "mo": ("Hỏi lịch", "Nhóm Thời gian — 6 đại lượng", "Nhịp chạy")},
+     "mo": ('ho:hoi_lich', 'nhom:Thời gian', 'o:nhip')},
 
     {"ma": "m15", "hoi": "h6", "ten": "Hai cần câu",
      "day": "Một cỗ máy chạy trên hai mã. Chạy cho từng mã, hay cho cả danh mục?",
-     "mo": ("Ô «chạy cho ai»",)},
+     "mo": ('o:chay_cho',)},
     {"ma": "m16", "hoi": "h6", "ten": "Cả một rổ",
      "day": "Thả cả rổ vào máy thay vì gõ tên từng mã.",
-     "mo": ("6 rổ có sẵn",)},
+     "mo": ('ro:co_san',)},
     {"ma": "m17", "hoi": "h6", "ten": "Rổ tự lọc",
      "day": "Rổ không cố định — mỗi ngày máy tự chọn lại theo thanh khoản hay theo "
             "đường trung bình.",
-     "mo": ("3 rổ lọc động",)},
+     "mo": ('ro:dong',)},
 
     {"ma": "m18", "hoi": "h7", "ten": "Nhìn vào sổ sách",
      "day": "P/E, vốn hoá — hỏi về chính công ty, không hỏi về giá của nó.",
-     "mo": ("Hỏi doanh nghiệp", "Nhóm Định giá — 7 đại lượng")},
+     "mo": ('ho:hoi_doanh_nghiep', 'nhom:Định giá')},
     {"ma": "m19", "hoi": "h7", "ten": "Năm trăm công ty",
      "day": "Lọc trong rổ lớn, chia theo ngành.",
-     "mo": ("Rổ QC500", "Rổ theo ngành S&P 500")},
+     "mo": ('ro:qc500',)},
 
     {"ma": "m20", "hoi": "h8", "ten": "Phí ăn hết lãi",
      "day": "Chạy lại đúng cỗ máy vừa ăn ba sao, chỉ bật phí sàn và trượt giá lên "
             "cho thật. Nó lỗ.",
-     "mo": ("Sàn", "Phí", "Trượt giá"), "dau": True},
+     "mo": ('o_may:san', 'o_may:phi', 'o_may:truot_gia'), "dau": True},
     {"ma": "m21", "hoi": "h8", "ten": "Giữ lại một ít",
      "day": "Đệm tiền mặt và phòng rủi ro — cỗ máy không được phép dốc sạch.",
-     "mo": ("Đệm tiền mặt", "Phòng rủi ro", "Mốc so sánh")},
+     "mo": ('o_may:dem_tien_mat', 'o_may:phong_rui_ro', 'o_may:moc_so_sanh')},
     {"ma": "m22", "hoi": "h8", "ten": "Để LEAN chia hộ",
      "day": "Thay vì tự đặt tỷ trọng, chỉ nói «mã này nên LÊN» rồi để LEAN lo chia "
             "vốn, phòng rủi ro và đặt lệnh.",
-     "mo": ("Phát tín hiệu", "Chia vốn", "Đặt lệnh")},
+     "mo": ('lam:lam_tin_hieu', 'o_may:chia_von', 'o_may:dat_lenh')},
 
     {"ma": "m23", "hoi": "h9", "ten": "Hai máy song song",
      "day": "Hai chiến thuật con chạy cùng lúc rồi trộn tỷ trọng.",
-     "mo": ("Nhánh song song",)},
+     "mo": ('ngu_phap:song_song',)},
     {"ma": "m24", "hoi": "h9", "ten": "Gom lại thành một",
      "day": "Cả một cụm khối gói thành một Nhóm, nhìn lại thấy cái máy chứ không "
             "thấy mớ dây.",
-     "mo": ("Nhóm", "Hạt nhân")},
+     "mo": ('khoi:nhom', 'khoi:hat_nhan')},
     {"ma": "m25", "hoi": "h9", "ten": "Boss cuối",
      "day": "Thị trường xấu, và boss lần này không phải «Mua rồi giữ» — nó là một "
             "cỗ máy.",
-     "mo": ("Chế độ Sáng tạo đầy đủ",), "dau": True},
+     "mo": ('che_do:sang_tao',), "dau": True},
 )
 
 
-def _so():
-    """Sổ tiến trình. Hỏng hay chưa có thì coi như chưa chơi màn nào — KHÔNG ném:
-    mất sổ chỉ nên làm mất tiến trình, không được chặn người ta vào trò chơi."""
-    try:
-        p = os.path.join(luu_tru.goc(), FILE_SO)
-        with open(p, encoding="utf-8") as f:
-            d = json.load(f)
-        return d if isinstance(d, dict) else {}
-    except (OSError, ValueError):
-        return {}
-
-
-def _mo_toi_man(so):
+def _mo_toi_man(xong):
     """Màn nào đang mở. -> set mã màn.
 
-    LUẬT TẠM CỦA MỐC M1: mở màn đầu, và mở tiếp một màn sau mỗi màn đã xong. Luật thật
-    (phải đủ sao mới qua) là mốc M3, lúc chép `game.py` từ nhánh `main` về — đừng viết
-    luật chấm ở đây rồi mai có hai bản."""
-    xong = {str(x) for x in (so.get("xong") or [])}
+    Mở màn đầu, rồi mở tiếp một màn sau mỗi màn ĐÃ XONG. "Xong" = đã chạy được một
+    lượt sạch (hoặc là màn không chấm) — không đòi phải đủ ba sao: bắt ăn ba sao mới
+    đi tiếp là giam người chơi ở màn đầu, mà ngôi sao thứ ba cố ý khó.
+
+    ⚠ `xong` ĐẾN TỪ SỔ ĐIỂM, không từ một sổ riêng. Bản trước có HAI sổ — `tu_dien`
+    đọc sổ điểm còn hàm này đọc `hanh_trinh.json` — nên chơi xong một màn thì sổ điểm
+    ghi nhận mà bản đồ vẫn khoá màn kế, mãi mãi. Hai nơi cùng giữ một sự thật, đúng
+    cái bệnh dự án này đã dính nhiều lần."""
     mo = set()
     for m in MAN:
         mo.add(m["ma"])
         if m["ma"] not in xong:
             break
     return mo
+
+
+#: Nhãn cho mấy khoá không thuộc từ điển nào (nút, khối, ngữ pháp, chế độ).
+#: Chỉ những thứ KHÔNG có chỗ nào khác khai — còn lại đều tra từ điển.
+NHAN_KHAC = {
+    "khoi:bat_dau": "Khối Bắt đầu",
+    "khoi:quay_ve": "Khối Quay về",
+    "khoi:nhom": "Khối Nhóm",
+    "khoi:hat_nhan": "Hạt nhân",
+    "nut:chay": "Nút Chạy",
+    "ngu_phap:nhanh": "Nhánh rẽ",
+    "ngu_phap:ghep": "Phép ghép và/hoặc",
+    "ngu_phap:song_song": "Nhánh song song",
+    "tinh_nang:toi_uu": "Optimize",
+    "man:kho": "Màn hình Kho",
+    "che_do:sang_tao": "Chế độ Sáng tạo đầy đủ",
+    "o:nhip": "Ô «Nhịp»",
+    "o:chay_cho": "Ô «Chạy cho ai»",
+    "ro:co_san": "Mấy rổ có sẵn",
+    "ro:dong": "Rổ tự lọc",
+    "ro:qc500": "Rổ QC500 và rổ theo ngành",
+}
+
+
+def nhan_mo(khoa):
+    """Một khoá mở -> chữ bày cho người chơi. -> str
+
+    ⚠ DỰNG TỪ TỪ ĐIỂN THẬT, không gõ sẵn. Bản đầu viết tay "Nhóm Giá — 8 đại lượng"
+    vào từng màn: một con số chép tay, nằm cách chỗ sinh ra nó ba tệp. Thêm một đại
+    lượng vào nhóm Giá là câu ấy thành sai, mà không có gì kêu — và nó sai ở đúng chỗ
+    người chơi đang học đếm."""
+    from . import hoi, lam
+    loai, _, gt = str(khoa).partition(":")
+    if loai == "nhom":
+        n = sum(1 for m in hoi.tu_dien()["kho"] if m.get("nhom") == gt)
+        return tr("Nhóm {0} — {1} đại lượng", tr(gt), n)
+    if loai == "ho":
+        for h in hoi.tu_dien()["loai"]:
+            if h["ma"] == gt:
+                return h["nhan"]
+        return gt
+    if loai == "lam":
+        for x in lam.tu_dien()["loai"]:
+            if x["ma"] == gt:
+                return x["nhan"]
+        return gt
+    if loai == "o_may":
+        from . import bat_dau
+        for o in bat_dau.o_co_may():
+            if o["ten"] == gt:
+                return tr(o["nhan"])
+        return gt
+    return tr(NHAN_KHAC.get(khoa, khoa))
+
+
+def da_mo(sao):
+    """Những khoá người chơi ĐÃ MỞ. -> set
+
+    Mở theo MÀN ĐÃ TỚI, không theo màn đã ăn sao: vào được màn nào thì có đủ đồ nghề
+    giải màn ấy. Bắt phải ăn sao mới mở đồ của chính màn đang chơi là khoá người ta
+    bên ngoài căn phòng họ đang đứng."""
+    ra = set()
+    xong = {k for k, v in (sao or {}).items() if v}
+    for m in MAN:
+        ra |= set(m.get("mo") or ())
+        if m["ma"] not in xong:
+            break
+    return ra
 
 
 def man(ma):
@@ -259,14 +313,13 @@ def tu_dien():
     Giao diện KHÔNG khai lại một màn nào — nó hỏi cửa này rồi vẽ. `mo` và `sao` đi kèm
     luôn, nên bản đồ không phải tự suy ra màn nào khoá."""
     from . import luat_choi
-    so = _so()
-    mo = _mo_toi_man(so)
-    # SAO LẤY TỪ SỔ ĐIỂM, không giữ bản thứ hai trong sổ hành trình: hai nơi cùng ghi
-    # một con số thì hôm chúng lệch nhau, bản đồ khoe sao mà màn Chấm bảo chưa có.
+    # MỘT SỔ DUY NHẤT: sổ điểm. Sao, "đã xong", và cả chuyện mở khoá đều đọc từ đây.
     diem = luat_choi.doc_so()["man"]
     sao = {k: int((v or {}).get("sao") or 0) for k, v in diem.items()}
-    xong = {k for k, v in sao.items() if v >= 1} | {
-        k for k, v in diem.items() if (v or {}).get("thay")}
+    # XONG = đã chạy được một lượt (có phần chấm `thay`), hay là màn không chấm mà
+    # người chơi đã chạy qua. Không đòi sao: xem `_mo_toi_man`.
+    xong = {k for k, v in diem.items() if (v or {}).get("thay") or v.get("sao")}
+    mo = _mo_toi_man(xong)
     return {
         "hoi": [{"ma": h["ma"], "ten": tr(h["ten"]), "cau": tr(h["cau"])} for h in HOI],
         "man": [{
@@ -275,7 +328,7 @@ def tu_dien():
             "so": i,
             "ten": tr(m["ten"]),
             "day": tr(m["day"]),
-            "mo": [tr(x) for x in m["mo"]],
+            "mo": [nhan_mo(x) for x in m["mo"]],
             "dau": bool(m.get("dau")),
             "khoa": m["ma"] not in mo,
             "xong": m["ma"] in xong,

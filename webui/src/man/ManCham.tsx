@@ -88,10 +88,15 @@ export default function ManCham({ man, maLuot, viec, onSuaTiep, onRa }: {
                     manh={(d.thay?.lai_pt ?? 0) >= (d.thay?.boss_pt ?? 0)} />
               <Dong nhan={d.boss?.ten ?? tr('Boss')} gt={pt(d.thay?.boss_pt)} />
               <Dong nhan={tr('Lệnh đã đóng')} gt={String(d.thay?.so_dong ?? 0)} />
+              {/* ⚠ DỊCH CẢ CÂU MỘT LẦN, không ghép từ. Bản đầu nối
+                  `{n} + tr('khối') + {m} + tr('núm')` và ra «4 = 4 a block + 0
+                  knobs»: `tr('khối')` tra đúng khoá ấy ở một ngữ cảnh khác và trả
+                  về "a block". Ghép từ thành câu là đúng thứ dự án cấm — tiếng nào
+                  cũng có trật tự và số nhiều của nó. Chỉ ảnh chụp mới thấy. */}
               {!!d.gon && (
                 <Dong nhan={tr('Độ gọn')}
-                      gt={`${d.gon.tong} = ${d.gon.so_khoi} ${tr('khối')} + `
-                          + `${d.gon.so_num} ${tr('núm')}`}
+                      gt={tr('{0} = {1} khối + {2} núm',
+                             d.gon.tong, d.gon.so_khoi, d.gon.so_num)}
                       manh={!!man.gon && d.gon.tong <= man.gon} />
               )}
             </div>

@@ -378,6 +378,7 @@ const TIENG_ANH: Record<string, string> = {
   '⚠ {0} lệnh không khớp khối nào': '⚠ {0} {0|order|orders} match no block',
   'Bảng kết quả…': 'Results panel…',
   // ── man/ManCham.tsx
+  '{0} = {1} khối + {2} núm': '{0} = {1} {1|block|blocks} + {2} {2|knob|knobs}',
   'Không chấm được lượt này.': 'Couldn\'t score this run.',
   'Không nộp được.': 'Couldn\'t submit.',
   'Chấm điểm': 'Score',
@@ -389,7 +390,6 @@ const TIENG_ANH: Record<string, string> = {
   'Boss': 'Boss',
   'Lệnh đã đóng': 'Trades closed',
   'Độ gọn': 'Compactness',
-  'núm': 'knobs',
   'Huy chương GỌN — ba sao mà vẫn dưới {0} khối cộng núm.': 'COMPACT medal — three stars with {0} blocks plus knobs or fewer.',
   'Trên màn ẩn': 'On the hidden period',
   'Nó còn chạy được trên khoảng ngày nó chưa từng thấy. Đó mới là chiến thuật.': 'It still works on a date range it has never seen. That is a strategy.',
@@ -411,6 +411,14 @@ const TIENG_ANH: Record<string, string> = {
   'Chưa mở — chơi xong màn trước đã': 'Locked — finish the previous level first',
   'Bạn đang ở đây': 'You are here',
   'khoá': 'locked',
+  // ── man/ManKho.tsx
+  'Không mở được kho.': 'Could not open the library.',
+  'đang mở kho…': 'opening the library…',
+  'Tìm trong kho…': 'Search the library…',
+  '{0}/{1} nhóm đã mở': '{0}/{1} {1|group|groups} unlocked',
+  'Không có món nào khớp.': 'Nothing matches.',
+  'chưa mở — chơi tới màn mở nó': 'locked — reach the level that opens it',
+  'tham số: {0}': 'params: {0}',
   // ── man/ManMoMay.tsx
   'Vẽ một cỗ máy. Thả nó vào thị trường. Xem nó sống được không.': 'Draw an engine. Drop it into the market. See if it survives.',
   '26 màn — học từ cái máy hai khối tới boss cuối': '26 levels — from a two-block engine to the final boss',

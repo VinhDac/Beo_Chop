@@ -553,6 +553,40 @@ class Api(NenCuaSo):
         return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
 
     @_bat_loi
+    def kho_dai_luong(self):
+        """KHO — 164 đại lượng theo nhóm, 10 loại hành động, kèm cái nào đã MỞ.
+
+        ⚠ ĐÂY LÀ CHỖ "DẠY HẾT" SỐNG LÂU DÀI. 26 màn dạy 9 NHÓM và ngữ pháp; còn từng
+        món thì tra ở đây. Dạy 164 món bằng 164 màn là 90 màn chỉ báo giống hệt nhau,
+        và người chơi bỏ ở màn thứ sáu (xem `hanh_trinh` đầu tệp).
+
+        Món CHƯA MỞ vẫn kê tên ra, chỉ không mở được hộp — giấu hẳn thì người chơi
+        không biết trước mặt còn bao nhiêu thứ, mà biết mình đang đi tới đâu chính là
+        thứ giữ người ta lại."""
+        sao = {k: int((v or {}).get("sao") or 0)
+               for k, v in luat_choi.doc_so()["man"].items()}
+        mo = hanh_trinh.da_mo(sao)
+        d = hoi.tu_dien()
+        ten_ho = {h["ma"]: h["nhan"] for h in d["loai"]}
+        nhom = {}
+        for m in d["kho"]:
+            nhom.setdefault(m.get("nhom") or "", []).append({
+                "ma": m["ma"], "nhan": m["nhan"], "lean": m.get("lean") or "",
+                "don_vi": m.get("don_vi") or "", "kieu": m.get("kieu") or "",
+                "ho": ten_ho.get(m.get("ho") or "", ""),
+                "tham_so": [t.get("ten") for t in (m.get("tham_so") or [])],
+            })
+        return _ok({
+            "nhom": [{"ten": tr(t), "mo": f"nhom:{t}" in mo, "muc": v}
+                     for t, v in nhom.items()],
+            "lam": [{"ma": x["ma"], "nhan": x["nhan"], "mo_ta": x.get("mo_ta") or "",
+                     "mo": f"lam:{x['ma']}" in mo}
+                    for x in lam.tu_dien()["loai"]],
+            "so_mo": sum(1 for t in nhom if f"nhom:{t}" in mo),
+            "so_nhom": len(nhom),
+        })
+
+    @_bat_loi
     def san_cua_man(self, man, steps=None):
         """Dán SÂN của màn lên sơ đồ đang vẽ. -> {steps} đã sửa khối Bắt đầu.
 

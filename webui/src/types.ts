@@ -693,3 +693,31 @@ export interface HanhTrinh {
   /** Luật chấm sao đã có chưa. False thì bản đồ phải NÓI RA, đừng vẽ sao như thật. */
   co_luat_cham: boolean
 }
+
+/** Một món trong KHO. `lean` là CÂU LEAN THẬT của nó — lời hứa D-11: mỗi đại lượng
+ *  khai đúng một thứ có thật của LEAN, không phải cái tên app tự nghĩ. */
+export interface MucKho {
+  ma: string
+  nhan: string
+  lean: string
+  don_vi: string
+  kieu: string
+  /** Họ câu hỏi hỏi được món này — "Hỏi thị trường", "Hỏi vị thế"… */
+  ho: string
+  tham_so: string[]
+}
+
+export interface NhomKho {
+  ten: string
+  /** Nhóm này đã mở khoá chưa. Chưa mở thì vẫn kê tên, chỉ không dùng được. */
+  mo: boolean
+  muc: MucKho[]
+}
+
+/** Cả KHO: 164 đại lượng theo nhóm + 10 loại hành động. */
+export interface KhoDaiLuong {
+  nhom: NhomKho[]
+  lam: { ma: string; nhan: string; mo_ta: string; mo: boolean }[]
+  so_mo: number
+  so_nhom: number
+}

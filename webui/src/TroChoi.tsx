@@ -4,6 +4,7 @@ import ManMoMay from './man/ManMoMay'
 import ManHanhTrinh from './man/ManHanhTrinh'
 import ManChayMay, { type ViecChayMay } from './man/ManChayMay'
 import ManCham from './man/ManCham'
+import ManKho from './man/ManKho'
 import { py } from './api'
 import type { ManHT } from './types'
 
@@ -26,7 +27,7 @@ import type { ManHT } from './types'
  *  nên rời Xưởng ngay sau một nét sửa là nét ấy chưa kịp ghi mà bộ đếm giờ đã bị huỷ
  *  theo component. `SoDo` phải ghi nốt TRƯỚC khi gọi `onRa` — xem chỗ ấy trong `SoDo`.
  */
-export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may' | 'cham'
+export type Man = 'mo-may' | 'hanh-trinh' | 'xuong' | 'chay-may' | 'cham' | 'kho'
 
 /** Màn che lúc chuyển cảnh tối trong bao lâu (ms). Phải khớp `--chuyen-canh` trong CSS.
  *
@@ -93,8 +94,12 @@ export default function TroChoi() {
       )}
       {man === 'hanh-trinh' && (
         <ManHanhTrinh onVaoMan={ma => doi('xuong', ma)}
+                      onKho={() => doi('kho')}
                       onRa={() => doi('mo-may')} />
       )}
+      {/* KHO — vai thứ sáu. Mở được từ bản đồ bất cứ lúc nào: nó là chỗ TRA, không
+          phải một chặng phải đi qua. */}
+      {man === 'kho' && <ManKho onRa={() => doi('hanh-trinh')} />}
       {man === 'xuong' && (
         <SoDo manChoi={manChoi}
               onRa={() => doi(manChoi ? 'hanh-trinh' : 'mo-may')}

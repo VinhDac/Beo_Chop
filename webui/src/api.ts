@@ -12,6 +12,7 @@ import type {
   CoMay,
   ChamMan,
   HanhTrinh,
+  KhoDaiLuong,
   Edge,
   GoiYKe,
   KetQuaChay,
@@ -105,6 +106,9 @@ export const py = {
   /** CẢ HÀNH TRÌNH — 9 hồi, 26 màn, màn nào đang mở. Bản đồ KHÔNG tự khai một màn
    *  nào: hai nơi cùng giữ danh sách màn thì sớm muộn lệch nhau. */
   hanh_trinh: () => goi<HanhTrinh>('hanh_trinh'),
+  /** KHO — 164 đại lượng theo nhóm, 10 hành động, kèm cái nào đã mở. Chỗ "dạy hết"
+   *  sống lâu dài: màn dạy NHÓM, kho dạy từng món. */
+  kho_dai_luong: () => goi<KhoDaiLuong>('kho_dai_luong'),
   /** Chấm lượt vừa chạy trên MÀN ĐÃ THẤY rồi ghi sổ. Luật chấm ở Python — giao diện
    *  KHÔNG tính sao. */
   /** Dán SÂN của màn lên sơ đồ — để người chơi NHÌN THẤY mình đang chơi ở đâu.

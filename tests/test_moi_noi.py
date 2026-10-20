@@ -802,8 +802,22 @@ kiem("mã màn không trùng nhau",
 kiem("màn nào cũng có câu DẠY", all(str(m.get("day") or "").strip() for m in _ht.MAN))
 
 _td = _ht.tu_dien()
-kiem("mới mở sổ thì CHỈ màn đầu mở, còn lại khoá",
-     [m["ma"] for m in _td["man"] if not m["khoa"]] == [_ht.MAN[0]["ma"]])
+# ⚠ KIỂM HÀM THUẦN, không kiểm `tu_dien()`. `tu_dien` đọc SỔ ĐIỂM THẬT trên đĩa, nên
+# bài kiểm sẽ đỏ hay xanh tuỳ người chạy nó đã chơi tới màn nào — một bài kiểm như thế
+# thì sớm muộn bị coi là nhiễu rồi bỏ qua. Luật mở khoá nằm trong `_mo_toi_man`.
+kiem("sổ trống thì CHỈ màn đầu mở",
+     _ht._mo_toi_man(set()) == {_ht.MAN[0]["ma"]})
+kiem("xong màn đầu thì mở thêm ĐÚNG một màn",
+     _ht._mo_toi_man({_ht.MAN[0]["ma"]})
+     == {_ht.MAN[0]["ma"], _ht.MAN[1]["ma"]},
+     "— bản trước có HAI sổ: sổ điểm ghi xong mà bản đồ vẫn khoá màn kế, mãi mãi")
+# ⚠ NHẮM VÀO MÃ, ĐỪNG NHẮM VÀO CHỮ. Bản đầu dò `"hanh_trinh.json" not in` cả tệp và
+# kêu oan ngay vào LỜI CHÚ THÍCH kể lại chính cái lỗi ấy — lần thứ ba trong dự án này
+# một hàng rào dò nguyên văn vấp phải chú thích (xem `_bo_chu_thich` bên trên). Cái
+# đọc sổ thứ hai là hàm `_so()`; không còn hàm ấy là không còn sổ thứ hai.
+kiem("và tiến trình chỉ có MỘT sổ — sổ điểm",
+     "def _so()" not in doc("cat_studio", "hanh_trinh.py"),
+     "— hai nơi cùng giữ một sự thật thì sớm muộn chúng lệch nhau")
 # Luật chấm sao là mốc sau. Im lặng ở đây là vẽ sẵn ô sao rỗng, và người chơi tưởng
 # mình chơi mãi không ăn được sao nào.
 kiem("và NÓI RÕ là chưa có luật chấm", _td["co_luat_cham"] is False)

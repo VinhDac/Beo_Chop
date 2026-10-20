@@ -97,9 +97,16 @@ def la_viet(s):
     """Chuỗi này là câu tiếng Việt (cần dịch) không — cùng luật với `laViet` bên web: có dấu là
     chắc; không dấu thì phải trông như câu chữ (có dấu cách, hay viết hoa chữ đầu) và có một từ
     trong `KHONG_DAU`, bỏ qua từ trông như mã (`ket_qua`, tên tệp)."""
+    g = s.strip()
+    # ⚠ `tien_to:phần_còn_lại` LÀ KHOÁ, KHÔNG PHẢI CÂU — kể cả khi phần sau có dấu.
+    # Luật dưới đã bỏ qua token trông như mã (`ket_qua`, `a/b`), nhưng chỉ ở nhánh KHÔNG
+    # DẤU; nhánh có dấu thoát ra trước nên `nhom:Giá` bị coi là câu cần dịch. Mà dịch một
+    # KHOÁ thì ở bản tiếng Anh nó thành `group:Price` và không khớp gì nữa — hệ mở khoá
+    # chết lặng, đúng loại hỏng không ai thấy. (`hanh_trinh.MO` dùng đúng dạng khoá này.)
+    if re.match(r"^[a-z_]+:", g):
+        return False
     if DAU.search(s):
         return True
-    g = s.strip()
     if not (" " in g or re.match(r"[A-Z]", g)):
         return False
     return any(not re.search(r"[_\-./:=]", tu)

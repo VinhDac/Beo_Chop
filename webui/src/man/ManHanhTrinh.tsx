@@ -12,8 +12,10 @@ import type { HanhTrinh, ManHT } from '../types'
  *  bằng TypeScript là đẻ bản sự thật thứ hai, và hôm thêm một màn thì bản đồ với luật
  *  chơi nói khác nhau ở đúng cái hồi ít người chơi tới nhất.
  */
-export default function ManHanhTrinh({ onVaoMan, onRa }: {
+export default function ManHanhTrinh({ onVaoMan, onKho, onRa }: {
   onVaoMan: (ma: string) => void
+  /** Mở KHO — chỗ tra 164 đại lượng. */
+  onKho: () => void
   onRa: () => void
 }) {
   const nn = useNgonNgu()
@@ -41,6 +43,7 @@ export default function ManHanhTrinh({ onVaoMan, onRa }: {
         <button className="tb-ve" data-khong-keo onClick={onRa}
                 title={tr('Về màn mở máy')}>←</button>
       } />
+      <button className="ht-kho" onClick={onKho}>{tr('Kho')}</button>
 
       {loi && <div className="mc-bao loi ht-loi">⚠ {loi}</div>}
       {!ht && !loi && (
