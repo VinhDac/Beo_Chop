@@ -192,6 +192,38 @@ for danh_tu, that in (("levels", so_man), ("stars", so_sao),
          f"— trang nói {co}" if lech else (f"— {len(co)} chỗ, đều đúng" if co
                                            else "— TRANG KHÔNG NÓI CHỖ NÀO"))
 
+# TÊN TỆP BẢN CÀI mang số hiệu bản — một con số gõ tay nữa, cách `core.PHIEN_BAN`
+# bốn thư mục. Lên 0.3 mà quên sửa trang là nút Tải trỏ vào một tệp không còn tồn tại.
+from cat_studio import core  # noqa: E402
+ten_tep = re.findall(r'Cat_Studio-([\d.]+)-windows-x64', HTML)
+kiem(f"tên bản cài mang số hiệu {core.PHIEN_BAN}",
+     bool(ten_tep) and all(v == core.PHIEN_BAN for v in ten_tep),
+     f"— trang nói {sorted(set(ten_tep))}" if ten_tep else "— trang không nhắc tệp nào")
+
+# CỠ BẢN CÀI. Trang khoe «13.7 MB» — một lời hứa cụ thể, và nó đổi mỗi lần dựng lại:
+# dựng nhầm bằng Python hệ thống thay vì `.venv` là nhảy lên 18.0 MB trong một lượt.
+#
+# ⚠ KHÔNG ĐƯỢC KÊU «✔» KHI KHÔNG SOÁT GÌ. `dist/` bị `.gitignore` chặn nên ở một bản
+# sao mới tinh thì không có tệp nào mà đo — mà một dấu ✔ cho một phép so không hề
+# chạy đúng là cái bệnh «hàng rào khẳng định cái sai» của dự án này. Nên ở đây in ra
+# dấu «○ chưa soát được», không tính đúng cũng không tính sai.
+cho_khoe = re.findall(r'<b>([\d.]+)&nbsp;MB</b>', HTML)
+ban_cai = os.path.join(GOC, "dist",
+                       f"Cat_Studio-{core.PHIEN_BAN}-windows-x64-setup.exe")
+if not cho_khoe:
+    print("  ○ trang không khoe cỡ bản cài — không có gì phải soát")
+elif not os.path.isfile(ban_cai):
+    print(f"  ○ trang khoe {cho_khoe[0]} MB — CHƯA SOÁT ĐƯỢC, chưa dựng bản cài "
+          f"({os.path.relpath(ban_cai, GOC)})")
+else:
+    # MB THẬP PHÂN (1e6), đúng công thức `tools/dong_goi.py` in ra và đúng cách
+    # GitHub ghi cỡ tệp đính kèm. Lấy MiB (1024²) thì cùng một tệp ra 13.1 thay vì
+    # 13.7 — hàng rào đỏ oan, mà trang thì không sai chữ nào.
+    that_mb = os.path.getsize(ban_cai) / 1e6
+    kiem(f"cỡ bản cài — trang khoe {cho_khoe[0]} MB",
+         all(abs(float(x) - that_mb) < 0.1 for x in cho_khoe),
+         f"— tệp thật {that_mb:.1f} MB")
+
 # Và từng màn một: đủ 26 cái tên, đúng chữ app bày ra.
 sot = [m["ten"] for m in d["man"] if m["ten"] not in HTML]
 kiem("đủ tên 26 màn trên trang", not sot, f"— sót: {sot}" if sot else "")
