@@ -349,14 +349,30 @@ def the_mo(khoa):
     return {"nhan": tr(NHAN_KHAC.get(khoa, khoa)), "loai": "xuong"}
 
 
-def da_mo(sao):
+def da_qua(diem):
+    """Màn nào người chơi ĐÃ QUA, đọc thẳng từ sổ điểm. -> set mã màn
+
+    MỘT CÔNG THỨC DUY NHẤT. Trước đây `tu_dien` và `da_mo` mỗi nơi tự định nghĩa
+    "đã qua" một kiểu, và cả hai đều quên MÀN KHÔNG CHẤM: màn 0 dựng con boss nên
+    `cham_man` trả về rồi đi luôn, sổ điểm không có lấy một dòng. Chơi xong Khúc dạo
+    đầu mà màn 01 vẫn khoá — khoá vĩnh viễn, vì không đường nào ghi được dòng ấy.
+    Cả 25 màn còn lại nằm sau cánh cửa đó."""
+    ra = set()
+    for k, v in (diem or {}).items():
+        v = v or {}
+        if v.get("thay") or v.get("sao") or v.get("qua"):
+            ra.add(k)
+    return ra
+
+
+def da_mo(diem):
     """Những khoá người chơi ĐÃ MỞ. -> set
 
     Mở theo MÀN ĐÃ TỚI, không theo màn đã ăn sao: vào được màn nào thì có đủ đồ nghề
     giải màn ấy. Bắt phải ăn sao mới mở đồ của chính màn đang chơi là khoá người ta
     bên ngoài căn phòng họ đang đứng."""
     ra = set()
-    xong = {k for k, v in (sao or {}).items() if v}
+    xong = da_qua(diem)
     for m in MAN:
         ra |= set(m.get("mo") or ())
         if m["ma"] not in xong:
@@ -429,8 +445,8 @@ def tu_dien():
     diem = luat_choi.doc_so()["man"]
     sao = {k: int((v or {}).get("sao") or 0) for k, v in diem.items()}
     # XONG = đã chạy được một lượt (có phần chấm `thay`), hay là màn không chấm mà
-    # người chơi đã chạy qua. Không đòi sao: xem `_mo_toi_man`.
-    xong = {k for k, v in diem.items() if (v or {}).get("thay") or v.get("sao")}
+    # người chơi đã chạy qua (`qua`). Không đòi sao: xem `_mo_toi_man`.
+    xong = da_qua(diem)
     mo = _mo_toi_man(xong)
     return {
         "hoi": [{"ma": h["ma"], "ten": tr(h["ten"]), "cau": tr(h["cau"])} for h in HOI],

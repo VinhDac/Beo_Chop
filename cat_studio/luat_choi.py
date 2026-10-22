@@ -205,7 +205,7 @@ def doc_so():
     return {"phien_ban": 1, "man": {}}
 
 
-def ghi_man(ma, thay=None, an=None, gon=None):
+def ghi_man(ma, thay=None, an=None, gon=None, qua=False):
     """Ghi kết quả một màn vào sổ. Sao tính lại từ hai phần chấm, không nhận sao gửi
     sẵn: để nơi gọi tự tính sao là mở cửa cho hai bản luật.
 
@@ -220,6 +220,10 @@ def ghi_man(ma, thay=None, an=None, gon=None):
         "thay": thay or cu.get("thay"),
         "an": an or cu.get("an"),
         "gon": gon or cu.get("gon"),
+        # ĐÃ CHẠY QUA. Màn không chấm không có `thay` và mãi mãi 0 sao, nên nếu
+        # không có dấu này thì bản đồ không bao giờ biết nó đã xong — xem
+        # `hanh_trinh.da_qua`.
+        "qua": bool(qua) or bool(cu.get("qua")),
     }
     try:
         luu_tru.ghi_json_nguyen_tu(_duong_so(), so)

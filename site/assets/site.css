@@ -255,17 +255,116 @@ code{font-family:var(--mono); font-size:.92em; color:var(--text)}
 .ma .tu{color:var(--text)}
 .ma .phep{color:var(--dim)}
 
-/* ──────────────────────────────── cảnh trên là vẽ lại, đây mới là app */
-.that-app{padding:56px 0}
+/* ─────────────────── cảnh trên là vẽ lại, đây mới là app: SÁU MÀN HÌNH THẬT
+
+   ⚠ ẢNH ĐỨNG YÊN MỘT CHỖ. Sáu ảnh chồng lên nhau trong một khung CỐ ĐỊNH TỈ LỆ, nên
+   bấm sang bước khác thì chỉ ảnh đổi — trang không giật lên giật xuống. Bản đầu để
+   ảnh tự đẩy chiều cao và ảnh thứ sáu cao hơn năm ảnh kia, nên mỗi lần tới bước 6
+   là cả trang nhảy một nhát.
+
+   ⚠ KHÔNG CÓ JAVASCRIPT THÌ VẪN ĐỌC ĐƯỢC. Mặc định ảnh 1 hiện, năm ảnh kia ẩn; mấy
+   nút chỉ thay cái lớp `.hien`. Tắt script thì người ta thấy một ảnh thay vì không
+   thấy gì. */
+.sau-man{padding:56px 0}
 .loi-that{
   max-width:760px; margin:0 0 26px; font-size:16px; color:var(--dim);
 }
 .loi-that b{color:var(--text)}
-.hai-anh{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px}
-.hai-anh figure{margin:0}
-.hai-anh .khung{box-shadow:0 18px 50px rgba(0,0,0,.45)}
-.hai-anh img{width:100%; height:auto}
-.hai-anh figcaption{margin-top:9px; font-size:12.5px; color:var(--dim)}
+
+.phim{max-width:980px; margin:0 auto}
+
+/* dải sáu bước */
+.sau-ray{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:8px;
+  list-style:none; margin:0 0 18px; padding:0;
+}
+.sau-ray button{
+  width:100%; display:flex; align-items:center; gap:9px; cursor:pointer;
+  padding:9px 11px; border-radius:9px; text-align:left;
+  background:transparent; border:1px solid var(--border-soft);
+  color:var(--dim); font:inherit; font-size:13px; line-height:1.25;
+  transition:border-color .15s, color .15s, background .15s;
+}
+.sau-ray button b{
+  flex:0 0 auto; width:21px; height:21px; border-radius:50%;
+  display:grid; place-items:center; font-size:11.5px; font-weight:700;
+  background:var(--raised); color:var(--muted);
+}
+.sau-ray button:hover{border-color:var(--border); color:var(--muted)}
+.sau-ray button[aria-current="true"]{
+  border-color:var(--accent); background:rgba(255,166,87,.07); color:var(--text);
+}
+.sau-ray button[aria-current="true"] b{background:var(--accent); color:#1a1200}
+
+/* khung ảnh, tỉ lệ khoá cứng */
+.cua{position:relative}
+.cua .khung{box-shadow:0 22px 60px rgba(0,0,0,.5)}
+.phim .anh{position:relative; aspect-ratio:8/5; background:var(--bg)}
+.phim .anh img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  object-position:top center; opacity:0; transition:opacity .3s ease;
+}
+.phim .anh img.hien{opacity:1}
+
+/* hai nút lật, nằm ĐÈ mép ảnh */
+.lat{
+  position:absolute; top:50%; translate:0 -50%; z-index:3;
+  width:40px; height:40px; border-radius:50%; cursor:pointer;
+  border:1px solid var(--border); background:rgba(26,26,26,.86);
+  backdrop-filter:blur(6px); transition:background .15s, border-color .15s;
+}
+.lat:hover{background:var(--raised); border-color:var(--accent)}
+.lat::before{
+  content:""; position:absolute; inset:0; margin:auto;
+  width:9px; height:9px; border-top:2px solid var(--text); border-right:2px solid var(--text);
+}
+.lat.truoc{left:-19px}
+.lat.truoc::before{rotate:-135deg; translate:2px 0}
+.lat.sau{right:-19px}
+.lat.sau::before{rotate:45deg; translate:-2px 0}
+.lat[disabled]{opacity:.3; cursor:default}
+.lat[disabled]:hover{background:rgba(26,26,26,.86); border-color:var(--border)}
+
+/* MỘT dòng chú, chỗ của nó cố định — không thì dòng dài dòng ngắn đẩy trang.
+
+   ⚠ CHỒNG BẰNG GRID, KHÔNG BẰNG `position:absolute` + chiều cao gõ tay. Sáu dòng
+   cùng nằm một ô lưới nên hộp tự cao bằng DÒNG DÀI NHẤT, ở mọi bề ngang. Bản đầu
+   ghim `min-height:46px`: trên điện thoại dòng xuống hai hàng là 51px, và 5px ấy
+   tràn xuống khúc dưới — một con số gõ tay đúng ở đúng một bề ngang. */
+.loi-anh{display:grid; margin-top:16px}
+.loi-anh p{
+  grid-area:1/1; margin:0; text-align:center;
+  font-size:15.5px; color:var(--muted); opacity:0; transition:opacity .3s ease;
+}
+.loi-anh p.hien{opacity:1}
+
+.anh-kho{max-width:860px; margin:38px auto 0}
+.anh-kho .khung{box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.anh-kho img{width:100%; height:auto}
+.anh-kho figcaption{margin-top:10px; text-align:center; font-size:13px; color:var(--dim)}
+
+/* ───────────────────────────────────────────────────────── 26 màn, 10 hồi */
+.bang-man{display:grid; gap:2px; background:var(--border-soft);
+  border:1px solid var(--border-soft); border-radius:var(--round); overflow:hidden}
+.hoi-man{
+  display:grid; grid-template-columns:230px 1fr; gap:22px; align-items:center;
+  padding:15px 18px; background:var(--bg);
+}
+.ten-hoi h3{font-size:16px}
+.ten-hoi p{margin:3px 0 0; font-size:13px; color:var(--dim); line-height:1.4}
+.day-man{display:flex; flex-wrap:wrap; gap:7px; list-style:none; margin:0; padding:0}
+.o-man{
+  display:flex; align-items:center; gap:8px; min-width:0;
+  padding:6px 11px 6px 8px; border-radius:7px;
+  background:var(--surface); border:1px solid var(--border-soft);
+}
+.o-man b{
+  font-family:var(--mono); font-size:11.5px; font-weight:700;
+  color:var(--accent); letter-spacing:.02em;
+}
+.o-man span{font-size:13px; color:var(--muted); white-space:nowrap}
+.o-man.chua{border-style:dashed; opacity:.55}
+.o-man.chua b{color:var(--dim)}
 
 /* ═════════════════════════════════════ mấy khúc còn lại ═════════════════════ */
 section{padding:84px 0; border-top:1px solid var(--border-soft)}
@@ -334,6 +433,15 @@ section.lang{background:var(--chrome)}
    ⚠ VÀ CHÍNH CỬA SỔ TÔI SOI BẰNG ĐANG BẬT «giảm chuyển động» — nên mọi ảnh chụp đầu
    tiên đều là nhánh này mà tôi tưởng là nhánh thường. Lần sau phải hỏi trình duyệt
    trước khi tin cái mình nhìn thấy. */
+@media (max-width:860px){
+  .sau-ray{grid-template-columns:repeat(3,1fr)}
+  .sau-ray button span{display:none}
+  .sau-ray button{justify-content:center; padding:8px}
+  .lat.truoc{left:6px}
+  .lat.sau{right:6px}
+  .hoi-man{grid-template-columns:1fr; gap:11px; align-items:start}
+  .o-man span{white-space:normal}
+}
 @media (max-width:900px), (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .mach{height:auto}

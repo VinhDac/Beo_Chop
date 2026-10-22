@@ -65,7 +65,7 @@ Studio never pretends to be the thing doing the computing.
 This repository holds the **website and the releases**, not the source code.
 
 The site is one page: `index.html`, `assets/site.css`, `assets/mach.js`,
-`assets/luot.js`, two screenshots and two logos. No build step, no framework.
+`assets/luot.js`, seven screenshots and two logos. No build step, no framework.
 `.nojekyll` makes GitHub Pages serve the folder as it stands. To work on it:
 
 ```bash
@@ -78,10 +78,19 @@ Everything on the page is real and must stay that way:
 - **The curves** are one real LEAN backtest: XAUUSD, 2012-01-01 to 2014-12-31,
   $100,000, fees on. The engine lost **9.87%**; buying and holding lost **24.42%**.
   Nine orders. A graph that went up would have been easy to draw and worth nothing.
-- **The screenshots** are the app at 800×500, nothing staged.
+- **The screenshots** are the app at 800×500, nothing staged. `assets/anh/1-…`
+  through `6-…` are one sitting in order — start screen, journey, briefing, workshop,
+  the run, the score — and the score shown is the run described above.
+- **The 26 levels** are generated from `hanh_trinh.tu_dien()`, not typed in. So are
+  the three numbers the page claims (26 levels, 66 stars, 164 quantities).
 
 The scene in the middle of the page is drawn in HTML so the blocks can land one at a
-time — the page says so in plain words, right under it, and then shows the real app.
+time — the page says so in plain words, right under it, and then shows the real app
+in six screenshots you step through.
+
+`tests/test_trang.py` in the source repository guards this page: every path resolves,
+every `<img>` declares its real pixel size, every class has a rule, every selector in
+the JS finds something, and every number matches what the app counts.
 
 The QuantConnect mark appears as **attribution**: "Runs on" comes first, the mark is
 small and dimmed, and it never sits beside the Cat Studio logo as an equal. Cat Studio

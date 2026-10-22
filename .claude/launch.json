@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "xem-thu",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/xem_thu.py", "8990"],
+      "port": 8990
+    },
+    {
+      "name": "trang",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8992", "--directory", "site"],
+      "port": 8992
+    }
+  ]
+}

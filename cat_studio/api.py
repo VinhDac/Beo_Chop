@@ -586,7 +586,7 @@ class Api(NenCuaSo):
         thứ giữ người ta lại."""
         sao = {k: int((v or {}).get("sao") or 0)
                for k, v in luat_choi.doc_so()["man"].items()}
-        mo = hanh_trinh.da_mo(sao)
+        mo = hanh_trinh.da_mo(luat_choi.doc_so()["man"])
         d = hoi.tu_dien()
         ten_ho = {h["ma"]: h["nhan"] for h in d["loai"]}
         nhom = {}
@@ -641,6 +641,11 @@ class Api(NenCuaSo):
         if m is None:
             return _loi(tr("Không có màn «{0}».", man))
         if m.get("khong_cham"):
+            # VẪN GHI SỔ. Không chấm thì không có sao, nhưng "đã chạy qua" là
+            # chuyện bản đồ phải biết — không thì màn kế khoá vĩnh viễn.
+            luat_choi.ghi_man(
+                man, gon=luat_choi.do_gon(
+                    [core.chuan_hoa_khoi(x) for x in (steps or [])]), qua=True)
             return _ok({"khong_cham": True})
         kq = chay_lean.doc_luot_chay(ma_luot)
         if not kq["ok"]:

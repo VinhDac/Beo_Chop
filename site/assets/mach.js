@@ -146,3 +146,50 @@
   phang.addEventListener('change', batDau);
   batDau();
 })();
+
+/* ══════════════════════════════════════════ CUỘN PHIM SÁU MÀN HÌNH THẬT
+
+   Sáu ảnh chồng lên nhau; bấm bước nào thì ảnh ấy hiện. Không có script thì ảnh 1
+   vẫn hiện (lớp `.hien` gõ sẵn trong HTML) — tắt JS là mất năm ảnh, không phải mất
+   cả khúc.
+
+   ⚠ KHÔNG TỰ CHẠY. Bản đầu cho nó tự lật sau 4 giây: đang đọc dòng chú thì ảnh đổi,
+   và bước 5 — chỗ đáng nhìn lâu nhất — trôi qua trước khi kịp nhìn. Người đọc cầm
+   nhịp, không phải trang. */
+(function () {
+  const phim = document.querySelector('.phim');
+  if (!phim) return;
+
+  const nut = [...phim.querySelectorAll('.sau-ray button')];
+  const anh = [...phim.querySelectorAll('.anh img')];
+  const loi = [...phim.querySelectorAll('.loi-anh p')];
+  const ten = phim.querySelector('[data-ten]');
+  const lat = [...phim.querySelectorAll('.lat')];
+  const HET = nut.length;
+  let o = 1;
+
+  function di(n) {
+    o = Math.min(HET, Math.max(1, n));
+    phim.dataset.man = String(o);
+    nut.forEach(b => b.setAttribute('aria-current',
+      b.dataset.di === String(o) ? 'true' : 'false'));
+    anh.forEach(i => i.classList.toggle('hien', i.dataset.m === String(o)));
+    loi.forEach(p => p.classList.toggle('hien', p.dataset.m === String(o)));
+    // Tên trên thanh tiêu đề giả ăn theo bước — đúng cái tên app hiện lúc ấy.
+    if (ten) ten.textContent = nut[o - 1].querySelector('span').textContent;
+    lat.forEach(b => {
+      const t = Number(b.dataset.lat);
+      b.disabled = (t < 0 && o === 1) || (t > 0 && o === HET);
+    });
+  }
+
+  nut.forEach(b => b.addEventListener('click', () => di(Number(b.dataset.di))));
+  lat.forEach(b => b.addEventListener('click', () => di(o + Number(b.dataset.lat))));
+  // Mũi tên trái/phải khi cuộn phim đang được chú ý tới.
+  phim.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { di(o - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { di(o + 1); e.preventDefault(); }
+  });
+
+  di(1);
+})();
