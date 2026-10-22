@@ -306,6 +306,7 @@ section.lang{background:var(--chrome)}
 .buoc p{margin:6px 0 0; font-size:14px; color:var(--dim)}
 .buoc code{display:inline-block; padding:1px 6px; border-radius:4px; background:var(--field)}
 
+.nho-ghi{margin:18px 0 0; font-size:13.5px; color:var(--dim)}
 .hoi details{
   background:var(--surface); border:1px solid var(--border-soft);
   border-radius:var(--round); padding:14px 18px; margin-bottom:10px;

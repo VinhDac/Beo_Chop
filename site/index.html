@@ -298,35 +298,47 @@
 <section id="lay"><div class="wrap">
   <div class="dau">
     <span class="moc">Get it</span>
-    <h2>Run it from source, today.</h2>
+    <h2>Install it, then point it at LEAN.</h2>
     <p>
-      There is no installer yet — the three things in the way are named below. Cat
-      Studio runs from a checkout on Windows and needs a LEAN build on the same
-      machine.
+      One installer, <b>13.7&nbsp;MB</b>, no admin rights: it goes into your own user
+      folder. What it does <b>not</b> carry is LEAN itself — the reason is below, and
+      it is not a small one.
     </p>
   </div>
   <ol class="buoc">
-    <li><b>Clone it and run <code>tools\setup.bat</code></b>
-      <p>Once: the virtual environment, the libraries, the web UI.</p></li>
+    <li><b>Run <code>Cat_Studio-0.2-windows-x64-setup.exe</code></b>
+      <p>Installs to <code>%LOCALAPPDATA%\Programs\Cat Studio</code>, adds a Start
+        menu entry, and registers an uninstaller. Windows 10 or 11, 64-bit. There is
+        a portable <code>.zip</code> too if you would rather not install anything.</p></li>
     <li><b>Build LEAN, or point at one you have</b>
-      <p>LEAN is open source. Cat Studio also picks up a <code>Lean/</code> folder
-        sitting next to it.</p></li>
-    <li><b>Run <code>tools\chay.bat</code>, draw, press Backtest</b>
-      <p>It generates <code>main.py</code>, hands it to LEAN, and shows you what
-        LEAN sent back.</p></li>
+      <p>LEAN is QuantConnect's open-source engine. Open Settings in the app and give
+        it the folder that holds <code>Launcher\</code> and <code>Data\</code> — or
+        drop a folder named <code>Lean\</code> beside the app and it finds it by
+        itself.</p></li>
+    <li><b>Draw, then press Backtest</b>
+      <p>Cat Studio generates <code>main.py</code>, hands it to LEAN, and shows you
+        what LEAN sent back. Without LEAN you can still draw and still generate the
+        algorithm — only the Backtest button will say it has nowhere to send it.</p></li>
   </ol>
+  <p class="nho-ghi">
+    Your diagrams, drafts and scores live in <code>du_lieu\</code> beside the app.
+    Uninstalling does not touch that folder.
+  </p>
 
   <div class="hoi">
-    <details>
-      <summary>Why is there no installer?</summary>
-      <p>Three things. The LEAN build is framework-dependent, so it needs .NET&nbsp;10
-        present — shipping it means building LEAN self-contained, about 70&nbsp;MB
-        more. LEAN runs Python algorithms through pythonnet, so a Python runtime has
-        to travel with it. And LEAN's <code>Data/</code> folder carries no licence
-        file: the engine is Apache-2.0, which does not automatically cover market
-        data, so QuantConnect has to be asked first.</p>
-      <p>Size is not the problem: the engine is 115&nbsp;MB and a level needs only the
-        daily bars of its own symbols — 320&nbsp;KB for three of them.</p>
+    <details open>
+      <summary>Why doesn't the installer include LEAN?</summary>
+      <p>Three reasons, and none of them is size. The LEAN build is
+        framework-dependent, so it needs .NET&nbsp;10 already on the machine —
+        shipping it means rebuilding LEAN self-contained, about 70&nbsp;MB more. LEAN
+        runs Python algorithms through pythonnet, so a Python runtime has to travel
+        with it as well. And LEAN's <code>Data/</code> folder carries no licence file:
+        the engine is Apache-2.0, which does not automatically cover market data, so
+        QuantConnect has to be asked before anything ships with it.</p>
+      <p>Size would have been the easy part: the engine is 115&nbsp;MB, and a level
+        needs only the daily bars of its own symbols — 320&nbsp;KB for three of them.</p>
+      <p>Until that is settled, the honest arrangement is this one: you bring LEAN,
+        and Cat Studio never pretends to be the thing doing the computing.</p>
     </details>
     <details>
       <summary>Does it place real trades?</summary>

@@ -19,6 +19,42 @@ giao diện — xem chú thích ở hai hàm đó.
 `app_web` báo bằng MessageBox thay vì print.
 """
 
+# ⚠ MỘT SỐ PHIÊN BẢN, ĐỌC TỪ `core.PHIEN_BAN`. Gõ lại ở đây là có ngày Windows khoe
+# một số, app khoe một số khác, và không ai biết bản nào đang chạy. Đọc bằng regex chứ
+# không `import cat_studio`: lúc PyInstaller chạy tệp này, gói chưa nằm trên `sys.path`.
+import re as _re
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo, StringFileInfo, StringStruct, StringTable, VarFileInfo,
+    VarStruct, VSVersionInfo)
+
+with open("cat_studio/core.py", encoding="utf-8") as _f:
+    PHIEN_BAN = _re.search(r'PHIEN_BAN\s*=\s*"([^"]+)"', _f.read()).group(1)
+
+# Bộ ba số Windows đòi cho tài nguyên phiên bản: "0.2" -> (0, 2, 0, 0).
+_bo = tuple(int(x) for x in (PHIEN_BAN.split(".") + ["0", "0", "0"])[:4])
+
+# ⚠ TÀI NGUYÊN PHIÊN BẢN, không phải trang trí. Thiếu nó thì bấm chuột phải vào
+# Cat_Studio.exe -> Properties, thẻ Details TRỐNG TRƠN: không tên sản phẩm, không số
+# bản, không ai phát hành. Một tệp .exe như thế trông y hệt phần mềm nhặt ngoài đường,
+# và SmartScreen cũng nhìn vào đấy.
+phien_ban = VSVersionInfo(
+    ffi=FixedFileInfo(filevers=_bo, prodvers=_bo, mask=0x3F, flags=0x0,
+                      OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+    kids=[
+        StringFileInfo([StringTable("040904B0", [
+            StringStruct("CompanyName", "Cat Studio"),
+            StringStruct("FileDescription", "Cat Studio — draw a trading engine, LEAN runs it"),
+            StringStruct("FileVersion", PHIEN_BAN),
+            StringStruct("InternalName", "Cat_Studio"),
+            StringStruct("OriginalFilename", "Cat_Studio.exe"),
+            StringStruct("ProductName", "Cat Studio"),
+            StringStruct("ProductVersion", PHIEN_BAN),
+        ])]),
+        VarFileInfo([VarStruct("Translation", [0x0409, 1200])]),
+    ],
+)
+
 a = Analysis(
     ["app_web.py"],
     pathex=[],
@@ -59,6 +95,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon="webui/public/favicon.ico",
+    version=phien_ban,
 )
 coll = COLLECT(
     exe,
