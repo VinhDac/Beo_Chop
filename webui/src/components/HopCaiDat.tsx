@@ -4,7 +4,7 @@ import Icon from './Icon'
 import { Hang } from './ORuot'
 import { py } from '../api'
 import type { LeanSanSang, OLam } from '../types'
-import { datNgonNgu, tr, trx } from '../ngon_ngu'
+import { tr, trx } from '../ngon_ngu'
 import { dat_tieng } from '../am_thanh'
 
 /** HỘP CÀI ĐẶT APP.
@@ -48,9 +48,6 @@ export default function HopCaiDat({ onDong }: { onDong: () => void }) {
     // sau. Trạng thái LEAN cũng tới cùng lượt — đổi thư mục xong là biết đúng chưa.
     setGt(r.value.gia_tri)
     setLean(r.value.lean)
-    // ĐỔI TIẾNG NGAY, không đợi mở lại app. Python đã tự chốt bên nó trong `cai_dat_ghi`
-    // (mặt khối, bảng Vấn đề do nó dựng); đây là nửa còn lại.
-    datNgonNgu(r.value.gia_tri.ngon_ngu)
     // Tắt tiếng phải im NGAY, không đợi mở lại app.
     dat_tieng(r.value.gia_tri.am_thanh)
     if (r.value.lean.ok) onDong()

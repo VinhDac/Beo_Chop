@@ -38,33 +38,23 @@
  *  Bảng hằng đặt ngoài hàm thì công cụ không tự bọc (bọc lúc nạp tệp là chốt cứng tiếng
  *  Việt) — dịch chỗ HIỆN RA: `tr(TEN_NHOM[n])`. Component bọc `memo` thì gọi `useNgonNgu()`.
  */
-import { createElement, Fragment, type ReactNode, useSyncExternalStore } from 'react'
+import { createElement, Fragment, type ReactNode } from 'react'
 import TIENG_ANH from './tieng_anh'
 
-export type NgonNgu = 'vi' | 'en'
+/** ⚠ APP CHỈ NÓI TIẾNG ANH — chốt 22/10/2026, không còn chế độ tiếng Việt.
+ *
+ *  Bỏ cả KIỂU chứ không bỏ mỗi ô chọn: để `'vi'` ở lại trong kiểu là để lại một trạng
+ *  thái không cửa nào tới được nhưng mọi nhánh `if` vẫn phải cõng — đúng loại nửa vời
+ *  rồi mục. Phía Python chặn ở `cai_dat.NGON_NGU`, nên một `cai_dat.json` cũ còn ghi
+ *  "vi" cũng ra tiếng Anh.
+ *
+ *  ⚠ NHƯNG CHỮ GỐC VẪN LÀ TIẾNG VIỆT, và `tr` vẫn là đường đi. Khoá của bảng dịch
+ *  chính là câu tiếng Việt viết trong mã; bỏ `tr` đi là phải chép tay mấy nghìn câu
+ *  tiếng Anh vào hai chục tệp, và mất luôn bộ đếm «câu nào chưa có bản dịch» đang
+ *  canh ở cổng. Nên `tr` ở lại, chỉ là nó không còn đường nào trả về chữ gốc nữa. */
+export type NgonNgu = 'en'
 
-/** Các nấc cho ô chọn ở Cài đặt. Mỗi nấc ghi bằng CHÍNH tiếng của nó: người không đọc
- *  được tiếng đang hiện vẫn tìm ra chữ của mình. */
-export const CAC_NGON_NGU: { ma: NgonNgu; nhan: string }[] = [
-  { ma: 'en', nhan: 'English' },
-  { ma: 'vi', nhan: 'Tiếng Việt' },
-]
-
-/** MẶC ĐỊNH TIẾNG ANH — và đặt sẵn ở đây, chứ không chờ Python trả lời. `cho_cau_noi`
- *  mới hỏi được cài đặt, mà khung hình đầu đã vẽ trước đó rồi; để sẵn 'vi' thì người
- *  dùng tiếng Anh thấy một nháy tiếng Việt mỗi lần mở app. */
-let hien: NgonNgu = 'en'
-const nghe = new Set<() => void>()
-
-/** Đổi ngôn ngữ. Nhận cả giá trị lạ (cài đặt cũ, gõ tay vào file): lạ thì về tiếng Anh —
- *  cùng luật với `cat_studio/core.ngon_ngu`, một chỗ lạ không được làm hai bên lệch nhau. */
-export function datNgonNgu(n: unknown) {
-  const moi: NgonNgu = n === 'vi' ? 'vi' : 'en'
-  if (moi === hien) return
-  hien = moi
-  document.documentElement.lang = moi
-  nghe.forEach(f => f())
-}
+const hien: NgonNgu = 'en'
 
 export const ngonNgu = (): NgonNgu => hien
 
@@ -74,19 +64,16 @@ export const ngonNgu = (): NgonNgu => hien
  *  Chỉ component bọc `memo` — khối trên sơ đồ, hạt nhân — phải tự gọi, vì `memo` chặn
  *  đúng cái lượt vẽ lại ấy. Kết quả trả về cũng dùng làm phụ thuộc cho `useMemo` nào
  *  sinh ra chữ. */
+/** Giữ lại dù ngôn ngữ không đổi được nữa: hàng chục component gọi nó, và nó là chỗ
+ *  duy nhất khai «chữ của component này do bảng dịch sinh ra». Gỡ đi là sửa hai chục
+ *  tệp để đổi lấy đúng không gì. */
 export function useNgonNgu(): NgonNgu {
-  return useSyncExternalStore(dangKy, ngonNgu)
-}
-
-function dangKy(f: () => void) {
-  nghe.add(f)
-  return () => { nghe.delete(f) }
+  return hien
 }
 
 /** Câu mẫu theo ngôn ngữ đang hiện. Khoảng trắng hai đầu giữ nguyên, chỉ tra phần
  *  giữa: chữ JSX nằm sát một thẻ in đậm mang theo dấu cách, mà bảng dịch chỉ ghi câu. */
 function mau(chu: string): string {
-  if (hien === 'vi') return chu
   const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(chu)!
   const en = TIENG_ANH[m[2]]
   return en === undefined ? chu : m[1] + en + m[3]

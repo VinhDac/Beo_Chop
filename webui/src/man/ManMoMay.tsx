@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import TitleBar from '../components/TitleBar'
-import { CAC_NGON_NGU, datNgonNgu, tr, trx, useNgonNgu } from '../ngon_ngu'
+import { tr, trx, useNgonNgu } from '../ngon_ngu'
 import { cho_cau_noi, py } from '../api'
 import type { SoLieu } from '../types'
 
@@ -39,20 +39,7 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
     })()
   }, [])
 
-  /** Đổi tiếng — đi qua ĐÚNG cửa mà hộp Cài đặt đi, không gọi thẳng `datNgonNgu`.
-   *
-   *  ⚠ ĐÃ HỎNG THẬT, và hỏng hai kiểu cùng lúc. Gọi thẳng `datNgonNgu` chỉ đổi ngôn ngữ
-   *  TRONG BỘ NHỚ CỦA WEB:
-   *    · Python không nghe thấy — mà tên hồi, tên màn, câu dạy đều do Python dựng. Đổi
-   *      sang tiếng Việt xong, bản đồ hành trình vẫn nguyên tiếng Anh.
-   *    · Không ghi vào Cài đặt, nên `cho_cau_noi` ở lần nối sau đọc lại cài đặt CŨ rồi
-   *      `datNgonNgu` ĐẶT NGƯỢC về tiếng Anh (xem `api.ts`). Người dùng đổi tiếng, đi
-   *      sang màn khác, và nó tự nhảy về — trông y như app không nhận.
-   *  Một cửa duy nhất thì không có chỗ nào để lệch. */
-  async function doiTieng(n: string) {
-    const r = await py.cai_dat_ghi({ ngon_ngu: n })
-    if (r.ok && r.value) datNgonNgu(r.value.gia_tri.ngon_ngu)
-  }
+
 
   return (
     <div className="mm" key={nn}>
@@ -121,14 +108,6 @@ export default function ManMoMay({ onHanhTrinh, onSangTao }: {
         </div>
       </div>
 
-      <div className="mm-chan">
-        <select className="o mm-tieng" value={nn}
-                onChange={e => void doiTieng(e.target.value)}>
-          {CAC_NGON_NGU.map(n => (
-            <option key={n.ma} value={n.ma}>{n.nhan}</option>
-          ))}
-        </select>
-      </div>
     </div>
   )
 }

@@ -50,41 +50,44 @@ def kiem(ten, dk, chi_tiet=""):
 
 
 # --------------------------------------------------------------- 1. đọc cài đặt
-print("\n▸ core.ngon_ngu — MỘT chỗ duy nhất trả lời, và giá trị lạ không làm hỏng gì")
+print("\n▸ core.ngon_ngu — APP CHỈ NÓI TIẾNG ANH, và không ngả nào về được tiếng Việt")
+# ⚠ BỎ CHẾ ĐỘ TIẾNG VIỆT KHỎI APP — chốt 22/10/2026. Bài này trước đây đi khẳng định
+# điều NGƯỢC LẠI («chọn tiếng Việt» phải ra "vi"), nên nó không còn là lưới nữa mà là
+# bản ghi của một thiết kế đã bỏ. Nay nó canh đúng cái người dùng đòi: không đường nào
+# — cài đặt cũ, file gõ tay, giá trị lạ — đưa app về tiếng Việt được.
 kiem("mặc định là TIẾNG ANH", core.ngon_ngu({}) == "en")
-kiem("chọn tiếng Việt", core.ngon_ngu({"ngon_ngu": "vi"}) == "vi")
-kiem("chọn tiếng Anh", core.ngon_ngu({"ngon_ngu": "en"}) == "en")
-kiem("giá trị lạ rơi về mặc định",
+kiem("cài đặt cũ còn ghi «vi» thì VẪN ra tiếng Anh",
+     core.ngon_ngu({"ngon_ngu": "vi"}) == "en",
+     "— bỏ mỗi ô chọn mà để nấc «vi» ở lại là chế độ ấy vẫn sống")
+kiem("giá trị lạ cũng thế",
      core.ngon_ngu({"ngon_ngu": "fr"}) == "en" and core.ngon_ngu({"ngon_ngu": None}) == "en")
 # Mặc định KHÔNG được gõ tay lần thứ hai: `cai_dat.NGON_NGU` khai, mọi nơi đọc nó.
 kiem("mặc định lấy từ `cai_dat.NGON_NGU`, không gõ lại",
      core.ngon_ngu({}) == cai_dat.NGON_NGU[0][0])
+kiem("và bảng ấy chỉ còn MỘT nấc", len(cai_dat.NGON_NGU) == 1,
+     f"— {cai_dat.NGON_NGU}")
 ngon_ngu.dat("fr")
 kiem("`ngon_ngu.dat` cũng rơi về mặc định khi nhận giá trị lạ", ngon_ngu.hien() == "en")
 
-# --------------------------------------------------- 2. ô chọn, và nó phải sống sót
-print("\n▸ Ô chọn ngôn ngữ — Python khai, và nó SỐNG SÓT qua một vòng ghi–đọc")
-o = cai_dat.BANG_O.get(cai_dat.KHOA_NGON_NGU)
-kiem("từ điển Cài đặt có ô ngôn ngữ", o is not None)
-kiem("nó là ô CHỌN, với đủ mấy nấc",
-     bool(o) and o["kieu"] == cai_dat.O_CHON
-     and [tuple(c) for c in o["chon"]] == list(cai_dat.NGON_NGU))
-kiem("ô ấy đứng ở NHÓM ĐẦU — mắt chạy từ trên xuống",
-     cai_dat.NHOM[0][2][0]["ten"] == cai_dat.KHOA_NGON_NGU)
-# Nhãn hai tiếng: dịch nó là phá đúng cái lối về của người lỡ chọn tiếng lạ.
-kiem("nhãn nhóm ghi CẢ HAI tiếng", "Language" in cai_dat.NHOM[0][1]
-     and "Ngôn ngữ" in cai_dat.NHOM[0][1])
-kiem("nhãn ô cũng ghi cả hai tiếng",
-     bool(o) and "Language" in o["nhan"] and "Tiếng" in o["nhan"])
-# ⚠ Phép kiểm này bắt đúng cái lỗi đã dính lúc dựng hộp Cài đặt: khoá ghi xuống file
-# rồi BIẾN MẤT ở lần đọc kế, vì `doc_cai_dat` chỉ giữ khoá có trong bảng mặc định.
-kiem("có mặt trong bảng mặc định — không thì ghi xuống rồi biến mất",
-     cai_dat.KHOA_NGON_NGU in luu_tru.CAI_DAT_MAC_DINH)
-kiem("giá trị lạ trong file rơi về mặc định, không đi thẳng ra giao diện",
-     cai_dat.doc({cai_dat.KHOA_NGON_NGU: "fr"})[cai_dat.KHOA_NGON_NGU]
-     == cai_dat.NGON_NGU[0][0])
-kiem("chọn tiếng Việt thì đọc lại ra tiếng Việt",
-     cai_dat.doc({cai_dat.KHOA_NGON_NGU: "vi"})[cai_dat.KHOA_NGON_NGU] == "vi")
+# --------------------------------------------- 2. không còn ô chọn tiếng ở Cài đặt
+print("\n▸ Hộp Cài đặt KHÔNG còn ô chọn tiếng")
+# Một ô chọn có đúng một nấc thì vừa vô dụng vừa hứa hão: người dùng cứ mở Cài đặt ra
+# tìm tiếng của mình mãi. Bỏ cả nhóm, không bỏ mỗi nấc.
+kiem("từ điển Cài đặt không còn ô ngôn ngữ",
+     cai_dat.BANG_O.get(cai_dat.KHOA_NGON_NGU) is None)
+kiem("và không nhóm nào còn ô ấy",
+     not [o for _m, _n, ds in cai_dat.NHOM for o in ds
+          if o["ten"] == cai_dat.KHOA_NGON_NGU])
+
+# ⚠ NHƯNG CÔNG TẮC `vi` PHẢI CÒN SỐNG TRONG `ngon_ngu.dat`, và đó là cố ý. Mục 5 dưới
+# đây dựng CÙNG một sơ đồ ở hai tiếng rồi so: chỗ nào hai bản giống hệt mà có dấu thì
+# đó là nhãn app chưa ai dịch. Lưới ấy đã tìm ra CHÍN chỗ sót, và nó là thứ duy nhất
+# canh được chuyện chữ Việt lọt vào bản tiếng Anh. Giết công tắc là giết lưới.
+ngon_ngu.dat("vi")
+kiem("công tắc `vi` còn sống cho BÀI KIỂM (app không gọi tới)",
+     ngon_ngu.hien() == "vi",
+     "— mất nó là mất lưới dò chữ Việt lọt vào bản tiếng Anh")
+ngon_ngu.dat("en")
 
 # ------------------------------------------- 3. ba cửa sổ biết tiếng trước khung đầu
 print("\n▸ `khoi_dong` — cửa cả ba cửa sổ gọi TRƯỚC khi vẽ, phải mang ngôn ngữ")
@@ -93,6 +96,8 @@ goc_cu = luu_tru.thu_muc_app
 luu_tru.thu_muc_app = lambda: tam
 try:
     from cat_studio import api  # noqa: E402
+    # Ghi THẲNG "vi" vào file như một bản cài đặt cũ còn sót — và nó vẫn phải ra
+    # tiếng Anh ở cả ba cửa sổ.
     s = luu_tru.doc_cai_dat()
     s[cai_dat.KHOA_NGON_NGU] = "vi"
     luu_tru.ghi_cai_dat(s)
@@ -100,19 +105,17 @@ try:
                     ("cửa sổ Kết quả", api.ApiKetQua("x")),
                     ("cửa sổ Optimize", api.ApiToiUu("x"))):
         r = ap.khoi_dong()
-        kiem(ten, r.get("ok") and (r.get("value") or {}).get("ngon_ngu") == "vi",
+        kiem(ten, r.get("ok") and (r.get("value") or {}).get("ngon_ngu") == "en",
              str(r.get("error", ""))[:80])
     # Dựng `Api` là chốt ngôn ngữ theo cài đặt — đường chính, không phải lưới an toàn.
-    kiem("dựng `Api` thì Python chốt theo cài đặt luôn", ngon_ngu.hien() == "vi")
+    kiem("dựng `Api` thì Python chốt theo cài đặt luôn", ngon_ngu.hien() == "en")
     # Và lưu cài đặt mới là Python đổi NGAY, không đợi mở lại app.
     a = api.Api()
     gt = dict(cai_dat.doc(luu_tru.doc_cai_dat()))
-    gt[cai_dat.KHOA_NGON_NGU] = "en"
+    gt[cai_dat.KHOA_NGON_NGU] = "vi"
     r = a.cai_dat_ghi(gt)
-    kiem("lưu Cài đặt là Python đổi tiếng ngay",
+    kiem("lưu Cài đặt mang «vi» cũng KHÔNG đổi được tiếng",
          r.get("ok") and ngon_ngu.hien() == "en", str(r.get("error", ""))[:80])
-    kiem("…và đọc lại ra đúng thứ vừa lưu",
-         (r.get("value") or {}).get("gia_tri", {}).get(cai_dat.KHOA_NGON_NGU) == "en")
 finally:
     luu_tru.thu_muc_app = goc_cu
     shutil.rmtree(tam, ignore_errors=True)
@@ -251,6 +254,31 @@ if _tep:
          f"— {list(_sot2)[:3]}")
 else:
     print("  · bỏ qua phần quét Strategy thật — máy này chưa có du_lieu/strategy")
+ngon_ngu.dat(cai_dat.NGON_NGU[0][0])
+
+# ------------------------------ 4b. TÊN KHỐI — chỗ lưới trên KHÔNG BAO GIỜ thấy
+print("\n▸ TÊN khối vừa tạo — chữ GÕ CỨNG, lưới so hai bản không thấy nổi")
+# ⚠ ĐÂY LÀ LỖ ĐEN CỦA CHÍNH LƯỚI NGAY TRÊN. Lưới ấy dựng cùng một sơ đồ ở hai tiếng rồi
+# bắt chỗ nào GIỐNG HỆT mà có dấu. Nhưng một chuỗi GÕ CỨNG thì giống hệt nhau ở cả hai
+# bản đúng theo định nghĩa — nên lưới tưởng đó là chữ của NGƯỜI DÙNG và bỏ qua.
+#
+# Đã dính thật, và dính ở BỐN trong năm xưởng đẻ khối: `make_start_step` gõ "Bắt đầu",
+# `make_group_step` gõ "Nhóm mới", còn `make_hoi_step` với `make_lam_step` lấy thẳng
+# `d["nhan"]` của từ điển. Tên khối được GHI VÀO TÀI LIỆU rồi bày lại nguyên xi
+# (`step_title`), nên mọi khối người dùng thả ra đều mang tên tiếng Việt giữa một app
+# chỉ nói tiếng Anh. Chỉ ảnh chụp mới thấy. `make_quay_ve_step` vốn làm đúng từ đầu.
+ngon_ngu.dat("en")
+_xuong = [("start", core.make_start_step), ("group", core.make_group_step),
+          ("quay_ve", core.make_quay_ve_step)]
+_xuong += [(f"hoi:{_l}", (lambda _l=_l: core.make_hoi_step(_l))) for _l in hoi.LOAI_HOI]
+_xuong += [(f"lam:{_l}", (lambda _l=_l: core.make_lam_step(_l))) for _l in lam.LOAI_LAM]
+_ten_khoi = {}
+for _ten, _tao in _xuong:
+    _t = core.the_buoc(_tao())["title"]
+    if DAU.search(_t or ""):
+        _ten_khoi[_ten] = _t
+kiem(f"cả {len(_xuong)} xưởng đẻ khối đặt tên bằng TIẾNG ANH", not _ten_khoi,
+     f"— {list(_ten_khoi.items())[:3]}")
 ngon_ngu.dat(cai_dat.NGON_NGU[0][0])
 
 # ------------------------------------------------------------------- 5. CỔNG

@@ -59,7 +59,13 @@ _SO_NHIEU = re.compile(r"\{(\d+)\|([^|{}]*)\|([^{}]*)\}")
 
 def dat(n):
     """Đổi ngôn ngữ. Giá trị lạ (cài đặt cũ, gõ tay vào file) về TIẾNG ANH — cùng luật với
-    `core.ngon_ngu`, một chỗ lạ không được làm hai bên lệch nhau."""
+    `core.ngon_ngu`, một chỗ lạ không được làm hai bên lệch nhau.
+
+    ⚠ `"vi"` CHẠY ĐƯỢC Ở ĐÂY NHƯNG APP KHÔNG BAO GIỜ TỚI. `cai_dat.NGON_NGU` chỉ còn
+    một nấc, nên `core.ngon_ngu()` luôn trả "en" và không cửa nào của app gọi `dat("vi")`.
+    Công tắc còn sống là để BÀI KIỂM dựng cùng một sơ đồ ở hai tiếng rồi so: chỗ nào hai
+    bản giống hệt mà có dấu thì đó là nhãn app chưa ai dịch. Lưới ấy đã tìm ra chín chỗ
+    sót, và nó là thứ duy nhất canh được chuyện chữ Việt lọt vào bản tiếng Anh."""
     global _hien
     _hien = "vi" if n == "vi" else "en"
 

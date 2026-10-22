@@ -120,10 +120,13 @@ print("\n▸ ⚠ GHI MỘT Ô KHÔNG ĐƯỢC XOÁ MẤY Ô CÒN LẠI")
 # máy (ô ấy chỉ gửi lên MỘT khoá) mà bay luôn đường dẫn LEAN. Không một lời báo nào, và
 # chỉ lộ ra ở lần bấm Backtest sau đó — lúc ấy chẳng ai nối hai chuyện với nhau nữa.
 #   Hộp Cài đặt cũ gửi lên ĐỦ mọi ô nên nó không bao giờ lộ chuyện này.
-_cu = {"ngon_ngu": "en", "lean_goc": r"C:\Lean\da\build", "han_gio_phut": 42,
+# ⚠ Ô ĐEM RA THỬ ĐÃ ĐỔI: trước đây là `ngon_ngu`, nhưng app bỏ chế độ tiếng Việt thì ô
+# ấy không còn nữa. Lấy `am_thanh` — cũng là một ô bật/tắt mà một màn hình có thể gửi
+# lên MỘT MÌNH, tức đúng cái dạng đã làm mất đường dẫn LEAN.
+_cu = {"am_thanh": True, "lean_goc": r"C:\Lean\da\build", "han_gio_phut": 42,
        "mo_ket_qua": False, "kho_backtest": 7}
-_sau = cai_dat.doc({**_cu, "ngon_ngu": "vi"})
-kiem("đổi một ô thì ô ấy đổi", _sau["ngon_ngu"] == "vi")
+_sau = cai_dat.doc({**_cu, "am_thanh": False})
+kiem("đổi một ô thì ô ấy đổi", _sau["am_thanh"] is False)
 for _o, _v in (("lean_goc", r"C:\Lean\da\build"), ("han_gio_phut", 42),
                ("mo_ket_qua", False), ("kho_backtest", 7)):
     kiem(f"và `{_o}` còn nguyên", _sau[_o] == _v,

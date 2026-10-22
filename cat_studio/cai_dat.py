@@ -30,13 +30,18 @@ KHOA_KHO_TOI_UU = "kho_toi_uu"
 KHOA_NGON_NGU = "ngon_ngu"
 KHOA_AM_THANH = "am_thanh"
 
-#: NGÔN NGỮ GIAO DIỆN. Nấc ĐẦU là mặc định — tiếng Anh, vì người đọc được tiếng Anh
-#: thì mở app lên là dùng được ngay, còn người Việt bật lại một lần là xong.
+#: NGÔN NGỮ GIAO DIỆN — CHỈ CÒN TIẾNG ANH. Chốt 22/10/2026.
 #:
-#: ⚠ MỘT CHỖ DUY NHẤT biết có mấy nấc và mặc định là nấc nào: `core.ngon_ngu` đọc
-#: bảng này, `ngon_ngu.dat` rơi về cùng một giá trị, và hộp Cài đặt dựng ô chọn từ
-#: chính nó. Gõ "en" lần thứ hai ở đâu đó là mở đường cho hai bên lệch nhau.
-NGON_NGU = (("en", "English"), ("vi", "Tiếng Việt"))   # không dịch
+#: ⚠ BẢNG NÀY LÀ THỨ QUYẾT ĐỊNH, không phải cái ô chọn trong hộp Cài đặt. `core.ngon_ngu`
+#: kẹp giá trị đọc được về mấy nấc ở đây, nên một `cai_dat.json` cũ còn ghi "vi" — hay ai
+#: gõ tay vào — cũng ra tiếng Anh. Bỏ mỗi cái ô chọn mà để nấc "vi" ở lại thì chế độ ấy
+#: vẫn sống, chỉ là không ai bấm tới được: đúng loại nửa vời rồi mục.
+#:
+#: ⚠ `vi` VẪN SỐNG TRONG `ngon_ngu.dat`, và đó là CỐ Ý. Bài kiểm song ngữ dựng cùng một
+#: sơ đồ ở hai tiếng rồi so, và chỗ nào hai bản GIỐNG HỆT mà có dấu thì đó là nhãn app
+#: chưa ai dịch — lưới ấy đã tìm ra chín chỗ sót. Giết luôn công tắc là giết cái lưới
+#: duy nhất canh được chuyện "chữ Việt lọt vào bản tiếng Anh". Xem `tests/test_ngon_ngu.py`.
+NGON_NGU = (("en", "English"),)   # không dịch
 
 
 def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi="", chon=()):
@@ -48,16 +53,9 @@ def _o(ten, nhan, kieu, mac_dinh, goi_y="", nguyen=False, don_vi="", chon=()):
 #: (mã nhóm, nhãn nhóm, các ô). Nhóm chứ không phải tab: ba ô thì chia tab là chia
 #: cho có, mà mỗi tab lại là một chỗ để quên không lưu.
 NHOM = (
-    # ĐỨNG ĐẦU, và nhãn ghi CẢ HAI TIẾNG — cố ý, cả hai thứ. Ai lỡ chọn tiếng mình
-    # không đọc được thì vẫn phải tìm ra đường về: mắt chạy từ trên xuống, và chữ
-    # "Language" nhận ra được mà không cần đọc chữ nào khác. Hai nhãn này KHÔNG đi qua
-    # bộ dịch (dòng `# không dịch`) vì dịch chúng là phá đúng cái lối về ấy.
-    ("ngon_ngu", "Ngôn ngữ · Language", (  # không dịch
-        # Nhãn NGẮN, vì tiêu đề nhóm ngay trên đã nói đủ: để dài thì nó xuống hai dòng
-        # và ô chọn tụt xuống một hàng riêng — mọi hàng khác của hộp là nhãn|ô một dòng.
-        _o(KHOA_NGON_NGU, "Tiếng · Language",  # không dịch
-           O_CHON, NGON_NGU[0][0], chon=NGON_NGU),
-    )),
+    # ⚠ KHÔNG CÒN NHÓM NGÔN NGỮ. App chỉ nói tiếng Anh, mà một ô chọn có đúng một nấc
+    # thì vừa vô dụng vừa hứa hão. Bỏ cả nhóm chứ không bỏ mỗi nấc "vi": để ô lại là
+    # người dùng cứ mở Cài đặt ra tìm tiếng của mình mãi.
     ("chay", "Chạy backtest", (
         _o(KHOA_LEAN, "Thư mục LEAN", O_CHU, "",
            "Thư mục gốc của LEAN trên máy này — chỗ có Launcher/ và Data/."),

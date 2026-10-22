@@ -824,12 +824,15 @@ kiem("rời Xưởng thì GHI NỐT bản nháp trước khi đi",
 kiem("và nút ra gọi ĐÚNG hàm ấy, không gọi thẳng `onRa`",
      "onClick={raXuong}" in _sd)
 
-# ⚠ ĐỔI TIẾNG PHẢI ĐI QUA CỬA CÀI ĐẶT. Gọi thẳng `datNgonNgu` chỉ đổi trong bộ nhớ
-# của web: Python không nghe (mà tên hồi, tên màn do Python dựng), và lần nối sau
-# `api.ts` đọc lại cài đặt CŨ rồi đặt ngược về tiếng Anh. Đã hỏng thật, cả hai kiểu.
-kiem("ô đổi tiếng ở màn Mở máy đi qua cửa Cài đặt",
-     "cai_dat_ghi" in _mm,
-     "— gọi thẳng `datNgonNgu` thì Python không nghe và lần nối sau đặt ngược lại")
+# ⚠ KHÔNG CÒN CHỖ NÀO ĐỔI TIẾNG — chốt 22/10/2026, app chỉ nói tiếng Anh. Rào cũ ở đây
+# canh «ô đổi tiếng phải đi qua cửa Cài đặt»; ô ấy đã bỏ, nên rào ấy không còn canh gì
+# mà chỉ còn giữ lại một thiết kế đã chết. Nay canh đúng chuyện ngược lại: không màn
+# hình nào dựng lại ô chọn tiếng, và không ai gọi lại cái cửa đổi tiếng trong bộ nhớ.
+# Phía Python chặn ở `cai_dat.NGON_NGU` (xem `tests/test_ngon_ngu.py`) — đây là nửa web.
+_con_o_tieng = {f for f, x in moi_tsx()
+                if "CAC_NGON_NGU" in _bo_chu_thich(x) or "datNgonNgu" in _bo_chu_thich(x)}
+kiem("không màn hình nào còn ô chọn tiếng", not _con_o_tieng,
+     f"— {sorted(_con_o_tieng)}")
 
 # ⚠ KHÔNG KHAI LẠI MỘT MÀN NÀO BÊN TYPESCRIPT. Danh sách hồi và màn chỉ có một chỗ.
 kiem("hành trình do PYTHON giữ, giao diện chỉ hỏi rồi vẽ",

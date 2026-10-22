@@ -171,12 +171,18 @@ def step_title(step):
 # ---------------------------------------------------------------------------
 
 
-def make_start_step(name="Bắt đầu"):
+#: ⚠ TÊN KHỐI SINH RA PHẢI ĐI QUA `tr`, và đây là chỗ bốn trong năm xưởng đẻ khối làm
+#: sai. Tên khối được GHI THẲNG VÀO TÀI LIỆU rồi bày lại nguyên xi (`step_title`), nên
+#: gõ cứng "Bắt đầu" là mọi khối người dùng thả ra đều mang tên tiếng Việt — giữa một
+#: app chỉ nói tiếng Anh. Lưới song ngữ không bắt được: nó so hai bản dựng ở hai tiếng,
+#: mà chuỗi gõ cứng thì giống hệt nhau ở cả hai, nên nó tưởng đó là chữ của NGƯỜI DÙNG.
+#: Chỉ ảnh chụp mới thấy. `make_quay_ve_step` vốn làm đúng từ đầu — bốn hàm kia theo nó.
+def make_start_step(name=None):
     """Khối BẮT ĐẦU — nửa `initialize` của thuật toán, mọi ô đã điền mặc định.
 
     Trước D-15 khối này chỉ có cái tên: sơ đồ vẽ được nửa `on_data` mà không có chỗ
     nào nói chạy trên mã gì, từ ngày nào, bao nhiêu tiền. Xem `bat_dau.py`."""
-    st = {"kind": KIND_START, "id": new_step_id(), "name": name}
+    st = {"kind": KIND_START, "id": new_step_id(), "name": name or tr("Bắt đầu")}
     for o in bat_dau.o_cua():
         st[o["ten"]] = _chep_sau(o["mac_dinh"])
     return st
@@ -207,11 +213,12 @@ def o_bat_dau(step, ten):
     return None
 
 
-def make_group_step(name="Nhóm mới"):
+def make_group_step(name=None):
     """Nhóm: nhiều hành động, chạy đúng MỘT lượt, không lặp.
 
     Cố ý không có số vòng: nhóm không lặp nên ô ấy vô nghĩa, có mặt chỉ tổ hiểu nhầm."""
-    return {"kind": KIND_GROUP, "id": new_step_id(), "name": name, "actions": []}
+    return {"kind": KIND_GROUP, "id": new_step_id(),
+            "name": name or tr("Nhóm mới"), "actions": []}
 
 
 def make_action_step(action):
@@ -295,7 +302,7 @@ def make_hoi_step(loai, name=None):
     if not d:
         raise ValueError(tr("không có loại hỏi {0!r}", loai))
     return {"kind": KIND_ACTION, "id": new_step_id(), "type": loai,
-            "name": name or d["nhan"], "dieu_kien": []}
+            "name": name or tr(d["nhan"]), "dieu_kien": []}
 
 
 def make_lam_step(loai, name=None):
@@ -307,7 +314,7 @@ def make_lam_step(loai, name=None):
     if not d:
         raise ValueError(tr("không có loại hành động {0!r}", loai))
     st = {"kind": KIND_ACTION, "id": new_step_id(), "type": loai,
-          "name": name or d["nhan"]}
+          "name": name or tr(d["nhan"])}
     for o in lam.o_cua(loai):
         st[o["ten"]] = o["mac_dinh"]
     if d.get("co_dai_luong"):
