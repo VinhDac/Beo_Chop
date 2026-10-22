@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cat Studio · Instead of code, you draw</title>
-<meta name="description" content="Draw a trading engine as a block diagram. Cat Studio turns it into a real QuantConnect algorithm and runs it on LEAN. The drawing is the only thing that is new — every number is LEAN's.">
+<title>Cat Studio · You draw it. LEAN runs it.</title>
+<meta name="description" content="Draw a trading engine as a diagram. Cat Studio writes the QuantConnect algorithm and LEAN runs it — on real data, with real fills and real fees. Every number on this page came back from LEAN.">
 <link rel="icon" href="assets/logo.png">
 <link rel="stylesheet" href="assets/site.css">
 </head>
@@ -13,349 +13,352 @@
 <header class="top"><div class="wrap">
   <a class="brand" href="./"><img src="assets/logo.png" alt="">Cat Studio</a>
   <nav>
-    <a href="#ma">The code it writes</a>
-    <a href="#that">What runs it</a>
-    <a href="#man">The 26 levels</a>
+    <a href="#mach">Watch one get built</a>
+    <a href="#giu">What you keep</a>
     <a class="btn" href="#lay">Get it</a>
   </nav>
 </div></header>
 
 <main>
 
-<!-- ─────────────────────────────────────────────────────────────── hero
-     Câu đầu tiên là CẢ SẢN PHẨM, và nó là câu của chủ dự án: «thay vì code thì vẽ,
-     còn lại y hệt». Không ví von, không hứa hẹn — hai mệnh đề, cái sau giữ cái trước
-     khỏi nghe như đồ chơi. -->
-<section class="hero" style="border-top:0"><div class="wrap">
-  <h1>Instead of code,<br>you draw.<span>Everything else is identical.</span></h1>
-  <p class="lead">
-    You draw a trading engine as a block diagram. Cat Studio turns it into a real
-    QuantConnect algorithm and runs it on <b>LEAN</b> — the same engine QuantConnect
-    runs. The drawing is the only thing that is new: the market data, the indicators,
-    the order fills, the fees and every number you read are LEAN's.
+<!-- ═══════════════════════════════════════════════════════════════════ HERO
+     Ba nhịp, và nhịp cuối KHÔNG phải sản phẩm — nó là thứ nằm ngoài tay cả người
+     dùng lẫn app. Đó là chỗ cả trang đứng được: app không hứa bạn thắng, nó hứa
+     con số bạn thấy là con số thật. -->
+<section class="mo">
+  <div class="wrap">
+    <h1>You draw it.<br>LEAN runs it.<em>The market decides.</em></h1>
+    <p class="dan">
+      QuantConnect's engine has always been free. The price of admission was Python.
+      Cat Studio pays it for you: draw the engine as a diagram, and the algorithm
+      writes itself.
+    </p>
+    <div class="nut">
+      <a class="btn chinh" href="#mach">Watch one get built</a>
+      <a class="btn" href="#lay">Get it</a>
+    </div>
+    <p class="ghi-cong">
+      <span>Runs on</span>
+      <img src="assets/qc/quantconnect.png" alt="QuantConnect" width="266" height="45">
+      <span>LEAN — the same engine, the same numbers.</span>
+    </p>
+  </div>
+  <a class="xuong" href="#mach">One engine, from nothing <i></i></a>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ MẠCH CUỘN: CUỘN LÀ DỰNG CỖ MÁY
+     Cả khúc này là MỘT cảnh, không phải mấy mục xếp chồng. Cuộn tới đâu thì khối
+     rơi xuống tới đó và mã tự gõ thêm tới đó; nhịp cuối nhấn ▶ và đường vốn THẬT
+     tự vẽ ra. Xem `assets/mach.js`. -->
+<section id="mach" class="mach" data-nhip="1">
+  <div class="san">
+    <div class="wrap san-trong">
+
+      <div class="loi">
+        <span class="dem"><b data-dem-so>1</b> of 5</span>
+        <div class="cau">
+          <p data-cau="1">You put down <b>one block</b>.<small>Which market, which dates, how much money. Nothing has happened yet.</small></p>
+          <p data-cau="2">You ask the market <b>one question</b>.<small>Is gold oversold? RSI, period 14, below 30 — a question LEAN already knows how to answer.</small></p>
+          <p data-cau="3">You say <b>what to do</b> about it.<small>Put everything in. One block, wired to the answer.</small></p>
+          <p data-cau="4">Then you draw <b>the way out</b>.<small>The second branch. Without it an engine buys and never sells.</small></p>
+          <p data-cau="5">You press <b>Run</b>.<small>Three years of gold, day by day, through QuantConnect's engine. You have typed nothing.</small></p>
+        </div>
+        <div class="ray">
+          <i data-ray></i>
+          <span>block 1</span><span>2</span><span>3</span><span>4</span><span>run</span>
+        </div>
+      </div>
+
+      <div class="ban">
+
+        <!-- HÀNG TRÊN: sơ đồ và kết quả CHỒNG LÊN NHAU, nhường chỗ cho nhau ở nhịp
+             cuối. Phải có khung riêng này: để hai bảng chồng thẳng trong `.ban` thì
+             cái tuyệt đối trùm cả hàng dưới, và bảng mã biến mất sau đồ thị. -->
+        <div class="tren">
+
+        <!-- ─────────────────────────── bảng trên: SƠ ĐỒ, từng khối rơi xuống -->
+        <div class="khung so-do" data-so-do>
+          <div class="nep"><i></i><i></i><i></i><span>the workshop</span></div>
+          <div class="giay">
+            <svg class="day" viewBox="0 0 560 300" aria-hidden>
+              <path data-day="2" pathLength="1" d="M168 150 C192 150 192 70 202 70" />
+              <path data-day="3" pathLength="1" d="M358 70 H392" />
+              <path data-day="4" pathLength="1" d="M168 150 C192 150 192 232 202 232" />
+              <path data-day="4" pathLength="1" d="M358 232 H392" />
+            </svg>
+
+            <div class="khoi bat-dau" data-khoi="1">
+              <span class="bade">1</span>
+              <div class="dinh"><b>Start</b><em>START</em></div>
+              <div class="than">
+                <div><span class="ma">XAUUSD</span> · Cfd</div>
+                <div><span class="so">01/01/2012</span> → <span class="so">31/12/2014</span></div>
+                <div><span class="so">$100,000</span> capital</div>
+              </div>
+            </div>
+
+            <div class="khoi hoi a" data-khoi="2">
+              <span class="bade">1A</span>
+              <div class="dinh"><b>Oversold?</b><em>SINGLE</em></div>
+              <div class="than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&lt;</span> <span class="so">30</span></div></div>
+            </div>
+
+            <div class="khoi lam a" data-khoi="3">
+              <span class="bade">1A.1</span>
+              <div class="dinh"><b>Go all in</b><em>SINGLE</em></div>
+              <div class="than"><div>Set target weight <span class="so">100%</span></div></div>
+            </div>
+
+            <div class="khoi hoi b" data-khoi="4">
+              <span class="bade">1B</span>
+              <div class="dinh"><b>Overbought?</b><em>SINGLE</em></div>
+              <div class="than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&gt;</span> <span class="so">70</span></div></div>
+            </div>
+
+            <div class="khoi lam b" data-khoi="4">
+              <span class="bade">1B.1</span>
+              <div class="dinh"><b>Exit everything</b><em>SINGLE</em></div>
+              <div class="than"><div>Close this symbol</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───────────── bảng trên, nhịp cuối: KẾT QUẢ THẬT thay chỗ sơ đồ -->
+        <div class="khung ket-qua" data-ket-qua>
+          <div class="nep"><i></i><i></i><i></i><span>what LEAN sent back</span></div>
+          <div class="giay">
+            <svg class="do-thi" viewBox="0 0 560 210" preserveAspectRatio="none" aria-hidden>
+              <line class="khong" x1="0" x2="560" data-khong />
+              <path class="duong boss" data-duong-boss />
+              <path class="duong may" data-duong-may />
+            </svg>
+            <div class="nhan-do-thi">
+              <span class="may"><i></i>Your engine <b data-may-pt>—</b></span>
+              <span class="boss"><i></i>Buy and hold <b data-boss-pt>—</b></span>
+            </div>
+            <p class="chu-do-thi">
+              XAUUSD · 2012-01-01 → 2014-12-31 · <b data-lenh>—</b> orders · fees on ·
+              one real LEAN backtest, not a drawing.
+            </p>
+          </div>
+        </div>
+
+        </div><!-- /.tren -->
+
+        <!-- ──────────────────── bảng dưới: MÃ, mỗi nhịp mọc thêm mấy dòng -->
+        <div class="khung ma" data-ma>
+          <div class="nep"><i></i><i></i><i></i><span>main.py — written for you</span></div>
+<pre><code><span data-d="1" class="chu">"""Algorithm generated by Cat_Studio — RSI sample.</span>
+<span data-d="1" class="chu">DO NOT EDIT BY HAND: reopen the diagram and generate again."""</span>
+<span data-d="1"><span class="kw">from</span> AlgorithmImports <span class="kw">import</span> *</span>
+<span data-d="1"> </span>
+<span data-d="1"><span class="kw">class</span> <span class="tu">RSISample</span>(QCAlgorithm):</span>
+<span data-d="1"> </span>
+<span data-d="1">    <span class="kw">def</span> <span class="tu">initialize</span>(self):</span>
+<span data-d="1">        self.set_start_date(<span class="so">2012</span>, <span class="so">1</span>, <span class="so">1</span>)</span>
+<span data-d="1">        self.set_end_date(<span class="so">2014</span>, <span class="so">12</span>, <span class="so">31</span>)</span>
+<span data-d="1">        self.set_cash(<span class="so">100000.0</span>)</span>
+<span data-d="1">        self.set_brokerage_model(BrokerageName.DEFAULT)</span>
+<span data-d="1"> </span>
+<span data-d="1">        self._ten = {}</span>
+<span data-d="1">        self._ten[<span class="chuoi">'XAUUSD'</span>] = self.add_cfd(</span>
+<span data-d="1">            <span class="chuoi">'XAUUSD'</span>, Resolution.DAILY).symbol</span>
+<span data-d="1">        self._ma = list(self._ten.values())</span>
+<span data-d="1">        self.set_benchmark(<span class="chuoi">'XAUUSD'</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">        self._cb = {}</span>
+<span data-d="2">        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:</span>
+<span data-d="2">            self._cb[sym] = {}</span>
+<span data-d="2">            self._cb[sym][<span class="chuoi">'rsi_14'</span>] = self.rsi(sym, <span class="so">14</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">        self.set_warm_up(<span class="so">14</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">    <span class="kw">def</span> <span class="tu">on_data</span>(self, data):</span>
+<span data-d="2">        <span class="kw">if</span> self.is_warming_up:</span>
+<span data-d="2">            <span class="kw">return</span></span>
+<span data-d="2">        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:</span>
+<span data-d="2">            self._mot_ma(sym, data)</span>
+<span data-d="2"> </span>
+<span data-d="2">    <span class="kw">def</span> <span class="tu">_mot_ma</span>(self, sym, data):</span>
+<span data-d="2">        <span class="kw">if</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value</span>
+<span data-d="2">                <span class="phep">&lt;</span> <span class="so">30</span>):  <span class="chu"># 1A · Oversold?</span></span>
+<span data-d="3">            <span class="chu"># 1A.1 · Go all in</span></span>
+<span data-d="3">            self.set_holdings(self._ten[<span class="chuoi">'XAUUSD'</span>], <span class="so">1</span>, <span class="kw">False</span>,</span>
+<span data-d="3">                              tag=<span class="chuoi">'[1A.1] RSI(14) &lt; 30'</span>)</span>
+<span data-d="4">        <span class="kw">elif</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value</span>
+<span data-d="4">                  <span class="phep">&gt;</span> <span class="so">70</span>):  <span class="chu"># 1B · Overbought?</span></span>
+<span data-d="4">            <span class="chu"># 1B.1 · Exit everything</span></span>
+<span data-d="4">            self.liquidate(self._ten[<span class="chuoi">'XAUUSD'</span>],</span>
+<span data-d="4">                           tag=<span class="chuoi">'[1B.1] RSI(14) &gt; 70'</span>)</span>
+</code></pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- Chiều cao của khúc này CHÍNH LÀ thời lượng của cảnh: mỗi nhịp một màn hình. -->
+  <div class="duong-cuon" data-cuon></div>
+</section>
+
+
+<!-- ══════════════════════════════════ CẢNH TRÊN LÀ VẼ LẠI — ĐÂY MỚI LÀ APP
+     ⚠ PHẢI NÓI RA. Cảnh cuộn ở trên dựng bằng HTML cho từng khối rơi xuống được, nên
+     nó KHÔNG phải ảnh chụp — và một người tinh ý sẽ nghi đúng chỗ ấy. Nói trước thì
+     cái nghi ngờ tắt ngay và hai tấm ảnh dưới làm nốt việc; giấu đi thì người ta tự
+     phát hiện, và từ đó không tin cả những chỗ mình nói thật. -->
+<section class="that-app"><div class="wrap">
+  <p class="loi-that">
+    The scene above is drawn in HTML, so each block can land as you scroll.
+    <b>This is the app itself.</b>
   </p>
-  <div class="acts">
-    <a class="btn chinh" href="#ma">See the code it writes</a>
-    <a class="btn" href="#man">See the 26 levels</a>
-  </div>
-  <p class="nho">Windows desktop app · runs on your own machine · no account, no server</p>
-
-  <div class="khung">
-    <div class="nep"><i></i><i></i><i></i><span>Cat Studio — the workshop</span></div>
-    <img src="assets/anh/xuong.jpg" width="800" height="500"
-         alt="The Cat Studio workshop: a Start block wired into two Confirm gates and two actions.">
-  </div>
-</div></section>
-
-
-<!-- ───────────────────────────────────────────── VẼ CÁI NÀY → ĐƯỢC CÁI KIA
-     Khúc quan trọng nhất của cả trang, và là chỗ duy nhất CHỨNG MINH được câu hero.
-     Mã bên phải là mã THẬT, lấy ra từ đúng sơ đồ bên trái bằng `sinh_ma.sinh` — không
-     viết lại cho đẹp, không cắt bớt dòng nào. -->
-<section id="ma"><div class="wrap">
-  <div class="dau">
-    <span class="moc">What it actually does</span>
-    <h2>Five blocks, four wires — and this is the algorithm they wrote.</h2>
-    <p>
-      Not a description of one. The real file Cat Studio hands to LEAN, straight from
-      the diagram on the left. Nothing on this page was typed by hand.
-    </p>
-  </div>
-
-  <div class="doi">
+  <div class="hai-anh">
     <figure>
-      <div class="the">
-        <div class="nhan">You draw <b>RSI sample</b></div>
-        <img src="assets/anh/xuong.jpg" width="800" height="500"
-             alt="The same diagram: Start, two RSI gates, go all in, exit everything.">
+      <div class="khung"><div class="nep"><i></i><i></i><i></i><span>the workshop</span></div>
+        <img src="assets/anh/xuong.jpg" width="800" height="500" loading="lazy"
+             alt="The Cat Studio workshop with the five-block RSI diagram.">
       </div>
-      <figcaption>
-        Start · SPY · 2013 · $100,000, then: oversold → go all in, overbought → exit.
-      </figcaption>
+      <figcaption>The same five blocks, in the real window.</figcaption>
     </figure>
-
     <figure>
-      <div class="the">
-        <div class="nhan">Cat Studio writes <b>main.py</b></div>
-<pre class="ma"><span class="chu">"""Algorithm generated by Cat_Studio — RSI sample.
-
-DO NOT EDIT BY HAND: reopen the diagram in Cat_Studio and
-generate again; hand edits will be overwritten. Every LEAN
-line below comes straight from a block dictionary's `lean`
-field.
-"""</span>
-<span class="kw">from</span> AlgorithmImports <span class="kw">import</span> *
-
-
-<span class="kw">class</span> <span class="tu">RSISample</span>(QCAlgorithm):
-
-    <span class="kw">def</span> <span class="tu">initialize</span>(self):
-        self.set_start_date(<span class="so">2013</span>, <span class="so">1</span>, <span class="so">1</span>)
-        self.set_end_date(<span class="so">2013</span>, <span class="so">12</span>, <span class="so">31</span>)
-        self.set_cash(<span class="so">100000</span>)
-        self.set_brokerage_model(BrokerageName.DEFAULT)
-
-        self._ten = {}
-        self._ten[<span class="chuoi">'SPY'</span>] = self.add_equity(
-            <span class="chuoi">'SPY'</span>, Resolution.DAILY).symbol
-        self._ma = list(self._ten.values())
-
-        self._cb = {}
-        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:
-            self._cb[sym] = {}
-            self._cb[sym][<span class="chuoi">'rsi_14'</span>] = self.rsi(sym, <span class="so">14</span>)
-
-        self.set_warm_up(<span class="so">14</span>)
-
-    <span class="kw">def</span> <span class="tu">on_data</span>(self, data):
-        <span class="kw">if</span> self.is_warming_up:
-            <span class="kw">return</span>
-        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:
-            self._mot_ma(sym, data)
-
-    <span class="kw">def</span> <span class="tu">_mot_ma</span>(self, sym, data):
-        <span class="kw">if</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value
-                &lt; <span class="so">30</span>):  <span class="chu"># 1A · Oversold?</span>
-            <span class="chu"># 1A.1 · Go all in</span>
-            self.set_holdings(sym, <span class="so">1</span>, <span class="kw">False</span>,
-                              tag=<span class="chuoi">'[1A.1] RSI(14) &lt; 30'</span>)
-        <span class="kw">elif</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value
-                  &gt; <span class="so">70</span>):  <span class="chu"># 1B · Overbought?</span>
-            <span class="chu"># 1B.1 · Exit everything</span>
-            self.liquidate(sym,
-                           tag=<span class="chuoi">'[1B.1] RSI(14) &gt; 70'</span>)</pre>
+      <div class="khung"><div class="nep"><i></i><i></i><i></i><span>the library</span></div>
+        <img src="assets/anh/kho.jpg" width="800" height="500" loading="lazy"
+             alt="The library: every quantity shown with the LEAN expression behind it.">
       </div>
-      <figcaption>
-        Wrapped to fit this column; otherwise exactly as generated. The
-        <code>tag</code> on every order carries the block number and the condition that
-        fired it, so a fill in LEAN's log points back at the block that caused it.
-      </figcaption>
+      <figcaption>Every quantity, with the LEAN line it compiles to.</figcaption>
     </figure>
   </div>
 </div></section>
 
 
-<!-- ─────────────────────────────────────────────── «CÒN LẠI Y HỆT» chứng minh -->
-<section id="that" class="lang"><div class="wrap">
+<!-- ══════════════════════════════════════════════════════ NÓ NÓI THẬT VỚI BẠN -->
+<section class="that"><div class="wrap">
   <div class="dau">
-    <span class="moc">Everything else is identical</span>
-    <h2>Cat Studio does not compute anything about the market.</h2>
+    <span class="moc">And it will not let you lie to yourself</span>
+    <h2>Minus 9.87% — and that is a win.</h2>
     <p>
-      That is a rule the app is built on, not a slogan. It does three things — draw,
-      check, translate — and hands the rest to LEAN. So the result is the result you
-      would have got by writing the algorithm yourself.
+      Over those three years gold fell. Buying and holding it lost a quarter of the
+      money. The engine above lost 9.87%, because it spent most of those years out of
+      the market. Your result is <b>always</b> set beside buying and holding over the
+      same dates, so a number can never flatter you on its own.
     </p>
   </div>
-
-  <div class="doi-cot">
-    <ul class="diem">
-      <li><b>Every quantity is a real LEAN line.</b> A block cannot exist unless it
-        names the QuantConnect API behind it — the library shows the line next to each
-        of the 164 quantities.</li>
-      <li><b>The numbers are LEAN's.</b> Fills, position sizing, lot sizes, margin,
-        brokerage fees and slippage are computed by LEAN, never by the app.</li>
-      <li><b>It runs on your machine.</b> A LEAN build you point it at. No account,
-        no server, nothing uploaded.</li>
-      <li><b>The code stays readable.</b> Open <code>main.py</code> and you can follow
-        it — then edit it by hand in any editor if you want to leave the diagram
-        behind.</li>
-    </ul>
-
-    <figure style="margin:0">
-      <div class="khung" style="margin:0; max-width:none">
-        <div class="nep"><i></i><i></i><i></i><span>Cat Studio — the library</span></div>
-        <img src="assets/anh/kho.jpg" width="800" height="500"
-             alt="The library: each quantity shown with the LEAN expression behind it.">
-      </div>
-      <figcaption style="margin-top:10px; font-size:12.5px; color:var(--dim)">
-        164 quantities, each with the LEAN expression it compiles to.
-      </figcaption>
-    </figure>
-  </div>
-</div></section>
-
-
-<!-- ───────────────────────────────────────────────────────── HAI MƯƠI SÁU MÀN -->
-<section id="man"><div class="wrap">
-  <div class="dau">
-    <span class="moc">How you learn it</span>
-    <h2>Twenty-six levels, each one idea.</h2>
-    <p>
-      You do not open a blank canvas and 164 quantities on day one. Level 00 has you
-      build the simplest possible engine — buy and hold — because that is the thing
-      every later level has to beat.
-    </p>
-  </div>
-
-  <div class="doi">
-    <figure>
-      <div class="the">
-        <div class="nhan">The map</div>
-        <img src="assets/anh/hanh-trinh.jpg" width="800" height="500"
-             alt="The journey map: ten acts, locked and unlocked levels, stars.">
-      </div>
-      <figcaption>Ten acts. Each level unlocks the blocks and quantities it needs.</figcaption>
-    </figure>
-    <figure>
-      <div class="the">
-        <div class="nhan">The briefing</div>
-        <img src="assets/anh/nhan-viec.jpg" width="800" height="500"
-             alt="A level briefing: the market, the boss, how stars are earned.">
-      </div>
-      <figcaption>The market, the boss, and what three stars takes.</figcaption>
-    </figure>
-  </div>
-
-  <div class="luoi" style="margin-top:18px">
+  <div class="luoi">
     <div class="o">
-      <h3>The boss is buy and hold</h3>
-      <p>Your engine's return is compared with holding the same symbol over the same
-        dates. LEAN computes both. Beating it is the second star.</p>
+      <h3>The boss is the obvious thing</h3>
+      <p>Buy on the first bar, hold to the last. LEAN computes both curves. Beating
+        it is the second of three stars.</p>
     </div>
     <div class="o">
-      <h3>And a period you never saw</h3>
-      <p>The third star re-runs your engine over dates the level never showed you.
-        An engine tuned to fit the past loses it — which is the lesson.</p>
+      <h3>The third star is a period you never saw</h3>
+      <p>The same engine, re-run over dates the level never showed you. Tune it to
+        fit the past and this is where you lose it.</p>
     </div>
     <div class="o">
-      <h3>Creative mode stays open</h3>
-      <p>Every tool unlocked, nothing scored, the full window: ribbon, Optimize,
-        a separate results window. The levels are how the app introduces itself,
-        not a cage.</p>
+      <h3>No number is ours</h3>
+      <p>Fills, sizing, margin, fees and slippage are LEAN's. Cat Studio computes
+        nothing about the market — it draws, it checks, it translates.</p>
     </div>
   </div>
 </div></section>
 
 
-<!-- ────────────────────────────────────────────────────────── CÓ NHỮNG GÌ
-     Mấy con số này ĐẾM từ chính từ điển của app lúc dựng trang, không gõ ước chừng. -->
-<section class="lang"><div class="wrap">
-  <div class="dau giua">
-    <span class="moc">What is inside</span>
-    <h2>Counted, not estimated.</h2>
+<!-- ════════════════════════════════════════════════════════ THỨ BẠN GIỮ LẠI -->
+<section id="giu" class="lang"><div class="wrap doi-cot">
+  <div>
+    <span class="moc">What you keep</span>
+    <h2>The diagram is a way in, not a lock-in.</h2>
+    <p style="margin-top:14px">
+      What comes out is an ordinary QuantConnect algorithm. Take <code>main.py</code>
+      to quantconnect.com, to your own LEAN, to any editor — and keep going without
+      Cat Studio the day you no longer need it.
+    </p>
+    <p class="ghi-cong nho">
+      <span>Runs on</span>
+      <img src="assets/qc/quantconnect.png" alt="QuantConnect" width="266" height="45">
+    </p>
   </div>
-  <div class="dem">
-    <div><b>164</b><span>quantities you can ask about</span></div>
-    <div><b>90</b><span>indicators, ready to use</span></div>
-    <div><b>10</b><span>things an engine can do</span></div>
-    <div><b>11</b><span>ready-made universes</span></div>
-    <div><b>26</b><span>levels, in 10 acts</span></div>
-    <div><b>27</b><span>metrics Optimize can search on</span></div>
-  </div>
+  <ul class="diem">
+    <li><b>Every quantity names its LEAN line.</b> A block cannot exist unless it
+      points at a real QuantConnect API — the library shows the line beside each of
+      the 164 quantities.</li>
+    <li><b>Every order carries its block.</b> The <code>tag</code> on a fill says
+      which block fired it and on what condition, so LEAN's own log reads back onto
+      the diagram.</li>
+    <li><b>It runs on your machine.</b> A LEAN build you point it at. No account,
+      no server, nothing uploaded, no LLM anywhere in it.</li>
+    <li><b>26 levels teach the engine, not the app.</b> Indicators, universes,
+      pending orders, memory, fees — QuantConnect's own vocabulary, one idea at a
+      time.</li>
+  </ul>
 </div></section>
 
 
-<!-- ───────────────────────────────────────────────────────────── LẤY VỀ -->
+<!-- ═══════════════════════════════════════════════════════════════ LẤY VỀ -->
 <section id="lay"><div class="wrap">
   <div class="dau">
     <span class="moc">Get it</span>
     <h2>Run it from source, today.</h2>
     <p>
-      There is no installer yet — see <a href="#hoi">Good to know</a> for exactly what
-      is in the way. Cat Studio runs from a checkout on Windows, and it needs a LEAN
-      build on the same machine.
+      There is no installer yet — the three things in the way are named below. Cat
+      Studio runs from a checkout on Windows and needs a LEAN build on the same
+      machine.
     </p>
   </div>
   <ol class="buoc">
-    <li><b>Clone the repository and run <code>tools\setup.bat</code></b>
-      <p>Once, after cloning: it makes the virtual environment, installs the
-        libraries and builds the web UI.</p></li>
-    <li><b>Build LEAN, or point at one you already have</b>
-      <p>QuantConnect's LEAN is open source. Cat Studio also picks up a
-        <code>Lean/</code> folder sitting next to it, so a bundled build works
-        without touching Settings.</p></li>
-    <li><b>Run <code>tools\chay.bat</code></b>
-      <p>The app opens. In Settings, set the LEAN folder if it was not found.</p></li>
-    <li><b>Draw, then press Backtest</b>
-      <p>Cat Studio generates <code>main.py</code>, hands it to LEAN, and shows you
-        what LEAN returned.</p></li>
+    <li><b>Clone it and run <code>tools\setup.bat</code></b>
+      <p>Once: the virtual environment, the libraries, the web UI.</p></li>
+    <li><b>Build LEAN, or point at one you have</b>
+      <p>LEAN is open source. Cat Studio also picks up a <code>Lean/</code> folder
+        sitting next to it.</p></li>
+    <li><b>Run <code>tools\chay.bat</code>, draw, press Backtest</b>
+      <p>It generates <code>main.py</code>, hands it to LEAN, and shows you what
+        LEAN sent back.</p></li>
   </ol>
-</div></section>
 
-
-<!-- ───────────────────────────────────────────────────────── NÓI THẲNG
-     ⚠ CHỖ NÀY PHẢI THẬT. Một trang giới thiệu giấu đi ba cái vướng thì người đầu tiên
-     tải về là người đầu tiên phát hiện ra, và họ sẽ không quay lại. -->
-<section id="hoi" class="lang"><div class="wrap">
-  <div class="dau">
-    <span class="moc">Good to know</span>
-    <h2>What it cannot do yet.</h2>
-  </div>
   <div class="hoi">
-    <details open>
-      <summary>Is there an installer?</summary>
-      <p>Not yet, and three things stand in the way. The LEAN build Cat Studio uses is
-        framework-dependent, so it needs .NET&nbsp;10 present — bundling it means
-        building LEAN self-contained instead, about 70&nbsp;MB more. LEAN runs Python
-        algorithms through pythonnet, so a Python runtime has to ship with it. And
-        LEAN's <code>Data/</code> folder carries no licence file: the engine is
-        Apache-2.0, but that does not automatically cover the market data, so
-        QuantConnect has to be asked before any build ships with it.</p>
-      <p>Size is not the problem: the engine is 115&nbsp;MB, and a level only needs the
+    <details>
+      <summary>Why is there no installer?</summary>
+      <p>Three things. The LEAN build is framework-dependent, so it needs .NET&nbsp;10
+        present — shipping it means building LEAN self-contained, about 70&nbsp;MB
+        more. LEAN runs Python algorithms through pythonnet, so a Python runtime has
+        to travel with it. And LEAN's <code>Data/</code> folder carries no licence
+        file: the engine is Apache-2.0, which does not automatically cover market
+        data, so QuantConnect has to be asked first.</p>
+      <p>Size is not the problem: the engine is 115&nbsp;MB and a level needs only the
         daily bars of its own symbols — 320&nbsp;KB for three of them.</p>
     </details>
     <details>
-      <summary>Which computers?</summary>
-      <p>Windows. The app is Python with a web UI in a native window, and it has only
-        been run on Windows 10 and 11.</p>
-    </details>
-    <details>
       <summary>Does it place real trades?</summary>
-      <p>No. Cat Studio runs backtests on historical data. The <b>Live</b> button in
-        the ribbon is there because LEAN has one, and it is switched off.</p>
+      <p>No. Backtests on historical data. The <b>Live</b> button exists because LEAN
+        has one, and it is switched off.</p>
     </details>
     <details>
       <summary>Do all 26 levels work?</summary>
-      <p>Twenty-three of them. Levels 17, 18 and 19 ask about the company behind a
-        symbol — P/E, market cap, self-filtering universes — and that needs
-        QuantConnect's <code>fine</code> data, which is a paid feed. Those three levels
-        say so on their own card instead of failing quietly.</p>
+      <p>Twenty-three. Levels 17, 18 and 19 ask about the company behind a symbol —
+        P/E, market cap, self-filtering universes — which needs QuantConnect's
+        <code>fine</code> data, a paid feed. Those three say so on their own card
+        rather than failing quietly.</p>
     </details>
     <details>
-      <summary>Can I stop using the diagram later?</summary>
-      <p>Yes, and nothing is lost when you do. The generated <code>main.py</code> is an
-        ordinary QuantConnect algorithm: take it to the QuantConnect website, to your
-        own LEAN, or to any editor. The diagram is a way in, not a lock-in.</p>
+      <summary>Which computers?</summary>
+      <p>Windows 10 and 11. The app is Python with a web UI in a native window.</p>
     </details>
-    <details>
-      <summary>Does it use an LLM?</summary>
-      <p>No. The diagram is translated by a generator that walks the blocks; every LEAN
-        line it writes comes from the dictionary entry of the block that produced it.
-        Nothing is sent anywhere.</p>
-    </details>
-  </div>
-</div></section>
-
-
-<section><div class="wrap" style="text-align:center">
-  <h2>Draw an engine. Drop it into the market.<br>See if it survives.</h2>
-  <p style="margin:16px auto 26px; max-width:560px">
-    That is the whole app in one line, and it is what level 00 has you do in about
-    two minutes.
-  </p>
-  <div class="acts" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
-    <a class="btn chinh" href="#lay">Get it</a>
-    <a class="btn" href="#ma">See the code it writes</a>
-  </div>
-
-  <div class="khung" style="max-width:760px">
-    <div class="nep"><i></i><i></i><i></i><span>Cat Studio — the start screen</span></div>
-    <img src="assets/anh/mo-may.jpg" width="800" height="500"
-         alt="The Cat Studio start screen: the cat, the two ways in, and what is inside.">
   </div>
 </div></section>
 
 </main>
 
 <footer class="chan"><div class="wrap">
-  <span>Cat Studio · draw a trading engine, run it on real LEAN</span>
+  <span>Cat Studio · you draw it, LEAN runs it</span>
   <nav>
-    <a href="#ma">The code</a>
-    <a href="#man">Levels</a>
-    <a href="#hoi">Good to know</a>
+    <a href="#mach">Watch one get built</a>
+    <a href="#giu">What you keep</a>
     <a href="#lay">Get it</a>
   </nav>
 </div></footer>
 
+<script src="assets/luot.js"></script>
+<script src="assets/mach.js"></script>
 </body>
 </html>
