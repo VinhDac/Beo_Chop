@@ -235,7 +235,9 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
           </div>
           <div className="view-ds-lenh">
             {daRa.slice(-12).reverse().map(l => (
-              <div key={String(l.id)}
+              <button key={String(l.id)} type="button"
+                   title={tr('Soi đường lệnh này đã đi, trên sơ đồ ở cửa sổ chính')}
+                   onClick={() => void py.soi_luot(l.tag)}
                    className={'view-mot-lenh' + (l.hop_le ? '' : ' tu-choi')}>
                 <div className="view-lenh-dau">
                   <span className={Number(l.so_luong) > 0 ? 'mua' : 'ban'}>
@@ -245,7 +247,7 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
                   <span className="view-lenh-gia">{l.gia}</span>
                 </div>
                 <div className="view-lenh-tag">{l.tag || '—'}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

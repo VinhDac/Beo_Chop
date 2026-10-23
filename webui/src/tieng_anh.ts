@@ -287,11 +287,17 @@ const TIENG_ANH: Record<string, string> = {
   'View — tua lại lượt vừa chạy, nến từng nến: lệnh nằm ở đâu, và mấy đại lượng cỗ máy đọc lúc ấy bằng bao nhiêu':
     'View — replay the last run bar by bar: where each order landed, and what the engine was reading at the time',
   // ── SoDo.tsx
+  'Soi lượt': 'Trace',
+  'Số khối trên nhãn không còn trên sơ đồ này': 'The block number on this label is no longer in the diagram',
+  'sơ đồ đã đổi từ lúc chạy': 'the diagram changed since this run',
+  'Thôi soi (Esc)': 'Stop tracing (Esc)',
   'Chưa có lượt nào để xem. Bấm Backtest trước đã.':
     'No run to view yet. Press Backtest first.',
   // ── view/DoThiNen.tsx
   'chưa có nến nào': 'no bars yet',
   // ── view/TrangView.tsx
+  'Soi đường lệnh này đã đi, trên sơ đồ ở cửa sổ chính':
+    'Trace the path this order took, on the diagram in the main window',
   'Chạy lại từ nến đầu': 'Replay from the first bar',
   'Nhảy tới cuối lượt chạy': 'Jump to the end of the run',
   'Về cuối': 'To the end',

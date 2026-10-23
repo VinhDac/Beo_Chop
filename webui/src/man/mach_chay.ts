@@ -110,10 +110,21 @@ function diemVon(kq: KetQuaChay): number[][] {
   return (d?.diem ?? []).filter(p => p.length >= 2)
 }
 
-export function dungMach(soat: KetQuaSoat, kq: KetQuaChay, steps: Step[]): MachChay {
-  const the = soat.the ?? {}
-  const thuTu = soat.thu_tu ?? {}
+/** ĐƯỜNG TỪ KHỐI BẮT ĐẦU TỚI MỘT KHỐI — các khối đi qua, và các dây đi qua.
+ *
+ *  Dùng chung cho màn CHẠY MÁY (tô theo từng nhịp) và SOI LƯỢT (ghim MỘT lệnh rồi
+ *  soi đúng đường nó đã đi). Hai nơi tự dò lấy là hai bản của một luật, mà luật này
+ *  có hai chỗ tinh dễ sót: BỎ ĐƯỜNG ↻ (nó đi ngược dòng chảy, tính vào thì đường
+ *  từ Bắt đầu tới một khối có thể chạy lùi), và CHẶN VÒNG BẰNG SỐ KHỐI chứ không
+ *  `while (true)`. Bản chép sót một trong hai thì vệt sáng chạy lùi, hoặc treo cửa sổ. */
+export interface DoDuong {
+  /** Số khối (`1A.1`) -> id. Nhãn trên lệnh mang SỐ, không mang id. */
+  theoSo: Map<string, string>
+  duong: (id: string) => { nut: string[]; day: string[] }
+}
 
+export function doDuong(soat: KetQuaSoat): DoDuong {
+  const thuTu = soat.thu_tu ?? {}
   /* ---- số khối -> id. Nhãn trên lệnh mang SỐ, không mang id. ---- */
   const theoSo = new Map<string, string>()
   for (const [id, so] of Object.entries(thuTu)) theoSo.set(so, id)
@@ -169,6 +180,14 @@ export function dungMach(soat: KetQuaSoat, kq: KetQuaChay, steps: Step[]): MachC
     nho.set(id, kq2)
     return kq2
   }
+  return { theoSo, duong }
+}
+
+export function dungMach(soat: KetQuaSoat, kq: KetQuaChay, steps: Step[]): MachChay {
+  const the = soat.the ?? {}
+  const thuTu = soat.thu_tu ?? {}
+
+  const { theoSo, duong } = doDuong(soat)
 
   const laCong = (id: string) => !!the[id]?.la_cong
   /** Cổng Hỏi CHẠY TỚI ĐƯỢC (có số thứ tự). Cổng không ai nối vào thì không chạy,

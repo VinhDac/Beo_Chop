@@ -59,6 +59,7 @@ import type {
 import { khoiKhop } from './tim'
 import { bangTra, chuPhim, cumPhim, LENH } from './phim_tat'
 import { tr, trx, useNgonNgu } from './ngon_ngu'
+import { doDuong, soKhoiCuaNhan } from './man/mach_chay'
 
 const nodeTypes = { buoc: StepNode, hatNhan: KhoiHatNhan, khoiMo: KhoiMo }
 /** Tiền tố id của KHỐI MỜ — không trùng được với id khối thật (`s…`). */
@@ -240,6 +241,10 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<RfEdge>([])
   const [ten, setTen] = useState('')
   const [thuTu, setThuTu] = useState<Record<string, string>>({})
+  /** ĐANG SOI MỘT LỆNH: nhãn của nó, và đường nó đã đi. `lech` = số khối trên nhãn
+   *  không còn trên sơ đồ, tức sơ đồ đã sửa từ lúc chạy. */
+  const [soi, setSoi] = useState<
+    { nhan: string; nut: Set<string>; day: Set<string>; lech: boolean } | null>(null)
   const [vanDe, setVanDe] = useState<VanDe[]>([])
   /** HỒ SƠ CỖ MÁY LEAN của chiến thuật này — bốn trạm, phí sàn, dữ liệu, ô nhớ,
    *  mốc so sánh. KHÔNG nằm trong khối Bắt đầu nữa (luật "một khối một việc"), nên
@@ -1029,6 +1034,34 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
     return () => { con = false }
   }, [dangChon, nodes, edges, sanSang, trongHN])
 
+  /* CỬA SỔ VIEW GỌI VÀO ĐÂY. Python cầm cú gọi (`ApiKetQua.soi_luot`) rồi
+     `evaluate_js` sang cửa sổ chính — xem `api.py`. Hàm khai lên `window` vì đó là
+     chỗ duy nhất hai cửa sổ gặp nhau được. */
+  useEffect(() => {
+    const w = window as unknown as { __soiLuot?: (nhan: string) => void }
+    w.__soiLuot = (nhan: string) => void (async () => {
+      const st = await py.soat(rfSangSteps(nodes), rfSangEdges(edges), coMay)
+      if (!st.ok || !st.value) return
+      const { theoSo, duong } = doDuong(st.value)
+      const id = theoSo.get(soKhoiCuaNhan(nhan))
+      if (!id) {
+        setSoi({ nhan, nut: new Set(), day: new Set(), lech: true })
+        return
+      }
+      const d = duong(id)
+      setSoi({ nhan, nut: new Set(d.nut), day: new Set(d.day), lech: false })
+    })()
+    return () => { delete w.__soiLuot }
+  }, [nodes, edges, coMay])
+
+  /* Esc thôi soi — đường thoát thấy được nằm ở nút ✕ trên thanh, phím chỉ là lối tắt. */
+  useEffect(() => {
+    if (!soi) return
+    const f = (e: KeyboardEvent) => { if (e.key === 'Escape') setSoi(null) }
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [soi])
+
   const nodesVe = useMemo(() => {
     const ds = nodes.filter(n => !biGiau(n.id)).map(n => {
       const st = (n.data as { step?: Step }).step
@@ -1085,6 +1118,15 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
             }))]
   }, [nodes, thuTu, vongDangXem, biGiau, nodesHatNhan, khopTimSet, tim, khoiMo])
 
+  /** Đang soi một lượt thì khối NGOÀI đường đi mờ đi. Tô ở đây chứ không trong
+   *  `nodesVe`: `nodesVe` đã có tám thứ phụ thuộc, thêm `soi` vào là mỗi lần ghim
+   *  một lệnh cả sơ đồ dựng lại thẻ. */
+  const nodesSoi = useMemo(
+    () => (!soi ? nodesVe
+                : nodesVe.map(n => (soi.nut.has(n.id)
+                    ? n : { ...n, className: [n.className, 'soi-mo'].filter(Boolean).join(' ') }))),
+    [nodesVe, soi])
+
   /** Dây đem đi vẽ. Ở sơ đồ chính, dây nối tới một khối BỊ GIẤU được cắm vào cái KHUNG
    *  đứng thay nó — nhìn vẫn thấy luồng chạy đi qua hạt nhân. Dây nằm gọn bên trong một
    *  hạt nhân thì bỏ hẳn: nó đã được vẽ thành nét trong hình thu nhỏ. */
@@ -1131,6 +1173,13 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
     }
     return ds
   }, [edges, thuocHN, trongHN, vongDangXem, khoiMo, dangChon])
+
+  /** Dây ngoài đường đang soi thì mờ — cùng lý do với `nodesSoi`. */
+  const edgesSoi = useMemo(
+    () => (!soi ? edgesVe
+                : edgesVe.map(e => (soi.day.has(e.id)
+                    ? e : { ...e, className: [e.className, 'soi-mo'].filter(Boolean).join(' ') }))),
+    [edgesVe, soi])
 
   /* --------------------------------------------------------------- thao tác */
   const onConnect = useCallback((c: Connection) => {
@@ -1782,8 +1831,25 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
             đầu, canvas sạch chỉ có khối Bắt đầu — thì `fitView` phóng khối ấy tới
             172%: chữ to như cái biển, và người chơi tưởng mình lỡ tay zoom. Trần
             bằng 1 thì sơ đồ nhỏ giữ nguyên cỡ thật, sơ đồ lớn vẫn được thu cho vừa. */}
+        {/* THANH SOI LƯỢT. Khối mờ đi một cách bất thường thì phải NÓI RA vì sao,
+            và phải có đường thoát NHÌN THẤY ĐƯỢC chứ không chỉ phím Esc. */}
+        {soi && (
+          <div className="soi-dai">
+            <span className="soi-nhan">{tr('Soi lượt')}</span>
+            <span className="soi-chu">{soi.nhan}</span>
+            {soi.lech && (
+              <span className="soi-canh"
+                    title={tr('Số khối trên nhãn không còn trên sơ đồ này')}>
+                {tr('sơ đồ đã đổi từ lúc chạy')}
+              </span>
+            )}
+            <button className="soi-tat" title={tr('Thôi soi (Esc)')}
+                    onClick={() => setSoi(null)}>✕</button>
+          </div>
+        )}
+
         <ReactFlow
-          nodes={nodesVe} edges={edgesVe}
+          nodes={nodesSoi} edges={edgesSoi}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           // ⚠ TẮT PHÓNG TO KHI BẤM ĐÚP. Mặc định của React Flow là bấm đúp vào nền

@@ -444,6 +444,12 @@ def _lenh_gon(o):
         "trang_thai": TRANG_THAI_LENH.get(o.get("status"), str(o.get("status"))),
         "hop_le": o.get("status") != 7,
         "tag": str(o.get("tag") or ""),
+        # KHOẢNG CHỜ của một lệnh: đặt lúc nào, khớp lúc nào. Cửa sổ View vẽ mức giá
+        # lệnh chờ lên chart đúng những nến nó còn treo ở đó — mà «còn treo» thì
+        # phải có cả hai mốc mới biết. Lệnh khớp ngay (market) thì hai mốc bằng nhau,
+        # lệnh chưa bao giờ khớp thì `khop` rỗng.
+        "tao": str(o.get("createdTime") or o.get("time") or "")[:19].replace("T", " "),
+        "khop": str(o.get("lastFillTime") or "")[:19].replace("T", " "),
     }
 
 

@@ -33,6 +33,12 @@ export interface NhipView {
   nen: [number, number, number, number]
   /** Lệnh LEAN ghi nhận ở đúng nhịp này. Phần lớn nhịp là rỗng. */
   lenh: DongLenh[]
+  /** Lệnh CÒN TREO ở nhịp này — đặt rồi mà chưa khớp.
+   *
+   *  Đây là thứ cửa sổ Tester cũ gọi là «giá lệnh chờ», và nó dành riêng màu cam cho
+   *  đúng một việc ấy: mức duy nhất chưa có tốt hay xấu. Mức đã khớp thì thành một
+   *  chuyện đã rồi; mức còn treo mới là chỗ sắp xảy ra điều gì. */
+  cho: DongLenh[]
 }
 
 export interface MachView {
@@ -91,13 +97,29 @@ export function dungMachView(kq: KetQuaChay, ma: string): MachView {
   // lệnh khớp trong lòng một nến, nên nó thuộc về nến đang mở lúc ấy.
   const nhip: NhipView[] = diem.map(p => ({
     t: p[0], nen: [p[1], p[2], p[3], p[4]] as [number, number, number, number],
-    lenh: [],
+    lenh: [], cho: [],
   }))
   let i = 0
   for (const l of lenh) {
     const g = giayCuaLuc(l.luc)
     while (i + 1 < nhip.length && nhip[i + 1].t <= g) i++
     if (nhip.length) nhip[Math.min(i, nhip.length - 1)].lenh.push(l)
+  }
+
+  // LỆNH CÒN TREO tại từng nhịp: đặt rồi mà chưa khớp.
+  //
+  // ⚠ ĐỌC HAI MỐC CỦA LEAN, ĐỪNG SUY TỪ `trang_thai`. `trang_thai` là tình trạng
+  // CUỐI lượt chạy — một lệnh «Đã khớp» thì suốt mấy chục nến trước lúc khớp nó vẫn
+  // đang treo, mà nhìn vào `trang_thai` thì không thấy quãng ấy ở đâu cả.
+  // `tao` thiếu (lượt chạy bằng bản cũ) thì bỏ qua: thà không vẽ còn hơn vẽ sai.
+  for (const l of lenh) {
+    if (!l.tao) continue
+    const t0 = giayCuaLuc(l.tao)
+    const t1 = l.khop ? giayCuaLuc(l.khop) : Infinity
+    if (!(t1 > t0)) continue           // khớp ngay — không có quãng nào để treo
+    for (const n of nhip) {
+      if (n.t >= t0 && n.t < t1) n.cho.push(l)
+    }
   }
 
   // ĐẠI LƯỢNG. Mỗi đường một hàng, giá trị xếp theo đúng trục nhịp của giá — LEAN

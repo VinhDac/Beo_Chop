@@ -130,6 +130,20 @@ function DoThiNen({ mach, chiSo, cua, kieu, rong, cao }: DoThiNenProps) {
         ))
       })}
 
+      {/* MỨC GIÁ LỆNH CÒN TREO — kẻ ngang suốt khung, ở ĐÚNG MỨC GIÁ.
+          CAM, và cam chỉ làm đúng việc này: mức duy nhất chưa có tốt hay xấu. Màu
+          xanh/đỏ để dành cho cây nến và cho lãi/lỗ, mượn sang đây là một mức giá
+          trông như đang nói nó tốt hay xấu — mà nó chưa là gì cả, nó đang chờ. */}
+      {d.lat[d.lat.length - 1]?.cho.map(l => (
+        <g key={'cho' + String(l.id)}>
+          <line x1={L} y1={py(Number(l.gia))} x2={W - R} y2={py(Number(l.gia))}
+                className="view-muc-cho" />
+          <text x={L + 4} y={py(Number(l.gia)) - 4} className="view-nhan-cho">
+            {l.loai} {l.gia}
+          </text>
+        </g>
+      ))}
+
       {/* LỆNH THẬT. Mỗi lệnh một mũi tên ở đúng nến và đúng giá LEAN ghi — đây là
           thứ cả cửa sổ này sinh ra để xem. */}
       {d.lat.map((n, i) => n.lenh.map(l => {

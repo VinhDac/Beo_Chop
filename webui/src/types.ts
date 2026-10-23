@@ -350,6 +350,10 @@ export interface DongLenh {
   /** false = sàn từ chối. */
   hop_le: boolean
   tag: string
+  /** Đặt lúc nào — `2012-05-09 00:00:00`, giờ UTC. */
+  tao?: string
+  /** Khớp lúc nào. Rỗng = chưa bao giờ khớp (huỷ, hết hạn, hay còn treo tới cuối). */
+  khop?: string
 }
 
 export interface DongGiaoDich {

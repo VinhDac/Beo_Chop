@@ -225,9 +225,14 @@ class ApiKetQua(NenCuaSo):
     mỗi cửa sổ tự nhắm vào CHÍNH MÌNH — xem docstring lớp ấy, ba lỗi nó kể đều đã
     xảy ra thật."""
 
-    def __init__(self, ma_id):
+    def __init__(self, ma_id, goi_chinh=None):
         super().__init__()
         self._ma_id = str(ma_id)
+        #: Cách gọi sang CỬA SỔ CHÍNH — một hàm nhận một câu JS. Cố ý chỉ nhận ĐÚNG
+        #: khả năng ấy chứ không nhận cả `Api`: cửa sổ này không được phép xoá
+        #: Strategy hay sửa khoá QC, mà đưa cả `Api` là đưa luôn mấy cửa đó.
+        #: Xem docstring `NenCuaSo` — ba lỗi nó kể đều từ việc dùng chung quá tay.
+        self._goi_chinh = goi_chinh
 
     @_bat_loi
     def ping(self):
@@ -239,6 +244,19 @@ class ApiKetQua(NenCuaSo):
         không để một cửa sổ đọc sang lượt của cửa sổ khác."""
         kq = chay_lean.doc_luot_chay(self._ma_id)
         return _ok(kq) if kq["ok"] else _loi(kq["loi"])
+
+    @_bat_loi
+    def soi_luot(self, nhan):
+        """Ghim một lệnh lên SƠ ĐỒ ở cửa sổ chính — «Soi lượt».
+
+        Người ta đang xem lệnh ở cửa sổ này, mà sơ đồ thì nằm ở cửa sổ kia; bấm một
+        lệnh phải thấy ngay nó đã đi qua những khối nào. Hai cửa sổ nên phải gọi
+        sang, và `nhan` là thứ DUY NHẤT đi qua: một chuỗi nhãn lệnh (`[1A.1] RSI(14)
+        < 30`). Cửa sổ chính tự dò đường từ số khối ấy."""
+        if self._goi_chinh is None:
+            return _loi(tr("Cửa sổ này không nối được với sơ đồ."))
+        self._goi_chinh(json.dumps(str(nhan or "")))
+        return _ok(True)
 
 
 def _so_do_theo_ten_lop(ten_lop):
@@ -371,7 +389,14 @@ class Api(NenCuaSo):
         # `KhungTuVe` dùng chung làm hai cửa sổ ghi đè WndProc gốc của nhau, dẫn tới
         # một cửa sổ bị dọn HAI LẦN: `del BrowserView.instances[uid]` của pywebview
         # ném `KeyError('child_…')` ra thẳng hộp thoại .NET. Đã dính thật.
-        phu = ApiKetQua(ma_id)
+        def goi_chinh(chu_json):
+            # Gọi vào MỘT hàm cửa sổ chính tự khai. Không có hàm ấy (trang chưa dựng
+            # xong, hay cửa sổ chính đang ở màn khác) thì im lặng bỏ qua — thà không
+            # soi còn hơn ném một lỗi JS vào mặt người đang xem.
+            self._window.evaluate_js(
+                f"window.__soiLuot && window.__soiLuot({chu_json})")
+
+        phu = ApiKetQua(ma_id, goi_chinh)
         tieu_de = f"{nhan} · {kq['ten_lop']} · {_doc_ma_luot(kq['ma_luot'])}"
         w = webview.create_window(
             tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?{vai}={ma_id}",

@@ -3129,3 +3129,33 @@ mark.tim-chu {
 }
 .view-ten-duong b { color: var(--text); }
 .view-chong { fill: none; stroke-width: 1.2; }
+/* Mức giá lệnh CÒN TREO. Cam, và cam chỉ làm đúng việc này — xem `DoThiNen`. */
+.view-muc-cho {
+  stroke: var(--accent); stroke-width: 1; stroke-dasharray: 5 4; opacity: .85;
+}
+.view-nhan-cho {
+  fill: var(--accent); font-family: var(--mono); font-size: 10px;
+}
+
+/* ─────────────────────────────────────────── SOI LƯỢT: ghim một lệnh lên sơ đồ */
+.soi-dai {
+  position: absolute; left: 50%; top: 12px; translate: -50% 0; z-index: 12;
+  display: flex; align-items: center; gap: 10px; max-width: 86%;
+  padding: 7px 10px 7px 14px; border-radius: 9px;
+  background: var(--chrome); border: 1px solid var(--accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+.soi-nhan { font-size: 11px; letter-spacing: .05em; color: var(--accent); }
+.soi-chu {
+  font-family: var(--mono); font-size: 12px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.soi-canh { font-size: 11px; color: var(--warn); white-space: nowrap; }
+.soi-tat {
+  background: transparent; border: 0; cursor: pointer; color: var(--dim);
+  font-size: 13px; padding: 2px 4px;
+}
+.soi-tat:hover { color: var(--text); }
+/* Khối và dây NGOÀI đường đang soi. Mờ chứ không giấu: cái đường sáng chỉ có nghĩa
+   khi còn thấy nó nằm giữa những gì. */
+.soi-mo { opacity: .22; transition: opacity .2s ease; }

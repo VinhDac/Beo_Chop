@@ -21,6 +21,7 @@ TIENG_ANH = {
     "Sơ đồ của mẻ này không còn ô nào ghim {0} — bản đã lưu cũ hơn lúc ghim. Mở sơ đồ ra ghim lại rồi chạy một mẻ mới, mẻ ấy sẽ bấm đúp được.": "This batch's diagram no longer has a field pinned as {0} — the saved copy is older than the pin. Open the diagram, pin it again, and run a fresh batch; that one will be double-clickable.",
     "núm nào": "any knob",
     "Kết quả": "Results",
+    "Cửa sổ này không nối được với sơ đồ.": "This window is not connected to the diagram.",
     'Sơ đồ chia danh mục nên cửa sổ View chưa vẽ được nến: cả rổ chạy một lượt, không có mã nào để vẽ riêng.': 'This diagram splits the portfolio, so the View window cannot draw bars: the whole basket runs in one pass, with no single symbol to draw.',
     'Sơ đồ có {0} mã mà LEAN chỉ đủ chỗ vẽ {1} — cửa sổ View sẽ bày {1} mã đầu. Bớt đại lượng trong mấy cổng Hỏi thì vẽ được nhiều mã hơn.': 'The diagram has {0} symbols but LEAN only has room to draw {1} — the View window will show the first {1}. Use fewer quantities in the Confirm gates to fit more symbols.',
     '# Rổ động: bảng khai lúc mã vào rổ, xem `on_securities_changed`.': '# Dynamic basket: charts are declared as symbols enter — see `on_securities_changed`.',

@@ -162,6 +162,8 @@ export const py = {
     goi<{ id: string; moi: boolean }>('mo_cua_so_view', id),
   ds_luot_chay: () => goi<TheLuotChay[]>('ds_luot_chay'),
   doc_luot_chay: (id: string) => goi<KetQuaChay>('doc_luot_chay', id),
+  /** Ghim một lệnh lên sơ đồ ở CỬA SỔ CHÍNH — cửa sổ View gọi cửa này. */
+  soi_luot: (nhan: string) => goi<boolean>('soi_luot', nhan),
   xoa_luot_chay: (id: string) => goi<boolean>('xoa_luot_chay', id),
 
   /** DỪNG lượt đang chạy — giết thẳng tiến trình LEAN. */
