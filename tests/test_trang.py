@@ -88,8 +88,10 @@ kiem(f"{len(duong)} đường dẫn", not thieu, f"— thiếu: {thieu}" if thie
 # Lần này có hai cái: `xuong.jpg` bị `4-xuong.jpg` thay, và `kho.jpg` rơi ra lúc khúc
 # giữa dựng lại — mà trang thì vẫn đang nói về cái Kho bằng chữ.
 print("\n▸ Ảnh nào trong kho cũng có chỗ dùng")
+# Thư mục ảnh chụp đã bỏ hẳn — trang nay VẼ cả sáu màn hình. Nếu nó quay lại thì
+# vẫn soát như cũ; không có thì không có gì phải soát, và nói thẳng ra thế.
 thu_muc_anh = os.path.join(TRANG, "assets", "anh")
-co_tren_dia = {f for f in os.listdir(thu_muc_anh)
+co_tren_dia = {f for f in (os.listdir(thu_muc_anh) if os.path.isdir(thu_muc_anh) else ())
                if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))}
 dung_toi = {os.path.basename(u) for u in duong if "/anh/" in u}
 mo_coi = sorted(co_tren_dia - dung_toi)
@@ -136,6 +138,53 @@ khong_luat = sorted(c for c in trong_html
                     if not re.search(r'\.' + re.escape(c) + r'(?![\w-])', CSS))
 kiem(f"{len(trong_html)} lớp", not khong_luat, f"— không luật: {khong_luat}"
      if khong_luat else "")
+
+# ⚠ TIỀN TỐ `c-` CHO MỌI LỚP TRONG CẢNH VẼ. Đây là hàng rào bắt được cái mà hai
+# phép soát trên KHÔNG bắt được: trùng tên. Trùng tên thì cả hai chiều đều hợp lệ —
+# HTML có lớp, CSS có luật — mà luật ăn vào là luật của người khác.
+#
+# Ba lần trong hai ngày, và lần nào cũng chỉ ảnh chụp mới thấy:
+#   `.so`    bảng thống kê (display:grid) đè `<span class="so">` trong mẫu mã;
+#   `.ray`   cuộn phim đè thanh tiến độ mạch cuộn — mà `.ray` nằm trong một luật
+#            `display:none`, nên cả dải sáu bước BIẾN MẤT ở màn hẹp;
+#   `.xuong` dòng tiền đang giảm đè cái mũi tên «cuộn xuống» đầu trang (display:flex
+#            + một thanh gradient 30px), nên bảng tiền tự xếp chồng lên chính nó.
+# Cùng lượt ấy còn `.boss` (nhãn đồ thị) và `.mo` (CHÍNH LÀ `<section class="mo">`).
+#
+# Một tiền tố là hết. Trừ đúng bốn lớp cố ý dùng chung bảng màu ngữ nghĩa của khối —
+# vì khối trong cảnh vẽ CHÍNH LÀ khối trong mạch cuộn, tô cùng một luật mới đúng.
+print("\n▸ Lớp trong cảnh vẽ đều mang tiền tố `c-`")
+DUNG_CHUNG = {"ma", "so", "dl", "phep"}
+vung = (re.findall(r'<div class="c-canh".*?\n        </div>', HTML, re.S)
+        + re.findall(r'<div class="c-kho">.*?\n  </div>', HTML, re.S))
+trong_canh = set()
+for v in vung:
+    for m in re.finditer(r'class="([^"]+)"', v):
+        trong_canh |= set(m.group(1).split())
+khong_tien_to = sorted(c for c in trong_canh
+                       if not c.startswith("c-") and c not in DUNG_CHUNG)
+kiem(f"{len(vung)} cảnh · {len(trong_canh)} lớp", bool(vung) and not khong_tien_to,
+     f"— thiếu tiền tố: {khong_tien_to}" if khong_tien_to
+     else ("" if vung else "— KHÔNG THẤY CẢNH NÀO, bài này đang soát rỗng"))
+
+# ⚠ VÀ TIỀN TỐ KHÔNG CỨU ĐƯỢC MỌI CHUYỆN. Hai lớp đụng nhau NGAY TRONG vùng `c-`:
+#   `.c-day`  vừa là <svg> dây nối, vừa là dòng dẫn <p> của màn Giao việc — luật của
+#             SVG (`position:absolute; inset:0`) ăn vào đoạn văn, nó nhảy lên đè tiêu đề;
+#   `.c-mo`   vừa là khung giữa màn chờ, vừa là món «Live» mờ trên thanh đồ nghề.
+# Cái đụng nhau là NGHĨA, không phải vùng tên — nên soi bằng dấu hiệu khác: một lớp
+# gắn lên hai LOẠI THẺ khác nhau thì gần như chắc là nó đang gánh hai việc.
+# Thẻ cùng họ (b/strong, i/em, u/span) không tính, chúng chỉ là chữ.
+print("\n▸ Không lớp nào trong cảnh gánh hai nghĩa")
+HO_CHU = {"b", "strong", "i", "em", "u", "small", "span"}
+tren_the = {}
+for v in vung:
+    for m in re.finditer(r'<([a-z0-9]+)[^>]*class="([^"]+)"', v):
+        the = "chu" if m.group(1) in HO_CHU else m.group(1)
+        for t in m.group(2).split():
+            tren_the.setdefault(t, set()).add(the)
+hai_nghia = sorted(f"{t} ({'/'.join(sorted(v))})"
+                   for t, v in tren_the.items() if len(v) > 1)
+kiem(f"{len(tren_the)} lớp", not hai_nghia, f"— {hai_nghia}" if hai_nghia else "")
 
 print("\n▸ Mỗi lớp trong CSS được HTML dùng tới")
 trong_css = set(re.findall(r'(?<![\w-])\.([a-z][\w-]*)', CSS))

@@ -161,7 +161,7 @@
   if (!phim) return;
 
   const nut = [...phim.querySelectorAll('.sau-ray button')];
-  const anh = [...phim.querySelectorAll('.anh img')];
+  const anh = [...phim.querySelectorAll('.anh .c-canh')];
   const loi = [...phim.querySelectorAll('.loi-anh p')];
   const ten = phim.querySelector('[data-ten]');
   const lat = [...phim.querySelectorAll('.lat')];
@@ -190,6 +190,67 @@
     if (e.key === 'ArrowLeft') { di(o - 1); e.preventDefault(); }
     if (e.key === 'ArrowRight') { di(o + 1); e.preventDefault(); }
   });
+
+  /* PHÓNG CHO VỪA CHỖ. Mỗi cảnh dựng trên khung cố định 800×500 rồi `scale` —
+     như một tấm slide. Không có nó thì cảnh tràn ra ngoài khung ở màn hẹp. */
+  const KHO_W = 800;
+  /* Dưới mức này thì thôi thu nhỏ nữa, cho cuộn ngang. 0,73 là chỗ chữ nhỏ nhất
+     trong cảnh (11px) còn vừa đúng 8px — dưới nữa là nhìn chứ không đọc được. */
+  const THU_IT_NHAT = 0.73;
+  const o_anh = phim.querySelector('.anh');
+  function doLai() {
+    const w = o_anh.clientWidth;
+    if (!w) return;
+    o_anh.style.setProperty('--ty', String(Math.max(w / KHO_W, THU_IT_NHAT)));
+  }
+  addEventListener('resize', doLai);
+  doLai();
+  /* Khung chỉ có bề ngang sau khi trang dựng xong; một nhịp vẽ nữa cho chắc. */
+  requestAnimationFrame(doLai);
+
+  /* ĐƯỜNG VỐN THẬT trong cảnh ⑤ — cùng lượt LEAN với mạch cuộn, đọc `window.LUOT`.
+     Vẽ tới đâu thì bảng tiền nói tới đó: cảnh dừng ở 90% lượt, nên đường cũng vậy. */
+  const duong = phim.querySelector('[data-c-duong]');
+  const L = window.LUOT;
+  if (duong && L && Array.isArray(L.may) && L.may.length > 1) {
+    const n = Math.max(2, Math.round(L.may.length * 0.9));
+    const may = L.may.slice(0, n);
+    const v = may.map((p) => p[1]);
+    let lo = Math.min(...v), hi = Math.max(...v);
+    if (hi - lo < 1e-9) { hi = lo + 1; }
+    const W = 800, H = 110, DEM = 8;
+    const d = may.map((p, i) => {
+      const x = (i / (may.length - 1)) * W;
+      const y = H - DEM - ((p[1] - lo) / (hi - lo)) * (H - DEM * 2);
+      return `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(' ');
+    duong.setAttribute('d', d);
+
+    /* Và bảng tiền nói đúng điểm dừng ấy — không phải một con số gõ tay. */
+    const cuoi = may[may.length - 1];
+    const von = L.von || 100000;
+    const tien = von * (1 + cuoi[1] / 100);
+    const usd = (x) => '$' + Math.round(x).toLocaleString('en-US');
+    const dat = (sel, chu) => {
+      const el = phim.querySelector(sel);
+      if (el) el.textContent = chu;
+    };
+    dat('[data-c-tien]', usd(tien));
+    dat('[data-c-lech]', usd(Math.abs(von - tien)));
+    dat('[data-c-pt]', (cuoi[1] < 0 ? '−' : '+') + Math.abs(cuoi[1]).toFixed(1) + '%');
+    if (cuoi[0]) {
+      dat('[data-c-ngay]', new Date(cuoi[0] * 1000).toISOString().slice(0, 10));
+    }
+  }
+
+  /* Hai con số ở cảnh ⑥ cũng từ `LUOT` ra. */
+  if (L) {
+    const pt = (x) => (x < 0 ? '−' : '+') + Math.abs(x).toFixed(2) + ' %';
+    const m = phim.querySelector('[data-c-may]');
+    const b = phim.querySelector('[data-c-boss]');
+    if (m && typeof L.may_pt === 'number') m.textContent = pt(L.may_pt);
+    if (b && typeof L.boss_pt === 'number') b.textContent = pt(L.boss_pt);
+  }
 
   di(1);
 })();
