@@ -255,6 +255,17 @@ def main() -> int:
         print(f"  Bản cài:     {cai_ra}   ({mb(cai_ra)})")
     print(f"  Xách tay:    {zip_ra}   ({mb(zip_ra)})")
     print(f"  Thư mục:     {goi}\n")
+
+    # ⚠ TRANG WEB TRỎ THẲNG VÀO TỆP, không qua trang phát hành nữa. Nên tệp nào
+    # trang hứa mà quên đưa lên bản phát hành là nút Tải 404 ngay trước mặt người
+    # muốn tải. Đã dính một lần: trang mời «bản xách tay .zip» mà bản phát hành chỉ
+    # có tệp cài.
+    #   `tests/test_trang.py` KHÔNG bắt được chuyện này — nó không nối mạng, nên chỉ
+    # biết tệp có được dựng ra hay không, không biết đã đưa lên hay chưa. Chỗ duy
+    # nhất nhắc được là ở đây, đúng lúc vừa dựng xong và sắp phát hành.
+    print("  ⚠ Nhớ đưa CẢ HAI tệp lên bản phát hành, đúng tên như trên:")
+    print("    trang web trỏ thẳng vào chúng qua")
+    print("    …/releases/latest/download/<tên tệp>, sai một chữ là 404.\n")
     return 0
 
 

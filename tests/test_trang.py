@@ -282,6 +282,46 @@ kiem(f"tên bản cài mang số hiệu {core.PHIEN_BAN}",
      bool(ten_tep) and all(v == core.PHIEN_BAN for v in ten_tep),
      f"— trang nói {sorted(set(ten_tep))}" if ten_tep else "— trang không nhắc tệp nào")
 
+# ⚠ NÚT TẢI TẢI THẲNG, nên nó HỎNG THẲNG. Đường `…/releases/latest/download/<tệp>`
+# chỉ chuyển hướng đúng khi tên tệp khớp hệt tệp đính kèm; sai một chữ là 404 ngay
+# trước mặt người muốn tải — tệ hơn cả đường cũ, vì đường cũ ít ra còn mở ra một
+# trang. Nên canh cả ba chuyện: nút Tải phải tải thẳng, không còn nút nào dừng ở
+# trang phát hành, và tệp nó trỏ tới phải là tệp `tools/dong_goi.py` thật sự dựng ra.
+print("\n▸ Nút Tải trỏ thẳng vào tệp có thật")
+TAI = "https://github.com/VinhDac/Cat-Studio/releases/latest/download/"
+nut = re.findall(r'<a[^>]*class="btn"[^>]*href="([^"]+)"', HTML)
+nut += re.findall(r'<li><b><a href="([^"]+)"', HTML)
+ngoai = [u for u in nut if "/releases" in u and not u.startswith(TAI)]
+kiem(f"{len(nut)} nút Tải", bool(nut) and not ngoai,
+     f"— còn dừng ở trang phát hành: {ngoai}" if ngoai else "— đều tải thẳng")
+
+# Tên tệp trong đường tải PHẢI là tên `dong_goi.py` đặt. Nó dựng tên từ cùng một
+# `PHIEN_BAN`, nên hai bên không thể lệch — trừ khi ai đó gõ tay một bên.
+ten_dung = {f"Cat_Studio-{core.PHIEN_BAN}-windows-x64-setup.exe",
+            f"Cat_Studio-{core.PHIEN_BAN}-windows-x64.zip"}
+tep_tai = {u[len(TAI):] for u in re.findall(r'href="([^"]+)"', HTML)
+           if u.startswith(TAI)}
+la = sorted(tep_tai - ten_dung)
+kiem(f"{len(tep_tai)} tệp được trỏ tới", bool(tep_tai) and not la,
+     f"— không phải tệp nào dong_goi.py dựng: {la}" if la
+     else f"— {sorted(tep_tai)}")
+
+# ⚠ VÀ TỆP ẤY PHẢI CÓ THẬT TRONG `dist/`. Trang vừa hứa một bản xách tay
+# `Cat_Studio-0.2-windows-x64.zip` và trỏ thẳng vào nó — mà bản phát hành chỉ có tệp
+# cài, nên nút ấy 404 ngay trước mặt người muốn tải.
+#
+# ⚠ BÀI NÀY KHÔNG NỐI MẠNG (xem `chay_tat_ca.py`), nên nó KHÔNG biết tệp đã được
+# đưa lên bản phát hành hay chưa — chỉ biết `dong_goi.py` có dựng ra nó hay không.
+# Nói thẳng giới hạn ấy ra, đừng để ai đọc dòng ✔ rồi tưởng nút Tải đã được thử.
+thieu_dist = sorted(f for f in tep_tai
+                    if not os.path.isfile(os.path.join(GOC, "dist", f)))
+if not os.path.isdir(os.path.join(GOC, "dist")):
+    print("  ○ chưa dựng bản cài — không soát được tệp nào có thật")
+else:
+    kiem("tệp trỏ tới đều có trong dist/", not thieu_dist,
+         f"— KHÔNG dựng ra: {thieu_dist}" if thieu_dist
+         else "— (chưa soát được là đã đưa lên bản phát hành hay chưa)")
+
 # CỠ BẢN CÀI. Trang khoe «13.7 MB» — một lời hứa cụ thể, và nó đổi mỗi lần dựng lại:
 # dựng nhầm bằng Python hệ thống thay vì `.venv` là nhảy lên 18.0 MB trong một lượt.
 #
