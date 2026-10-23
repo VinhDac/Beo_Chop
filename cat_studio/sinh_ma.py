@@ -198,6 +198,20 @@ class _Nc:
         self.ro = None
         self.thu_tu = {}
         self.dem = 0
+        #: ĐẠI LƯỢNG SƠ ĐỒ ĐỌC -> chữ của nó. Nguồn của bảng số liệu bên phải cửa sổ
+        #: View. Khoá là biểu thức LEAN, nên hai khối cùng viết RSI(14) chỉ ra một
+        #: hàng. Gom lúc dịch điều kiện (`_dieu_kien_py`), xem `ghi_so`.
+        self.so_bay = {}
+
+    def ghi_so(self, ve, bt):
+        """Ghi một đại lượng vào bảng số liệu của cửa sổ View. Trùng thì bỏ qua.
+
+        Khoá là chính BIỂU THỨC: hai khối cùng viết RSI(14) sinh ra cùng một biểu
+        thức, nên chúng là một hàng chứ không phải hai."""
+        if not isinstance(ve, dict) or "ma_dl" not in ve:
+            return                      # con số gõ tay thì không có gì để theo dõi
+        if bt not in self.so_bay:
+            self.so_bay[bt] = core.chu_dai_luong(ve)
 
     def loi(self, sid, msg, sev="error"):
         core._loi(self.van_de, sev, sid, msg)
@@ -317,12 +331,15 @@ def _dieu_kien_py(nc, step):
     ve = []
     for dk in ds:
         trai = _ve_py(nc, dk.get("trai"), step["id"])
+        nc.ghi_so(dk.get("trai"), trai)
         phep = dk.get("phep")
         dl = hoi.dai_luong((dk.get("trai") or {}).get("ma_dl"))
         if dl and dl["kieu"] == hoi.KIEU_CO_KHONG:
             ve.append(f"not ({trai})" if phep == "khong" else f"({trai})")
         else:
-            ve.append(f"({trai} {phep} {_ve_py(nc, dk.get('phai'), step['id'])})")
+            phai = _ve_py(nc, dk.get("phai"), step["id"])
+            nc.ghi_so(dk.get("phai"), phai)
+            ve.append(f"({trai} {phep} {phai})")
     # Chữ mô tả phải nói CẢ cổng, không phải mỗi dòng đầu: một cổng hai điều kiện mà
     # `tag` chỉ ghi một dòng thì đọc nhật ký lệnh sẽ tưởng nó khớp vì lý do khác.
     return " and ".join(ve), tr(" và ").join(core.mo_ta_dieu_kien(dk) for dk in ds)
@@ -837,12 +854,97 @@ def sinh(doc):
         dong_mo.append("")
         dong_mo.append(hen)
 
+    # --- ghi ra cho cửa sổ View ---
+    # ⚠ ĐỨNG ĐẦU THÂN, trước mọi cổng Hỏi. Để sau thì nến nào cổng đóng là nến ấy
+    # không có số — bảng số liệu thủng đúng những chỗ người ta muốn soi nhất.
+    khai_bay, dong_bay = _dong_bay(nc, st_bd)
+    dong_mo += khai_bay
+    than = dong_bay + than
+
     ok = not any(p["severity"] == "error" for p in nc.van_de)
     return {"ok": ok, "ten_lop": lop, "van_de": nc.van_de,
             "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
                         nc.ca_danh_muc, nc.ro, dong_doi_ro,
                         _ham_loc_ro(nc, st_bd), bool(nc.kho.ds),
                         _ham_khoi_tao_ma(nc.may) + _ham_nho_cua(nc.may))}
+
+
+#: Tên hai bảng LEAN vẽ cho cửa sổ View.
+#:
+#: ⚠ TIẾNG ANH, VÀ KHÔNG BỌC `tr()`. Đây là KHOÁ chứ không phải chữ để đọc: giao diện
+#: tìm bảng theo đúng cái tên này. Dịch nó thì đổi ngôn ngữ là tên bảng đổi theo, mà
+#: lượt chạy cũ thì vẫn mang tên cũ — cửa sổ View mở một lượt chạy hôm qua ra sẽ thấy
+#: bảng trống, không lỗi nào. Mấy bảng LEAN tự dựng («Strategy Equity», «Benchmark»,
+#: «Drawdown») cũng tiếng Anh và cũng không dịch, nên hai cái này đứng cùng hàng.
+BANG_GIA = "Price"
+BANG_SO = "Quantities"
+
+
+def _dong_bay(nc, st_bd):
+    """Mấy câu `self.plot(...)` nuôi cửa sổ View. -> ([dòng khai], [dòng mỗi nến])
+
+    ⚠ APP KHÔNG TỰ TÍNH LẤY MỘT SỐ NÀO (D-11). Cửa sổ Strategy Tester cũ có bảng số
+    liệu chạy số sống vì hồi ấy app có engine riêng. Bản nay giao hết cho LEAN, nên
+    muốn thấy số thì phải BẢO LEAN IN RA — và đó là tất cả những gì hàm này làm. Không
+    một phép tính nào ở đây.
+
+    ⚠ CHỈ KHI SƠ ĐỒ CHẠY TRÊN ĐÚNG MỘT MÃ. `_mot_ma` chạy lại cho TỪNG mã, nên hai mã
+    cùng ghi vào một đường thì đường ấy nhảy qua nhảy lại giữa hai thứ — một biểu đồ
+    trông vẫn bình thường mà vô nghĩa. Rổ động hay nhiều mã thì không bày, và cửa sổ
+    View nói rõ vì sao thay vì hiện một bảng trống.
+    """
+    if nc.ro or nc.ca_danh_muc:
+        return [], []
+    ma = [m for m in (core.o_bat_dau(st_bd, "ma") or []) if (m or {}).get("ma")]
+    if len(ma) != 1:
+        return [], []
+    ten_ma = str(ma[0]["ma"])
+
+    # NẾN GIÁ. Phải khai `SeriesType.CANDLE` trong `initialize` — `plot` không tự
+    # đoán ra kiểu, mặc định nó vẽ đường, và một đường nối bốn giá mỗi nến thì không
+    # phải cái nến nào cả.
+    khai = ["",
+            tr("# Nến giá + mấy đại lượng sơ đồ đọc — để cửa sổ View bày lại."),
+            tr("# Không câu nào dưới đây đổi kết quả backtest: chúng chỉ GHI RA."),
+            f"_bang = Chart({BANG_GIA!r})",
+            # ⚠ `CandlestickSeries`, KHÔNG phải `Series(..., SeriesType.CANDLE)`.
+            # Cái sau dựng ra đúng một `Series` thường mang nhãn kiểu nến, và lúc
+            # `plot` bốn giá LEAN ép kiểu nó sang `CandlestickSeries` thì nổ:
+            # *"Unable to cast object of type 'QuantConnect.Series' to type
+            # 'QuantConnect.CandlestickSeries'"*. Khai đúng lớp thì xong.
+            f"_bang.add_series(CandlestickSeries({ten_ma!r}))",
+            "self.add_chart(_bang)"]
+
+    # ⚠ CFD VÀ FOREX KHÔNG CÓ `data.bars`. Chúng về bằng `QuoteBar`, nên `data.bars`
+    # rỗng — mà XAUUSD của màn 01 chính là CFD. Bản đầu chỉ đọc `data.bars` và bọc
+    # trong `if`, nên nó không nổ, không cảnh báo: bảng «Giá» đơn giản là KHÔNG CÓ
+    # trong kết quả. Đã dò bằng một lượt chạy thật — 941 điểm RSI về đủ, nến thì
+    # không một điểm nào. Lấy cả hai nguồn, và cả hai đều là `IBaseDataBar` nên
+    # `plot` nhận y như nhau.
+    moi_nen = [tr("# Ghi lại nến và mấy đại lượng — nuôi cửa sổ View, không tính gì."),
+               # ⚠ `data` CÓ THỂ LÀ None. Sơ đồ chạy theo HẸN GIỜ thì thân mã
+               # mở bằng `data = self.current_slice`, mà `current_slice` chưa có
+               # lát nào thì là None — đọc `.bars` của nó là đứt cả lượt, ở đúng
+               # một nhịp hẹn giờ nào đó chứ không phải nhịp đầu. Bài kiểm chạy
+               # thật thân mã với `data=None` và đã lôi ra chỗ này.
+               "_nen = None",
+               "if data is not None:",
+               TAB + "if sym in data.bars:",
+               TAB * 2 + "_nen = data.bars[sym]",
+               TAB + "elif sym in data.quote_bars:",
+               TAB * 2 + "_nen = data.quote_bars[sym]",
+               "if _nen is not None:",
+               # ⚠ BỐN GIÁ RỜI, ĐỪNG ĐƯA CẢ CÁI NẾN. LEAN có `plot(chart, series,
+               # bar: TradeBar)` nhưng KHÔNG có bản nhận `QuoteBar` — mà CFD/forex
+               # chỉ về bằng QuoteBar. Đưa cả nến là lượt chạy chết ngay nến đầu:
+               # *"Argument mismatch: argument 3 ('value') expected float, got
+               # QuoteBar"*. Bản bốn giá thì nhận cả hai loại.
+               TAB + f"self.plot({BANG_GIA!r}, {ten_ma!r},"
+                     " _nen.open, _nen.high, _nen.low, _nen.close)"]
+    for bt, chu in nc.so_bay.items():
+        moi_nen.append(f"self.plot({BANG_SO!r}, {chu!r}, {bt})")
+    moi_nen.append("")
+    return khai, moi_nen
 
 
 def _khai_cb_theo_ro(nc):

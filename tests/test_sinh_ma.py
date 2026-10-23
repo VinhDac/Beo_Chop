@@ -123,8 +123,34 @@ kiem("khai trong initialize, không khai trong on_data",
 kiem("hai khối cùng RSI(14) chỉ khai MỘT chỉ báo",
      ma.count("self.rsi(sym, 14)") == 1,
      "— khai hai lần là LEAN nuôi hai bộ đếm y hệt nhau")
+# ⚠ ĐẾM KHOÁ RIÊNG, ĐỪNG ĐẾM SỐ LẦN ĐỌC. Bản trước đòi đúng 2 lần đọc — đúng bằng
+# số cổng Hỏi. Nhưng con số ấy là hệ quả, không phải điều cần khẳng định: thêm câu
+# `self.plot(...)` nuôi cửa sổ View là có người đọc thứ ba, hoàn toàn hợp lệ, mà bài
+# đỏ. Điều cần nói là CẢ SƠ ĐỒ CHỈ CÓ MỘT CHỈ BÁO — nên đếm số khoá khác nhau.
+than_ma = ma.split("def _mot_ma")[1]
+khoa_cb = set(re.findall(r"self\._cb\[sym\]\[('[^']+')\]", than_ma))
 kiem("cả hai khối đọc cùng một khoá",
-     ma.split("def _mot_ma")[1].count("self._cb[sym]['rsi_14']") == 2)
+     khoa_cb == {"'rsi_14'"} and than_ma.count("self._cb[sym]['rsi_14']") >= 2,
+     f"— khoá đọc được: {sorted(khoa_cb)}")
+
+# ================= SỐ NUÔI CỬA SỔ VIEW =================
+# App KHÔNG tự tính một con số nào về thị trường (D-11), nên bảng số liệu bên phải
+# cửa sổ View chỉ có số khi bộ sinh mã BẢO LEAN IN RA. Thiếu mấy câu này thì cửa sổ
+# mở ra trống trơn — không lỗi, không cảnh báo, chỉ là không có gì.
+print("\n▸ Số nuôi cửa sổ View — LEAN phải được BẢO mới in")
+kiem("khai bảng nến bằng `CandlestickSeries`",
+     "CandlestickSeries('XAUUSD')" in ma,
+     "— `Series(..., SeriesType.CANDLE)` thì lúc plot bốn giá LEAN ép kiểu là nổ")
+kiem("ghi nến bằng BỐN GIÁ rời",
+     "_nen.open, _nen.high, _nen.low, _nen.close)" in ma,
+     "— LEAN không có bản `plot` nào nhận `QuoteBar`, mà CFD/forex chỉ về QuoteBar")
+kiem("lấy cả `bars` lẫn `quote_bars`",
+     "data.bars[sym]" in ma and "data.quote_bars[sym]" in ma)
+kiem("chặn `data` rỗng", "if data is not None:" in ma,
+     "— nhịp hẹn giờ đọc `self.current_slice`, mà nó có lúc là None")
+kiem("in ra đại lượng sơ đồ đọc", "self.plot('Quantities', 'RSI(14)'" in ma)
+kiem("tên bảng KHÔNG dịch", "'Price'" in ma and "'Quantities'" in ma,
+     "— giao diện tìm bảng theo tên; dịch thì lượt chạy cũ mở ra là bảng trống")
 
 print("\n▸ ② Làm nóng tự suy từ chu kỳ dài nhất")
 m = re.search(r"self\.set_warm_up\((\d+)\)", ma)
@@ -819,12 +845,19 @@ class _SelfGia:
         self._cb = {"X": {"roc_21": _ChiBaoGia(nhanh), "roc_126": _ChiBaoGia(dai)}}
         self._n = {"so_1": 0.0, "so_2": 0.0}
         self.phat = []
+        #: Mấy câu `self.plot(...)` bộ sinh mã viết ra để nuôi cửa sổ View. Giữ lại
+        #: chứ không nuốt: thân mã GỌI THẬT hàm này, nên thiếu nó là bài đỏ vì một
+        #: lý do chẳng liên quan gì tới thứ đang kiểm.
+        self.ve = []
 
     def _nho_cua(self, _sym):
         return self._n
 
     def emit_insights(self, x):
         self.phat.append(x)
+
+    def plot(self, *a):
+        self.ve.append(a)
 
 
 def _chay_than(than, nhanh, dai):
@@ -837,7 +870,7 @@ def _chay_than(than, nhanh, dai):
     # Bọc vào một hàm: `return` giữa thân mới đúng nghĩa "hết lượt, nến sau tính lại".
     exec(compile("def _n():" + NL + textwrap.indent(than, "    "), "than", "exec"), mt)
     mt["_n"]()
-    return dict(s._n), (s.phat[0][6] if s.phat else None)
+    return dict(s._n), (s.phat[0][6] if s.phat else None), list(s.ve)
 
 
 _than = {}
@@ -854,8 +887,13 @@ kiem("LẦN LƯỢT: một `if`, một `elif`",
      and len(re.findall(r"^elif \(", _tl, re.M)) == 1)
 kiem("LẦN LƯỢT: có `else: return` chốt trước chỗ gộp", "else:" in _tl
      and "return" in _tl, "— thiếu nó là không khớp nhánh nào vẫn rơi xuống chỗ gộp")
+# ⚠ SOI `elif` Ở ĐẦU DÒNG, đừng dò chữ trong cả thân. Điều cần khẳng định là hai
+# NHÁNH SƠ ĐỒ đứng rời nhau, mà nhánh thì luôn ở cột 0 — y như dòng `^elif \(` ngay
+# trên. Dò chữ khắp thân thì một `elif` thụt trong khối ghi nến cho cửa sổ View cũng
+# làm bài đỏ, dù nó chẳng dính gì tới nhánh.
 kiem("CHẠY HẾT: hai `if` RỜI, không `elif`",
-     len(re.findall(r"^if \(", _tc, re.M)) == 2 and "elif " not in _tc)
+     len(re.findall(r"^if \(", _tc, re.M)) == 2
+     and not re.findall(r"^elif ", _tc, re.M))
 kiem("CHẠY HẾT: KHÔNG có `else: return`", "else:" not in _tc and "return" not in _tc,
      "— chốt lại là chặn đúng chỗ trộn, tức cả tính năng thành vô dụng")
 kiem("cả hai đều trộn ĐỦ HAI ô nhớ",
@@ -878,7 +916,7 @@ _mong = {
 }
 for (_a, _b), _theo in sorted(_mong.items()):
     for _k, (_nho_m, _w_m) in sorted(_theo.items()):
-        _nho, _w = _chay_than(_than[_k], _a, _b)
+        _nho, _w, _ve = _chay_than(_than[_k], _a, _b)
         kiem(f"chạy thật «{_k}» roc21={_a:+.0f} roc126={_b:+.0f}",
              _nho == _nho_m and _w == _w_m,
              f"— nhớ {_nho}, trọng số {_w}")

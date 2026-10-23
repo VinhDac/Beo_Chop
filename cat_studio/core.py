@@ -813,6 +813,16 @@ def _he_so_chu(x, ngan):
     return ngan if h == 1 else f"{_so_gon(h)} × {ngan}"
 
 
+def chu_dai_luong(ve):
+    """Chữ của MỘT vế điều kiện — «XAUUSD·RSI(14)», «Giá hiện tại / Cao nhất 60 nến».
+
+    Cửa công khai của `_ve_dieu_kien`. Bộ sinh mã cần đúng cái chữ này để đặt tên cho
+    đường LEAN vẽ ra, và cửa sổ View bày lại y nguyên: thẻ khối, nhãn trên biểu đồ và
+    hàng trong bảng số liệu phải đọc ra CÙNG MỘT câu, không thì ba chỗ nói ba kiểu về
+    cùng một đại lượng."""
+    return _ve_dieu_kien(ve)
+
+
 def mo_ta_dieu_kien(dk):
     """Một DÒNG điều kiện -> một dòng chữ trên thẻ khối."""
     if not isinstance(dk, dict):
