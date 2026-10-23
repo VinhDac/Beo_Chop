@@ -1,142 +1,189 @@
-# Tiếp tục ở máy local — Cỗ máy 5 trạm (D-10)
+# Tiếp tục — Cat Studio
 
-> Cập nhật 15/10/2026 · Nhánh `claude/affectionate-thompson-8hqazr` · Chưa tạo pull request,
-> chưa gộp vào `main`.
+> Cập nhật 16/10/2026 · Nhánh `claude/affectionate-thompson-8hqazr` · Chưa tạo pull request,
+> chưa gộp vào `main`. Đang làm trên máy local (Windows).
 
 ## 1. Đang ở đâu
 
-Ta đang thay hai sơ đồ Entry / Manage bằng **cỗ máy 5 trạm**, theo đúng cách QuantConnect chia
-một thuật toán: ① Chọn mã → ② Tín hiệu → ③ Chia vốn → ④ Rủi ro → ⑤ Khớp lệnh. Kế hoạch 7 phần đã
-được duyệt (*"đồng ý cả 3, xoá luôn tester, xây 5 trạm đi"*). **Đã xong 4/7 phần.**
+**VẼ → SINH → CHẠY đã thông. Một sơ đồ vàng + RSI đã backtest thật: +16,376%.**
 
-| Phần | Việc | Trạng thái | Commit |
-|---|---|---|---|
-| 1 | Xoá Strategy Tester | ✅ xong | `12afe1e` |
-| 2 | Lõi cỗ máy 5 trạm: từ điển khối, soát lỗi, đánh số, chữ trên khối | ✅ xong | `6c20b55` |
-| 3 | Bộ máy chạy 5 trạm: nến, chỉ báo, lịch, chia vốn, rủi ro, khớp lệnh, 22 mẫu dựng sẵn, chữ «vì sao» | ✅ xong | `9d63c27` `011b7de` `62df375` |
-| 4 | Cầu nối QuantConnect: lớp vỏ, đóng gói, chạy từ app, đọc kết quả | ✅ xong | `2714430` `cee465d` |
-| 5 | **Trình vẽ 5 trạm** | ⏳ việc kế tiếp, chưa viết dòng nào | — |
-| 6 | Màn chơi chạy cỗ máy 5 trạm | ⏳ | — |
-| 7 | Dọn bộ máy cũ + tài liệu | ⏳ | — |
+Ba quyết định liền nhau:
 
-Bài kiểm: **22/22 bài qua**.
+* **D-11 (16/10)** — app chỉ là **VỎ** của QuantConnect. Bộ mô phỏng tại máy đã xoá
+  (≈5.800 dòng).
+* **D-12 (16/10)** — xoá **toàn bộ bộ khối cũ** (≈3.200 dòng nữa). Nó nghĩ ra TRƯỚC
+  D-11 nên mỗi khối là một phép tính của riêng app.
+* **D-13 (16/10)** — **chép hạ tầng trình vẽ từ `Jenifer_Studio`**, bộ tự động hoá game
+  của chính chủ dự án. Không phải tham khảo một thư viện đẹp: template `trial chaos 30`
+  ở đó là một sơ đồ THẬT **1.170 khối · 1.468 dây · canvas 19.367×16.055**.
+* **D-14 (16/10)** — **bộ khối**: khối **HỎI** (5 loại, 68 đại lượng) và khối **LÀM**
+  (8 loại việc). Mỗi mục khai ra MỘT hàm có thật của LEAN trong ô `lean`, và bài kiểm
+  canh đúng chuyện đó.
+* **D-15 (16/10)** — **khối BẮT ĐẦU**, sau khi đọc **444 thuật toán Python thật** của
+  LEAN. Một script có HAI nửa: `initialize` nói một lần, `on_data` chạy lại mỗi nhịp.
+  Sơ đồ ta vẽ là nửa dưới; **sáu ô của khối Bắt đầu là nửa trên**.
+* **D-16 (16/10)** — **bộ sinh mã**. Sơ đồ thành một file Python chạy được trên LEAN,
+  và nó **không tự nghĩ ra câu LEAN nào** — mọi câu lấy từ ô `lean` của ba từ điển.
+  Đã chạy thật: XAUUSD 2015–2018, **15 lệnh, +16,376%**.
 
-**Lưu ý khi mở app lúc này:** màn hình vẽ vẫn là sơ đồ cũ (Entry / Manage). Bộ máy 5 trạm đã
-chạy được, nhưng chưa có màn hình để vẽ nó, cũng chưa có nút để chạy nó — đó chính là phần 5.
+**Trạng thái thật:**
 
-## 2. Lấy code về máy (Windows)
+| Việc | Được chưa |
+|---|---|
+| Vẽ sơ đồ: thêm khối, nối dây, kéo, xoá, nhân bản | ✅ |
+| **Đánh số phân cấp** `1 · 2 · 2A · 2A.1 · 2B · 2B.1 · 3 · 4` | ✅ |
+| **Nhóm** — gập một chuỗi hành động vào một hộp | ✅ |
+| **Quay về** — vòng lặp vẽ ra, có đích, thấy cả vòng khi bấm | ✅ |
+| **Hạt nhân** — gói một mảng sơ đồ, bấm đúp vào trong sửa | ✅ |
+| **Ô tìm** không dấu + bốn lọc hỏi theo dây | ✅ |
+| Menu chuột phải · phím tắt (F2) · bảng Vấn đề · Nhật ký | ✅ |
+| Lưu / mở / bản nháp / bản tự lưu / hoàn tác | ✅ |
+| **Khối HỎI** — 5 loại, hộp điều kiện, soát ruột | ✅ |
+| **Khối LÀM** — 8 loại, hộp ô theo loại, soát ruột | ✅ |
+| **Khối BẮT ĐẦU** — mã, khoảng ngày, vốn, nhịp, mốc, sàn | ✅ |
+| **Bộ sinh mã** — sơ đồ → thuật toán LEAN Python | ✅ |
+| **Chạy LEAN TỪ TRONG APP** | ❌ **chưa** — hiện phải chạy tay |
+| **Vòng lặp** trong mã sinh ra | ❌ **chưa** — báo rõ, không đoán |
+| **Chọn mã động** (universe) — ô «Chạy trên mã nào» nhận một RỔ | ✅ |
+| Lớp game | ❌ **chưa** |
+
+Bài kiểm: **9/9 qua** · `tsc --noEmit` sạch · `npm run build` sạch.
+
+**Mã sinh ra nằm ở** `du_lieu\ma_sinh\<TênLớp>.py` — bấm *Sinh mã* trên ribbon.
+
+## 2. Chạy ở máy local (Windows)
 
 ```bat
-cd duong\dan\toi\Cat_studio
-git fetch origin
-git checkout claude/affectionate-thompson-8hqazr
-git pull origin claude/affectionate-thompson-8hqazr
-tools\setup.bat
-tools\chay_test.bat
-tools\chay.bat
+tools\setup.bat        REM một lần sau khi clone
+tools\chay_test.bat    REM phải thấy: ✔ 5/5 bài đều qua
+tools\chay.bat         REM mở app
 ```
 
-- `tools\setup.bat`: cài lại thư viện và build lại giao diện. Cần chạy, vì giao diện đã đổi ở
-  phần 1 (bỏ tester, bỏ thư viện biểu đồ của nó).
-- `tools\chay_test.bat`: phải thấy dòng **✔ 22/22 bài đều qua**.
-- `tools\chay.bat`: mở app.
-- Sửa giao diện xong thì chạy `tools\build_ui.bat` mới thấy thay đổi.
+Xem giao diện trong trình duyệt: `.venv\Scripts\python.exe tools\xem_thu.py` →
+`http://127.0.0.1:8777`.
 
-## 3. Phần 5 — Trình vẽ 5 trạm (việc kế tiếp)
+> ⚠ **Khung xem thử không vẽ thì phép đo nói dối.** `ResizeObserver` chỉ bắn trong nhịp
+> vẽ; cửa sổ bị che là trình duyệt bỏ nhịp ấy, và đọc DOM sẽ thấy đủ khối mà KHÔNG một
+> đường nối nào. Chụp ảnh một nhát rồi mới tin phép đo. (Chi tiết ở đầu `xem_thu.py`.)
 
-**Mục tiêu:** trong app, người chơi tự vẽ được một cỗ máy 5 trạm, thấy lỗi ngay trên khối,
-lưu và mở lại được, rồi bấm ▶ trong Màn chơi (chế độ Sáng tạo) để chạy nó trên QuantConnect.
+## 3. Việc kế tiếp — CHẠY LEAN TỪ TRONG APP
 
-Chia lát. Mỗi lát: nói định làm gì và tiêu chí xong → chờ duyệt → làm → bài kiểm → commit.
+Vẽ → sinh đã thông. Còn thiếu đoạn cuối: bấm một nút trong app là nó chạy backtest
+rồi bày kết quả ra, thay vì phải tự gõ lệnh.
 
-| Lát | Việc | Xong khi |
+**Cách chạy tay hiện nay** (đã làm được, ghi lại để khỏi mò):
+
+1. Bấm *Sinh mã* → *Lưu file .py* → file nằm ở `du_lieu\ma_sinh\`.
+2. Trỏ `Launcher/bin/Release/config.json` của LEAN vào file ấy
+   (`algorithm-type-name`, `algorithm-location`, `data-folder`).
+3. `set PYTHONNET_PYDLL=…\python314.dll` rồi chạy `QuantConnect.Lean.Launcher.exe`.
+
+⚠ Lỗi *"GIL must always be released"* lúc tắt là **vô hại** — kết quả đã ghi xong.
+**Đọc file kết quả, đừng tin mã thoát.**
+
+**Việc cần làm:** gói ba bước ấy vào một cửa `api.chay_backtest`, rồi một nút *Chạy*
+cạnh nút *Sinh mã*, và một bảng bày thống kê trả về.
+
+Dữ liệu để thử: **XAUUSD giá ngày 2006–2019 (3.948 ngày) có sẵn miễn phí** trong
+`Data/cfd/oanda/` của LEAN.
+
+> **Luật bắt buộc (vẫn nguyên):** mỗi khối phải ứng với một món **CÓ THẬT** của
+> QuantConnect. Cách kiểm nhanh: hỏi *"QC làm việc này bằng gì?"* — không trả lời được
+> bằng một dòng code QC thì khối đó đang là phép tính của riêng ta, và nó không được có.
+> Với bộ sinh mã, luật ấy thành: **nó chỉ được viết ra thứ đã khai trong ô `lean`.**
+
+### Lịch sử phần này (đã xong)
+
+> **Luật bắt buộc:** mỗi khối phải ứng với một món **CÓ THẬT** của QuantConnect — một
+> hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần (Universe Selection ·
+> Alpha · Portfolio Construction · Risk Management · Execution). Cách kiểm nhanh: hỏi
+> *"QC làm việc này bằng gì?"* — không trả lời được bằng một dòng code QC thì khối đó
+> đang là phép tính của riêng ta, và nó không được có.
+
+Từ vựng chỉ có bốn thứ, và ba trong số đó đã dựng xong:
+
+| Jenifer | Cat_Studio | Xong chưa |
 |---|---|---|
-| 5a | Cửa API cho trình vẽ (phía Python): cỗ máy mới; danh mục khối, đại lượng, tham số theo từng trạm; soát lỗi; đánh số và chữ trên khối; danh sách mẫu; lắp mẫu vào một trạm; lưu và mở cỗ máy | Bài kiểm gọi đủ các cửa; cỗ máy lưu rồi mở lại y hệt (cùng vân tay) |
-| 5b | Dải 5 trạm ①→⑤ trên đầu canvas, trạm nào lỗi thì có chấm đỏ; bấm trạm nào thì canvas hiện sơ đồ của trạm đó; khối Bắt đầu hiện lịch chạy và khung nến | Mở app thấy 5 trạm của cỗ máy mẫu, bấm qua lại được, số thứ tự đúng |
-| 5c | Hộp thoại khối theo trạm: mỗi trạm chỉ thấy khối "Làm" của nó; khối Hỏi chỉ cho chọn đại lượng hợp với trạm (vd. "tín hiệu" chỉ ở ③, "khớp lệnh" chỉ ở ⑤); tham số có tên | Thêm, sửa, xoá khối ở cả 5 trạm; lỗi hiện đúng khối |
-| 5d | Chỉnh khối Bắt đầu (lịch, khung) và bảng Gom: ① giữ N mã và xếp theo gì; ③ giữ tiền mặt %, trần mỗi mã %, chỉ mua | Đổi lịch hoặc Gom thì soát lỗi và chữ cập nhật ngay |
-| 5e | Nút "Lắp mẫu" cho từng trạm (22 mẫu, giữ núm đã vặn); nút mở cỗ máy mẫu "Theo EMA 4 mã" | Từ cỗ máy trắng, lắp 5 mẫu thì sạch lỗi |
-| 5f | Nối sang Màn chơi: ô rổ mã, loại thị trường, ngày, vốn ở chế độ Sáng tạo; ▶ gửi cỗ máy 5 trạm; xem lô «vì sao»; soi một lượt thì tô đúng trạm, đúng khối | Chạy được trên máy chủ QC giả trong bài kiểm, và mở app thật thấy đủ các bước |
-| 5.0 (tuỳ chọn, làm sớm được) | Lệnh dòng lệnh chạy cỗ máy mẫu trên QC thật. `tools\chay_qc` hiện chỉ biết sơ đồ cũ | Chủ dự án thử thật trên tài khoản QC ngay, không phải chờ trình vẽ |
+| **HỎI** (`xac_nhan_chu`, `xac_dinh_map`…) | **HỎI** — thị trường · vị thế · tài khoản · lịch · doanh nghiệp | ✅ `cat_studio/hoi.py` |
+| **LÀM** (`left_click`, `key_press`…) | **LÀM** — tỷ trọng · lệnh thị trường · đóng · lệnh chờ · huỷ · ghi chú · vẽ bảng · báo tin | ✅ `cat_studio/lam.py` |
+| **NHÓM** | **NHÓM** | ✅ |
+| **QUAY VỀ** | **QUAY VỀ** | ✅ |
 
-## 4. Phần 6 và 7 (sau phần 5)
+**⚠ Đường ranh đã vạch (D-14):** ĐẶT lệnh và HUỶ HẾT lệnh chờ của một mã thì được —
+mỗi cái là MỘT câu gọi. SỬA một lệnh cụ thể (`ticket.UpdateStopPrice`) thì KHÔNG: phải
+giữ ticket qua nhiều nến, tức app lại có backend để mà gỡ lỗi. Muốn dời cắt lỗ thì
+huỷ hết → đặt lại.
 
-- **Phần 6 — Màn chơi cho cỗ máy 5 trạm:** màn chơi theo RỔ mã (thay vì một mã); boss = mua và
-  giữ chia đều cả rổ; màn ẩn, chấm sao, nộp bài; kết quả hiện «vì sao» theo từng trạm, soi lên sơ
-  đồ; thêm vài cỗ máy mẫu cho chương 1. Hiện chế độ Chiến dịch từ chối cỗ máy 5 trạm bằng câu
-  "chưa mở — chạy chế độ Sáng tạo".
-- **Phần 7 — Dọn bộ máy cũ:** bỏ hẳn sơ đồ Entry / Manage và sơ đồ mẫu Compress; bộ chạy cũ
-  (`bo_chay.py`, `khop_lenh.py`, `so_lenh.py`, `kho/engine_d02.py`); cầu nối cũ
-  (`lean/cat_lean.py`, `lean/vo_qc.py`, `lean/do_nhip.py`); đường đóng gói cũ; các bài kiểm của
-  chúng. Viết lại README (README hiện vẫn tả hai sơ đồ Entry / Manage, đã cũ), `core.md`,
-  `DECISIONS.md`.
+Còn lại không phải từ vựng mà là **hình học**: N làn cạnh nhau, mỗi làn một cổng, nhánh
+thoát xếp dưới cùng, mở ra bao nhiêu gộp lại bấy nhiêu.
 
-## 5. Luật phải giữ (với cả Claude ở máy local)
+**Mấy chỗ CÒN LẠI:**
 
-1. **Khoá API QuantConnect là BÍ MẬT.** Không dán vào chat, không commit, không in ra. Đặt ngoài
-   repo: hai biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file `du_lieu\qc_khoa.json`
-   (thư mục `du_lieu\` đã bị chặn trong `.gitignore`), hoặc gõ vào hộp Khoá trong app. Khoá có
+* `core.chuan_hoa_khoi` — khối **Bắt đầu** đã dựng lại từ danh sách ô cố định (D-15),
+  nhưng khối **Hành động** thì vẫn giữ nguyên xi mọi khoá. Nay đã có đủ ba từ điển
+  nên làm nốt được — đó mới là chỗ chặn file rác.
+* **Vòng lặp trong mã sinh ra** — hiện báo "chưa sinh được". Cần nghĩ kỹ vòng lặp
+  TRONG MỘT NẾN có nghĩa gì với giao dịch trước khi dựng.
+* **Ghép đại lượng** (đã xác minh là khả thi, chưa làm): sáu phép so không viết nổi
+  `fast > slow * 1.00015`, mà `IndicatorExtensions` của LEAN có sẵn
+  `Plus/Minus/Times/Over` (vế phải là một số hoặc một chỉ báo khác) và kết quả là một
+  chỉ báo do LEAN tự tính — nên cho phép ghép KHÔNG phá luật "không đẻ backend".
+  Xem `tai_lieu/core.md` §30.
+
+## 4. Những việc còn để lại (không gấp)
+
+* Một phép kiểm CSS còn **ngủ** (`.menu-th-noi`) — tự thức khi trình vẽ có menu nổi.
+  Xem `tests/test_giao_dien.py`. (`.dong-dk` đã thức từ D-13.)
+* Phím tắt chưa cho người dùng đặt lại (bảng F2 mới là bảng TRA). Jenifer có phần ấy.
+* `game.py` còn nguyên luật chơi nhưng chưa nối vào đâu.
+* File cỗ máy cũ trong `du_lieu\co_may\` app không đọc được nữa. Cố ý không tự xoá.
+
+## 5. Luật phải giữ
+
+1. **Khoá API QuantConnect là BÍ MẬT.** Không dán vào chat, không commit, không in ra.
+   Đặt ngoài repo: `QC_USER_ID` / `QC_API_TOKEN`, hoặc `du_lieu\qc_khoa.json` (thư mục
+   `du_lieu\` đã bị chặn trong `.gitignore`), hoặc gõ vào hộp Khoá trong app. Khoá có
    toàn quyền tài khoản, kể cả giao dịch thật, nên chỉ dùng để chạy backtest.
 2. Mỗi lần một lát nhỏ: nói trước định làm gì và tiêu chí xong; mọi thay đổi có bài kiểm;
-   `tools\chay_test.bat` xanh rồi mới commit.
-3. Commit message tiếng Việt, ngắn. Giải thích cho chủ dự án bằng tiếng Việt đời thường, không
-   dán code.
+   `tools\chay_test.bat` xanh rồi mới commit. **Soát MÃ THOÁT, đừng soát qua ống dẫn** —
+   `chay_test.bat | tail` trả mã thoát của `tail`, nên cổng chặn không chặn gì cả.
+3. Commit message tiếng Việt, ngắn. Giải thích cho chủ dự án bằng tiếng Việt đời thường,
+   không dán code.
 4. Dữ liệu không được nhìn trước (point-in-time). Lõi không import giao diện hay mạng.
-5. Quyết định lớn ghi vào `DECISIONS.md`. Mỗi phần xong thì ghi một mục trong
-   `tai_lieu/core.md` (mục §18–§21 là của D-10, phần 6 trở đi tiếp từ §22).
+5. Quyết định lớn ghi vào `DECISIONS.md`; mỗi phần xong ghi một mục trong
+   `tai_lieu/core.md` (§25 của D-11 · §26 của D-12 · §27 của D-13 · §28 của D-14 ·
+   §29 của D-15 · §30 của D-16; phần sau tiếp từ §31).
 6. Không tự đổi bộ công cụ đã chọn: Python + pywebview, React + @xyflow/react + Vite.
-7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa được
-   bảo.
+7. Đẩy lên nhánh `claude/affectionate-thompson-8hqazr`. Không tạo pull request khi chưa
+   được bảo.
+8. **Giao diện không tự ghép chữ trên khối, không tự tính số thứ tự, không tự soát luật
+   nào**: gửi sơ đồ sang Python (`api.soat`) rồi vẽ lại đúng cái nhận về.
 
-## 6. Bản đồ cho Claude (kỹ thuật)
+## 6. Bản đồ
 
-**Python — `cat_studio/`**
+**Python — `cat_studio/`**: `core.py` (đồ thị, đánh số, Nhóm, Quay về, thẻ khối, chuẩn
+hoá) · `luu_tru.py` (chỗ duy nhất biết file nằm ở đâu, + bản nháp/bản tự lưu) ·
+`game.py` · `qc_api.py` · `qc_chay.py` · `khung_cua_so.py` · `api.py` (**một** bề mặt).
 
-- `tram.py`: từ điển 5 trạm — khối Làm `KHOI_LAM` (14 khối), đại lượng `TOAN_HANG` (42), tham
-  số `THAM_SO_TH`, lịch và khung mặc định, `GOM`, `CAN_CO`.
-- `may.py`: cỗ máy (`DANG = "may5"`) — `may_moi`, `la_may`, `chuan_hoa` (chạy lại không đổi
-  gì), `soat` → `[{severity, tram, step, index, message}]`, `danh_so`, `kem_the`, `the_khoi`,
-  `dong_khoi`, `van_tay`, `bang_tham_so`.
-- `chuoi_nen.py`: gộp nến M1 lên khung lớn + chỉ báo tính dần, không nhìn trước.
-- `bo_may.py`: `BoMay.buoc(t, nen_m1, tk)` → ý định lệnh; `nhan_khop`, `nhan_tu_choi`,
-  `thong_ke`; `can_khoi_dong`, `giay_lich_khoi_dong`.
-- `mau_tram.py`: 22 mẫu `MAU`, `ap_mau(may, tram, mau_key)`, `may_tu_mau`, `MAY_MAU`.
-- `nhat_ky_may.py`: chữ «vì sao» (`DocNhatKy`).
-- `ket_qua_may.py`: đọc kết quả tải về (`KetQuaMay`: `tom_tat`, `lo`, `lenh`, `soi`).
-- `goi_qc.py`: `dong_goi_may(may, cau_hinh)` → bộ file `main.py` gửi lên QC.
-- `qc_chay.py`: `ViecQC.bat_dau(may, "tu_do", tu_do={"ma": [...], "loai": "forex" | "cfd" |
-  "co_phieu" | "crypto", "tu", "den", "von"})`; `soat_tu_do_may`; `mo_lai`.
-- `qc_api.py`: nói chuyện với API của QC.
-- `api.py`: các cửa cho giao diện (pywebview). Các cửa `qc_*` đã chạy được cỗ máy 5 trạm. Các
-  cửa vẽ (`validate`, `describe`, `save_process`…) vẫn phục vụ sơ đồ cũ — lát 5a thêm cửa mới
-  cho cỗ máy.
+**Giao diện — `webui/src/`**: `SoDo.tsx` (canvas, hạt nhân, ô tìm, menu, bàn phím) ·
+`components/` (StepNode, HatNhan, DuongVong, Ribbon, OTimKhoi, BangDuoi, BangPhimTat,
+ContextMenu, Modal, TitleBar, Icon, KhoDialog, HopDoiTen) · `qc/HopKhoa.tsx` ·
+`tim.ts` · `phim_tat.ts` · `so.ts` · `api.ts` · `types.ts` · `theme.css` + `app.css`.
 
-**QuantConnect — `lean/vo_may.py`**: lớp vỏ chạy trên QC, không chứa luật nào.
+**Bài kiểm — `tests/`** (5): `test_danh_so` · `test_so_do` (Nhóm, Quay về, vòng phải
+khép, bộ nhớ của cái nút) · `test_so_do_api` (một cửa soát, ba tầng lưu) ·
+`test_giao_dien` (biến CSS ma) · `test_o_so`.
 
-**Giao diện — `webui/src/`**: `App.tsx` (canvas @xyflow/react, sơ đồ cũ),
-`components/StepNode.tsx` (vẽ khối), `components/ActionDialog.tsx` (hộp thoại khối cũ),
-`components/ThamSoDialog.tsx`, `components/TemplatePicker.tsx`, `components/KhoDialog.tsx`,
-`qc/ManChoi.tsx` (cửa sổ Màn chơi), `api.ts`, `types.ts`.
+**Tài liệu**: `README.md` · `DECISIONS.md` (D-01→D-13) · `tai_lieu/core.md` §25–§27.
 
-**Bài kiểm — `tests/`**: `chay_tat_ca.py` là danh sách 22 bài. Của D-10: `test_may`,
-`test_chuoi_nen`, `test_bo_may`, `test_mau_tram`, `test_vo_may`, `test_qc_may`. Đồ giả:
-`san_gia.py` (sàn giá giả), `lean_gia.py` (LEAN giả), `qc_gia.py` (máy chủ QC giả).
-
-**Tài liệu**: `DECISIONS.md` mục D-10; `tai_lieu/core.md` §18 (bỏ tester), §19 (lõi), §20 (bộ
-máy chạy), §21 (cầu nối QC).
-
-## 7. Câu lệnh dán cho Claude Code ở máy local
+## 7. Câu lệnh dán cho Claude Code
 
 ```text
-Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-10 và tai_lieu/core.md §19–§21.
-Tôi không đọc code. Ta đang ở phần 5/7: trình vẽ 5 trạm. Làm lát 5a:
-nói định làm gì + tiêu chí xong bằng tiếng Việt đời thường, chờ tôi duyệt,
-rồi code + bài kiểm + chạy tools\chay_test.bat + commit tiếng Việt.
+Đọc TIEP_TUC.md ở gốc repo, rồi DECISIONS.md mục D-11, D-12, D-13 và tai_lieu/core.md §25–§27.
+Tôi không đọc code. Trình vẽ sơ đồ đã chạy; bộ khối thì chưa có nội dung gì.
+Luật: app chỉ là VỎ của QuantConnect — mỗi khối phải là một món có thật của QC.
+Việc tôi muốn làm tiếp: <viết ở đây>.
+Nói định làm gì + tiêu chí xong bằng tiếng Việt đời thường, rồi code + bài kiểm
++ chạy tools\chay_test.bat + commit tiếng Việt.
 Khoá QuantConnect là bí mật: không bao giờ bảo tôi dán khoá vào chat.
 ```
-
-## 8. Việc chỉ chủ dự án làm được
-
-**Thử thật trên QuantConnect.** Cần gói Researcher trở lên, và khoá đặt ở một trong các chỗ an
-toàn nói ở mục 5. Đến giờ, mọi lượt chạy cỗ máy 5 trạm mới chạy trên bản giả lập QC trong bài
-kiểm. Thử thật được khi có lát 5.0 (dòng lệnh) hoặc lát 5f (nút ▶ trong app).

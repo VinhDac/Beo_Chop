@@ -49,6 +49,15 @@ xấu nhưng dùng được — thà thế còn hơn không mở nổi cửa s�
 import ctypes
 from ctypes import wintypes
 
+#: Màu Windows tô cửa sổ TRƯỚC khi web kịp chạy — tránh một nháy trắng mỗi lần mở.
+#:
+#: ⚠ MỘT CHỖ DUY NHẤT, và phải khớp `--chrome` trong `webui/src/theme.css`. Trước đây
+#: cùng một mã màu chép tay ở BA chỗ `create_window` cộng một chỗ trong CSS; đổi tông
+#: một lần là phải nhớ sửa đủ bốn, mà quên chỗ nào thì cửa sổ ấy nháy sai màu lúc mở —
+#: nửa giây, không ai bắt được bằng bài kiểm.
+MAU_CUA_SO = "#1a1a1a"
+
+
 u = ctypes.windll.user32
 dwm = ctypes.windll.dwmapi
 
@@ -99,6 +108,34 @@ class MONITORINFO(ctypes.Structure):
 class MARGINS(ctypes.Structure):
     _fields_ = [("cxLeftWidth", ctypes.c_int), ("cxRightWidth", ctypes.c_int),
                 ("cyTopHeight", ctypes.c_int), ("cyBottomHeight", ctypes.c_int)]
+
+
+#: `ShowWindow` — bỏ thu nhỏ mà GIỮ NGUYÊN cỡ cũ (phóng to thì vẫn phóng to).
+SW_RESTORE = 9
+
+
+def dua_len_truoc(hwnd):
+    """Đưa một cửa sổ lên TRÊN CÙNG và trao bàn phím cho nó. -> có làm được không.
+
+    ⚠ `window.restore()` của pywebview KHÔNG ĐỦ: nó chỉ bỏ trạng thái thu nhỏ. Cửa
+    sổ đang nằm dưới một cửa sổ khác thì `restore()` chẳng đổi gì — người dùng bấm
+    đúp một dòng, sơ đồ đổi thật, mà họ vẫn đang nhìn cửa sổ Optimize nên tưởng
+    không có gì xảy ra.
+
+    Windows CỐ Ý chặn `SetForegroundWindow` từ một tiến trình không đang ở tiền
+    cảnh — để một app nền không cướp bàn phím giữa lúc ai đó đang gõ. Ở đây hai cửa
+    sổ CÙNG một tiến trình và người dùng vừa bấm chuột, nên ta được phép; vẫn gọi
+    kèm `BringWindowToTop` làm lối dự phòng khi Windows từ chối."""
+    if not hwnd:
+        return False
+    try:
+        if u.IsIconic(hwnd):
+            u.ShowWindow(hwnd, SW_RESTORE)
+        u.BringWindowToTop(hwnd)
+        u.SetForegroundWindow(hwnd)
+        return True
+    except Exception:                                   # noqa: BLE001
+        return False
 
 
 def tim_hwnd(chua_chuoi):

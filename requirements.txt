@@ -6,3 +6,7 @@
 #   chết ngay lúc khởi động với
 #   "System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft'".
 pywebview
+
+# KHÔNG còn numpy: bộ chạy cũ (`bo_chay`, `tinh_toan`) đã bị xoá ở phần 7 của D-10, và
+# bộ máy 5 trạm cố ý thuần Python — cùng một file chạy được cả trên máy lẫn trên
+# QuantConnect, nơi ta không chọn được thư viện.

@@ -1,197 +1,129 @@
-<h1 align="center">
-  <img src="logo/logo.png" width="88"><br>
-  Cat Studio
-</h1>
+# Cat Studio
 
-<p align="center">
-  Vẽ sơ đồ khối cho một chiến lược giao dịch, mỗi khối mang <b>một số thứ tự do chính
-  bộ máy tính ra</b>, bấm <b>◆ Màn chơi</b> để chạy nó trên QuantConnect.
-</p>
+Vẽ một **cỗ máy giao dịch** bằng sơ đồ khối, rồi thả nó vào thị trường thật trong quá khứ
+trên **QuantConnect**. Không gõ code, không công thức — kéo khối, nối dây, bấm ▶.
+
+> ## ⚠ Đang làm lại từ đầu (16/10/2026)
+>
+> **Trình vẽ sơ đồ đã chạy. Bộ khối thì chưa có nội dung gì** — `Nhóm`, `Khối lẻ`,
+> `Quay về` còn trống ruột, và app chưa chạy được cỗ máy nào. Ba quyết định liền nhau:
+>
+> * **D-11 — app chỉ là VỎ của QuantConnect.** Mọi phép tính về thị trường (nến, chỉ báo,
+>   số lượng, lệnh, lãi lỗ) là việc của QC. App giữ đúng ba việc: **vẽ · soát lỗi · dịch
+>   sơ đồ ra thuật toán QC**, cộng luật chơi. Bộ mô phỏng tại máy đã xoá.
+> * **D-12 — xoá toàn bộ bộ khối cũ.** Bộ khối ấy được nghĩ ra trước D-11 nên mỗi khối là
+>   một phép tính của riêng app. Khối, từ điển, mẫu dựng sẵn, trình vẽ và màn chơi đã xoá
+>   hết (≈ 9.000 dòng). Bộ khối mới và cách tương tác mới đang được thiết kế.
+>
+> * **D-13 — chép hạ tầng trình vẽ từ `Jenifer_Studio`**, bộ tự động hoá game của chính
+>   chủ dự án. Không phải tham khảo một thư viện đẹp: template `trial chaos 30` ở đó là
+>   một sơ đồ **thật** gồm 1.170 khối, 1.468 dây, canvas 19.367×16.055 — nên mọi thứ chép
+>   về đều là lời giải cho câu hỏi *làm sao không lạc trong 1.170 khối*.
+>
+> **Luật của bộ khối mới:** mỗi khối phải ứng với một món **có thật** của QuantConnect —
+> một hàm API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần của họ. Khối nào
+> không chỉ ra được món QC đứng sau nó thì không được có.
+>
+> Mở app lúc này: vẽ được sơ đồ (nối dây, đánh số, Nhóm, Quay về, hạt nhân, tìm khối),
+> đặt được **khoá QuantConnect**, xem được **app lưu file ở đâu**.
 
 ---
 
-## Một chiến lược = hai sơ đồ
+## QuantConnect chia một thuật toán ra năm phần
 
-```
-   ┌── Tab ENTRY ────────────────┐     ┌── Tab MANAGE ───────────────────┐
-   │  con trỏ ĐI SĂN             │     │  chạy MỘT LƯỢT CHO MỖI LỆNH     │
-   │  một lượt mỗi nến           │     │  đang sống, cũng mỗi nến        │
-   │  chỉ nó được TẠO lệnh       │     │  chỉ nó được SỬA lệnh           │
-   └─────────────────────────────┘     └─────────────────────────────────┘
-```
+Đây là khung của *họ*, không phải của ta — bộ khối mới sẽ phải sống trong đó:
 
-Mỗi nến: cập nhật dữ liệu → **Manage** cho từng lệnh → **Entry**. Manage trước, đúng
-`OnTick` của D_02 — chạy ngược lại thì lệnh vừa sinh bị quản lý ngay trong nến đẻ ra nó.
-
-**Mỗi sơ đồ tự nó đã là một vòng lặp**: nó chạy lại từ khối Bắt đầu ở mỗi nến. Nên
-*"chờ tới khi"* không phải vẽ — không cổng nào khớp thì hết lượt, nến sau chạy lại.
-Không cần khối "vòng lặp", không cần mũi tên quay ngược.
-
-**Ranh giới khoá được:**
-
-| | Entry | Manage |
+| Phần | Hỏi câu gì | Ra cái gì |
 |---|---|---|
-| Kiểm tra ĐK | ✔ | ✔ |
-| Vào lệnh | ✔ | ✘ |
-| Sửa lệnh | ✘ | ✔ |
-| Toán hạng nhóm *"Lệnh này"* | ✘ báo lỗi | ✔ |
+| Universe Selection | Mã nào đáng để mắt tới? | rổ mã |
+| Alpha | Mã này sắp lên, xuống, hay nên đứng ngoài? | tín hiệu có thời hạn |
+| Portfolio Construction | Mỗi mã được bao nhiêu phần vốn? | tỷ trọng mục tiêu |
+| Risk Management | Có gì phải cắt bớt ngay không? | mục tiêu đã chỉnh |
+| Execution | Đưa vị thế về mục tiêu bằng lệnh gì, lúc nào? | lệnh thật |
 
-> **Entry chỉ TẠO. Manage chỉ SỬA.** App soát tĩnh được, chỉ thẳng vào khối sai —
-> loại lỗi MQL5 không bao giờ bắt.
+Số lượng, lô tối thiểu, ký quỹ, phí, trượt giá: QC tính. App không đụng vào.
 
-Pill `Entry | Manage` là chip nổi ở góc trên-trái canvas, có **chấm đỏ khi tab kia
-đang lỗi**.
+## Trình vẽ làm được gì
 
-## Luật đánh số
+* **Bốn loại khối**: Bắt đầu · **Nhóm** (gói một chuỗi hành động vào một hộp) · Khối lẻ ·
+  **Quay về** (nhảy ngược lên một khối phía trước — khối trụ để vẽ vòng lặp).
+* **Hạt nhân** — gói cả một mảng sơ đồ thành một khung nhỏ, bấm đúp là vào bên trong
+  sửa như một sơ đồ riêng. **Chỉ là cách nhìn**: bộ chạy và số thứ tự không biết gì về
+  nó, nên vào trong rồi huy hiệu vẫn là số của cả sơ đồ.
+* **Ô tìm** không dấu (`ghi so` ra `Ghi sổ`), tìm cả số thứ tự, cộng **bốn lọc hỏi theo
+  dây**: chia nhánh · gộp nhánh · khối cuối · không chạy tới. Bấm một kết quả là máy
+  quay bay tới đúng khối, tự bước vào hạt nhân nếu nó nằm trong một mảng.
+* **Bảng Vấn đề** — bấm một dòng là tới đúng khối sai. **Nhật ký**, **phím tắt** (F2),
+  **menu chuột phải**, **hoàn tác**, **bản nháp + bản tự lưu**.
 
-> **SỐ = đi được bao xa · CHỮ = đi nhánh nào**
+## Thứ sống sót qua hai lần dọn
 
-Sơ đồ mẫu — chiến lược Compress (D_02):
+* **Đánh số phân cấp** (`core.py`) — huy hiệu trên mỗi khối: **số = đi được bao xa, chữ =
+  đi nhánh nào** (`1 · 1A · 1A.1`). Khối không có đường nối dẫn tới thì không có số: nó
+  sẽ không bao giờ chạy, và nhìn là thấy.
+* **Thứ tự ưu tiên nhánh theo VỊ TRÍ trên canvas**, không theo thứ tự tạo dây — thứ tự
+  tạo dây là thứ vô hình, người chơi không có cách nào biết nhánh nào được thử trước.
+* **Soát nối dây** — vòng hở, nhánh chụm không đều, nhánh mặc định xếp sai chỗ, hai cổng
+  trùng điều kiện, dây trỏ về chính nó. Thông báo lỗi gọi khối bằng **huy hiệu** (`[4A.2]`)
+  chứ không bằng số thứ tự trong danh sách.
+* **Luật chơi** (`game.py`) — màn, boss «Mua rồi giữ cả rổ», ba mức sao, sổ nộp.
+* **Cầu nối QuantConnect** (`qc_api.py`) — khoá, project, file, biên dịch, backtest,
+  Object Store.
 
-```
-ENTRY                                        MANAGE
-[1] Mỗi nến M5 — tìm tín hiệu                [1] Mỗi nến M5 — với TỪNG lệnh
-[2] Vùng nén đã xác nhận?                          ├─[1A] Chưa khớp mà nén đã tan?
-      atr_bps < 7 · nến nén ≥ 10                   │        → [1A.1] Huỷ lệnh chờ
-      rộng÷ATR ≤ 4 · KHÔNG vùng đã sinh lệnh       └─[1B] Đã khớp, đủ 1R,
-[3] Còn chỗ cho lệnh mới?                          │        SL chưa hoà vốn?
-      số lệnh chờ = 0 · số vị thế < 3              │        → [1B.1] Dời SL về giá vào
-      ├─[3A] Xu hướng LÊN?  → [3A.1] Buy Stop
-      └─[3B] Xu hướng XUỐNG? → [3B.1] Sell Stop
-```
+## Chạy từ mã nguồn (Windows)
 
-## Ghim số ⟲
-
-Chuột phải vào khối → **Ghim số** (hoặc `Ctrl+G`).
-
-Khối đã ghim là **điểm quay lại hợp lệ**: mọi đường nối ngược về nó vẫn giữ nguyên số
-cũ, không còn bị báo là vòng lặp ngoài ý muốn. Cạnh quay lại được vẽ **nét đứt vàng**
-kèm nhãn `⟲` để nhìn sơ đồ là thấy ngay chỗ nào lặp về đâu.
-
-Cạnh quay lại cũng chính là **nhánh mặc định**: nó luôn được thử cuối cùng và không cần
-cổng điều kiện — nghĩa của nó vốn đã là *"không nhánh nào khớp thì quay về trên"*.
-
-## Bộ khối
-
-**Hai loại khối:** `Bắt đầu` (điểm neo, đúng một cái mỗi sơ đồ, không xoá được) và `Khối`.
-
-**Ba hành động — đọc · tạo · sửa:**
-
-| Hành động | Việc |
-|---|---|
-| **Kiểm tra điều kiện** | Đọc thị trường + tài khoản rồi quyết đi nhánh nào. Đây cũng là **cổng rẽ nhánh**. |
-| **Vào lệnh** | Mở vị thế mới: Mua/Bán · Market/Stop/Limit · lot · SL & TP ban đầu |
-| **Sửa lệnh** | Tác động lên lệnh đã có: dời SL · dời TP · SL về hoà vốn · **kết thúc lệnh này** (gộp đóng hẳn + huỷ chờ — với một lệnh, "đóng" và "huỷ" là cùng một ý định) |
-
-17 toán hạng (giá · chỉ báo · sổ lệnh · **lệnh này** · zone) × 8 phép
-so, viết bằng **ký hiệu** `< ≤ > ≥ = ≠` chứ không phải chữ (hai phép còn lại là
-`là ĐÚNG` / `là SAI`, dành riêng cho toán hạng đúng/sai) — một cổng mang 4–5 điều
-kiện thì mắt phải liếc thấy quan hệ, không phải đọc chữ. **Mọi khoảng cách là bội của ATR hoặc của R — không có pip hay đô nào**,
-nên cùng một bộ số mang cùng một ý nghĩa trên vàng, forex, crypto và chỉ số.
-
-> **Hai chữ ATR là hai thứ khác nhau, tách ra là có chủ ý.** Đệm vào lệnh đo bằng
-> **ATR hiện tại** — tấm khiên mỏng ngoài mép vùng, đủ lọc một nhịp phá giả. Rủi ro đo
-> bằng **ATR trung bình cả cú nén** — nên mỗi lệnh rủi ro một R tương đương bất kể
-> vùng rộng hẹp. Gộp làm một là mất đúng cái làm 1R nhất quán.
-
-## Luật rẽ nhánh
-
-Một khối nhiều đường ra thì các nhánh được **thử lần lượt từ trên xuống**:
-
-1. Mỗi nhánh phải mở đầu bằng một **cổng** = khối *Kiểm tra điều kiện*.
-2. Nhiều nhất **một** nhánh được để trống làm **nhánh mặc định**, và nó phải xếp **cuối**.
-3. Cạnh quay lại (trỏ vào khối đã ghim) được miễn cả hai luật trên.
-
-Không nhánh nào khớp thì **hết lượt** — nến sau chạy lại từ đầu. Đó là cách "chờ" được
-diễn tả, không phải lỗi.
-
-Cổng phải là *Kiểm tra điều kiện*: nhánh trượt phải **lùi lại được**, mà một khối chỉ
-*đọc* dữ liệu thì lùi bao nhiêu lần cũng vô hại — còn *Vào lệnh* / *Sửa lệnh* đã tác
-động ra thị trường rồi, không rút lại được.
-
-## Chạy từ mã nguồn
-
-Cần **Python 3.10+** và **Node.js 18+** trên Windows.
-
-```bash
-tools\setup.bat          # dựng .venv + npm install + build giao diện
-tools\tao_shortcut.bat   # tạo shortcut "Cat Studio" ra Desktop (icon con mèo)
-tools\chay.bat           # mở app từ dòng lệnh
-tools\chay_test.bat      # chạy test
-tools\chay_qc.bat        # chạy sơ đồ trên QuantConnect, không mở web QC (core.md §15)
+```bat
+tools\setup.bat        REM một lần sau khi clone: .venv + thư viện + build giao diện
+tools\chay_test.bat    REM phải thấy: ✔ 5/5 bài đều qua
+tools\chay.bat         REM mở app
 ```
 
-Trong app: nút **◆ Màn chơi** (Ctrl+M) mở cửa sổ chơi trên QuantConnect — Chiến dịch (màn,
-boss, ▶ nhanh / ▶ đầy đủ / Nộp, sao) và Sáng tạo (core.md §16). Khoá đặt ngay trong cửa sổ
-đó (bấm huy hiệu "QC · …" trên thanh tiêu đề).
+* Sửa giao diện (`webui/`) xong thì `tools\build_ui.bat` mới thấy thay đổi.
+* Muốn xem giao diện trong trình duyệt (chụp ảnh, mở DevTools, cho máy bấm thử):
+  `.venv\Scripts\python.exe tools\xem_thu.py` → `http://127.0.0.1:8777`. Nó gọi `api.py`
+  THẬT, chỉ thay đường vận chuyển — và chỉ phục vụ **một** bề mặt, đúng như app thật
+  (xem D-12: bản cũ phục vụ hai bề mặt và đã che mất một lỗi).
 
-`chay_qc` cần gói QuantConnect **Researcher** trở lên (gói Free không có API) và khoá API
-đặt **ngoài repo**: hai biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file
-`du_lieu\qc_khoa.json` dạng `{"user_id": "...", "token": "..."}`. Khoá có toàn quyền tài
-khoản — đừng đưa vào git, đừng dán vào chat.
+### Cần gì để chạy thật trên QuantConnect
 
-Shortcut chạy bằng `pythonw.exe` nên **không kèm cửa sổ console đen**. Đổi lại nó
-không có stderr để nhìn, nên `app_web.py` báo mọi lỗi khởi động (thiếu .NET, thiếu
-WebView2, chưa build giao diện) bằng **hộp thoại Windows** chứ không in ra màn hình.
-
-Sửa giao diện xong phải `tools\build_ui.bat` mới thấy đổi — `app_web.py` chỉ nạp
-`webui\dist`, không nạp mã nguồn.
+* Gói **Researcher** trở lên (gói Free không có API).
+* Khoá API đặt **ngoài repo**: biến môi trường `QC_USER_ID` / `QC_API_TOKEN`, hoặc file
+  `du_lieu\qc_khoa.json`, hoặc gõ vào hộp Khoá trong app. **Khoá có toàn quyền tài
+  khoản, kể cả giao dịch thật** — app chỉ dùng nó để chạy backtest, và không bao giờ in
+  nó ra.
 
 ## Cấu trúc
 
 ```
-app_web.py         ĐIỂM KHỞI ĐỘNG — thứ duy nhất còn ở gốc (pywebview + WebView2)
-cat_studio/        toàn bộ lõi app
-  core.py            đồ thị, đánh số, soát lỗi
-  kho/               danh mục mọi thứ app tính được, chia theo NGUỒN
-    nen_tang.py        giá · thời gian · tài khoản · lệnh này
-    chi_bao.py         ATR · MA · Donchian · Volume MA
-    engine_d02.py      atr_bps · bảng vùng nén    (ý tưởng riêng của D_02)
-  so_lenh.py         bảng lệnh + vùng nén, id của CHÍNH TA
-  luu_tru.py         MỘT chỗ duy nhất biết file nằm ở đâu
-  api.py             bề mặt DUY NHẤT giao diện gọi tới  (JS → api.py → core.py)
-  mau.py             sơ đồ mẫu Compress (D_02) — dùng được cả khi không có giao diện
-  qc_api.py          chỗ DUY NHẤT biết QuantConnect: đẩy sơ đồ lên, chạy, tải nhật ký về
-  goi_qc.py          đóng gói bộ luật + cầu nối + sơ đồ thành main.py gửi lên QC
-  game.py            luật chơi: màn, boss, sao, độ gọn, sổ nộp (du_lieu/game.json)
-  qc_chay.py         một lượt chạy QC trong luồng nền + kết quả dựng lại từ nhật ký
-  khung_cua_so.py    vá cửa sổ Win32 cho thanh tiêu đề tự vẽ (kéo/giãn/phóng to)
-lean/              cầu nối QuantConnect: lõi thuần + lớp vỏ QC (core.md §14)
-tai_lieu/          sổ ghi cốt lõi
-  core.md            VÌ SAO mọi thứ như vậy. Đọc file này trước.
-  D02_Compress_ban_giao.md   bàn giao chiến lược gốc
-webui/             giao diện: React + TypeScript + React Flow
-                     src/qc/: cửa sổ Màn chơi · src/chung/: bảng dưới dùng chung
-                     kiem/: bài kiểm chạy bằng node
-tests/             bộ test — không mở cửa sổ, không nối mạng thật
-du_lieu/           dữ liệu của bạn (sinh ra lúc chạy, không nằm trong repo)
-tools/             kịch bản: chạy · build giao diện · chạy test · ĐÓNG GÓI
-                     dong_goi_lean: gói sơ đồ thành vài file dán lên QuantConnect
-                     chay_qc: một lệnh — gửi sơ đồ lên QC, chạy, in tổng kết
-dist/              sản phẩm đóng gói + bản .zip phát hành (không nằm trong repo)
+app_web.py            điểm khởi động (pywebview + webui/dist)
+cat_studio/
+  core.py             đồ thị, đánh số, soát lỗi đồ thị, bảng tham số, cài đặt
+  luu_tru.py          chỗ DUY NHẤT biết file nằm ở đâu
+  game.py             luật chơi: màn, boss, sao, sổ nộp
+  qc_api.py           nói chuyện với API của QC
+  qc_chay.py          soát đầu vào một lượt chạy (rổ mã, ngày, vốn)
+  khung_cua_so.py     vá khung cửa sổ Win32 cho thanh tiêu đề tự vẽ
+  api.py              bề mặt DUY NHẤT giao diện gọi tới
+webui/src/
+  SoDo.tsx            TRÌNH VẼ: canvas, hạt nhân, ô tìm, menu chuột phải, bàn phím
+  components/         StepNode (thẻ khối) · HatNhan · DuongVong (dây ↻) · Ribbon ·
+                      OTimKhoi · BangDuoi · BangPhimTat · ContextMenu · Modal ·
+                      TitleBar · Icon · KhoDialog · HopDoiTen
+  qc/HopKhoa.tsx      hộp Khoá QuantConnect
+  tim.ts              tìm khối: bỏ dấu, tô đoạn khớp
+  phim_tat.ts         bảng lệnh + phím tắt (tra BẢNG, không phải chuỗi else if)
+  so.ts               đọc số khi gõ TỪNG PHÍM
+tests/                5 bài kiểm, chạy bằng `tools\chay_test.bat`
+tai_lieu/core.md      nhật ký kỹ thuật: vì sao từng thứ như hiện tại
+DECISIONS.md          quyết định lớn, kèm phương án đã cân nhắc
+TIEP_TUC.md           đang ở đâu, làm gì tiếp
 ```
-
-Menu **File → Kho** liệt kê mọi thứ app tính được, chia theo nguồn: nền tảng · chỉ báo
-chuẩn · từng engine. Danh sách do Python **tự gom** từ `kho/`, nên thêm một chiến lược
-mới là hộp thoại có ngay — không có danh sách nào chép tay.
-
-Menu **File → Tham số chiến lược** sửa bảng hằng số CÓ TÊN. Ngưỡng nén được hỏi ở cả
-hai sơ đồ; gõ số thẳng vào hai nơi thì sửa một chỗ là hai vế lệch nhau âm thầm.
-
-Ba tầng, mỗi tầng biết đúng việc của mình:
-
-- `core.py` giữ toàn bộ logic và **không import webview** — test được mà không mở cửa sổ.
-- `api.py` là chỗ duy nhất giao diện gọi tới. Giao diện **không bao giờ tự biết định
-  dạng file**; nó chỉ gửi/nhận JSON.
-- `webui/` chỉ lo hiển thị. Ngay cả dòng mô tả hành động cũng do Python sinh
-  (`core.action_display`), để hai bên không thể nói khác nhau.
 
 ## Lưu ý
 
-- Chỉ chạy trên **Windows** (dùng API riêng của Windows cho thanh tiêu đề tối).
-- Cần **.NET Framework 4.7.2+** và **Microsoft Edge WebView2 Runtime** — app tự kiểm
-  lúc mở và báo bằng tiếng Việt nếu thiếu.
-- Cài `pywebview` trong **`.venv` riêng**: nếu Python global có gói `quantconnect-stubs`
-  thì nó chiếm namespace `Microsoft` và pywebview chết ngay lúc khởi động.
-- Dữ liệu của bạn nằm trong `du_lieu/` cạnh app, không nằm trong repo. Bản cũ
-  (`settings.json` + `templates/`) được chép sang tự động lúc mở app lần đầu.
+* **Chữ trên khối do Python dựng**, giao diện không ghép một mẩu nào — nên thứ hiện trên
+  màn hình luôn đúng bằng thứ lõi thật sự hiểu. Luật này giữ nguyên cho bộ khối mới.
+* **Mọi thứ app ghi ra** nằm trong `du_lieu/` (cỗ máy, nhật ký chạy, sổ game, khoá QC) —
+  thư mục này nằm trong `.gitignore`.
+* File cỗ máy cũ trong `du_lieu\co_may\` **app không đọc được nữa**: chúng viết bằng bộ
+  khối đã xoá. Cố ý không tự xoá chúng — đó là công người chơi bỏ ra.

@@ -1,240 +1,238 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import type { Tab } from '../types'
-import Icon from './Icon'
+import type { ReactNode } from 'react'
+import IconNet from './Icon'
+import NutMenu from './NutMenu'
+import { tr } from '../ngon_ngu'
 
-/** Thanh công cụ kiểu ribbon của Paint: nút nhóm lại, nhãn nhóm nằm DƯỚI, có vạch
- *  ngăn giữa các nhóm. Mọi thứ "thêm vào" nằm ở trên; canvas phía dưới chỉ để di
- *  chuyển và nối. */
+/** Thanh công cụ kiểu ribbon của Paint: nút nhóm lại, nhãn nhóm nằm DƯỚI, có vạch ngăn
+ *  giữa các nhóm.
+ *
+ *  LUẬT BỐ CỤC (chép từ Jenifer_Studio): mọi thứ "thêm vào" nằm ở TRÊN; canvas phía
+ *  dưới chỉ để DI CHUYỂN và NỐI. Nhờ vậy không bao giờ phải hỏi "thêm khối ở đâu nhỉ".
+ *
+ *  `hienTu` = nhóm chỉ hiện khi cửa sổ rộng từ ngần ấy px — cửa sổ hẹp thì bỏ nhóm ít
+ *  dùng trước, không bóp nhỏ mọi nút cho vừa.
+ */
+/** NGƯỠNG ẨN NHÓM — cửa sổ phải rộng từ ngần này px thì nhóm mới còn hiện.
+ *
+ *  SỐ ĐO THẬT, không chọn cho tròn (luật của Jenifer_Studio). Đo bề ngang từng nhóm
+ *  trong trình duyệt rồi CỘNG DỒN từ cái luôn hiện:
+ *      sàn = Thêm khối 373 + Cỗ máy 331 + lề 8 = 712
+ *      + Hạt nhân 137 -> 849   + Strategy 136 -> 985
+ *      + Sửa 147      -> 1132  + Hoàn tác 143 -> 1275
+ *  Làm tròn lên một chút cho có chỗ thở. Cả dải là 1275px, vừa cửa sổ mặc định
+ *  1360px — nên ở cỡ mặc định KHÔNG nhóm nào phải ẩn. Sàn cửa sổ là 1020px
+ *  (`app_web.py min_size`), nên Hạt nhân thực tế chẳng bao giờ ẩn.
+ *
+ *  ⚠ ĐO LẠI NGÀY 18/10/2026, sau khi Strategy bỏ hai nút «Mới» và «Cài đặt»: nhóm ấy
+ *  hẹp đi 62px (198 -> 136), nên BA ngưỡng sau nó đều tụt theo. Không đo lại thì ba
+ *  nhóm ấy ẩn sớm hơn cần thiết — cửa sổ còn thừa cả trăm pixel mà nút đã biến mất,
+ *  và không ai biết vì sao.
+ *
+ *  THỨ TỰ ẨN theo "còn đường nào khác không", đúng luật *ẩn một nhóm KHÔNG được lấy
+ *  mất việc gì*: Hoàn tác đi trước (Ctrl+Z), rồi Sửa (Ctrl+D/Delete + menu chuột
+ *  phải), rồi Strategy (Ctrl+N/O/S). Hạt nhân đi SAU CÙNG vì từ khi Ctrl+G thành của
+ *  Nhóm thì nó chỉ còn hai đường: ribbon và menu chuột phải.
+ *
+ *  Nhóm nào đổi bề ngang thì đo lại cả bảng — và nhớ `@media` tương ứng ở `app.css`.
+ *
+ *  ⚠ ĐO LẠI NGÀY 19/10/2026, lúc app thành SONG NGỮ — và phải đo CẢ HAI TIẾNG, vì
+ *  bảng này chỉ đúng nếu nó đủ cho tiếng RỘNG HƠN:
+ *                 Thêm khối  Sửa  Hạt nhân  Hoàn tác  Strategy  Cỗ máy   tổng
+ *      tiếng Việt      373   147       137       142       136     331   1266
+ *      tiếng Anh       354   145       137       137       136     331   1240
+ *  Tiếng Việt rộng hơn ở mọi nhóm, nên BẢNG GIỮ NGUYÊN theo số tiếng Việt: ở tiếng
+ *  Anh nhóm ẩn sớm hơn cần một chút (ngưỡng thật chỉ cần 830 · 966 · 1111 · 1248),
+ *  mà ẩn sớm thì chỉ mất một nhóm còn đường khác, còn ẩn muộn là ribbon tràn ngang.
+ *  Đừng hạ bảng này theo số tiếng Anh: hạ xuống là bản tiếng Việt tràn.
+ *
+ *  MỘT BẢNG DUY NHẤT, vì mỗi số ở đây phải có một `@media (max-width: <số-1>px)
+ *  .hien-tu-<số>` trong `app.css`. Thiếu dòng CSS thì lớp sinh ra CHẲNG ẨN GÌ CẢ:
+ *  không lỗi, không cảnh báo, `tsc` sạch, build sạch — chỉ có ribbon tràn ngang và
+ *  nhãn các nút đè lên nhau ở cửa sổ hẹp. (Đã hỏng thật với 1090 và 1250, suốt từ đầu.)
+ *  `test_giao_dien` đọc đúng bảng này rồi đối chiếu với `app.css`. */
+const HIEN_TU = { hatNhan: 860, strategy: 1000, sua: 1145, hoanTac: 1290 }
 
-function Nhom({ ten, children }: { ten: string; children: ReactNode }) {
+function Nhom({ ten, children, hienTu, chinh }: {
+  ten: string; children: ReactNode; hienTu?: number
+  /** Nhóm CHÍNH: đẩy sát mép phải và tô sáng. Đúng một nhóm được mang cờ này. */
+  chinh?: boolean
+}) {
   return (
-    <div className="nhom-ribbon">
+    <div className={'nhom-ribbon' + (hienTu ? ` hien-tu-${hienTu}` : '')
+                    + (chinh ? ' chinh' : '')}>
       <div className="cac-nut">{children}</div>
       <div className="ten-nhom">{ten}</div>
     </div>
   )
 }
 
-function Nut({ ten, icon, onClick, tat, title }: {
-  ten: string; icon: ReactNode; onClick?: () => void; tat?: boolean; title?: string
+function Nut({ ten, icon, onClick, tat, title, lop }: {
+  ten: string; icon: string; onClick?: () => void; tat?: boolean; title?: string
+  lop?: string
 }) {
   return (
-    <button className="nut-lon" onClick={onClick} disabled={tat} title={title || ten}>
-      <span className="hinh">{icon}</span>
-      <span>{ten}</span>
+    <button className={'nut-lon' + (lop ? ` ${lop}` : '')} onClick={onClick}
+            disabled={tat} title={title ?? ten}>
+      <span className="hinh"><IconNet name={icon} size={18} /></span>
+      {ten}
     </button>
   )
 }
 
-export interface MucMenu { nhan: string; chay: () => void; tat?: boolean; lyDo?: string }
-
-/** Nút có menu xổ xuống.
- *  Mục bị tắt vẫn HIỆN kèm lý do: giấu đi thì người dùng tưởng tính năng không tồn tại. */
-function NutMenu({ ten, icon, muc }: { ten: string; icon: ReactNode; muc: MucMenu[] }) {
-  const [mo, setMo] = useState(false)
-  const [viTri, setViTri] = useState({ x: 0, y: 0 })
-  const boc = useRef<HTMLDivElement>(null)
-  const nut = useRef<HTMLButtonElement>(null)
-  const bang = useRef<HTMLDivElement>(null)
-
-  /* Menu này ĐỊNH VỊ THEO KHUNG NHÌN, không theo khối cha.
-     `.ribbon` có `overflow-x: auto`, mà theo chuẩn CSS hễ một trục thôi `visible` thì
-     trục kia cũng thôi luôn — nên dải ribbon cắt cụt menu theo CHIỀU DỌC: bấm "Mở ▾"
-     ra một mẩu menu bị xén, không bấm được mục nào.
-     `position: fixed` thoát khỏi mọi vùng cắt của khối cha. */
-  useLayoutEffect(() => {
-    if (!mo || !nut.current) return
-    const r = nut.current.getBoundingClientRect()
-    const m = bang.current?.getBoundingClientRect()
-    const le = 6
-    setViTri({
-      x: Math.max(le, Math.min(r.left, window.innerWidth - (m?.width ?? 268) - le)),
-      y: Math.max(le, Math.min(r.bottom + 2, window.innerHeight - (m?.height ?? 0) - le)),
-    })
-  }, [mo])
-
-  useEffect(() => {
-    if (!mo) return
-    const f = (e: MouseEvent) => {
-      if (!boc.current?.contains(e.target as globalThis.Node)) setMo(false)
-    }
-    const dong = () => setMo(false)
-    window.addEventListener('mousedown', f)
-    window.addEventListener('resize', dong)
-    return () => {
-      window.removeEventListener('mousedown', f)
-      window.removeEventListener('resize', dong)
-    }
-  }, [mo])
-
-  return (
-    <div className="boc-menu" ref={boc}>
-      <button className="nut-lon" ref={nut} onClick={() => setMo(v => !v)}>
-        <span className="hinh">{icon}</span>
-        <span>{ten} ▾</span>
-      </button>
-      {mo && (
-        <div className="menu-xo" ref={bang} style={{ left: viTri.x, top: viTri.y }}>
-          {muc.map((m, i) => (
-            <button key={i} className="muc-menu" disabled={m.tat}
-                    title={m.tat ? m.lyDo : undefined}
-                    onClick={() => { setMo(false); m.chay() }}>
-              {m.nhan}{m.tat && m.lyDo ? <span className="ly-do">— {m.lyDo}</span> : null}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-const S = {
-  fill: 'none', stroke: 'currentColor', strokeWidth: 1.5,
-  strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
-}
-
-/** Icon 22px của ribbon — to hơn bộ 16px trong `Icon.tsx` nên vẽ riêng, cùng ngôn ngữ nét. */
-const I = {
-  /* Một đường vào, hai đường ra — đúng hình rẽ nhánh người dùng vẽ trên giấy. */
-  branch: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M2.5 11h5M7.5 11l5-5M7.5 11l5 5" /><circle {...S} cx="15.5" cy="6" r="2.6" /><circle {...S} cx="15.5" cy="16" r="2.6" /></svg>,
-  vao: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="2.6" y="7.4" width="4" height="7.2" rx="1" /><path {...S} d="M4.6 4.8v2.6M4.6 14.6v2.6" /><path {...S} d="M10 14.6l4.8-4.8M11.2 9.2h3.8v3.8" /><path {...S} d="M18.6 4.4v13.2" strokeDasharray="2.2 2.2" /></svg>,
-  sua: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M3 15.6h16" strokeDasharray="2.4 2.2" /><path {...S} d="M3 6.4h16" strokeDasharray="2.4 2.2" /><path {...S} d="M11 4.6v12.8" /><path {...S} d="M8.6 9.2L11 6.8l2.4 2.4M8.6 12.8L11 15.2l2.4-2.4" /></svg>,
-  start: <svg viewBox="0 0 22 22" width="22" height="22"><circle {...S} cx="11" cy="11" r="8" /><path {...S} d="M11 5.4l3.6 5.6-3.6 5.6-3.6-5.6z" /></svg>,
-  edit: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="3.5" y="3.5" width="15" height="15" rx="2" /><path {...S} d="M7.5 13.5l6-6M11 6.5l4 4" /></svg>,
-  copy: <svg viewBox="0 0 22 22" width="22" height="22"><rect {...S} x="7" y="7" width="11" height="11" rx="1.8" /><path {...S} d="M14.5 4.5H5.8A1.3 1.3 0 0 0 4.5 5.8v8.7" /></svg>,
-  del: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M4.5 6.5h13M9 6.5V4.5h4v2M6.5 6.5l1 12h7l1-12" /><path {...S} d="M9.5 9.5v6M12.5 9.5v6" /></svg>,
-  undo: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M6 9.5H14a4.5 4.5 0 0 1 0 9h-3" /><path {...S} d="M9 6l-3.5 3.5L9 13" /></svg>,
-  redo: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M16 9.5H8a4.5 4.5 0 0 0 0 9h3" /><path {...S} d="M13 6l3.5 3.5L13 13" /></svg>,
-  save: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M4.5 5.8A1.3 1.3 0 0 1 5.8 4.5h8.4l3.3 3.3v8.4a1.3 1.3 0 0 1-1.3 1.3H5.8a1.3 1.3 0 0 1-1.3-1.3z" /><path {...S} d="M7.5 4.5v4h6v-4M7.5 17.5v-4h7v4" /></svg>,
-  open: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M3.5 17V6.5A1 1 0 0 1 4.5 5.5h4l2 2.2h6a1 1 0 0 1 1 1V17z" /><path {...S} d="M3.5 17l2.6-6h13l-2.6 6z" /></svg>,
-  // Số ① — CỐ Ý không dùng hình tam giác play: nút ▶ Chạy ở ngay cạnh, hai biểu tượng
-  // play trong một ribbon thì không ai đoán được cái nào làm gì.
-  motSo: <svg viewBox="0 0 22 22" width="22" height="22"><circle {...S} cx="11" cy="11" r="7.8" /><path {...S} d="M9.6 8.6L11.4 7.4v7.4M9.8 14.8h3.4" /></svg>,
-  ghim: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M13.2 2.6l6.2 6.2-2.5 1.4-4-4z" /><path {...S} d="M12.9 6.2L6.4 11.4l4.2 4.2 4.5-6.2" /><path {...S} d="M8.6 13.4L3.2 18.8" /></svg>,
-  fit: <svg viewBox="0 0 22 22" width="22" height="22"><path {...S} d="M4 8V4.5h3.5M18 8V4.5h-3.5M4 14v3.5h3.5M18 14v3.5h-3.5" /><rect {...S} x="8" y="8" width="6" height="6" rx="1" /></svg>,
-}
-
-export interface RibbonProps {
-  tab: Tab
-  themKiemTra: () => void
-  themVaoLenh: () => void
-  themSuaLenh: () => void
-  sua: () => void
-  datBatDau: () => void
-  doiGhim: () => void
-  nhanBan: () => void
+export interface ViecRibbon {
+  themBatDau: () => void
+  themNhom: () => void
+  themKhoiLe: () => void
+  themQuayVe: () => void
+  /** Thêm một khối XÁC NHẬN của loại `loai`. */
+  themHoi: (loai: string) => void
+  /** Năm loại câu hỏi, lấy từ từ điển Python — ribbon KHÔNG tự khai danh sách. */
+  loaiHoi: { ma: string; nhan: string; icon: string; mo_ta: string;
+             tat: string | false }[]
+  /** Thêm một khối HÀNH ĐỘNG của loại `loai`. */
+  themLam: (loai: string) => void
+  /** Tám loại việc, cũng lấy từ từ điển Python — kể cả việc chia nhóm. */
+  loaiLam: { ma: string; nhan: string; icon: string; mo_ta: string; nhom: string;
+             lean: string; tat: string | false }[]
   xoa: () => void
+  nhanBan: () => void
   hoanTac: () => void
   lamLai: () => void
-  vuaKhung: () => void
-  mucLuu: MucMenu[]
-  mucMo: MucMenu[]
-  // cụm chạy ghim mép phải ribbon
-  ten: string
-  datTen: (v: string) => void
-  symbol: string
-  datSymbol: (v: string) => void
-  /** ◆ Màn chơi — chạy cỗ máy trên QuantConnect (D-05 · D-06). */
-  manChoi: () => void
-  coChon: boolean
-  chonDaGhim: boolean
-  coTheHoanTac: boolean
-  coTheLamLai: boolean
+  gomHatNhan: () => void
+  taHatNhan: () => void
+  /** Sinh thuật toán LEAN từ sơ đồ đang vẽ. */
+  sinhMa: () => void
+  /** Sinh rồi chạy backtest luôn. */
+  chay: () => void
+  /** Mở hộp Optimize — quét mấy núm đã ghim trên sơ đồ. */
+  toiUu: () => void
+  /** Dừng lượt đang chạy — giết thẳng tiến trình LEAN (F6). */
+  dung: () => void
+  /** Mở lại kết quả lượt vừa chạy. */
+  moKetQua: () => void
+  /** Đã có kết quả để mở chưa. */
+  coKetQua: boolean
+  /** Đang chạy backtest — khoá nút lại. */
+  dangChay: boolean
+  luu: () => void
+  luuThanh: () => void
+  mo: () => void
 }
 
-const TEN_TAB: Record<Tab, string> = { entry: 'Entry', manage: 'Manage' }
-const CHU_THICH_TAB: Record<Tab, string> = {
-  entry: 'Sơ đồ ĐI SĂN — chạy một lượt mỗi nến. Chỉ nó được TẠO lệnh.',
-  manage: 'Sơ đồ QUẢN LÝ — chạy một lượt cho MỖI lệnh đang sống. Chỉ nó được SỬA lệnh.',
-}
-
-/** Pill chuyển sơ đồ — nằm NGAY DƯỚI dải ribbon, sát mép trái.
- *
- *  Đặt ở đó vì nó không phải một nút trong ribbon mà là câu trả lời cho "mọi thứ phía
- *  trên đang tác động lên sơ đồ NÀO". Chấm đỏ trên tab kia để lỗi không trốn được sau
- *  lưng: bấm ▶ Chạy mới biết tab kia hỏng là quá muộn. */
-export function PillTab({ tab, datTab, tabCoLoi }: {
-  tab: Tab; datTab: (t: Tab) => void; tabCoLoi: Record<Tab, boolean>
+export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }: {
+  v: ViecRibbon; soChon: number; trongHatNhan: boolean
+  coHoanTac: boolean; coLamLai: boolean
 }) {
   return (
-    <div className="pill-tab">
-      {(['entry', 'manage'] as Tab[]).map(t => (
-        <button key={t} className={'pill' + (tab === t ? ' dang' : '')}
-                title={CHU_THICH_TAB[t]} onClick={() => datTab(t)}>
-          {TEN_TAB[t]}
-          {tabCoLoi[t] && <span className="cham-loi" title="Sơ đồ này đang có lỗi" />}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-export default function Ribbon(p: RibbonProps) {
-  return (
     <div className="ribbon">
-      {/* Nút nào hiện là do TAB quyết: Entry chỉ TẠO lệnh, Manage chỉ SỬA lệnh.
-          Làm mờ thì người dùng vẫn phải đoán vì sao; ẩn hẳn thì bảng chọn luôn đúng
-          với việc đang làm. */}
-      <Nhom ten="Thêm khối">
-        <Nut ten="Kiểm tra ĐK" icon={I.branch} onClick={p.themKiemTra}
-             title={'Thêm cổng "Kiểm tra điều kiện" — nối nhiều cổng vào cùng một khối '
-                    + 'để chia nhánh. Khớp thì đi nhánh đó, không khớp thì thử nhánh dưới.'} />
-        {p.tab === 'entry' && (
-          <Nut ten="Vào lệnh" icon={I.vao} onClick={p.themVaoLenh}
-               title="Mở vị thế mới: Mua/Bán, loại lệnh, khối lượng, SL và TP ban đầu" />
-        )}
-        {p.tab === 'manage' && (
-          <Nut ten="Sửa lệnh" icon={I.sua} onClick={p.themSuaLenh}
-               title="Tác động lên lệnh ĐÃ CÓ: dời SL, dời TP, hoà vốn, trailing, đóng, huỷ chờ" />
-        )}
+      {/* ⚠ HAI VÙNG, không phải một hàng. Nhóm phải được GHIM, không phải đẩy bằng
+          `margin-left: auto` — đẩy thì chỉ ăn khi CÒN CHỖ TRỐNG, mà ribbon này có bảy
+          nhóm nên nó luôn dài hơn cửa sổ: cụm chính bị trôi hẳn ra ngoài màn hình.
+          Nay phần trái tự cuộn, phần phải đứng im. */}
+      <div className="ribbon-cuon">
+      {/* MỘT NHÓM DUY NHẤT CHO VIỆC «THẢ MỘT KHỐI XUỐNG» — năm slot, như Jenifer.
+          Trước đây mười ba nút rải thành ba nhóm, mà cả mười ba cùng làm đúng một
+          việc ấy; ribbon dài hơn cửa sổ và nhãn thì cụt thành "thị trường", "vị thế"
+          — danh từ không có động từ, phải đọc tên nhóm mới hiểu.
+
+          ⚠ Chỗ này từng có một lời biện hộ, nay đã HẾT HIỆU LỰC: *"chọn loại là
+          quyết định ĐẦU TIÊN, mà nó cũng quyết luôn hộp thoại bày ra cái gì"*. Đúng
+          hồi năm họ câu hỏi còn là tường ngăn. Nay cả 68 đại lượng nằm chung một kho
+          và họ nào cũng với tới được từ bất kỳ khối nào, nên chọn họ không còn quyết
+          cái gì nữa — nó chỉ là «mở sẵn ở mục này». Một lời biện hộ sống lâu hơn cái
+          lý của nó thì nguy hơn là không có lời nào. */}
+      <Nhom ten={tr('Thêm khối')}>
+        <Nut ten={tr('Bắt đầu')} icon="start" onClick={v.themBatDau}
+             title={tr('Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn')} />
+        <NutMenu ten={tr('Xác nhận')} icon="branch"
+                 title={tr('Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ')}
+                 muc={v.loaiHoi.map(l => ({
+                   nhan: tr(l.nhan), phu: tr(l.mo_ta), icon: l.icon,
+                   tat: l.tat && tr(l.tat),
+                   chay: () => v.themHoi(l.ma),
+                 }))} />
+        <NutMenu ten={tr('Hành động')} icon="action"
+                 title={tr('Thêm một việc sẽ làm với thị trường, hoặc một dòng ghi ra ngoài')}
+                 dauMuc={(m, i) => {
+                   const n = v.loaiLam[i]?.nhom
+                   return i === 0 || n !== v.loaiLam[i - 1]?.nhom ? tr(n) : undefined
+                 }}
+                 muc={v.loaiLam.map(l => ({
+                   // Dòng phụ là HÀM LEAN nó sẽ gọi — cùng lời hứa như `.lean-khai`
+                   // của hộp thoại: mỗi khối là một thứ có thật, kiểm được ngay ở đây.
+                   nhan: tr(l.nhan), phu: l.lean, icon: l.icon,
+                   tat: l.tat && tr(l.tat),
+                   chay: () => v.themLam(l.ma),
+                 }))} />
+        <Nut ten={tr('Nhóm')} icon="group" onClick={v.themNhom}
+             title={tr('Một chuỗi hành động gói vào một hộp — chạy thẳng một lượt (Ctrl+G gom khối '
+               + 'đang chọn)')} />
+        <Nut ten={tr('Quay về')} icon="quay-ve" onClick={v.themQuayVe}
+             title={tr('Nhảy ngược về một khối phía trước — khối trụ để vẽ vòng lặp')} />
       </Nhom>
 
-      <Nhom ten="Sửa">
-        <Nut ten="Sửa" icon={I.edit} onClick={p.sua} tat={!p.coChon}
-             title="Mở hộp thoại sửa khối đang chọn (hoặc double-click vào khối)" />
-        <Nut ten="Nhân bản" icon={I.copy} onClick={p.nhanBan} tat={!p.coChon}
-             title="Nhân bản khối đang chọn (Ctrl+D)" />
-        <Nut ten="Xoá" icon={I.del} onClick={p.xoa} tat={!p.coChon}
-             title="Xoá khối đang chọn (Delete)" />
+      <Nhom ten={tr('Sửa')} hienTu={HIEN_TU.sua}>
+        <Nut ten={tr('Nhân bản')} icon="copy" onClick={v.nhanBan} tat={!soChon} title="Ctrl+D" />
+        <Nut ten={tr('Xoá')} icon="trash" onClick={v.xoa} tat={!soChon} title="Delete" />
       </Nhom>
 
-      <Nhom ten="Luồng">
-        <Nut ten="Đặt số ①" icon={I.motSo} onClick={p.datBatDau} tat={!p.coChon}
-             title="Biến khối đang chọn thành khối ① — khối chạy đầu tiên" />
-        <Nut ten={p.chonDaGhim ? 'Bỏ ghim' : 'Ghim số'} icon={I.ghim}
-             onClick={p.doiGhim} tat={!p.coChon}
-             title={'Ghim số của khối đang chọn: mọi đường nối quay ngược về nó vẫn giữ '
-                    + 'đúng số cũ, và không còn cảnh báo vòng lặp'} />
-        <Nut ten="Vừa khung" icon={I.fit} onClick={p.vuaKhung}
-             title="Thu cả sơ đồ vào vừa màn hình" />
+      {/* HẠT NHÂN KHÔNG CÒN CỤM PHÍM NÀO (Ctrl+G nay là của Nhóm, như Jenifer), nên
+          ribbon và menu chuột phải là hai đường duy nhất — ẩn nhóm này sau cùng. */}
+      <Nhom ten={tr('Hạt nhân')} hienTu={HIEN_TU.hatNhan}>
+        <Nut ten={tr('Gom')} icon="frame" onClick={v.gomHatNhan} tat={soChon < 2 || trongHatNhan}
+             title={tr('Gói các khối đang chọn thành một khung — CHỈ là cách nhìn, sơ đồ không đổi')} />
+        <Nut ten={tr('Tách')} icon="unlink" onClick={v.taHatNhan} tat={!soChon}
+             title={tr('Đưa các khối đang chọn ra khỏi hạt nhân của chúng')} />
       </Nhom>
 
-      <Nhom ten="Hoàn tác">
-        <Nut ten="Hoàn tác" icon={I.undo} onClick={p.hoanTac} tat={!p.coTheHoanTac} title="Ctrl+Z" />
-        <Nut ten="Làm lại" icon={I.redo} onClick={p.lamLai} tat={!p.coTheLamLai} title="Ctrl+Y" />
+      <Nhom ten={tr('Hoàn tác')} hienTu={HIEN_TU.hoanTac}>
+        <Nut ten={tr('Hoàn tác')} icon="undo" onClick={v.hoanTac} tat={!coHoanTac} title="Ctrl+Z" />
+        <Nut ten={tr('Làm lại')} icon="redo" onClick={v.lamLai} tat={!coLamLai} title="Ctrl+Y" />
       </Nhom>
 
-      <Nhom ten="Template">
-        <NutMenu ten="Lưu" icon={I.save} muc={p.mucLuu} />
-        <NutMenu ten="Mở" icon={I.open} muc={p.mucMo} />
+      <Nhom ten="Strategy" hienTu={HIEN_TU.strategy}>
+        {/* ⚠ CHỈ CÒN KHO VÀ LƯU. «Mới» và «Cài đặt» đã bỏ khỏi ribbon: cả hai còn
+            cửa khác, và ribbon là chỗ của việc làm HÀNG NGÀY.
+              · Mới   -> menu File > «Strategy mới», và Ctrl+N
+              · Cài đặt -> nút bánh răng ở thanh trạng thái, và Ctrl+,
+            Bỏ một nút mà việc của nó mất luôn thì không được — xem luật thứ tự ẩn
+            nhóm ở đầu file. Hai cái này không mất gì. */}
+        <Nut ten={tr('Kho')} icon="folder" onClick={v.mo}
+             title={tr('Kho Strategy — mở, đổi tên, nhân bản, xoá (Ctrl+O)')} />
+        <NutMenu ten={tr('Lưu')} icon="save" title="Ctrl+S"
+                 muc={[{ nhan: tr('Lưu'), phu: tr('Ctrl+S — ghi đè bản đang mở'),
+                         icon: 'save', chay: v.luu },
+                       { nhan: tr('Lưu thành…'), phu: tr('một Strategy mới, giữ nguyên bản đang mở'),
+                         icon: 'copy', chay: v.luuThanh }]} />
       </Nhom>
 
-      {/* Cụm chạy — ghim mép phải. Hai tầng: tên chiến lược ở trên, hàng nút hạ xuống
-          dưới cho ngang hàng với nhãn nhóm. Xếp chồng nên KHÔNG tốn thêm bề ngang. */}
-      <div className="cum-chay">
-        <input className="o o-ten-process" value={p.ten} spellCheck={false}
-               placeholder="Tên chiến lược"
-               title="Tên chiến lược — cũng hiện trên thanh tiêu đề"
-               onChange={e => p.datTen(e.target.value)} />
-        <div className="hang-chay">
-          <input className="o nho o-symbol" value={p.symbol} spellCheck={false}
-                 title="Mã giao dịch" placeholder="XAUUSD"
-                 onChange={e => p.datSymbol(e.target.value.toUpperCase())} />
-          {/* Lối chạy DUY NHẤT: gửi cỗ máy lên QuantConnect, chấm sao trên màn ẩn. */}
-          <button className="nut chinh" onClick={p.manChoi}
-                  title="Mở Màn chơi — chạy cỗ máy trên QuantConnect, chấm sao (Ctrl+M)">◆ Màn chơi</button>
-        </div>
+      {/* CỤM CHÍNH — đẩy SÁT MÉP PHẢI và tô sáng. Đây là ĐẦU RA của cả việc vẽ, không
+          phải một thao tác sửa, nên nó không được lẫn vào hàng nút sửa. Xếp theo đúng thứ
+          tự việc: sinh -> chạy -> tối ưu -> thật -> đọc, giống thanh của QuantConnect. */}
       </div>
+
+      {/* TÊN TIẾNG ANH, cố ý: đây là thuật ngữ chuẩn của nghề — Build, Backtest,
+          Optimize, Live — và là đúng chữ người trong nghề đọc trên bất cứ nền nào
+          khác. Dịch ra tiếng Việt thì phải học lại khi sang QuantConnect. Nghĩa tiếng
+          Việt nằm ở chú giải khi rê chuột. */}
+      <Nhom ten={tr('Cỗ máy')} chinh>
+        <Nut ten="Build" icon="gear" onClick={v.sinhMa}
+             title={tr('Build — sơ đồ này thành thuật toán LEAN Python, xem trước rồi lưu ra file')} />
+        {/* MỘT Ô, HAI VIỆC. Đang chạy thì chỗ này là nút DỪNG — mắt người dùng
+            đang ở đúng đây vì họ vừa bấm Backtest, nên đừng bắt đi tìm chỗ khác.
+            Không chạy thì chẳng có gì để dừng, bày thêm một nút mờ là thừa. */}
+        {v.dangChay
+          ? <Nut ten={tr('Dừng')} icon="dung" lop="nut-dung" onClick={v.dung}
+                 title={tr('Dừng lượt backtest đang chạy (F6)')} />
+          : <Nut ten="Backtest" icon="chay" onClick={v.chay}
+                 title={tr('Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này')} />}
+        <Nut ten="Optimize" icon="branch" onClick={v.toiUu}
+             title={tr('Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất')} />
+        <Nut ten="Live" icon="an-lenh" tat
+             title={tr('Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn.')} />
+        <Nut ten="Results" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
+             title={tr('Results — mở lại kết quả lượt backtest vừa rồi')} />
+      </Nhom>
     </div>
   )
 }

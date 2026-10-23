@@ -19,24 +19,55 @@ giao diện — xem chú thích ở hai hàm đó.
 `app_web` báo bằng MessageBox thay vì print.
 """
 
+# ⚠ MỘT SỐ PHIÊN BẢN, ĐỌC TỪ `core.PHIEN_BAN`. Gõ lại ở đây là có ngày Windows khoe
+# một số, app khoe một số khác, và không ai biết bản nào đang chạy. Đọc bằng regex chứ
+# không `import cat_studio`: lúc PyInstaller chạy tệp này, gói chưa nằm trên `sys.path`.
+import re as _re
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo, StringFileInfo, StringStruct, StringTable, VarFileInfo,
+    VarStruct, VSVersionInfo)
+
+with open("cat_studio/core.py", encoding="utf-8") as _f:
+    PHIEN_BAN = _re.search(r'PHIEN_BAN\s*=\s*"([^"]+)"', _f.read()).group(1)
+
+# Bộ ba số Windows đòi cho tài nguyên phiên bản: "0.2" -> (0, 2, 0, 0).
+_bo = tuple(int(x) for x in (PHIEN_BAN.split(".") + ["0", "0", "0"])[:4])
+
+# ⚠ TÀI NGUYÊN PHIÊN BẢN, không phải trang trí. Thiếu nó thì bấm chuột phải vào
+# Cat_Studio.exe -> Properties, thẻ Details TRỐNG TRƠN: không tên sản phẩm, không số
+# bản, không ai phát hành. Một tệp .exe như thế trông y hệt phần mềm nhặt ngoài đường,
+# và SmartScreen cũng nhìn vào đấy.
+phien_ban = VSVersionInfo(
+    ffi=FixedFileInfo(filevers=_bo, prodvers=_bo, mask=0x3F, flags=0x0,
+                      OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+    kids=[
+        StringFileInfo([StringTable("040904B0", [
+            StringStruct("CompanyName", "Cat Studio"),
+            StringStruct("FileDescription", "Cat Studio — draw a trading engine, LEAN runs it"),
+            StringStruct("FileVersion", PHIEN_BAN),
+            StringStruct("InternalName", "Cat_Studio"),
+            StringStruct("OriginalFilename", "Cat_Studio.exe"),
+            StringStruct("ProductName", "Cat Studio"),
+            StringStruct("ProductVersion", PHIEN_BAN),
+        ])]),
+        VarFileInfo([VarStruct("Translation", [0x0409, 1200])]),
+    ],
+)
+
 a = Analysis(
     ["app_web.py"],
     pathex=[],
     binaries=[],
     # Giao diện đã build. Không có nó thì app mở ra một cửa sổ trắng.
-    # Và NGUỒN .py của bộ luật + cầu nối: nút ▶ trên QuantConnect đóng gói chúng thành
-    # `main.py` gửi lên QC (`cat_studio/goi_qc.py` đọc chúng như chữ, qua `thu_muc_goi`).
-    # Bản đóng gói chỉ giữ bytecode, nên không khai ở đây là ▶ QC hỏng "không thấy file".
+    # Và NGUỒN .py của gói `cat_studio`: đường chạy QuantConnect gửi code lên QC dưới
+    # dạng CHỮ, mà bản đóng gói chỉ giữ bytecode — không khai ở đây thì ▶ QC sẽ hỏng
+    # "không thấy file". Đường chạy mới (D-11) chưa dựng, nhưng nó cũng sẽ cần đúng thế.
+    # ⚠ D-12: đã bỏ `lean/` và `cat_studio/kho/` khỏi đây — hai thư mục ấy không còn,
+    # mà PyInstaller báo lỗi NGAY khi một đường dẫn trong `datas` không tồn tại.
     datas=[("webui/dist", "webui/dist"),
-           ("cat_studio/*.py", "cat_studio"),
-           ("cat_studio/kho/*.py", "cat_studio/kho"),
-           ("lean/cat_lean.py", "lean"),
-           ("lean/vo_qc.py", "lean")],
-    # `cat_studio/kho/` import TĨNH ba module con (`from . import chi_bao, …`) nên
-    # PyInstaller lần theo được — khai ở đây chỉ để chắc, và để ai thêm module mới vào
-    # `kho/` thì thấy ngay chỗ cần khai nếu lỡ import động.
-    hiddenimports=["cat_studio.kho.chi_bao", "cat_studio.kho.engine_d02",
-                   "cat_studio.kho.nen_tang"],
+           ("cat_studio/*.py", "cat_studio")],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -64,6 +95,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon="webui/public/favicon.ico",
+    version=phien_ban,
 )
 coll = COLLECT(
     exe,

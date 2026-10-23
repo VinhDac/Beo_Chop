@@ -34,3 +34,17 @@ export function chotSo(nhap: string): number {
   const n = Number(nhap.replace(/\.$/, ''))
   return Number.isFinite(n) ? n : 0
 }
+
+
+/** Một khoản TIỀN -> chữ. `100000` -> `100.000`.
+ *
+ *  ⚠ `vi-VN` CHỨ KHÔNG PHẢI `en-US`, và đây là chuyện khớp nhau chứ không phải gu. Cả
+ *  app đã định dạng số bằng `vi-VN` (`BangBieuDo`, `HopKetQua`, `HopToiUu`). Đồng hồ
+ *  màn Chạy máy viết `100,000` còn bảng Kết quả viết `100.000` thì cùng một con số
+ *  hiện ra hai kiểu, và người đọc phải tự đoán bên nào là hàng nghìn.
+ *
+ *  ⚠ VÀ NÓ Ở ĐÂY, MỘT CHỖ. Bản trước hàm này nằm riêng trong `ManChayMay.tsx`; tới lúc
+ *  bản đồ hành trình cũng cần in vốn thì lối dễ nhất là chép thêm một bản — và quy ước
+ *  "cả app một kiểu số" chết ngay ở lần chép thứ hai. */
+export const soTien = (v: number) =>
+  v.toLocaleString('vi-VN', { maximumFractionDigits: 0 })

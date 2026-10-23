@@ -19,6 +19,12 @@ qc_khoa.json
 # Shortcut do tools/tao_shortcut.bat sinh ra — chứa đường dẫn tuyệt đối của máy này
 Cat Studio.lnk
 
+# Thư mục làm việc của Claude Code. Trong đó có cả WORKTREE — một bản sao đầy đủ
+# của chính kho này — nên để lọt vào `git add` là kho tự nuốt chính nó. Chừa đúng
+# `launch.json`: nó khai cách bật máy chủ xem thử, việc của repo chứ không của máy.
+.claude/*
+!.claude/launch.json
+
 # Build
 webui/node_modules/
 webui/dist/
@@ -27,3 +33,12 @@ dist/
 *.spec.bak
 # Shortcut/bản phát hành sinh ra tại máy — không vào repo.
 # (Bản .zip nằm trong dist/ nên đã bị dist/ ở trên nuốt rồi.)
+
+# Ảnh chụp giao diện QuantConnect — tham chiếu để dựng màn Kết quả (D-17) và màn
+# Optimize. Giữ ở máy thì được; đẩy lên kho là phát tán ảnh sản phẩm của họ.
+tai_lieu/backtest/
+tai_lieu/optimize/
+
+# Chiến thuật ví dụ lấy từ web — tham chiếu để dựng lại (D-18).
+# Giữ ở máy thì được; đẩy lên kho là mang mã của người khác vào hồ sơ của mình.
+tai_lieu/chiến thuật ví dụ/

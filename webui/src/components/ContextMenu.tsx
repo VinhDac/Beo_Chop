@@ -20,6 +20,12 @@ export interface MucPhai {
    *  bàn phím lo; menu không tự gắn phím nào. */
   phim?: string
   con?: MucPhai[]
+  /** CHẤM MÀU đứng thay icon. Mục màu mà chỉ có chữ «Lục», «Lam» thì phải bấm thử
+   *  mới biết nó ra màu gì — và bấm thử là một bước hoàn tác. */
+  mau?: string
+  /** Mục này là thứ ĐANG DÙNG — hiện dấu ✓. Không có nó thì mở menu ra không biết
+   *  khối đang mang màu nào, phải nhìn lại khối rồi đoán. */
+  dang?: boolean
 }
 
 export default function ContextMenu({ x, y, muc, onDong }: {
@@ -79,8 +85,12 @@ export default function ContextMenu({ x, y, muc, onDong }: {
           onDong()
         }}
       >
-        <span className="hinh-muc">{m.icon ? <Icon name={m.icon} size={13} /> : null}</span>
+        <span className="hinh-muc">
+          {m.mau ? <span className="cham-mau" style={{ background: m.mau }} />
+                 : m.icon ? <Icon name={m.icon} size={13} /> : null}
+        </span>
         <span className="chu-muc">{m.ten}</span>
+        {m.dang && <span className="dang-muc">✓</span>}
         {m.phim && <span className="phim-muc">{m.phim}</span>}
         {coCon && <span className="mui-con">▸</span>}
         {coCon && moCon === i && (

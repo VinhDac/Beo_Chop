@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cat Studio · You draw it. LEAN runs it.</title>
+<meta name="description" content="Draw a trading engine as a diagram. Cat Studio writes the QuantConnect algorithm and LEAN runs it — on real data, with real fills and real fees. Every number on this page came back from LEAN.">
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="./"><img src="assets/logo.png" alt="">Cat Studio</a>
+  <nav>
+    <a href="#mach">Watch one get built</a>
+    <a href="#sau-man">The app</a>
+    <a href="#man">The levels</a>
+    <a class="btn" href="https://github.com/VinhDac/Cat-Studio/releases/latest/download/Cat_Studio-0.2-windows-x64-setup.exe">Download</a>
+  </nav>
+</div></header>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════════ HERO
+     Ba nhịp, và nhịp cuối KHÔNG phải sản phẩm — nó là thứ nằm ngoài tay cả người
+     dùng lẫn app. Đó là chỗ cả trang đứng được: app không hứa bạn thắng, nó hứa
+     con số bạn thấy là con số thật. -->
+<section class="mo">
+  <div class="wrap">
+    <h1>You draw it.<br>LEAN runs it.<em>The market decides.</em></h1>
+    <p class="dan">
+      QuantConnect's engine was always free. The price was Python. Cat&nbsp;Studio
+      pays it for you.
+    </p>
+    <div class="nut">
+      <a class="btn chinh" href="#mach">Watch one get built</a>
+      <a class="btn" href="https://github.com/VinhDac/Cat-Studio/releases/latest/download/Cat_Studio-0.2-windows-x64-setup.exe">Download for Windows</a>
+    </div>
+    <p class="ghi-cong">
+      <span>Runs on</span>
+      <img src="assets/qc/quantconnect.png" alt="QuantConnect" width="266" height="45">
+      <span>LEAN</span>
+    </p>
+  </div>
+  <a class="xuong" href="#mach">One engine, from nothing <i></i></a>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ MẠCH CUỘN: CUỘN LÀ DỰNG CỖ MÁY
+     Cả khúc này là MỘT cảnh, không phải mấy mục xếp chồng. Cuộn tới đâu thì khối
+     rơi xuống tới đó và mã tự gõ thêm tới đó; nhịp cuối nhấn ▶ và đường vốn THẬT
+     tự vẽ ra. Xem `assets/mach.js`. -->
+<section id="mach" class="mach" data-nhip="1">
+  <div class="san">
+    <div class="wrap san-trong">
+
+      <div class="loi">
+        <span class="dem"><b data-dem-so>1</b> of 5</span>
+        <div class="cau">
+          <p data-cau="1">You put down <b>one block</b>.<small>Which market, which dates, how much money. Nothing has happened yet.</small></p>
+          <p data-cau="2">You ask the market <b>one question</b>.<small>Is gold oversold? RSI, period 14, below 30 — a question LEAN already knows how to answer.</small></p>
+          <p data-cau="3">You say <b>what to do</b> about it.<small>Put everything in. One block, wired to the answer.</small></p>
+          <p data-cau="4">Then you draw <b>the way out</b>.<small>The second branch. Without it an engine buys and never sells.</small></p>
+          <p data-cau="5">You press <b>Run</b>.<small>Three years of gold, day by day, through QuantConnect's engine. You have typed nothing.</small></p>
+        </div>
+        <div class="ray">
+          <i data-ray></i>
+          <span>block 1</span><span>2</span><span>3</span><span>4</span><span>run</span>
+        </div>
+      </div>
+
+      <div class="ban">
+
+        <!-- HÀNG TRÊN: sơ đồ và kết quả CHỒNG LÊN NHAU, nhường chỗ cho nhau ở nhịp
+             cuối. Phải có khung riêng này: để hai bảng chồng thẳng trong `.ban` thì
+             cái tuyệt đối trùm cả hàng dưới, và bảng mã biến mất sau đồ thị. -->
+        <div class="tren">
+
+        <!-- ─────────────────────────── bảng trên: SƠ ĐỒ, từng khối rơi xuống -->
+        <div class="khung so-do" data-so-do>
+          <div class="nep"><i></i><i></i><i></i><span>the workshop</span></div>
+          <div class="giay">
+            <div class="c-so-do">
+              <svg class="c-day" viewBox="0 0 800 342" aria-hidden>
+                <path data-day="2" pathLength="1" d="M242 126 C272 126 272 74 301 74" />
+                <path data-day="3" pathLength="1" d="M471 74 H501" />
+                <path data-day="4" pathLength="1" d="M242 126 C272 126 272 214 301 214" />
+                <path data-day="4" pathLength="1" d="M471 214 H501" />
+              </svg>
+              <div class="c-khoi c-khoi-bd" data-khoi="1" style="left:24px;top:78px;width:218px;height:96px">
+                <span class="c-bade">1</span>
+                <div class="c-dinh"><b>Start</b><em>START</em></div>
+                <div class="c-than">
+                  <div><span class="ma">XAUUSD</span> · Cfd</div>
+                  <div><span class="so">01/01/2012</span> → <span class="so">31/12/2014</span></div>
+                  <div><span class="so">$100,000</span> capital</div>
+                </div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" data-khoi="2" style="left:301px;top:44px;width:170px;height:60px">
+                <span class="c-bade">1A</span>
+                <div class="c-dinh"><b>Oversold?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&lt;</span> <span class="so">30</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" data-khoi="3" style="left:501px;top:44px;width:215px;height:60px">
+                <span class="c-bade">1A.1</span>
+                <div class="c-dinh"><b>Go all in</b><em>SINGLE</em></div>
+                <div class="c-than"><div>Set target weight <span class="so">100%</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" data-khoi="4" style="left:301px;top:184px;width:170px;height:60px">
+                <span class="c-bade">1B</span>
+                <div class="c-dinh"><b>Overbought?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&gt;</span> <span class="so">70</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" data-khoi="4" style="left:501px;top:184px;width:215px;height:60px">
+                <span class="c-bade">1B.1</span>
+                <div class="c-dinh"><b>Exit everything</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="ma">XAUUSD</span> · Close</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───────────── bảng trên, nhịp cuối: KẾT QUẢ THẬT thay chỗ sơ đồ -->
+        <div class="khung ket-qua" data-ket-qua>
+          <div class="nep"><i></i><i></i><i></i><span>what LEAN sent back</span></div>
+          <div class="giay">
+            <svg class="do-thi" viewBox="0 0 560 210" preserveAspectRatio="none" aria-hidden>
+              <line class="khong" x1="0" x2="560" data-khong />
+              <path class="duong boss" data-duong-boss />
+              <path class="duong may" data-duong-may />
+            </svg>
+            <div class="nhan-do-thi">
+              <span class="may"><i></i>Your engine <b data-may-pt>—</b></span>
+              <span class="boss"><i></i>Buy and hold <b data-boss-pt>—</b></span>
+            </div>
+            <p class="chu-do-thi">
+              XAUUSD · 2012-01-01 → 2014-12-31 · <b data-lenh>—</b> orders · fees on ·
+              one real LEAN backtest, not a drawing.
+            </p>
+          </div>
+        </div>
+
+        </div><!-- /.tren -->
+
+        <!-- ──────────────────── bảng dưới: MÃ, mỗi nhịp mọc thêm mấy dòng -->
+        <div class="khung ma" data-ma>
+          <div class="nep"><i></i><i></i><i></i><span>main.py — written for you</span></div>
+<pre><code><span data-d="1" class="chu">"""Algorithm generated by Cat_Studio — RSI sample.</span>
+<span data-d="1" class="chu">DO NOT EDIT BY HAND: reopen the diagram and generate again."""</span>
+<span data-d="1"><span class="kw">from</span> AlgorithmImports <span class="kw">import</span> *</span>
+<span data-d="1"> </span>
+<span data-d="1"><span class="kw">class</span> <span class="tu">RSISample</span>(QCAlgorithm):</span>
+<span data-d="1"> </span>
+<span data-d="1">    <span class="kw">def</span> <span class="tu">initialize</span>(self):</span>
+<span data-d="1">        self.set_start_date(<span class="so">2012</span>, <span class="so">1</span>, <span class="so">1</span>)</span>
+<span data-d="1">        self.set_end_date(<span class="so">2014</span>, <span class="so">12</span>, <span class="so">31</span>)</span>
+<span data-d="1">        self.set_cash(<span class="so">100000.0</span>)</span>
+<span data-d="1">        self.set_brokerage_model(BrokerageName.DEFAULT)</span>
+<span data-d="1"> </span>
+<span data-d="1">        self._ten = {}</span>
+<span data-d="1">        self._ten[<span class="chuoi">'XAUUSD'</span>] = self.add_cfd(</span>
+<span data-d="1">            <span class="chuoi">'XAUUSD'</span>, Resolution.DAILY).symbol</span>
+<span data-d="1">        self._ma = list(self._ten.values())</span>
+<span data-d="1">        self.set_benchmark(<span class="chuoi">'XAUUSD'</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">        self._cb = {}</span>
+<span data-d="2">        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:</span>
+<span data-d="2">            self._cb[sym] = {}</span>
+<span data-d="2">            self._cb[sym][<span class="chuoi">'rsi_14'</span>] = self.rsi(sym, <span class="so">14</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">        self.set_warm_up(<span class="so">14</span>)</span>
+<span data-d="2"> </span>
+<span data-d="2">    <span class="kw">def</span> <span class="tu">on_data</span>(self, data):</span>
+<span data-d="2">        <span class="kw">if</span> self.is_warming_up:</span>
+<span data-d="2">            <span class="kw">return</span></span>
+<span data-d="2">        <span class="kw">for</span> sym <span class="kw">in</span> self._ma:</span>
+<span data-d="2">            self._mot_ma(sym, data)</span>
+<span data-d="2"> </span>
+<span data-d="2">    <span class="kw">def</span> <span class="tu">_mot_ma</span>(self, sym, data):</span>
+<span data-d="2">        <span class="kw">if</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value</span>
+<span data-d="2">                <span class="phep">&lt;</span> <span class="so">30</span>):  <span class="chu"># 1A · Oversold?</span></span>
+<span data-d="3">            <span class="chu"># 1A.1 · Go all in</span></span>
+<span data-d="3">            self.set_holdings(self._ten[<span class="chuoi">'XAUUSD'</span>], <span class="so">1</span>, <span class="kw">False</span>,</span>
+<span data-d="3">                              tag=<span class="chuoi">'[1A.1] RSI(14) &lt; 30'</span>)</span>
+<span data-d="4">        <span class="kw">elif</span> (self._cb[sym][<span class="chuoi">'rsi_14'</span>].current.value</span>
+<span data-d="4">                  <span class="phep">&gt;</span> <span class="so">70</span>):  <span class="chu"># 1B · Overbought?</span></span>
+<span data-d="4">            <span class="chu"># 1B.1 · Exit everything</span></span>
+<span data-d="4">            self.liquidate(self._ten[<span class="chuoi">'XAUUSD'</span>],</span>
+<span data-d="4">                           tag=<span class="chuoi">'[1B.1] RSI(14) &gt; 70'</span>)</span>
+</code></pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════ CẢNH TRÊN LÀ VẼ LẠI — ĐÂY MỚI LÀ APP
+     ⚠ PHẢI NÓI RA. Cảnh cuộn ở trên dựng bằng HTML cho từng khối rơi xuống được, nên
+     nó KHÔNG phải ảnh chụp — một người tinh ý sẽ nghi đúng chỗ ấy. Nói trước thì cái
+     nghi ngờ tắt ngay và sáu tấm ảnh dưới làm nốt việc.
+
+     ⚠ SÁU ẢNH NÀY LÀ ẢNH CHỤP THẬT, một lượt đi liền mạch: mở app → chọn màn → đọc
+     việc → vẽ → chạy → chấm. Không dựng, không ghép. Con số trên ảnh thứ sáu là con
+     số LEAN trả về, cùng lượt với đường vốn ở khúc trên. -->
+<section id="sau-man" class="sau-man"><div class="wrap">
+  <p class="loi-that">
+    Every screen below is <b>drawn in the page</b>, not a screenshot — so it can point
+    at the button you press. <b>The numbers in it are a real LEAN run.</b>
+  </p>
+
+  <div class="phim" data-man="1">
+    <ol class="sau-ray">
+      <li><button data-di="1" aria-current="true"><b>1</b><span>Open it</span></button></li>
+      <li><button data-di="2"><b>2</b><span>Pick a level</span></button></li>
+      <li><button data-di="3"><b>3</b><span>Read the brief</span></button></li>
+      <li><button data-di="4"><b>4</b><span>Draw</span></button></li>
+      <li><button data-di="5"><b>5</b><span>Run it</span></button></li>
+      <li><button data-di="6"><b>6</b><span>Get scored</span></button></li>
+    </ol>
+
+    <div class="cua">
+      <div class="khung">
+        <div class="nep"><i></i><i></i><i></i><span data-ten>Cat Studio</span></div>
+        <div class="anh">
+
+        <!-- ① MÀN CHỜ -->
+        <div class="c-canh" data-m="1">
+          <div class="c-nen"></div>
+          <div class="c-mo">
+            <img class="c-logo" src="assets/logo.png" alt="" width="200" height="200">
+            <h3 class="c-ten">Cat Studio</h3>
+            <p class="c-dan">Draw an engine. Drop it into the market. See if it survives.</p>
+            <div class="c-hai-nut">
+              <span class="c-nut c-chinh"><b>Journey</b><small>From a two-block engine to the final boss</small></span>
+              <span class="c-nut"><b>Creative mode</b><small>Reopen the engine you were drawing</small></span>
+            </div>
+            <p class="c-dem">
+              <span><b>164</b> quantities</span><i>·</i><span><b>9</b> groups</span><i>·</i>
+              <span><b>26</b> levels</span><i>·</i><span><b>10</b> actions</span><i>·</i>
+              <span class="c-song"><em></em>runs on the real LEAN</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- ② BẢN ĐỒ HÀNH TRÌNH -->
+        <div class="c-canh" data-m="2">
+          <div class="c-dau-man">
+            <span class="c-ds"><b>1</b>/26<small>levels cleared</small></span>
+            <span class="c-ds c-sao"><b>★ 0</b>/66<small>stars earned</small></span>
+            <span class="c-kho-nut">Library</span>
+          </div>
+
+          <div class="c-hoi">
+            <b>Prologue</b><span>One engine, two blocks</span>
+            <i class="c-vach c-vach-xong"><u style="width:100%"></u></i><em>1/1</em>
+          </div>
+          <div class="c-the c-the-xong">
+            <p><b>00</b> You are the boss</p>
+            <small>Build a two-block engine: Start → Set weight 100%. It IS «Buy and hold».</small>
+            <span class="c-mo-khoa"><i></i>Start block <i></i>Set target weight <i></i>The Run button</span>
+          </div>
+
+          <div class="c-hoi">
+            <b>Asking the price</b><span>The engine has to look</span>
+            <i class="c-vach"><u style="width:0"></u></i><em>0/3</em>
+          </div>
+          <div class="c-hai-the">
+            <div class="c-the c-dang-o">
+              <p><b>01</b> Your first valve</p>
+              <small>Buy only when the price is above a threshold.</small>
+              <span class="c-san"><b>XAUUSD</b> 2012-01-01 → 2014-12-31</span>
+            </div>
+            <div class="c-the c-khoa">
+              <p><b>02</b> If you can get in, you need a way out <u>LOCKED</u></p>
+              <small>Two branches: one to enter, one to exit.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ GIAO VIỆC -->
+        <div class="c-canh" data-m="3">
+          <h3 class="c-tieu"><u>01</u> Your first valve</h3>
+          <p class="c-loi-day">Buy only when the price is above a threshold. A Confirm gate is the engine's valve.</p>
+          <p class="c-meo">Three years of gold falling. Buy and hold loses money here — so the boss is
+            <b>WEAK</b>, and what beats it is not clever buying but knowing when to stay out.</p>
+          <div class="c-doi">
+            <div class="c-hop">
+              <span class="c-nhan">ARENA</span>
+              <p class="c-ma-to">XAUUSD <u>2012-01-01 → 2014-12-31</u></p>
+              <p class="c-von">$100,000</p>
+              <p class="c-an">And a hidden period: a date range the engine has never seen</p>
+            </div>
+            <div class="c-hop c-boss">
+              <span class="c-nhan">BOSS</span>
+              <p class="c-boss-ten">Buy and hold</p>
+              <p class="c-an">Buy on the first bar, hold to the last. Nothing else.</p>
+            </div>
+          </div>
+          <div class="c-hop c-sao-hop">
+            <span class="c-nhan">HOW TO EARN STARS</span>
+            <p class="c-ba-sao">☆ ☆ ☆</p>
+            <p class="c-an">☆ ran clean&nbsp; · &nbsp;☆ beat the boss on the visible period&nbsp; · &nbsp;☆ and on the hidden one</p>
+          </div>
+        </div>
+
+        <!-- ④ XƯỞNG -->
+        <div class="c-canh" data-m="4">
+          <div class="c-thanh-man"><u>01</u><b>Your first valve</b>
+            <span>Buy only when the price is above a threshold.</span><em>Briefing</em></div>
+          <div class="c-do-nghe">
+            <span class="c-mon"><i></i>Start</span>
+            <span class="c-mon"><i></i>Confirm</span>
+            <span class="c-mon"><i></i>Action</span>
+            <span class="c-mon"><i></i>Group</span>
+            <span class="c-mon"><i></i>Loop back</span>
+            <span class="c-vach-doc"></span>
+            <span class="c-mon c-sang"><i></i>Build</span>
+            <span class="c-mon c-sang c-mon-nhan"><i></i>Backtest</span>
+            <span class="c-mon c-sang"><i></i>Optimize</span>
+            <span class="c-mon c-tat"><i></i>Live</span>
+            <span class="c-mon c-sang"><i></i>Results</span>
+          </div>
+          <div class="c-giay">
+              <div class="c-so-do">
+              <svg class="c-day" viewBox="0 0 800 342" aria-hidden>
+                <path pathLength="1" d="M242 126 C272 126 272 74 301 74" />
+                <path pathLength="1" d="M471 74 H501" />
+                <path pathLength="1" d="M242 126 C272 126 272 214 301 214" />
+                <path pathLength="1" d="M471 214 H501" />
+              </svg>
+              <div class="c-khoi c-khoi-bd" style="left:24px;top:78px;width:218px;height:96px">
+                <span class="c-bade">1</span>
+                <div class="c-dinh"><b>Start</b><em>START</em></div>
+                <div class="c-than">
+                  <div><span class="ma">XAUUSD</span> · Cfd</div>
+                  <div><span class="so">01/01/2012</span> → <span class="so">31/12/2014</span></div>
+                  <div><span class="so">$100,000</span> capital</div>
+                </div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" style="left:301px;top:44px;width:170px;height:60px">
+                <span class="c-bade">1A</span>
+                <div class="c-dinh"><b>Oversold?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&lt;</span> <span class="so">30</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" style="left:501px;top:44px;width:215px;height:60px">
+                <span class="c-bade">1A.1</span>
+                <div class="c-dinh"><b>Go all in</b><em>SINGLE</em></div>
+                <div class="c-than"><div>Set target weight <span class="so">100%</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" style="left:301px;top:184px;width:170px;height:60px">
+                <span class="c-bade">1B</span>
+                <div class="c-dinh"><b>Overbought?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&gt;</span> <span class="so">70</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" style="left:501px;top:184px;width:215px;height:60px">
+                <span class="c-bade">1B.1</span>
+                <div class="c-dinh"><b>Exit everything</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="ma">XAUUSD</span> · Close</div></div>
+              </div>
+            </div>
+            </div>
+          <div class="c-chan-xuong"><span>5 blocks · 4 wires</span><em>62%</em></div>
+          <span class="c-tro" style="left:438px;top:64px"></span>
+        </div>
+
+        <!-- ⑤ CHẠY MÁY -->
+        <div class="c-canh" data-m="5">
+          <div class="c-tien">
+            <b data-c-tien>$94,790</b>
+            <span class="c-xuong"><i>▼</i> <u data-c-lech>$5,210</u> · <u data-c-pt>−5.2%</u></span>
+            <small data-c-ngay>2014-09-10</small>
+          </div>
+          <div class="c-giay c-dang-chay">
+              <div class="c-so-do">
+              <svg class="c-day" viewBox="0 0 800 342" aria-hidden>
+                <path pathLength="1" d="M242 126 C272 126 272 74 301 74" />
+                <path pathLength="1" d="M471 74 H501" />
+                <path pathLength="1" d="M242 126 C272 126 272 214 301 214" />
+                <path pathLength="1" d="M471 214 H501" />
+              </svg>
+              <div class="c-khoi c-khoi-bd" style="left:24px;top:78px;width:218px;height:96px">
+                <span class="c-bade">1</span>
+                <div class="c-dinh"><b>Start</b><em>START</em></div>
+                <div class="c-than">
+                  <div><span class="ma">XAUUSD</span> · Cfd</div>
+                  <div><span class="so">01/01/2012</span> → <span class="so">31/12/2014</span></div>
+                  <div><span class="so">$100,000</span> capital</div>
+                </div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" style="left:301px;top:44px;width:170px;height:60px">
+                <span class="c-bade">1A</span>
+                <div class="c-dinh"><b>Oversold?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&lt;</span> <span class="so">30</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" style="left:501px;top:44px;width:215px;height:60px">
+                <span class="c-bade">1A.1</span>
+                <div class="c-dinh"><b>Go all in</b><em>SINGLE</em></div>
+                <div class="c-than"><div>Set target weight <span class="so">100%</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-hoi" style="left:301px;top:184px;width:170px;height:60px">
+                <span class="c-bade">1B</span>
+                <div class="c-dinh"><b>Overbought?</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="dl">RSI</span>(<span class="so">14</span>) <span class="phep">&gt;</span> <span class="so">70</span></div></div>
+              </div>
+              <div class="c-khoi c-khoi-lam" style="left:501px;top:184px;width:215px;height:60px">
+                <span class="c-bade">1B.1</span>
+                <div class="c-dinh"><b>Exit everything</b><em>SINGLE</em></div>
+                <div class="c-than"><div><span class="ma">XAUUSD</span> · Close</div></div>
+              </div>
+            </div>
+            </div>
+          <svg class="c-do-thi" viewBox="0 0 800 110" preserveAspectRatio="none" aria-hidden>
+            <path class="c-duong-may" data-c-duong />
+          </svg>
+          <div class="c-bang-dieu">
+            <span class="c-tron"></span>
+            <span class="c-toc">×1</span><span class="c-toc">×8</span><span class="c-toc c-chon">×64</span>
+            <span class="c-thanh"><u style="width:90%"></u><i style="left:90%"></i></span>
+            <span class="c-dem-nhip">1654/1843</span>
+            <span class="c-o-tich"><i class="c-co"></i>flows</span>
+            <span class="c-cham-nut">Score</span>
+          </div>
+        </div>
+
+        <!-- ⑥ CHẤM -->
+        <div class="c-canh" data-m="6">
+          <h3 class="c-tieu c-giua"><u>01</u> Your first valve</h3>
+          <p class="c-sao-to">★ ★ ★</p>
+          <ul class="c-dat">
+            <li>ran clean</li>
+            <li>beat the boss on the visible period</li>
+            <li>and beat it on the hidden period too</li>
+          </ul>
+          <table class="c-bang">
+            <tr><td>Your engine</td><td class="c-tot" data-c-may>−9.87 %</td></tr>
+            <tr><td>Buy and hold</td><td class="c-xau" data-c-boss>−24.42 %</td></tr>
+            <tr><td>Trades closed</td><td>4</td></tr>
+            <tr><td>Compactness</td><td class="c-mono">4 = 4 blocks + 0 knobs</td></tr>
+          </table>
+          <div class="c-an-hop">
+            <span class="c-nhan">ON THE HIDDEN PERIOD</span>
+            <table class="c-bang">
+              <tr><td>Your engine</td><td class="c-tot">−5.60 %</td></tr>
+              <tr><td>Buy and hold</td><td class="c-xau">−10.33 %</td></tr>
+            </table>
+            <p class="c-an">It still works on a date range it has never seen. That is a strategy.</p>
+          </div>
+        </div>
+        </div>
+      </div>
+      <button class="lat truoc" data-lat="-1" aria-label="Previous screen"></button>
+      <button class="lat sau" data-lat="1" aria-label="Next screen"></button>
+    </div>
+
+    <div class="loi-anh">
+      <p data-m="1" class="hien">A blank canvas, or the journey.</p>
+      <p data-m="2">Twenty-six levels. Sixty-six stars. One opens at a time.</p>
+      <p data-m="3">An arena, a boss to beat, and what each star costs.</p>
+      <p data-m="4">Five blocks, four wires. No code — and no code hidden from you either.</p>
+      <p data-m="5">LEAN runs. You watch the money move, bar by bar, at 64×.</p>
+      <p data-m="6">Beaten the boss? Submit, and it re-runs on dates you never saw.</p>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- ══════════════════════════════════════════════════════ NÓ NÓI THẬT VỚI BẠN -->
+<section class="that"><div class="wrap">
+  <div class="dau">
+    <span class="moc">And it will not let you lie to yourself</span>
+    <h2>Minus 9.87% — and that is a win.</h2>
+    <p>
+      Gold fell for three years. Holding it lost a quarter; the engine above lost
+      9.87%, because it stayed out.
+    </p>
+  </div>
+  <div class="luoi">
+    <div class="o">
+      <h3>The boss</h3>
+      <p>Buy on the first bar, hold to the last. Beating it is the second star.</p>
+    </div>
+    <div class="o">
+      <h3>The third star</h3>
+      <p>The same engine, on dates you were never shown. Fit the past and you lose
+        it here.</p>
+    </div>
+    <div class="o">
+      <h3>No number is ours</h3>
+      <p>Fills, sizing, margin, fees, slippage — all LEAN's. Cat Studio draws,
+        checks, translates.</p>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- ═══════════════════════════════════════════════════ 26 MÀN, 10 HỒI
+     ⚠ SINH RA TỪ APP, không gõ tay — xem `scratchpad/va_26_man.py`. Tên hồi, tên màn
+     và con số đều lấy từ `hanh_trinh.tu_dien()`. Sửa một màn trong app rồi chạy lại
+     là trang theo kịp; gõ tay thì hôm nào đó trang nói sai mà không ai biết. -->
+<section id="man"><div class="wrap">
+  <div class="dau">
+    <span class="moc">The journey</span>
+    <h2>26 levels. 66 stars. Ten acts.</h2>
+    <p>Each one unlocks the next, and hands you the blocks it needs.</p>
+  </div>
+  <div class="bang-man">
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Prologue</h3><p>One engine, two blocks</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="00 · You are the boss · SPY"><b>00</b><span>You are the boss</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Asking the price</h3><p>The engine has to look</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="01 · Your first valve · XAUUSD"><b>01</b><span>Your first valve</span></li>
+        <li class="o-man" title="02 · If you can get in, you need a way out · SPY"><b>02</b><span>If you can get in, you need a way out</span></li>
+        <li class="o-man" title="03 · The day the symbol split · AAPL"><b>03</b><span>The day the symbol split</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Indicator</h3><p>Don&#x27;t do the maths — have it done</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="04 · Open the library · SPY"><b>04</b><span>Open the library</span></li>
+        <li class="o-man" title="05 · Multi-line indicator · XAUUSD"><b>05</b><span>Multi-line indicator</span></li>
+        <li class="o-man" title="06 · And, or · AAPL"><b>06</b><span>And, or</span></li>
+        <li class="o-man" title="07 · Which number is the good number · IBM"><b>07</b><span>Which number is the good number</span></li>
+        <li class="o-man" title="08 · The hidden period slaps back · AAPL"><b>08</b><span>The hidden period slaps back</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Position &amp; account</h3><p>The engine has to know what it holds</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="09 · You already hold it · AAPL"><b>09</b><span>You already hold it</span></li>
+        <li class="o-man" title="10 · Out of cash · BAC"><b>10</b><span>Out of cash</span></li>
+        <li class="o-man" title="11 · Leave an order waiting · XAUUSD"><b>11</b><span>Leave an order waiting</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Memory</h3><p>The engine has to remember overnight</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="12 · Remember overnight · SPY"><b>12</b><span>Remember overnight</span></li>
+        <li class="o-man" title="13 · The loop · XAUUSD"><b>13</b><span>The loop</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Time</h3><p>When to act, when to sit still</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="14 · Only on the right day · SPY"><b>14</b><span>Only on the right day</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Many symbols</h3><p>One engine, many lines in the water</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="15 · Two lines in the water · [&#x27;SPY&#x27;, &#x27;QQQ&#x27;]"><b>15</b><span>Two lines in the water</span></li>
+        <li class="o-man" title="16 · A whole universe · [&#x27;USO&#x27;]"><b>16</b><span>A whole universe</span></li>
+        <li class="o-man chua" title="17 · Universes that filter themselves"><b>17</b><span>Universes that filter themselves</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>The company</h3><p>Read the books, not just the price</p></div>
+      <ul class="day-man">
+        <li class="o-man chua" title="18 · Read the books"><b>18</b><span>Read the books</span></li>
+        <li class="o-man chua" title="19 · Five hundred companies"><b>19</b><span>Five hundred companies</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>Engine</h3><p>What the engine runs on</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="20 · Fees eat the profit · AAPL"><b>20</b><span>Fees eat the profit</span></li>
+        <li class="o-man" title="21 · Keep something back · AIG"><b>21</b><span>Keep something back</span></li>
+        <li class="o-man" title="22 · Let LEAN size it for you · [&#x27;SPY&#x27;, &#x27;QQQ&#x27;, &#x27;IWM&#x27;]"><b>22</b><span>Let LEAN size it for you</span></li>
+      </ul>
+    </div>
+    <div class="hoi-man">
+      <div class="ten-hoi"><h3>The whole workshop</h3><p>Many engines inside one engine</p></div>
+      <ul class="day-man">
+        <li class="o-man" title="23 · Two engines side by side · [&#x27;SPY&#x27;, &#x27;QQQ&#x27;]"><b>23</b><span>Two engines side by side</span></li>
+        <li class="o-man" title="24 · Fold it into one · AAPL"><b>24</b><span>Fold it into one</span></li>
+        <li class="o-man" title="25 · Final boss · SPY"><b>25</b><span>Final boss</span></li>
+      </ul>
+    </div>
+  </div>
+  <p class="nho-ghi">Dimmed: needs QuantConnect's paid <code>fine</code> feed.</p>
+</div></section>
+
+
+<!-- ════════════════════════════════════════════════════════ THỨ BẠN GIỮ LẠI -->
+<section id="giu" class="lang"><div class="wrap doi-cot">
+  <div>
+    <span class="moc">What you keep</span>
+    <h2>The diagram is a way in, not a lock-in.</h2>
+    <p style="margin-top:14px">
+      What comes out is an ordinary QuantConnect algorithm. Take <code>main.py</code>
+      anywhere, and keep going without Cat Studio the day you no longer need it.
+    </p>
+    <p class="ghi-cong nho">
+      <span>Runs on</span>
+      <img src="assets/qc/quantconnect.png" alt="QuantConnect" width="266" height="45">
+    </p>
+  </div>
+  <ul class="diem">
+    <li><b>Every quantity names its LEAN line.</b> All 164 quantities, shown in
+      the library.</li>
+    <li><b>Every order carries its block.</b> LEAN's own log reads back onto the
+      diagram.</li>
+    <li><b>It runs on your machine.</b> No account, no server, nothing uploaded, no
+      LLM anywhere in it.</li>
+    <li><b>The levels teach the engine, not the app.</b> QuantConnect's own
+      vocabulary, one idea at a time.</li>
+  </ul>
+</div>
+<div class="wrap">
+  <div class="c-kho">
+    <div class="c-kho-ben">
+      <span class="c-o-tim">Search the library…</span>
+      <span class="c-nhom c-chon">Price <u>8</u></span>
+      <span class="c-nhom">Indicator <u>90</u></span>
+      <span class="c-nhom">Multi-line indicator <u>16</u></span>
+      <span class="c-nhom">Symbol status <u>5</u></span>
+      <span class="c-nhom">Position <u>12</u></span>
+      <span class="c-nhom">Account <u>8</u></span>
+    </div>
+    <div class="c-kho-chinh">
+      <p class="c-kho-dau"><b>Price</b><u>LOCKED — REACH THE LEVEL THAT OPENS IT</u></p>
+      <div class="c-mon-kho"><b>Current price</b><code>self.securities[sym].price</code></div>
+      <div class="c-mon-kho"><b>Open price</b><code>data.bars[sym].open</code></div>
+      <div class="c-mon-kho"><b>High price</b><code>data.bars[sym].high</code></div>
+      <div class="c-mon-kho"><b>Low price</b><code>data.bars[sym].low</code></div>
+    </div>
+  </div>
+  <p class="c-kho-chu">Each one, beside the LEAN expression it compiles to.</p>
+</div></section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ LẤY VỀ -->
+<section id="lay"><div class="wrap">
+  <div class="dau">
+    <span class="moc">Get it</span>
+    <h2>Install it, then point it at LEAN.</h2>
+    <p>
+      One installer, <b>13.7&nbsp;MB</b>, no admin rights. It does <b>not</b> carry
+      LEAN — the reason is below.
+    </p>
+  </div>
+  <ol class="buoc">
+    <li><b><a href="https://github.com/VinhDac/Cat-Studio/releases/latest/download/Cat_Studio-0.2-windows-x64-setup.exe">Download <code>Cat_Studio-0.2-windows-x64-setup.exe</code></a></b>
+      <p>Windows 10 or 11, 64-bit. No admin rights: it installs under your own
+        user folder.</p></li>
+    <li><b>Build LEAN, or point at one you have</b>
+      <p>Settings → the folder holding <code>Launcher\</code> and
+        <code>Data\</code>. Or drop a <code>Lean\</code> folder beside the app and it
+        finds it.</p></li>
+    <li><b>Draw, then press Backtest</b>
+      <p>It writes <code>main.py</code>, hands it to LEAN, and shows you what came
+        back.</p></li>
+  </ol>
+  <p class="nho-ghi">
+    Your diagrams, drafts and scores live in <code>du_lieu\</code> beside the app.
+    Uninstalling leaves them alone.
+  </p>
+
+  <div class="hoi">
+    <details open>
+      <summary>Why doesn't the installer include LEAN?</summary>
+      <p>Not size. It needs .NET&nbsp;10 present; it runs Python through pythonnet,
+        so a Python runtime must travel with it; and LEAN's <code>Data/</code> carries
+        no licence file — Apache-2.0 covers the engine, not market data.</p>
+      <p>So you bring LEAN, and Cat Studio never pretends to be the thing doing the
+        computing.</p>
+    </details>
+    <details>
+      <summary>Does it place real trades?</summary>
+      <p>No. Backtests on historical data. The <b>Live</b> button exists because LEAN
+        has one, and it is switched off.</p>
+    </details>
+    <details>
+      <summary>Do all 26 levels work?</summary>
+      <p>Twenty-three. Levels 17, 18 and 19 ask what a company is worth, which needs
+        QuantConnect's paid <code>fine</code> feed. They say so on their own card
+        rather than failing quietly.</p>
+    </details>
+    <details>
+      <summary>Which computers?</summary>
+      <p>Windows 10 and 11. The app is Python with a web UI in a native window.</p>
+    </details>
+  </div>
+</div></section>
+
+</main>
+
+<footer class="chan"><div class="wrap">
+  <span>Cat Studio · you draw it, LEAN runs it</span>
+  <nav>
+    <a href="#sau-man">The app</a>
+    <a href="#man">The levels</a>
+    <a href="#giu">What you keep</a>
+    <a href="#lay">Get it</a>
+  </nav>
+</div></footer>
+
+<script src="assets/luot.js"></script>
+<script src="assets/mach.js"></script>
+</body>
+</html>

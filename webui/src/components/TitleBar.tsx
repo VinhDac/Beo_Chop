@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { py } from '../api'
 import ContextMenu, { type MucPhai } from './ContextMenu'
+import { useKhungCuaSo } from '../useKhungCuaSo'
+import { tr } from '../ngon_ngu'
 
 export interface NhomMenu { ten: string; muc: MucPhai[] }
+
+/** Bề dày dải tiêu đề, px — phải khớp `height` của `.thanh-tieu-de` trong app.css. */
+const CAO = 32
 
 /** Thanh tiêu đề tự vẽ.
  *
@@ -22,6 +27,18 @@ export default function TitleBar({ tieuDe, menus, them }: {
    *  Windows coi dải đó là caption và cú bấm hoá ra kéo cửa sổ. */
   them?: React.ReactNode
 }) {
+  /* ⭐ BỘ BẮT KÉO LẮP NGAY TẠI ĐÂY, không để chỗ gọi tự nhớ.
+   *
+   *  ⚠ ĐÃ HỎNG THẬT. `useKhungCuaSo` trước đây chỉ được gọi trong `SoDo` — cửa sổ
+   *  CHÍNH. Cửa sổ Kết quả riêng dựng `TitleBar` y hệt nhưng không ai lắp bộ kéo
+   *  cho nó, nên thanh tiêu đề của nó là một DẢI CHẾT: không kéo, không giãn, không
+   *  Aero Snap. Không lỗi, không cảnh báo — chỉ là bấm vào thì chẳng có gì xảy ra.
+   *
+   *  Thanh tiêu đề tự vẽ và bộ bắt kéo là MỘT thứ: có cái này thì phải có cái kia.
+   *  Để chúng ở hai nơi là để lại một luật phải nhớ, mà luật phải nhớ thì cửa sổ
+   *  thứ ba sẽ quên y như cửa sổ thứ hai đã quên. */
+  useKhungCuaSo(CAO)
+
   const [mo, setMo] = useState<{ i: number; x: number; y: number } | null>(null)
   const [phongTo, setPhongTo] = useState(false)
   const thanh = useRef<HTMLDivElement>(null)
@@ -49,8 +66,11 @@ export default function TitleBar({ tieuDe, menus, them }: {
      * cần thiết vì chữ trên dải đổi thì bề rộng đổi) — nhưng so trước rồi mới gửi. */
     const van = vung.map(v => v.join('-')).join(',') + '|' + cao
     if (van === daGui.current) return
-    daGui.current = van
-    py.vung_khong_keo(vung, cao)
+    /* ⚠ CHỈ NHỚ KHI GỬI ĐƯỢC. Lúc khởi động, cầu nối pywebview chưa có hàm nào thì
+     * lời gọi này trượt — mà nếu đã kịp nhớ `van` thì mọi lần sau đều bị chặn vì
+     * "có đổi gì đâu". Vùng kéo không bao giờ tới được Python, và thanh tiêu đề
+     * không kéo được nữa cho tới khi đổi cỡ cửa sổ. */
+    void py.vung_khong_keo(vung, cao).then(r => { if (r.ok) daGui.current = van })
   }, [])
 
   useEffect(() => {
@@ -84,11 +104,11 @@ export default function TitleBar({ tieuDe, menus, them }: {
         {/* Khoảng giữa để trống CỐ Ý: đó chính là vùng kéo cửa sổ. */}
         <div className="ten-cua-so">{tieuDe}</div>
         <div className="nut-cua-so" data-khong-keo>
-          <button className="nut-cs" title="Thu nhỏ"
+          <button className="nut-cs" title={tr('Thu nhỏ')}
                   onClick={() => py.cua_so_thu_nho()}>
             <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" /></svg>
           </button>
-          <button className="nut-cs" title={phongTo ? 'Khôi phục' : 'Phóng to'}
+          <button className="nut-cs" title={phongTo ? tr('Khôi phục') : tr('Phóng to')}
                   onClick={() => py.cua_so_phong_to().then(r => setPhongTo(!!r.value))}>
             {phongTo ? (
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor">
@@ -100,7 +120,12 @@ export default function TitleBar({ tieuDe, menus, them }: {
               </svg>
             )}
           </button>
-          <button className="nut-cs dong" title="Đóng"
+          {/* ⚠ KHÔNG hỏi trước khi đóng, và đó là một QUYẾT ĐỊNH chứ không phải
+              thiếu sót. Jenifer có `truocKhiDong` vì cửa sổ của nó có chữ gõ tay
+              chưa lưu. Cat_Studio thì tự lưu bản nháp mỗi 1,2 giây (`luu_ban_nhap`)
+              và mở lại là nạp đúng bản ấy — ✕ không làm mất gì, nên một câu hỏi ở
+              đây chỉ là một nhát bấm thừa mỗi lần đóng app. */}
+          <button className="nut-cs dong" title={tr('Đóng')}
                   onClick={() => py.cua_so_dong()}>
             <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor">
               <path d="M0 0l10 10M10 0L0 10" />

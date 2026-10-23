@@ -39,6 +39,15 @@ const HINH: Record<string, React.ReactNode> = {
   /* --- loại khối --- */
   start: <><circle {...S} cx="8" cy="8" r="5.9" /><path {...S} d="M8 3.6l2.6 4.4L8 12.4 5.4 8z" /></>,
   action: <><path {...S} d="M9.4 1.8 4 9h3.3l-.8 5.2L11.9 7H8.6z" /></>,
+  /* Nhóm: một hộp ôm mấy dòng — đúng hình "chuỗi hành động gói lại". */
+  group: <><rect {...S} x="2.2" y="3" width="11.6" height="10" rx="1.6" /><path {...S} d="M5 6.2h6M5 8.6h6M5 11h3.5" /></>,
+  /* Quay về: mũi tên vồng NGƯỢC lên rồi chỉ về sau — cùng hình với đường ↻ trên canvas,
+     để nhìn nút và nhìn dây là biết cùng một thứ. */
+  'quay-ve': <><path {...S} d="M12.6 11.4a4.6 4.6 0 0 0-4.6-5.8H4.2" /><path {...S} d="M6.6 3.2 3.4 5.6l3.2 2.4" /></>,
+  /* Hạt nhân: một khung bao mấy ô nhỏ — đúng hình "gói một mảng sơ đồ lại". */
+  tim: <><circle {...S} cx="7" cy="7" r="4.4" /><path {...S} d="M10.3 10.3l3.3 3.3" /></>,
+  frame: <><rect {...S} x="1.8" y="2.6" width="12.4" height="10.8" rx="1.4" /><rect {...S} x="4" y="5" width="3.2" height="2.6" /><rect {...S} x="8.8" y="5" width="3.2" height="2.6" /><rect {...S} x="4" y="9" width="3.2" height="2.6" /></>,
+  file: <><path {...S} d="M4 1.9h5l3.2 3.2v8.9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2.9a1 1 0 0 1 1-1z" /><path {...S} d="M9 1.9v3.4h3.2" /></>,
 
   /* --- ghim số: đinh ghim + mũi tên quay lại --- */
   ghim: <><path {...S} d="M9.6 1.9l4.5 4.5-1.8 1L9 5.1z" /><path {...S} d="M9 5.1L4.6 8.3l3.1 3.1 3.2-4.4" /><path {...S} d="M6.2 9.8L2.4 13.6" /></>,
@@ -61,7 +70,13 @@ const HINH: Record<string, React.ReactNode> = {
   unlink: <><path {...S} d="M6.6 9.4 4.9 11a2.6 2.6 0 0 1-3.7-3.7l1.7-1.7M9.4 6.6 11 4.9a2.6 2.6 0 0 1 3.7 3.7L13 10.3" /><path {...S} d="M2 2l12 12" /></>,
   fit: <><path {...S} d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3" /><rect {...S} x="6" y="6" width="4" height="4" rx=".8" /></>,
   chay: <><circle {...S} cx="8" cy="8" r="6" /><path {...S} d="M6.5 5.3l4.4 2.7-4.4 2.7z" /></>,
+  // DỪNG — ô vuông trong vòng tròn, đúng cặp với `chay` (tam giác trong vòng tròn).
+  dung: <><circle {...S} cx="8" cy="8" r="6" /><rect {...S} x="6" y="6" width="4" height="4" rx="0.5" /></>,
   motSo: <><circle {...S} cx="8" cy="8" r="5.8" /><path {...S} d="M6.8 6.2L8.4 5.2v5.6M7 10.8h2.8" /></>,
+  // LỊCH — mặt đồng hồ, cho họ «Hỏi lịch» (giờ, thứ, ngày, phiên đang mở). Trước đây
+  // họ ấy khai icon "delay", một cái tên KHÔNG CÓ TRONG ĐÂY, nên `Icon` trả `null` và
+  // chỗ đó trống trơn.
+  lich: <><circle {...S} cx="8" cy="8" r="6" /><path {...S} d="M8 4.4V8l2.6 1.6" /></>,
   minus: <><path {...S} d="M3 8h10" /></>,
   dau: <><path {...S} d="M11.5 3.4 6.4 8l5.1 4.6M4.6 3.4v9.2" /></>,
   cuoi: <><path {...S} d="M4.5 3.4 9.6 8l-5.1 4.6M11.4 3.4v9.2" /></>,
@@ -75,10 +90,14 @@ export default function Icon({ name, size = 14 }: { name: string; size?: number 
   )
 }
 
-/** Loại hành động -> tên icon. Web tự quyết VẼ GÌ; Python chỉ nói ĐÓ LÀ GÌ (`type`). */
-export const ICON_HANH_DONG: Record<string, string> = {
-  check_cond: 'check-cond',
-  vao_lenh: 'vao-lenh',
-  sua_lenh: 'sua-lenh',
-  dat_co: 'dat-co',
-}
+/* ĐÃ BỎ `ICON_HANH_DONG`.
+ *
+ * Nó là một bảng tra THỨ HAI: loại khối -> tên icon, đặt ở đây trong khi từ điển
+ * Python đã khai `icon` cho từng loại rồi. Hai bảng thì một bảng tụt lại — và nó tụt
+ * thật: năm khoá nó giữ (`check_cond`, `vao_lenh`, `sua_lenh`, `dat_co`, `quay_ve`)
+ * là tên của một THIẾT KẾ CŨ. Chín loại việc và năm loại hỏi hiện nay không khoá nào
+ * khớp, nên phép tra luôn trượt, rơi về `?? ''`, và MỌI dòng trong thân thẻ khối mất
+ * icon. Không lỗi, không cảnh báo — chỉ là nó không còn ở đó.
+ *
+ * Nay `core.the_buoc` gửi `icon` kèm từng dòng (`DongThe.icon`), lấy thẳng từ từ
+ * điển. Một chỗ khai, một chỗ bày. */

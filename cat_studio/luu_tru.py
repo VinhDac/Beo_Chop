@@ -17,16 +17,41 @@ import os
 import re
 import sys
 
+from . import cai_dat
+from .ngon_ngu import tr
+
 THU_MUC_GOC = "du_lieu"
 FILE_CAI_DAT = "cai_dat.json"
-THU_MUC_CHIEN_LUOC = "chien_luoc"
+#: STRATEGY người chơi lưu. Thư mục này KHÔNG biết gì về hình dạng bên trong file — nó
+#: chỉ ghi/đọc JSON — nên nó sống sót qua D-12 (xoá bộ khối cũ) mà không phải sửa gì.
+#: ⚠ File cũ còn nằm đây vẫn mở được bằng tay, nhưng app KHÔNG đọc được nữa: chúng viết
+#: bằng bộ khối đã xoá. Cố ý không tự xoá — đó là công người chơi bỏ ra.
+THU_MUC_STRATEGY = "strategy"
+#: Tên thư mục đời trước. `di_cu` chép sang tên mới, KHÔNG xoá bản cũ.
+THU_MUC_CU = "co_may"
 THU_MUC_NHAT_KY = "nhat_ky"
+#: Nơi đặt file .py do bộ sinh mã viết ra — để riêng, vì chúng là thứ SINH LẠI ĐƯỢC
+#: từ sơ đồ, không phải tài liệu người dùng.
+THU_MUC_MA = "ma_sinh"
+#: Kết quả backtest LEAN ghi ra — mỗi thuật toán một thư mục con.
+THU_MUC_KET_QUA = "ket_qua"
+#: Mỗi mẻ Optimize một thư mục, cạnh `ket_qua`. Một mẻ gồm hàng trăm lượt backtest
+#: nên để chung với kết quả thường là màn Kho không còn đọc nổi.
+THU_MUC_TOI_UU = "toi_uu"
 
-CAI_DAT_MAC_DINH = {
-    "symbol": "XAUUSD",
-    "accent": "#ffa657",
-    "ui": {"panel_cao": 176, "panel_gap": False},
-}
+#: ⚠ DỰNG TỪ `cai_dat.NHOM`, không gõ tay lần thứ hai. `doc_cai_dat` dưới đây CHỈ
+#: GIỮ khoá có trong bảng này, nên một cài đặt khai ở `cai_dat.py` mà quên thêm vào
+#: đây sẽ ghi xuống file rồi BIẾN MẤT ở lần đọc kế tiếp — không lỗi, không cảnh báo,
+#: cái núm trong hộp Cài đặt cứ nhảy về mặc định. (Đã dính đúng thế lúc dựng hộp.)
+#:
+#: Thư mục gốc LEAN để TRỐNG là cố ý: không đoán hộ, vì LEAN là một kho mấy trăm MB,
+#: nó nằm đâu là việc của người dùng.
+CAI_DAT_MAC_DINH = dict(cai_dat.mac_dinh(), **{
+    # ⚠ ĐÃ BỎ `symbol`, `accent`, `ui.panel_cao`, `ui.panel_gap` — bốn khoá còn sót
+    # từ bản tkinter mà KHÔNG MỘT DÒNG nào trong `cat_studio/` lẫn `webui/src/` đọc
+    # tới. File cũ còn mang chúng thì vô hại, chỉ là không ai dựng lại nữa. Mặc định
+    # chết nằm trong file cài đặt là thứ dẫn người đọc sau này đi tìm chỗ dùng nó.
+})
 
 
 #: Thư mục GỐC DỰ ÁN khi chạy từ mã nguồn — LÊN MỘT BẬC từ file này.
@@ -70,12 +95,33 @@ def _thu_muc(ten):
     return d
 
 
-def thu_muc_chien_luoc():
-    return _thu_muc(THU_MUC_CHIEN_LUOC)
+def thu_muc_strategy():
+    return _thu_muc(THU_MUC_STRATEGY)
 
 
 def thu_muc_nhat_ky():
     return _thu_muc(THU_MUC_NHAT_KY)
+
+
+def thu_muc_ma():
+    return _thu_muc(THU_MUC_MA)
+
+
+def thu_muc_ket_qua():
+    return _thu_muc(THU_MUC_KET_QUA)
+
+
+def thu_muc_toi_uu():
+    return _thu_muc(THU_MUC_TOI_UU)
+
+
+def ghi_ma(ten_lop, ma):
+    """Ghi một file .py bộ sinh mã vừa viết. -> đường dẫn đầy đủ."""
+    p = os.path.join(thu_muc_ma(), _ten_an_toan(ten_lop) + ".py")
+    # `newline="\n"`: file Python, LEAN đọc trên Linux lẫn Windows — đừng để CRLF.
+    with open(p, "w", encoding="utf-8", newline="\n") as f:
+        f.write(ma)
+    return p
 
 
 # ---------------------------------------------------------------------------
@@ -125,10 +171,8 @@ def ghi_json_nguyen_tu(duong, du_lieu):
 
 
 # ---------------------------------------------------------------------------
-# Chiến lược
+# Tên file an toàn
 # ---------------------------------------------------------------------------
-
-
 def _ten_an_toan(ten):
     """Tên file an toàn. Chặn cả `..` và dấu phân cách để một cái tên gõ tay không
     ghi được ra ngoài thư mục chiến lược."""
@@ -147,33 +191,39 @@ def _ten_an_toan(ten):
     return s or "khong_ten"
 
 
-def duong_dan_chien_luoc(ten):
-    return os.path.join(thu_muc_chien_luoc(), _ten_an_toan(ten) + ".json")
+# ---------------------------------------------------------------------------
+# Strategy
+# ---------------------------------------------------------------------------
+# Ghi/đọc JSON thuần: `_ten_an_toan` (bẫy tên thiết bị Windows — CON, PRN, NUL…) và lối
+# ghi nguyên tử. Không hàm nào ở đây mở file ra xem bên trong, nên bộ khối mới dùng lại
+# được nguyên xi.
 
 
-def liet_ke_chien_luoc():
+def duong_dan_strategy(ten):
+    return os.path.join(thu_muc_strategy(), _ten_an_toan(ten) + ".json")
+
+
+def liet_ke_strategy():
     try:
-        return sorted(f[:-5] for f in os.listdir(thu_muc_chien_luoc())
+        return sorted(f[:-5] for f in os.listdir(thu_muc_strategy())
                       if f.endswith(".json"))
     except Exception:
         return []
 
 
-def ghi_chien_luoc(ten, doc):
-    """Lưu một chiến lược. Ghi NGUYÊN TỬ: ngắt giữa chừng mà ghi thẳng lên file đích thì
-    còn lại một JSON cụt, tức mất hẳn chiến lược cũ chứ không phải mất bản mới."""
-    p = duong_dan_chien_luoc(ten)
+def ghi_strategy(ten, doc):
+    p = duong_dan_strategy(ten)
     ghi_json_nguyen_tu(p, doc)
     return p
 
 
-def doc_chien_luoc(ten):
-    with open(duong_dan_chien_luoc(ten), encoding="utf-8") as f:
+def doc_strategy(ten):
+    with open(duong_dan_strategy(ten), encoding="utf-8") as f:
         return json.load(f)
 
 
-def xoa_chien_luoc(ten):
-    p = duong_dan_chien_luoc(ten)
+def xoa_strategy(ten):
+    p = duong_dan_strategy(ten)
     if os.path.exists(p):
         os.remove(p)
         return True
@@ -183,6 +233,76 @@ def xoa_chien_luoc(ten):
 # ---------------------------------------------------------------------------
 # Di cư từ bố cục cũ
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Bản nháp và bản tự lưu  (chép lối của Jenifer_Studio)
+# ---------------------------------------------------------------------------
+# HAI TẦNG, KHÁC NHAU HẲN:
+#
+#   ban_nhap.json          MỘT bản dùng chung cho mọi cỗ máy, ghi liên tục trong lúc
+#                          vẽ. Việc đang dở của cửa sổ — kể cả cỗ máy CHƯA TỪNG lưu.
+#                          Không đụng tới file cỗ máy nào.
+#   "<tên> (tự lưu)"       nằm NGAY CẠNH cỗ máy gốc trong kho, và chỉ đẻ ra khi cỗ máy
+#                          ĐÃ lưu ít nhất một lần VÀ nội dung thật sự khác bản trên
+#                          đĩa. Mở ra xem mà không sửa gì thì không đẻ bản tự lưu.
+#                          Lưu thật (Ctrl+S) xong là xoá nó: việc dở đã thành việc lưu.
+TEP_BAN_NHAP = "ban_nhap.json"
+HAU_TO_TU_LUU = " (tự lưu)"
+
+
+def duong_dan_ban_nhap(man=""):
+    """Bản nháp của MÀN `man`, hay của chế độ Sáng tạo khi `man` rỗng.
+
+    ⚠ MỖI MÀN MỘT NGĂN RIÊNG, và đây là chỗ bản trước làm sai. Cả app dùng CHUNG một
+    `ban_nhap.json`, nên bấm vào màn «lắp cỗ máy hai khối» là canvas hiện ra với năm
+    khối RSI của bản vẽ tự do đang dở — mà khối Bắt đầu thì vừa bị dán sân SPY của màn,
+    trong khi mấy khối kia vẫn nói XAUUSD. Vừa không ra màn chơi nào, vừa là một sơ đồ
+    tự mâu thuẫn. Và tệ hơn: vẽ trong màn là ĐÈ LÊN bản vẽ riêng của người ta.
+
+    ⚠ LỌC TÊN TỆP. `man` đi từ giao diện vào; mã màn thật thì chỉ có chữ thường với số,
+    nhưng nhận bừa là mở cửa cho `../` đi ra khỏi thư mục dữ liệu."""
+    m = re.sub(r"[^a-z0-9_]", "", str(man or "").lower())
+    if not m:
+        return os.path.join(goc(), TEP_BAN_NHAP)
+    return os.path.join(goc(), f"ban_nhap__{m}.json")
+
+
+def ghi_ban_nhap(doc_, man=""):
+    ghi_json_nguyen_tu(duong_dan_ban_nhap(man), doc_)
+    return duong_dan_ban_nhap(man)
+
+
+def doc_ban_nhap(man=""):
+    try:
+        with open(duong_dan_ban_nhap(man), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def xoa_ban_nhap(man=""):
+    p = duong_dan_ban_nhap(man)
+    if os.path.exists(p):
+        os.remove(p)
+        return True
+    return False
+
+
+def ten_tu_luu(ten):
+    """Tên bản tự lưu của một cỗ máy. Đã là bản tự lưu thì giữ nguyên, không chồng đuôi."""
+    ten = (ten or "").strip()
+    return ten if ten.endswith(HAU_TO_TU_LUU) else ten + HAU_TO_TU_LUU
+
+
+def ten_goc_cua(ten):
+    """Bản tự lưu -> tên cỗ máy GỐC của nó. Không phải bản tự lưu thì trả nguyên."""
+    ten = (ten or "").strip()
+    return ten[:-len(HAU_TO_TU_LUU)] if ten.endswith(HAU_TO_TU_LUU) else ten
+
+
+def la_tu_luu(ten):
+    return (ten or "").strip().endswith(HAU_TO_TU_LUU)
 
 
 def di_cu():
@@ -202,12 +322,24 @@ def di_cu():
         except Exception:
             pass
 
-    cu_tpl = os.path.join(app, "templates", "strategy")
-    if os.path.isdir(cu_tpl):
+    # ⚠ BA nguồn đời trước, cả ba chép sang `du_lieu/strategy/`:
+    #     templates/strategy/   bản tkinter, nằm ngoài `du_lieu/`
+    #     du_lieu/chien_luoc/   kho chiến lược cũ (gỡ ở D-12)
+    #     du_lieu/co_may/       bản trước khi tài liệu đổi tên thành Strategy
+    #
+    # Chỗ này từng GÃY: nó gọi `thu_muc_chien_luoc()` — một hàm đã bị xoá cùng kho
+    # chiến lược cũ ở D-12. Máy nào còn thư mục ấy là app NỔ ngay lúc khởi động
+    # (`app_web.py` gọi `di_cu` trước khi mở cửa sổ), mà máy đang phát triển thì không
+    # có nó nên chẳng ai thấy.
+    for cu_tpl in (os.path.join(app, "templates", "strategy"),
+                   os.path.join(goc(), "chien_luoc"),
+                   os.path.join(goc(), THU_MUC_CU)):
+        if not os.path.isdir(cu_tpl):
+            continue
         for f in os.listdir(cu_tpl):
             if not f.endswith(".json"):
                 continue
-            dich = os.path.join(thu_muc_chien_luoc(), f)
+            dich = os.path.join(thu_muc_strategy(), f)
             if os.path.exists(dich):
                 continue
             try:
@@ -215,7 +347,7 @@ def di_cu():
                     noi_dung = g.read()
                 with open(dich, "w", encoding="utf-8") as g:
                     g.write(noi_dung)
-                da.append(f"chien_luoc/{f}")
+                da.append(f"strategy/{f}")
             except Exception:
                 pass
     return da
@@ -237,10 +369,10 @@ def tom_tat():
     return {
         "goc": goc(),
         "muc": [
-            {"ten": "Chiến lược", "duong_dan": thu_muc_chien_luoc(),
-             "so_luong": len(liet_ke_chien_luoc()),
-             "danh_sach": liet_ke_chien_luoc()},
-            {"ten": "Nhật ký chạy", "duong_dan": thu_muc_nhat_ky(),
+            {"ten": "Strategy", "duong_dan": thu_muc_strategy(),
+             "so_luong": len(liet_ke_strategy()),
+             "danh_sach": liet_ke_strategy()},
+            {"ten": tr("Nhật ký chạy"), "duong_dan": thu_muc_nhat_ky(),
              "so_luong": dem(thu_muc_nhat_ky()), "danh_sach": []},
         ],
     }

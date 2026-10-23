@@ -38,6 +38,7 @@ _uu_tien_namespace_dotnet()
 import webview                                    # noqa: E402
 from cat_studio.api import Api                               # noqa: E402
 from cat_studio import luu_tru                                    # noqa: E402
+from cat_studio import khung_cua_so                               # noqa: E402
 
 
 # .NET Framework tối thiểu. `Python.Runtime.dll` của pythonnet 3.x build cho
@@ -158,7 +159,7 @@ def main():
         js_api=api,
         width=1360, height=860,
         min_size=(1020, 660),
-        background_color="#202020",       # tránh chớp trắng trước khi CSS kịp chạy
+        background_color=khung_cua_so.MAU_CUA_SO,       # tránh chớp trắng trước khi CSS kịp chạy
         # Bỏ khung hệ thống để tự vẽ thanh tiêu đề đúng màu app. Windows 10 không cho
         # đổi màu caption gốc (`DWMWA_CAPTION_COLOR` trả E_INVALIDARG), nên đây là
         # đường duy nhất. Mọi tính năng của cửa sổ được vá lại trong `khung_cua_so.py`;

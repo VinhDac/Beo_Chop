@@ -261,4 +261,358 @@ mở lại; khi đó mục cũ đổi thành `superseded` và thêm mục mới.
   · ③ bộ máy chạy · ④ cầu nối QC mới · ⑤ trình vẽ · ⑥ Màn chơi chạy cỗ máy 5 trạm · ⑦ dọn bộ
   máy cũ + tài liệu. Tới phần ⑦, bộ máy cũ (Entry / Manage, `bo_chay`) vẫn sống vì cầu nối QC
   hiện tại còn dùng nó.
-- **Trạng thái:** chốt. Phần ① xong — gỡ những gì, chuyển những gì: core.md §18. Phần ② (lõi) §19 · ③ (bộ máy chạy) §20 · ④ (cầu nối QC: lớp vỏ, đóng gói, chạy từ app, đọc kết quả) §21 — xong.
+- **Chốt thêm (2026-10-15, lúc làm phần ⑥): vân tay cỗ máy là vân tay LOGIC, không có
+  `id` khối.** Vé nộp ("đúng cỗ máy đó") chấm theo vân tay, mà vân tay cũ băm cả id, nên
+  lắp lại y hệt một mẫu dựng sẵn — id mới toàn bộ, luật không đổi một chữ — là mất vé.
+  Nay dây nối ghi bằng NHÃN ĐÁNH SỐ (`1 · 1A · 1A.1`) thay cho id, và khối không có đường
+  nối tới (không bao giờ chạy) không vào vân tay. Đổi thứ tự nhánh VẪN đổi vân tay: nhánh
+  xếp trên được thử trước, đó là luật chứ không phải cách bày.
+- **Trạng thái: XONG CẢ BẢY PHẦN** (2026-10-15). core.md §18 (bỏ tester) · §19 (lõi) ·
+  §20 (bộ máy chạy) · §21 (cầu nối QC) · §22 (trình vẽ 5 trạm) · §23 (Màn chơi theo rổ mã,
+  boss cả rổ, nộp, chấm sao, cỗ máy dựng sẵn) · §24 (dọn bộ máy cũ).
+  **App giờ chỉ còn MỘT thế giới: cỗ máy 5 trạm chạy trên QuantConnect.** Sơ đồ
+  Entry/Manage, bộ chạy tại máy, cầu nối cũ và giao diện của chúng đã bị xoá hẳn
+  (≈ 13.700 dòng). Việc còn lại là của chủ dự án: chạy thật trên tài khoản QuantConnect
+  bằng khoá của mình — đến giờ mọi lượt mới chạy trên bản giả lập QC trong bài kiểm.
+
+## D-11 · App chỉ là VỎ của QuantConnect — không mô phỏng gì tại máy nữa  (chốt 2026-10-16)
+
+> Chủ dự án: *"ta tuyệt đối không được động vào backend nữa, ta chỉ làm cái vỏ cho
+> QuantConnect thôi"* — sau khi soi ra rằng hệ thống đang nuôi một bộ mô phỏng thứ hai
+> bên cạnh QC.
+
+- **Vấn đề đã đo được:** ta tự gộp nến, tự tính 16 chỉ báo, tự đổi «% vốn» ra số lượng,
+  tự huỷ lệnh hết hạn, tự tính trailing stop, tự tính lãi lỗ và boss. QC làm sẵn tất cả
+  những thứ đó. Hai nơi cùng tính một thứ thì sẽ ra hai số — rõ nhất là nến: nến H1 của
+  ta cắt theo giờ UTC chẵn, nến H1 của QC cho cổ phiếu Mỹ cắt theo giờ mở cửa sàn. Người
+  chơi mở chart QC đối chiếu sẽ thấy khác, và ta không có gì để giải thích.
+- **Quyết định:** app KHÔNG tính gì về thị trường nữa. Người chơi vẽ sơ đồ → app dịch sơ
+  đồ thành một thuật toán QuantConnect → QC chạy và tính hết: nến, chỉ báo, chọn mã, số
+  lượng, lệnh, rủi ro, thống kê. App giữ đúng ba việc: **vẽ · soát lỗi · dịch ra thuật
+  toán**, cộng với luật chơi (màn, boss, sao).
+- **Phương án đã cân nhắc:** (a) vỏ thuần ← **chọn** / (b) giữ bộ máy riêng và chấp nhận
+  hai bảng điểm — người chơi sẽ không biết tin bảng nào / (c) giữ bộ máy chỉ để xem
+  trước tại máy — vẫn là hai bộ luật phải đồng bộ bằng tay.
+- **Cái mất, nói trước:** (1) không còn chỗ chạy thử tại máy trong vài giây — muốn biết
+  cỗ máy làm gì phải gửi lên QC, vài phút một lượt và cần khoá; bài kiểm từ nay canh
+  "sơ đồ này dịch ra đúng đoạn code kia" chứ không canh được kết quả giao dịch. (2) chữ
+  «vì sao» phải do chính đoạn code gửi lên QC tự ghi.
+- **Đã dọn (2026-10-16):** xoá `bo_may` · `chuoi_nen` · `nhat_ky_may` · `ket_qua_may` ·
+  `goi_qc` · `lean/vo_may.py` · ba đồ giả (sàn giá, LEAN, máy chủ QC) · năm bài kiểm của
+  chúng · `tools/chay_qc.py`. `qc_api` còn phần nói chuyện với QC; `qc_chay` còn phép
+  soát đầu vào. App vẽ và soát cỗ máy được, **chưa chạy được** — mọi cửa chạy nói đúng
+  một câu thay vì giả vờ chạy rồi hỏng ở đâu đó.
+- **Trạng thái:** chốt, đã dọn. Đường chạy mới (dịch sơ đồ → thuật toán QC) chưa thiết
+  kế — chủ dự án sẽ chỉ đường lối, và từ nay mỗi "item" trong game phải là một món CÓ
+  THẬT của QuantConnect.
+
+## D-12 · Xoá TOÀN BỘ bộ khối cũ — làm lại khối và cách tương tác từ đầu  (chốt 2026-10-16)
+
+> Chủ dự án: *"xóa toàn bộ khối cũ đi, bây giờ ta sẽ làm lại khối, cách tương tác từ
+> đầu"* — ngay sau D-11, và sau nhận xét *"đánh giá hiện tại là hơi bừa"*.
+
+- **Vấn đề:** D-11 chốt app chỉ là VỎ của QuantConnect, nhưng bộ khối thì được nghĩ ra
+  TRƯỚC luật đó. Nó sinh ra từ câu hỏi "người chơi muốn vẽ gì", rồi app tự tính phần
+  còn lại. Mỗi khối Làm, mỗi đại lượng, mỗi ô Gom đều là một phép tính của riêng app —
+  đúng cái D-11 cấm. Giữ lại bộ khối ấy thì D-11 chỉ là lời hứa: sớm muộn phải dựng lại
+  một bộ máy tính toán sau lưng nó để nó chạy được.
+- **Quyết định:** xoá sạch bộ khối, từ điển, mẫu dựng sẵn, trình vẽ và màn chơi. Bộ khối
+  mới thiết kế lại từ đầu với MỘT luật bắt buộc: **mỗi khối phải ứng với một món CÓ THẬT
+  của QuantConnect** — một API, một loại lệnh, một chỉ báo, một bước trong khung 5 phần
+  của họ. Khối nào không chỉ ra được món QC tương ứng thì không được có.
+- **Phương án đã cân nhắc:** (a) xoá hết, làm lại ← **chọn** / (b) giữ khối, sửa dần
+  từng cái cho khớp QC — sửa dần thì lúc nào cũng còn một nửa cũ một nửa mới, và không
+  ai biết đang ở nửa nào / (c) giữ khối làm "bản phác", dịch sang QC lúc chạy — tức là
+  hai ngôn ngữ phải khớp nhau mãi mãi, đúng cái bẫy D-11 vừa thoát.
+- **Đã xoá (2026-10-16):** `tram.py` · `may.py` · `mau_tram.py` · bốn bài kiểm của
+  chúng · cả thư mục `webui/src/may/` (trình vẽ 5 trạm, 14 file) · `webui/src/qc/
+  ManChoi.tsx` · `webui/src/chung/` · hai bài kiểm giao diện của chúng. Cùng với D-11 là
+  ≈ 9.000 dòng rời khỏi kho trong một ngày.
+- **Dọn theo, vì chúng chỉ phục vụ bộ khối cũ:** `api.py` mất hết cửa `may_*` và cả lớp
+  `ApiQC`; `game.py` mất `do_gon`/`van_tay` (chúng đọc định dạng cỗ máy cũ); `luu_tru`
+  mất kho chiến lược; `app.css` mất 1.360 dòng; `types.ts` còn ba kiểu.
+- **Giữ lại, vì KHÔNG dính bộ khối:** `core` (đồ thị thuần: đánh số phân cấp, thứ tự ưu
+  tiên nhánh, soát nối dây — nó chưa bao giờ biết khối là gì) · `luu_tru` · `game` (luật
+  chơi) · `qc_api` · `khung_cua_so` · khung giao diện (thanh tiêu đề, hộp thoại, menu).
+  Và `so.ts` — bài học "gõ từng phím, đừng ép `Number()` ngay" vẫn còn nguyên giá trị.
+- **Một lỗi lộ ra nhờ dọn:** hộp Khoá QC gọi `qc_khoa`, mà hàm đó nằm ở `ApiQC` — bề mặt
+  của cửa sổ Màn chơi. Cửa sổ chính không có nó. Bản xem thử trong trình duyệt che mất
+  vì nó tự định tuyến mọi tên `qc_*` sang `ApiQC`, tức **cầu nối giả nói dối so với app
+  thật**. Nay `api.py` chỉ còn MỘT bề mặt, và `tools/xem_thu.py` cũng vậy.
+- **Trạng thái app sau D-12:** mở lên được, đặt được khoá QC, xem được chỗ lưu file.
+  **Chưa vẽ được gì, chưa chạy được gì** — và cửa sổ nói thẳng ra điều đó thay vì bày
+  một trình vẽ rỗng. 3 bài kiểm còn lại đều xanh.
+- **Trạng thái quyết định:** chốt, đã dọn. Bộ khối mới và cách tương tác mới sẽ do chủ
+  dự án chỉ đường lối, bắt đầu từ danh sách những gì QuantConnect thật sự cho.
+
+## D-13 · Chép hạ tầng trình vẽ từ Jenifer_Studio  (chốt 2026-10-16)
+
+> Chủ dự án chỉ sang `Jenifer_Studio` — một bộ tự động hoá game của chính mình — và
+> nói: *"đó là những gì tôi thực sự muốn về cách tạo sơ đồ, tư duy"*, rồi
+> *"copy hết những gì copy được, sau đó ta tự sửa chi tiết sau"*.
+
+- **Vì sao tin được:** không phải tham khảo một thư viện đẹp trên mạng, mà một sơ đồ
+  THẬT đã được dựng tới quy mô ấy: template `trial chaos 30` có **1.170 khối ·
+  1.468 dây · 243 Nhóm ôm 2.253 hành động** trên canvas **19.367 × 16.055**. Mọi thứ
+  chép về đều là lời giải cho một câu hỏi duy nhất: *làm sao không lạc trong 1.170
+  khối*.
+- **NGỮ PHÁP CHỈ CÓ BỐN HÌNH** (đo trên chính sơ đồ ấy):
+  1. **Chuỗi** → gập thành **Nhóm** (một hộp ôm một dãy hành động).
+  2. **Bảng tra vẽ ra** — một khối rẽ N nhánh, **mỗi nhánh mở đầu bằng CÙNG MỘT KIỂU
+     CÂU HỎI chỉ khác tham số**, rồi gộp về một chỗ. Đo được **45/45 chỗ rẽ ≥3 nhánh
+     đều đồng loại**, nhánh thoát không cổng xếp dưới cùng ở 28/45 chỗ.
+  3. **Quay về** — khối cụt nhảy ngược lên, 91 cái, 37 đích, **91/91 trỏ trong cùng
+     một lớp**.
+  4. **Hình thoi khép kín** — mở ra bao nhiêu thì đóng lại bấy nhiêu.
+- **Lối tư duy đứng sau:** **559/610 khối mở đầu nhánh là khối HỎI**. Chương trình
+  không viết theo lối "làm A rồi B rồi C" mà theo lối *nhìn xem thế giới đang ở trạng
+  thái nào → chạy tay xử lý của trạng thái ấy → quay về nhìn lại*. Đó là **máy trạng
+  thái phản ứng**, và nó khớp đúng hình dạng của QuantConnect: mỗi nến, nhìn dữ liệu,
+  quyết, đặt lệnh, chờ nến sau.
+- **Hệ quả quan trọng nhất:** khối hỏi chỉ trả lời được về MỘT thứ, nên *"cái nào
+  trong N cái"* không có cú pháp — nó thành **hình học**: N làn kẻ cạnh nhau.
+  **Cấu trúc CHÍNH LÀ chương trình.** Giữ nguyên lối ấy, không đẻ ra một khối "rẽ theo
+  giá trị" nhiều cổng có nhãn: nhãn trên cổng là thứ có thể nói dối, còn N làn thì mỗi
+  làn tự nói ra nó là nhánh nào và ưu tiên nhìn thấy được trên canvas.
+- **Chốt hình dạng tài liệu:** **MỘT SƠ ĐỒ PHẲNG DUY NHẤT**, không chia năm trạm. Cấu
+  trúc do người chơi tự đặt bằng **hạt nhân**, không do app áp sẵn.
+- **Đã chép về (8 bước, mỗi bước một commit, mỗi bước xanh rồi mới sang bước sau):**
+  Nhóm · Quay về (hai cách khai đổ vào một bảng `canh_vong`) · `KHOA_CANVAS` (pos, màu,
+  ghim, hạt nhân — khoá tả CÁI NÚT, bộ chạy không đọc) · một cửa soát duy nhất · ba
+  tầng lưu · thẻ khối do Python dựng · dây ↻ vồng lên · **hạt nhân** · ô tìm không dấu
+  + bốn lọc hỏi theo dây · menu chuột phải · phím tắt tra bảng · bảng dưới.
+- **Cố ý KHÔNG chép:** bộ song ngữ (Cat chỉ tiếng Việt), chế độ (Cat chỉ một loại tài
+  liệu), và mọi thứ dính game.
+- **Bài học đắt nhất, đã ghi vào `tools/xem_thu.py`:** khung xem thử không vẽ thì phép
+  đo nói dối. `ResizeObserver` chỉ bắn trong nhịp vẽ, mà cửa sổ bị che là trình duyệt
+  bỏ nhịp ấy — đọc DOM thấy đủ khối mà KHÔNG một đường nối nào. Đã truy nhầm sang bản
+  React Flow, bản React, StrictMode và CSS trước khi nhận ra không có lỗi nào cả.
+- **Trạng thái:** trình vẽ chạy thật — vẽ được sơ đồ rẽ nhánh có vòng, đánh số
+  `1 · 2 · 2A · 2A.1 · 2B · 2B.1 · 3 · 4`, gom hạt nhân và bấm đúp vào trong sửa.
+  **Bộ khối vẫn chưa có**: khối hiện mới là `Nhóm` / `Khối lẻ` / `Quay về` trống ruột.
+  Việc kế tiếp là nghĩ nội dung từng khối HỎI và LÀM, mỗi cái phải là một món có thật
+  của QuantConnect.
+
+## D-14 — Bộ khối: XÁC NHẬN và HÀNH ĐỘNG
+
+- **Bản chất cỗ máy, theo lời chủ dự án:** *so sánh, rồi ra quyết định*. Nên bộ khối
+  chỉ có hai nửa: khối **HỎI** đọc thế giới và rẽ nhánh, khối **LÀM** đụng vào thị
+  trường. Hai từ điển: `cat_studio/hoi.py` (5 loại, 68 đại lượng) và
+  `cat_studio/lam.py` (8 loại việc).
+- **Luật gốc, và nó là một phép kiểm chạy được:** mỗi mục phải chỉ ra được MỘT thứ có
+  thật của LEAN — ô `lean` là lời khai ấy; không khai được thì không được có mặt.
+  `test_hoi` / `test_lam` quét cả hai từ điển và trượt nếu thiếu. Hộp thoại Hành động
+  còn **bày thẳng hàm LEAN nó sẽ gọi** ra màn hình, để lời hứa D-11 kiểm được chứ
+  không phải tin suông.
+- **Đã bỏ vì chúng bắt app tự tính:** `tỷ trọng hiện tại` (ta chia) · `số mã đang giữ`
+  (ta đếm) · `số ngày đã giữ` (ta ghi sổ) · `số nến đã chạy` (LEAN không đếm) · phép
+  `cắt lên` / `cắt xuống` (so hai nến là ta nhớ nến trước). Bốn cái tên ấy bị canh để
+  không quay lại.
+- **Phép so chỉ có SÁU** (`> < >= <= == !=`). Mọi phép "nhìn lại quá khứ" tan vào chỉ
+  báo nhờ `IndicatorExtensions` + `Delay/Maximum/Minimum` của LEAN: *"giá cao nhất 20
+  nến"* là `MAX(20)`, không phải một toán tử thứ bảy do ta nghĩ ra.
+- **⚠ Đường ranh ĐẶT / SỬA:** đặt lệnh và **huỷ hết** lệnh chờ của một mã thì được —
+  mỗi cái là MỘT câu gọi. **Sửa một lệnh cụ thể** (`ticket.UpdateStopPrice`) thì KHÔNG
+  — phải giữ ticket qua nhiều nến, tức sơ đồ sinh ra trạng thái, tức app lại có backend
+  để mà gỡ lỗi. Muốn dời cắt lỗ: **huỷ hết → đặt lại**, hai khối, không nhớ gì.
+- **Cố ý bỏ:** lệnh quyền chọn nhiều chân (`Combo*`, `ExerciseOption`) — cần cả một bộ
+  chọn chuỗi quyền chọn.
+- **Ô `tag` không phải sáng kiến của ta:** LEAN nhận nó trên mọi hàm đặt lệnh. Để trống
+  thì bộ sinh mã điền số khối + điều kiện vừa khớp — đó là lời hứa D-11 "chữ *vì sao*
+  do chính đoạn code tự ghi". Và nó VẮNG MẶT ở Ghi chú / Vẽ bảng / Báo tin, vì `Debug`,
+  `Plot`, `Notify` không nhận tham số ấy.
+- **Soát ruột khối chỉ bắt thứ hỏng LẶNG:** cổng không điều kiện (luôn khớp) · số lượng
+  0 · giá 0 · tỷ trọng vượt 100% · `Quit` · đại lượng ĐÚNG/SAI đem `Plot`. Lời khuyên
+  kiểu "đòn bẩy thế là cao đấy" không thuộc về đây.
+- **Bài kiểm lại làm đúng việc của nó:** bắt `--font-mono` là biến CSS ma ngay lượt
+  chạy đầu, và lần này bắt thêm một loại ma mới — **lớp `hien-tu-*`**. `Ribbon.tsx`
+  sinh `hien-tu-1090` / `hien-tu-1250` từ D-13 mà `app.css` chưa bao giờ có dòng nào:
+  hai nhóm ribbon không hề ẩn ở cửa sổ hẹp, không lỗi, không cảnh báo, build sạch.
+- **Trạng thái:** bộ khối đọc/ghi xong, 7/7 bài kiểm xanh. **Bộ sinh mã chưa có** — sơ
+  đồ chưa biến thành thuật toán LEAN Python. Việc kế tiếp: ô của khối Bắt đầu (nhịp
+  chạy, chạy cho mã nào), rồi bộ sinh mã.
+
+## D-15 — Khối Bắt đầu: mọi thiết lập gom vào MỘT khối
+
+- **Cách tìm ra:** đọc **444 thuật toán Python thật** của LEAN (`Algorithm.Python/`),
+  chứ không suy từ tài liệu. Phát hiện: một script có hai nửa — `initialize` nói MỘT
+  LẦN (ngày nào, bao nhiêu tiền, mã nào, nhịp nào), `on_data` chạy LẠI mỗi nhịp. Sơ đồ
+  ta vẽ là nửa dưới; nửa trên **không có chỗ nào trên canvas**, khối Bắt đầu trước đó
+  chỉ có cái tên. Mà `set_start_date` có ở 395/444, `set_cash` 250, `add_equity` 244.
+- **Chốt:** mọi thiết lập gom vào **một khối Bắt đầu, sáu ô** — mã (danh sách, mỗi
+  dòng một loại tài sản) · từ ngày → đến ngày · vốn · nhịp · mốc so sánh · sàn.
+- **Và nó giải luôn hai thứ tưởng phải đẻ khối mới:**
+  - **Không cần khối "Với mỗi mã".** Ô *nhịp* + ô *mã* đã khai trọn vòng lặp rồi:
+    *"mỗi nến, cho mỗi mã trong danh sách"*. Cả sơ đồ bên dưới là ruột vòng. Vòng vẫn
+    HIỆN RA theo luật D-13, chỉ là hiện ở đúng chỗ nó sinh ra.
+  - **Cái hack "chỉ một lần mỗi ngày" biến mất.** Hai chiến lược kinh điển của QC
+    (`MACDTrendAlgorithm`, `MovingAverageCrossAlgorithm`) đều phải tự nhớ *hôm qua là
+    ngày nào* — đó là TRẠNG THÁI, đúng thứ ta cấm. Họ viết vậy vì không có cách khai
+    nhịp. Nên ô *nhịp* không phải một ô cho tiện: nó xoá hẳn một loại hack.
+- **Nhịp gộp hai thứ của LEAN làm một:** độ phân giải dữ liệu và lúc nào sơ đồ chạy là
+  hai câu trong script, nhưng với người chơi là MỘT câu hỏi — *bao lâu tôi xem một
+  lần*. Năm nhịp theo nến chạy trong `on_data`; ba nhịp hẹn giờ qua `schedule.on` và
+  đăng ký dữ liệu PHÚT, vì dữ liệu ngày không có giờ nào trong đó mà hẹn.
+- **Làm nóng (`set_warm_up`) KHÔNG thành ô** — bộ sinh mã lấy chu kỳ dài nhất trong
+  các chỉ báo đã vẽ. Đếm trên sơ đồ của chính ta, không tính trên dữ liệu thị trường.
+- **Cố ý CHƯA có:** `add_universe` (chọn mã động — 97/444 dùng) và cửa vào thứ hai
+  (*mỗi nến xem tín hiệu + cuối tháng cân danh mục*). Cái sau đụng vào hệ đánh số, vì
+  nó đang neo vào đúng MỘT khối Bắt đầu.
+- **Một khả năng đã xác minh, chưa làm:** sáu phép so hiện không viết nổi
+  `fast > slow * 1.00015` — mà **`IndicatorExtensions` của LEAN có sẵn**
+  `Plus/Minus/Times/Over` với vế phải là một số hoặc một chỉ báo khác, kết quả là
+  `CompositeIndicator` do LEAN tự tính. Nên cho phép ghép đại lượng **không phá luật
+  "không đẻ backend"**.
+- **Hai chỗ hỏng LẶNG bắt được:** `chuan_hoa_khoi` dựng lại khối Bắt đầu chỉ giữ cái
+  tên (sáu ô bay sạch mỗi lần lưu); và mặc định list/dict dùng chung khiến hai khối
+  Bắt đầu xài chung một danh sách mã.
+- **Tiện thể:** dữ liệu miễn phí đi kèm LEAN **có XAUUSD giá ngày 2006–2019, 3.948
+  ngày**. Backtest vàng được ngay, không trả xu nào — nên khối Bắt đầu mặc định chạy
+  trên XAUUSD.
+- **Trạng thái:** cả hai nửa của thuật toán đã khai được trên canvas, 8/8 bài kiểm
+  xanh. **Bộ sinh mã vẫn chưa có.**
+
+## D-16 — Bộ sinh mã: sơ đồ thành thuật toán LEAN chạy được
+
+- **Luật gốc:** bộ sinh mã **không tự nghĩ ra một câu LEAN nào**. Mọi câu nó viết lấy
+  từ ô `lean` của ba từ điển, chỉ thay chỗ trống bằng giá trị.
+- **Hệ quả: ô `lean` phải đổi từ lời khai sang BIỂU THỨC PYTHON CHẠY ĐƯỢC**
+  (`Securities[sym].Price` → `self.securities[sym].price`). Vì nếu `lean` chỉ là lời
+  khai thì phải có một bộ chuyển đổi ở giữa, mà bộ đó sai thì sai ÂM THẦM. Nay lời
+  khai và đoạn code là MỘT — thêm một chỉ báo là thêm một dòng vào từ điển.
+  Bản LEAN này cũng đã bỏ PascalCase: 392/444 thuật toán Python dùng snake_case.
+- **Đổi xong lộ ra một mục BỊA:** `Delay(n)` khai là chỉ báo, mà
+  `QCAlgorithm.Indicators.cs` không có chữ ký nào. Nó là một lớp dựng tay rồi
+  `register_indicator` — nay có thêm ô `lean_dk` cho đúng.
+- **Ba thứ bộ sinh mã tự lo**, cả ba đều đếm trên sơ đồ của chính ta: nâng chỉ báo lên
+  `initialize` (hai khối cùng RSI(14) dùng chung một cái) · `set_warm_up` · vòng lặp
+  nhiều mã.
+- **Mã sinh ra cố ý DỄ ĐỌC**: không máy trạng thái, không bảng nhảy. Khối Hỏi thành
+  `if`, nhánh thành `if/elif`, khối Làm thành đúng một câu gọi. Người đọc file phải
+  nhận ra sơ đồ của mình trong đó — đó là cả lý do dự án tồn tại.
+- **Chưa sinh được thì BÁO, không đoán:** vòng lặp (trong một nến dữ liệu không đổi,
+  chạy lại một đoạn chỉ cho đúng kết quả cũ) và mã chưa khai ở khối Bắt đầu (tự
+  `add_*` là tự quyết hộ một đăng ký dữ liệu).
+- **✅ ĐÃ CHẠY THẬT:** sơ đồ vàng + RSI(14) trên XAUUSD giá ngày 2015–2018 (dữ liệu
+  miễn phí) → **15 lệnh, +16,376%, thắng 71%, sụt sâu nhất 13,2%**.
+- **⚠⚠ BẪY LỚN NHẤT, và nó lặng hoàn toàn:** lần chạy đầu ra *111 lệnh, lãi 0%*. Mở
+  `order-events.json` mới thấy cả 111 lệnh đều `invalid` vì
+  *"OandaBrokerageModel does not support MarketOnClose"*. Gốc rễ: nhịp **mỗi nến
+  NGÀY** thì LEAN không có giá trong ngày để khớp nên nó tự đổi lệnh thị trường thành
+  **MarketOnClose**, mà Oanda/Binance/Coinbase không nhận loại ấy. Backtest vẫn chạy
+  hết, báo đủ thống kê, không một dòng lỗi. Nay `soat` cảnh báo đúng tổ hợp đó.
+- **Và một cảnh báo SAI đã sống từ D-14:** `validate_flow_graph` đọc khoá `conditions`
+  đã chết từ D-12, nên MỌI cặp cổng đều bị báo "trùng điều kiện" — kể cả `RSI < 30`
+  với `RSI > 70`. Cảnh báo sai thì người ta học cách bỏ qua nó.
+- **Trạng thái:** vẽ → sinh → chạy đã thông, 9/9 bài kiểm xanh. Chưa có: chạy LEAN
+  *từ trong app* (hiện phải chạy tay), vòng lặp, chọn mã động, lớp game.
+
+## D-17 — Chạy LEAN từ trong app, và màn Kết quả
+
+- **Đoạn cuối của vòng** *vẽ → sinh → chạy → đọc → sửa*. Cụm nút chính
+  (`Sinh mã · Chạy · Tối ưu · Chạy thật · Kết quả`) **ghim sát mép phải, tô sáng**.
+  Hai nút chưa có thì bày ra mờ kèm lý do, không giấu — giấu thì không ai biết còn
+  thiếu gì.
+- **⚠ Cụm ấy phải GHIM, không được đẩy bằng `margin-left: auto`:** ribbon có bảy
+  nhóm nên luôn dài hơn cửa sổ, mà đẩy chỉ ăn khi còn chỗ trống — cụm chính trôi hẳn
+  ra ngoài màn. Nay ribbon chia hai vùng: trái tự cuộn, phải đứng im.
+- **Ba cái bẫy của bộ chạy, cả ba đã cắn thật:** đừng tin mã thoát (pythonnet ném
+  lỗi GIL lúc tắt, SAU khi kết quả ghi xong) · phải gột sạch biến môi trường của venv
+  (venv không có pandas, LEAN sẽ chết mà không nhắc gì tới venv) · `config.json` của
+  LEAN có chú thích `//` và dấu phẩy thừa, mà gột phải biết đang ở trong chuỗi hay
+  không.
+- **Chỗ đặt LEAN là cấu hình người dùng phải điền** — không đoán hộ.
+- **Màn Kết quả dựng theo 11 ảnh chụp chủ dự án đưa** (`tai_lieu/backtest/`). **Mã
+  giao diện của QuantConnect thì KHÔNG chép** — đó là mã nguồn của họ, và chép cũng
+  vô dụng: trang ấy là ứng dụng React, HTML lấy về chỉ là hộp rỗng. Bố cục và từng
+  khả năng thì dựng lại bằng mã của ta.
+- **Và không phải tính gì cả:** 8 ô số là `runtimeStatistics`, 8 biểu đồ là `charts`
+  (kèm `seriesType` nói rõ nến/cột/treemap), thống kê trượt là `rollingWindow`, thông
+  tin máy là `serverStatistics`. App chỉ bày ra.
+- **Cố ý KHÔNG dựng, nói rõ chứ không giả vờ quên:** Research Guide · Share Results ·
+  Report — cả ba là dịch vụ đám mây và tài liệu có thương hiệu của QuantConnect.
+- **⚠ Một chỗ cố ý làm KHÁC bản web:** bảng Strategy Equity có vốn tính bằng ĐÔ và
+  lợi suất tính bằng PHẦN TRĂM. Hai trục dọc trên một khung là nói dối bằng tỉ lệ —
+  hai đường cắt nhau ở chỗ do người vẽ chọn thang. Nên mỗi đơn vị một DẢI RIÊNG xếp
+  chồng, chung trục ngang. Nhìn gần như y hệt, mà không còn chỗ cho phép so sánh sai.
+- **⚠ Bớt điểm phải GỘP, không nhảy cách:** nhảy cách làm mất đỉnh và đáy — một cú
+  sụt gọn trong vài nến biến mất khỏi biểu đồ mà người xem không biết.
+- **⚠ Để trống «Mốc so sánh» KHÔNG phải là không có mốc:**
+  `DefaultBrokerageModel.GetBenchmark` trả về SPY, tức cỗ máy vàng bị đem so với cổ
+  phiếu Mỹ mà không một dòng nào nói ra. Nay gợi ý nói thẳng và biểu đồ ghi tên thật.
+- **Trạng thái:** vẽ → sinh → chạy → đọc đã thông trọn vòng, 11/11 bài kiểm xanh.
+  Chưa có: Tối ưu, Chạy thật, vòng lặp trong mã sinh ra, lớp game.
+
+## D-17 · RỔ ĐỘNG — khe thứ năm, và nó là một Ô chứ không phải một khối
+
+Dây chuyền LEAN có năm khe; D-16 mở bốn (tín hiệu · chia vốn · phòng rủi ro · đặt
+lệnh). Khe còn lại là `set_universe_selection` — *chạy trên mã nào*, mà LEAN quyết
+lại mỗi ngày.
+
+- **MỘT Ô, HAI KIỂU — không phải khối mới.** `set_universe_selection` gọi MỘT LẦN
+  trong `initialize`, đúng cùng luật đã chốt ở D-16: *xảy ra mỗi nhịp thì thành khối,
+  đặt một lần thì thành ô*. Nên nó là kiểu thứ hai của chính ô «Chạy trên mã nào»:
+  ô ấy nhận một LIST (mã gõ sẵn) hoặc một DICT (một rổ). Phân biệt bằng HÌNH DẠNG,
+  đúng lối vế phải của điều kiện (`{so}` hay `{ma_dl}`) — nhờ vậy file cũ mở ra vẫn
+  chạy, không phải di cư schema.
+- **Chín rổ, chín lớp CÓ THẬT** trong `Algorithm.Framework/Selection/`.
+  **⚠ Cố ý KHÔNG có `ManualUniverseSelectionModel`** dù nó cũng có thật: nó nhận một
+  danh sách mã gõ sẵn, tức đúng câu mà kiểu LIST đã nói. Bày cả hai là bày hai cách
+  nói một thứ rồi để người chơi đoán cách nào mới đúng.
+- **Hàm lọc «lấy mấy mã» cũng khai trong từ điển** (`bat_dau.LOC_TRONG_SO`), không để
+  bộ sinh mã tự nghĩ ra: một hàm lọc cũng là mã LEAN, và lời hứa D-11 không có ngoại
+  lệ. Ba dòng ấy chép từ ví dụ của chính LEAN; `weight` là trường có thật của
+  `ETFConstituentData`, và nó NULLABLE nên phải gạn trước khi xếp.
+- **⚠ BA chỗ nhánh này khác hẳn, cả ba đã ÉP TÁI HIỆN bằng backtest thật** (SPY
+  12/2020, rổ top 8 — 14 lệnh khớp hết):
+  1. `universe_settings.resolution` phải đứng TRƯỚC `set_universe_selection`: model
+     chụp lấy settings ngay lúc dựng. Đặt sau thì rổ chạy bằng phút trong khi sơ đồ
+     nói ngày, và `sma(sym, 200)` thành 200 PHÚT.
+  2. Chỉ báo khai ở `on_securities_changed`, không ở `initialize` — lúc ấy rổ còn
+     rỗng. Và hàm ấy phải ghi `self._cb[sym] = {}` **kể cả khi sơ đồ không có chỉ báo
+     nào**: ĐÃ ĐO — còn dòng ấy 15 lệnh, bỏ nó **0 lệnh**, backtest sạch cả hai lần.
+  3. `set_warm_up` vô dụng với chỉ báo sinh giữa đường -> `warm_up_indicator`. Nhưng
+     nó chỉ nạp được những gì CÓ trên đĩa, nên vẫn phải chặn `is_ready`: ĐÃ ĐO —
+     `RSI(20000) < 60` còn chặn thì 0 lệnh, bỏ chặn thì **17 lệnh khớp hết trên một
+     chỉ báo chưa bao giờ chín**, đọc ra ~53, một con số trông bình thường.
+- **Nhịp hẹn giờ phải có câu LEAN THỨ HAI.** `date_rules.every_day(ma)` cần một mã,
+  mà `self._ma[0]` trên một rổ là `IndexError` ở dòng đầu `initialize`. LEAN có sẵn
+  mấy hàm KHÔNG MÃ (`after_market_open(so_phut)` lấy giờ mở sớm nhất trong các mã
+  đang có, mặc định SPY), nên mỗi nhịp khai thêm một câu cho nhánh rổ.
+
+---
+
+## D-18 · Vệt của nến KHÔNG vào lệnh: SUY RA, không chèn dòng chẩn đoán  (chốt 2026-10-19)
+
+Màn «Chạy máy» (thiết kế §5) muốn đóng **van** lại cho người xem thấy thì phải biết nến
+ấy hỏng ở cổng nào. LEAN ngắt ở điều kiện sai đầu tiên nên nó không tự biết — đây chính
+là rủi ro mở §8.2 của bản thiết kế.
+
+- **Phương án đã cân nhắc:**
+  (a) **suy ra từ thứ LEAN đã trả về** ← **chọn** /
+  (b) bộ sinh mã tự chèn thêm một dòng log cho mỗi cổng.
+- **Lý do:** (b) biết ĐÚNG cổng nào đóng trong mọi trường hợp, nhưng phải trả hai giá:
+  mã ở tab Mã không còn là thứ người chơi vẽ ra — app bắt đầu tự viết code — và nhật ký
+  phụt to (6 năm × 10 mã × 5 cổng là hàng triệu dòng, mà chỗ đọc nhật ký đang cắt ở
+  60.000 ký tự), nên nó còn đẻ thêm một bài toán hạn mức. (a) không đụng một dòng nào
+  của bộ sinh mã.
+- **Suy được tới đâu** (`webui/src/man/mach_chay.ts`):
+  - **MỞ** — chắc chắn: nhịp ấy có một lệnh ra từ dưới cổng.
+  - **ĐÓNG** — dưới cổng không còn cổng nào nữa mà cũng không có lệnh nào ra.
+  - **LẶNG / chưa rõ** — dưới cổng còn cổng khác: dòng dừng ở KHÚC ấy, mà đúng cái nào
+    thì không suy ra được. Vẽ mờ, KHÔNG đánh *cạch*.
+- **⚠ Hệ quả phải nói thẳng:** `set_holdings` không sinh lệnh khi tỷ trọng đang đúng rồi
+  — cổng mở, hành động chạy, mà LEAN im, nhìn y hệt cổng đóng. Nên chữ trên màn hình nói
+  về **DÒNG** («dòng dừng ở đây»), không bao giờ nói về **điều kiện** («RSI chưa đủ
+  thấp»): câu thứ hai là câu app không chứng minh được. `tests/test_giao_dien.py` canh
+  đúng chuyện ấy.
+- **⚠ Và chỉ suy từ khối ĐÃ TỪNG NỔ trong cả lượt.** Năm loại khối hành động không bao
+  giờ sinh lệnh (Ghi chú, Vẽ bảng, Ghi nhớ, Báo tin, Phát tín hiệu). Lấy sự im lặng của
+  chúng làm bằng chứng thì mọi cổng nằm trên chúng đóng vĩnh viễn suốt cả lượt — một màn
+  hình đầy van đóng, sai hết, mà trông rất thuyết phục. Bản đầu đã sai đúng kiểu ấy.
+- **Hàng rào:** `webui/kiem/mach_chay.mjs` (38 phép kiểm, chạy qua
+  `tests/test_chay_lean.py`), dựng trên hình dạng dữ liệu của một lượt LEAN thật. Đã ép
+  hỏng năm kiểu để xem nó có kêu không — cả năm đều bị bắt.
+- **Để ngỏ:** muốn chắc hẳn thì (b) vẫn còn đó. Chốt này không khoá đường ấy, nó chỉ nói
+  M2 không đi đường ấy.
+- **Trạng thái:** locked

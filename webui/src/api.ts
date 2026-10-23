@@ -1,13 +1,45 @@
 /** Vỏ bọc có kiểu quanh `window.pywebview.api`.
  *
- * Mọi lời gọi Python đi qua đây, không rải `window.pywebview` khắp components — để
- * sau này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
+ * Mọi lời gọi Python đi qua đây, không rải `window.pywebview` khắp components — để sau
+ * này đổi cách vận chuyển (hoặc giả lập khi test) chỉ phải sửa một file.
+ *
+ * ⚠ MỘT BỀ MẶT DUY NHẤT. `api.py` chỉ còn một lớp `Api`, nên ở đây cũng chỉ một `py`.
+ * Bản trước tách `pyQC` riêng và bản xem thử tự định tuyến mọi tên `qc_*` sang lớp kia
+ * — nên hộp Khoá bấm ngon trong trình duyệt mà app thật thì báo "không có hàm" (D-12).
  */
 import type {
-  Bootstrap, Card, KetQuaSoat, KhoDanhMuc, ProcEdge, ProcessDoc, Reply, Step, Tab, ThamSo,
-  BootQC, KetQuaQC, KhoaQC, LenhQC, LoaiChay, LoNhatKyQC, ManQC, MucLichSuQC,
-  TrangThaiQC, TuDoQC,
+  CaiToiUu,
+  CoMay,
+  ChamMan,
+  HanhTrinh,
+  KhoDaiLuong, SoLieu,
+  Edge,
+  GoiYKe,
+  KetQuaChay,
+  KetQuaSinh,
+  KetQuaSoat,
+  KhoaQC,
+  KhoDanhMuc,
+  LeanSanSang,
+  LuotToiUu,
+  NumSoDo,
+  OLam,
+  Reply,
+  Step,
+  StepKind,
+  Strategy,
+  TheLuotChay,
+  TheMeToiUu,
+  TienDoChay,
+  TuDienBatDau,
+  TuDienHoi,
+  TuDienLam,
+  TuDienToiUu,
+  VanDe,
 } from './types'
+
+import { tr } from './ngon_ngu'
+import { dat_tieng } from './am_thanh'
 
 type PyApi = Record<string, (...a: unknown[]) => Promise<unknown>>
 
@@ -23,31 +55,43 @@ declare global {
  * Cố ý KHÔNG dùng sự kiện 'pywebviewready': nếu nó bắn trước khi bundle chạy xong thì
  * listener gắn sau sẽ không bao giờ nhận được, và app treo ở màn hình trắng.
  *
- * ⚠ Và cố ý KHÔNG kiểm `window.pywebview?.api` cho xong: pywebview tạo sẵn
- * `api: {}` — một object RỖNG nhưng TRUTHY — ngay từ khung hình đầu tiên, rồi mới đổ
- * hàm vào sau bằng `_createApi(funcList)`. Kiểm trống rỗng như vậy là qua ngay lập
- * tức, và lời gọi đầu tiên chết với "api.py không có hàm bootstrap" — trông y như lỗi
- * phía Python trong khi Python hoàn toàn ổn.
+ * ⚠ Và cố ý KHÔNG kiểm `window.pywebview?.api` cho xong: pywebview tạo sẵn `api: {}` —
+ * một object RỖNG nhưng TRUTHY — ngay từ khung hình đầu tiên, rồi mới đổ hàm vào sau.
  * Phải chờ một HÀM CÓ THẬT xuất hiện.
  */
-export function cho_cau_noi(ham = 'bootstrap', timeout = 10000): Promise<void> {
+export function cho_cau_noi(ham = 'ping', timeout = 10000): Promise<void> {
   const t0 = Date.now()
-  return new Promise((ok, hong) => {
+  return new Promise<void>((ok, hong) => {
     const thu = () => {
-      // Chờ ĐÚNG hàm mà trang này sắp gọi: cửa sổ Màn chơi có `ApiQC` riêng, KHÔNG có
-      // `bootstrap`. Chờ cứng `bootstrap` ở đó là treo 10 giây rồi báo mất kết nối.
       if (typeof window.pywebview?.api?.[ham] === 'function') return ok()
-      if (Date.now() - t0 > timeout) return hong(new Error('Không kết nối được tới Python'))
+      if (Date.now() - t0 > timeout) return hong(new Error(tr('Không kết nối được tới Python')))
       setTimeout(thu, 40)
     }
     thu()
-  })
+  // NGÔN NGỮ TỚI TRƯỚC NỘI DUNG. Cả ba cửa sổ (sơ đồ, Kết quả, Optimize) chờ ở đây rồi mới
+  // dựng gì, nên đặt ngay sau lúc cầu nối sẵn sàng là đúng một chỗ cho cả ba — `khoi_dong`
+  // nằm trên lớp nền `NenCuaSo` của Python chính vì thế. Hỏng thì BỎ QUA: không nói được
+  // tiếng của người dùng vẫn hơn là không mở nổi cửa sổ, và mặc định (tiếng Anh) đã sẵn.
+  }).then(() => goi<{ ngon_ngu?: string; am_thanh?: boolean }>('khoi_dong').then(
+    r => { dat_tieng(r.value?.am_thanh) }, () => {}))
 }
 
 async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
   const api = window.pywebview?.api
   if (!api || typeof api[ten] !== 'function') {
-    return { ok: false, error: `api.py không có hàm "${ten}"` }
+    /* ⚠ HAI CHUYỆN KHÁC HẲN NHAU, ĐỪNG GỘP MỘT CÂU.
+     *
+     * Cửa không tồn tại là lỗi lập trình, phải sửa `api.py`. Còn cầu nối chưa dựng
+     * xong là gọi quá sớm, phải chờ `cho_cau_noi` — sửa chỗ GỌI, không phải `api.py`.
+     * Bản trước báo cùng một câu «api.py không có hàm …» cho cả hai, nên lần sập thật
+     * đã dẫn thẳng đi soi `api.py`, nơi ba cái hàm ấy vẫn nằm nguyên đủ.
+     *
+     * Phân biệt bằng SỐ CỬA: pywebview dựng `api = {}` rỗng rồi mới đổ hàm vào, nên
+     * rỗng tức là chưa xong. */
+    const soCua = api ? Object.keys(api).length : 0
+    return { ok: false, error: soCua === 0
+      ? tr('gọi "{0}" lúc cầu nối Python chưa dựng xong', ten)
+      : tr('api.py không có hàm "{0}"', ten) }
   }
   try {
     return (await api[ten](...args)) as Reply<T>
@@ -57,57 +101,135 @@ async function goi<T>(ten: string, ...args: unknown[]): Promise<Reply<T>> {
 }
 
 export const py = {
-  bootstrap: () => goi<Bootstrap>('bootstrap'),
-  /** ◆ Màn chơi — mở cửa sổ chạy cỗ máy trên QuantConnect. Sơ đồ còn lỗi thì từ chối
-   *  kèm `loi` (danh sách lỗi y bảng Vấn đề). */
-  mo_qc: (doc: ProcessDoc) => goi<{ da_mo: boolean }>('mo_qc', doc),
+  ping: () => goi<string>('ping'),
   set_title: (ten: string) => goi<null>('set_title', ten),
-
-  // --- tài liệu ---
-  new_process: () => goi<ProcessDoc>('new_process'),
-  demo_process: () => goi<ProcessDoc>('demo_process'),
-  load_process: (ten: string) => goi<ProcessDoc>('load_process', ten),
-  /** Khối + nối của MỘT tab trong một chiến lược đã lưu, để THÊM CHỒNG lên sơ đồ đang
-   *  mở. Kèm những tham số đám khối đó thật sự đọc. */
-  import_steps: (ten: string, tab: Tab) =>
-    goi<{ steps: Step[]; edges: ProcEdge[]; tham_so: ThamSo[]
-          bo_start: boolean; ten: string }>('import_steps', ten, tab),
-  save_process: (doc: ProcessDoc) =>
-    goi<{ path: string; name: string }>('save_process', doc),
-  open_process_file: () => goi<ProcessDoc>('open_process_file'),
-  save_process_file: (doc: ProcessDoc) => goi<{ path: string }>('save_process_file', doc),
-
-  // --- template ---
-  list_templates: () => goi<string[]>('list_templates', 'strategy'),
-  delete_template: (ten: string) => goi<boolean>('delete_template', 'strategy', ten),
-
-  // --- khối ---
-  new_step: (kind: string, actionType?: string) =>
-    goi<{ step: Step; card: Card }>('new_step', kind, actionType ?? null),
-  /** `tham_so` = bảng của sơ đồ ĐÍCH. Thiếu nó thì thẻ ghi `nguong_nen_bps = ?`. */
-  clone_steps: (steps: Step[], tham_so?: ThamSo[]) =>
-    goi<{ steps: Step[]; map: Record<string, string>; cards: Card[] }>(
-      'clone_steps', steps, tham_so ?? []),
-  describe: (steps: Step[], thamSo: ThamSo[]) =>
-    goi<Card[]>('describe', steps, thamSo),
-
-  /** Danh mục kho — engine nào đang nạp, tính được những gì, lưu ở đâu. */
   kho_danh_muc: () => goi<KhoDanhMuc>('kho_danh_muc'),
+  /** CẢ HÀNH TRÌNH — 9 hồi, 26 màn, màn nào đang mở. Bản đồ KHÔNG tự khai một màn
+   *  nào: hai nơi cùng giữ danh sách màn thì sớm muộn lệch nhau. */
+  hanh_trinh: () => goi<HanhTrinh>('hanh_trinh'),
+  /** KHO — 164 đại lượng theo nhóm, 10 hành động, kèm cái nào đã mở. Chỗ "dạy hết"
+   *  sống lâu dài: màn dạy NHÓM, kho dạy từng món. */
+  so_lieu: () => goi<SoLieu>('so_lieu'),
+  kho_dai_luong: () => goi<KhoDaiLuong>('kho_dai_luong'),
+  /** Chấm lượt vừa chạy trên MÀN ĐÃ THẤY rồi ghi sổ. Luật chấm ở Python — giao diện
+   *  KHÔNG tính sao. */
+  /** Dán SÂN của màn lên sơ đồ — để người chơi NHÌN THẤY mình đang chơi ở đâu.
+   *  Chỉ khoảng ĐÃ THẤY; ngày màn ẩn không đi qua cửa này. */
+  san_cua_man: (man: string, steps: Step[]) =>
+    goi<{ steps: Step[] }>('san_cua_man', man, steps),
+  cham_man: (man: string, maLuot: string, steps: Step[]) =>
+    goi<ChamMan>('cham_man', man, maLuot, steps),
+  /** NỘP: chạy đúng cỗ máy này trên MÀN ẨN rồi chấm. Chỉ trả về ĐIỂM — không mã
+   *  lượt, không ngày tháng: biết ngày màn ẩn là ngôi sao thứ ba hết nghĩa. */
+  nop_man: (man: string, ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<ChamMan>('nop_man', man, ten, steps, edges, coMay),
+  /** Từ điển XÁC NHẬN. Giao diện KHÔNG tự khai danh sách này — nó hỏi Python, vì hai
+   *  nơi cùng giữ một bảng thì sớm muộn lệch nhau. */
+  tu_dien_hoi: () => goi<TuDienHoi>('tu_dien_hoi'),
+  /** Từ điển HÀNH ĐỘNG — tám loại việc và các ô của từng loại. Cùng lý do như trên. */
+  tu_dien_lam: () => goi<TuDienLam>('tu_dien_lam'),
+  /** Từ điển KHỐI BẮT ĐẦU — sáu ô thiết lập. Cùng lý do như hai cửa trên. */
+  tu_dien_bat_dau: () => goi<TuDienBatDau>('tu_dien_bat_dau'),
+  /** Mấy câu LEAN khối Bắt đầu ĐANG khai — hỏi lại sau MỖI thay đổi trong hộp.
+   *  Không nằm trong từ điển vì nó đổi theo giá trị đang gõ (nhịp, độ phân giải,
+   *  rổ). Giao diện KHÔNG tự ghép câu nào: Python khai, đây chỉ bày lại. */
+  khai_bat_dau: (gt: Record<string, unknown>) => goi<string[]>('khai_bat_dau', gt),
+  /** Sơ đồ -> thuật toán LEAN Python. `ghi` true thì ghi luôn ra file. */
+  sinh_ma: (ten: string, steps: Step[], edges: Edge[], ghi = false,
+            coMay?: CoMay) =>
+    goi<KetQuaSinh>('sinh_ma', ten, steps, edges, ghi, coMay),
+  /** LEAN đã trỏ đúng chỗ chưa — hỏi trước khi bấm Chạy. */
+  lean_san_sang: () => goi<LeanSanSang>('lean_san_sang'),
+  lean_dat_goc: (duong: string) => goi<LeanSanSang>('lean_dat_goc', duong),
+  /** Vẽ -> sinh -> KHỎI ĐỘNG backtest. Trả về NGAY, chưa phải kết quả. */
+  chay_backtest: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay,
+                  man?: string, loai: 'thay' | 'an' = 'thay') =>
+    goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
+      'chay_backtest', ten, steps, edges, coMay, man, loai),
+  // --- cài đặt app. Giao diện KHÔNG tự khai có bao nhiêu ô — hỏi Python. ---
+  cai_dat_tu_dien: () => goi<{ nhom: { ma: string; nhan: string; o: OLam[] }[] }>(
+    'cai_dat_tu_dien'),
+  cai_dat_doc: () => goi<Record<string, unknown>>('cai_dat_doc'),
+  cai_dat_ghi: (gt: Record<string, unknown>) =>
+    goi<{ gia_tri: Record<string, unknown>; lean: LeanSanSang }>('cai_dat_ghi', gt),
 
-  /** Nguồn của HUY HIỆU SỐ và của bảng Vấn đề — CẢ HAI sơ đồ, một lời gọi. */
-  validate: (doc: ProcessDoc) => goi<never>('validate', doc) as Promise<KetQuaSoat>,
+  // --- kho lượt backtest. Mỗi lượt một thư mục, không ghi đè lượt trước. ---
+  /** Mở MỘT CỬA SỔ RIÊNG cho một lượt — để xếp cạnh nhau mà so hai phiên bản. */
+  mo_cua_so_ket_qua: (id: string) =>
+    goi<{ id: string; moi: boolean }>('mo_cua_so_ket_qua', id),
+  ds_luot_chay: () => goi<TheLuotChay[]>('ds_luot_chay'),
+  doc_luot_chay: (id: string) => goi<KetQuaChay>('doc_luot_chay', id),
+  xoa_luot_chay: (id: string) => goi<boolean>('xoa_luot_chay', id),
 
-  // --- hộp thoại hành động ---
-  save_action: (draft: Record<string, unknown>, tab: Tab, thamSo: ThamSo[]) =>
-    goi<{ action: Record<string, unknown>; display: string }>(
-      'save_action', draft, tab, thamSo),
-  action_defaults: (t: string) => goi<Record<string, unknown>>('action_defaults', t),
+  /** DỪNG lượt đang chạy — giết thẳng tiến trình LEAN. */
+  dung_backtest: () => goi<boolean>('dung_backtest'),
+  /** Lượt chạy đang tới đâu — hỏi mỗi nửa giây. */
+  tien_do_backtest: () => goi<TienDoChay>('tien_do_backtest'),
 
-  // --- cài đặt ---
-  save_settings: (s: Record<string, unknown>) =>
-    goi<Record<string, unknown>>('save_settings', s),
-  save_ui: (state: Record<string, unknown>) =>
-    goi<Record<string, unknown>>('save_ui', state),
+  // --- OPTIMIZE. Cùng khuôn backtest, chỉ nặng hơn: một mẻ là HÀNG TRĂM lượt. ---
+  tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
+  /** Sơ đồ đang ghim những núm nào. ĐỌC TỪ SƠ ĐỒ mỗi lần, không bảng riêng. */
+  num_cua_so_do: (steps: Step[]) => goi<NumSoDo[]>('num_cua_so_do', steps),
+  chay_toi_uu: (ten: string, steps: Step[], edges: Edge[], cai: CaiToiUu,
+               coMay?: CoMay) =>
+    goi<{ ok: boolean; loi: string; van_de?: VanDe[] }>(
+      'chay_toi_uu', ten, steps, edges, cai, coMay),
+  dung_toi_uu: () => goi<boolean>('dung_toi_uu'),
+  tien_do_toi_uu: () => goi<Record<string, unknown>>('tien_do_toi_uu'),
+  ds_me_toi_uu: () => goi<TheMeToiUu[]>('ds_me_toi_uu'),
+  xoa_me_toi_uu: (id: string) => goi<boolean>('xoa_me_toi_uu', id),
+  /** Mở CỬA SỔ RIÊNG cho một mẻ — mở ngay lúc bắt đầu, bảng đầy dần. */
+  mo_cua_so_toi_uu: (id: string) =>
+    goi<{ id: string; moi: boolean }>('mo_cua_so_toi_uu', id),
+
+  // --- sơ đồ ---
+  khoi_moi: (kind: StepKind, loai?: string) =>
+    goi<{ step: Step; card: KetQuaSoat['the'][string] }>('khoi_moi', kind, loai),
+  /** MỘT cửa soát duy nhất — gọi sau MỖI thay đổi, rồi vẽ lại cái nhận về. */
+  soat: (steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<KetQuaSoat>('soat', steps, edges, coMay),
+  /** Ctrl+G — mấy khối Hành động thành MỘT Nhóm. Lõi ở Python, không ở đây. */
+  /** NỐI THÔNG MINH: sau khối đang chọn thì thường là gì. Cửa riêng chứ không đi
+   *  kèm `soat` — nó đổi theo thứ đang CHỌN, mà chọn thì đổi mỗi cú bấm chuột. */
+  goi_y_ke: (steps: Step[], edges: Edge[], chon: string | null) =>
+    goi<GoiYKe[]>('goi_y_ke', steps, edges, chon),
+  gom_nhom: (steps: Step[], ten?: string) =>
+    goi<{ step: Step; card: KetQuaSoat['the'][string] }>('gom_nhom', steps, ten),
+  /** Ctrl+Shift+G — một Nhóm thành từng khối Hành động. Ngược `gom_nhom`. */
+  ra_nhom: (step: Step) =>
+    goi<{ steps: Step[]; the: KetQuaSoat['the'][string][] }>('ra_nhom', step),
+  nhan_ban: (steps: Step[], edges: Edge[], giuHatNhan = false) =>
+    goi<{ steps: Step[]; edges: Edge[]; map: Record<string, string>;
+          the: KetQuaSoat['the'] }>('nhan_ban', steps, edges, giuHatNhan),
+
+  // --- lưu / mở ---
+  ds_strategy: () => goi<{ ten: string; tuLuu: boolean }[]>('ds_strategy'),
+  doi_ten_strategy: (cu: string, moi: string) =>
+    goi<{ ten: string }>('doi_ten_strategy', cu, moi),
+  nhan_ban_strategy: (ten: string, tenMoi: string) =>
+    goi<{ ten: string }>('nhan_ban_strategy', ten, tenMoi),
+  luu_strategy: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<{ ten: string; duong: string }>('luu_strategy', ten, steps, edges, coMay),
+  mo_strategy: (ten: string) => goi<Strategy>('mo_strategy', ten),
+  xoa_strategy: (ten: string) => goi<boolean>('xoa_strategy', ten),
+  tu_luu_strategy: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay) =>
+    goi<{ ten: string; duong: string } | null>(
+      'tu_luu_strategy', ten, steps, edges, coMay),
+  /** `man` = mã màn đang chơi; rỗng là bản nháp của chế độ Sáng tạo. MỖI MÀN MỘT
+   *  NGĂN — xem `luu_tru.duong_dan_ban_nhap`. */
+  luu_ban_nhap: (ten: string, steps: Step[], edges: Edge[], coMay?: CoMay, man = '') =>
+    goi<string>('luu_ban_nhap', ten, steps, edges, coMay, man),
+  doc_ban_nhap: (man = '') => goi<Strategy | null>('doc_ban_nhap', man),
+  xoa_ban_nhap: (man = '') => goi<boolean>('xoa_ban_nhap', man),
+
+  // --- khoá QuantConnect. Mọi lỗi từ đây đã là một câu tiếng Việt. ---
+  qc_khoa: () => goi<KhoaQC>('qc_khoa'),
+  qc_luu_khoa: (userId: string, token: string) => goi<KhoaQC>('qc_luu_khoa', userId, token),
+  qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
+  qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
+  qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
+  /** Mở một thư mục dữ liệu bằng Explorer. Chỉ mấy thư mục Python khai sẵn. */
+  mo_thu_muc: (loai: string) => goi<boolean>('mo_thu_muc', loai),
 
   // --- cửa sổ (thanh tiêu đề tự vẽ) ---
   vung_khong_keo: (vung: number[][], cao: number) => goi<null>('vung_khong_keo', vung, cao),
@@ -118,31 +240,44 @@ export const py = {
   cua_so_dong: () => goi<null>('cua_so_dong'),
 }
 
-/** Bề mặt của cửa sổ MÀN CHƠI (`api.ApiQC`). Mọi lỗi từ đây đã là một câu tiếng Việt.
+/** ⚠ Giữ tên cũ cho `HopKhoa` khỏi phải sửa — nhưng nó TRỎ VÀO CÙNG một bề mặt. */
+export const pyQC = py
+
+/** Cầu nối của CỬA SỔ OPTIMIZE. Bề mặt HẸP có chủ ý: cửa sổ ấy chỉ đọc một mẻ rồi
+ *  bày ra, nên `js_api` của nó bên Python (`ApiToiUu`) cũng chỉ mở đúng hai cửa.
+ *  Đưa cả `py` vào đó là đưa luôn `xoa_strategy` vào một cửa sổ chẳng có lý do gì
+ *  chạm tới nó. */
+export const pyTu = {
+  doc_me: () => goi<LuotToiUu>('doc_me'),
+  tien_do: () => goi<{ dang_chay?: boolean; xong?: boolean }>('tien_do'),
+  tu_dien_toi_uu: () => goi<TuDienToiUu>('tu_dien_toi_uu'),
+  /** Bấm đúp một dòng: MỞ ĐÚNG SƠ ĐỒ của mẻ này với bộ số ấy. Python lấy sơ đồ đã
+   *  lưu cùng mẻ, đặt số vào, rồi đẩy sang cửa sổ chính — nên nó đúng kể cả khi
+   *  canvas đang trống hay đang vẽ chiến thuật khác. */
+  ap_num: (tham_so: Record<string, string>) =>
+    goi<{ dat: string[] }>('ap_num', tham_so),
+}
+
+/** NGHE SỰ KIỆN Python đẩy sang (`Api._ban`). -> hàm gỡ bỏ.
  *
- * Tách hẳn khỏi `py`: cửa sổ đó chạy `ApiQC` bên Python, một lớp cố ý HẸP — không lưu
- * chiến lược, không mở hộp thoại file, không đổi cài đặt. Gọi nhầm `py.*` ở đó sẽ trả
- * "api.py không có hàm …" chứ không âm thầm đụng vào cửa sổ chính.
+ *  ⚠ Cơ chế này khai từ lâu ở cả hai đầu — `_ban` bên Python và `window.__su_kien`
+ *  trong kiểu bên này — mà KHÔNG AI gọi, KHÔNG AI nghe. Đúng một cái hàng rào không
+ *  ai gác: có sẵn, trông như đang chạy, và lần đầu cần tới mới biết nó rỗng.
  *
- * Nhóm `cua_so_*` trùng TÊN với `py` nhưng là hàm KHÁC — mỗi cửa sổ một thể hiện, nên bấm
- * ✕ ở Màn chơi chỉ đóng Màn chơi. Nhờ vậy `TitleBar` dùng lại được nguyên vẹn. */
-export const pyQC = {
-  qc_boot: () => goi<BootQC>('qc_boot'),
-  qc_khoa: () => goi<KhoaQC>('qc_khoa'),
-  qc_luu_khoa: (userId: string, token: string) => goi<KhoaQC>('qc_luu_khoa', userId, token),
-  qc_xoa_khoa: () => goi<KhoaQC>('qc_xoa_khoa'),
-  qc_kiem_khoa: () => goi<boolean>('qc_kiem_khoa'),
-  /** Chạy NỀN, trả ngay — rồi hỏi `qc_trang_thai` tới khi `dang_chay` tắt. */
-  qc_chay: (loai: LoaiChay, man: string | null, tuDo: TuDoQC | null) =>
-    goi<boolean>('qc_chay', loai, man, tuDo),
-  qc_trang_thai: () => goi<TrangThaiQC>('qc_trang_thai'),
-  qc_ket_qua: () => goi<KetQuaQC | null>('qc_ket_qua'),
-  qc_nhat_ky: (tu: number, so: number, chiViec: boolean) =>
-    goi<LoNhatKyQC>('qc_nhat_ky', tu, so, chiViec),
-  qc_lenh: () => goi<LenhQC[]>('qc_lenh'),
-  qc_soi_luot: (i: number) => goi<{ da_ban: boolean }>('qc_soi_luot', i),
-  qc_man: () => goi<ManQC[]>('qc_man'),
-  qc_lich_su: () => goi<MucLichSuQC[]>('qc_lich_su'),
-  qc_mo_lai: (duong: string) => goi<KetQuaQC>('qc_mo_lai', duong),
-  qc_mo_web: (url: string) => goi<boolean>('qc_mo_web', url),
+ *  Nhiều chỗ nghe cùng lúc được, nên nó giữ một danh sách chứ không ghi đè
+ *  `window.__su_kien`: ghi đè thì chỗ gắn sau giết chỗ gắn trước, lặng lẽ. */
+const _nguoi_nghe = new Map<string, Set<(d: unknown) => void>>()
+
+export function nghe(ten: string, fn: (d: unknown) => void): () => void {
+  if (!window.__su_kien) {
+    window.__su_kien = (t: string, d: unknown) => {
+      for (const f of _nguoi_nghe.get(t) ?? []) {
+        try { f(d) } catch { /* một chỗ nghe hỏng không được giết mấy chỗ kia */ }
+      }
+    }
+  }
+  const ds = _nguoi_nghe.get(ten) ?? new Set()
+  ds.add(fn)
+  _nguoi_nghe.set(ten, ds)
+  return () => { ds.delete(fn) }
 }
