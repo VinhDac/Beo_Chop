@@ -41,8 +41,24 @@ export interface NhipView {
   cho: DongLenh[]
 }
 
+/** MỘT DÒNG NHẬT KÝ — một việc đã xảy ra, gắn vào đúng nhịp nó xảy ra. */
+export interface DongNhatKy {
+  /** Chỉ số nhịp — bấm vào dòng là con trỏ nhảy tới đây. */
+  i: number
+  /** `2012-05-09` */
+  ngay: string
+  chu: string
+  /** Nhãn khối (`[1A.1] RSI(14) < 30`), rỗng nếu dòng này không phải một lệnh.
+   *  Có nhãn thì bấm vào dòng còn SOI được đường nó đã đi trên sơ đồ. */
+  tag: string
+  /** Lệnh bị sàn từ chối — đỏ, và đó là một trong đúng hai chỗ được dùng màu đỏ. */
+  hong: boolean
+}
+
 export interface MachView {
   nhip: NhipView[]
+  /** Nhật ký: mọi việc đã xảy ra, theo thứ tự thời gian. */
+  nhatKy: DongNhatKy[]
   /** Tên mã của cuộn phim này. */
   ma: string
   /** Đại lượng CÙNG THANG GIÁ — vẽ chồng lên nến. */
@@ -145,5 +161,25 @@ export function dungMachView(kq: KetQuaChay, ma: string): MachView {
   }
   if (!Number.isFinite(thap)) { thap = 0; cao = 1 }
 
-  return { nhip, ma, chong, so, lenh, thap, cao }
+  /* NHẬT KÝ. Mỗi lệnh một dòng, gắn vào đúng nhịp nó xảy ra.
+   *
+   * ⚠ ĐÂY KHÔNG PHẢI NHẬT KÝ TỪNG NẾN CỦA BẢN CŨ, và đừng để ai tưởng thế. Bản cũ
+   * ghi mỗi nến một dòng («hết lượt tại [3] · số nến = 2.00, không ≥ 10.00») vì nó
+   * có engine riêng trong app. Bản nay giao cho LEAN, mà LEAN chỉ trả về MẤY VIỆC ĐÃ
+   * XẢY RA: lệnh, và dăm dòng cảnh báo. Muốn có vết từng nến thì bộ sinh mã phải ghi
+   * ở mỗi cổng Hỏi — đổi dáng mã của mọi thuật toán sinh ra, nên đó là việc riêng. */
+  const nhatKy: DongNhatKy[] = []
+  nhip.forEach((n, i) => {
+    const ngay = new Date(n.t * 1000).toISOString().slice(0, 10)
+    for (const l of n.lenh) {
+      const sl = Number(l.so_luong)
+      nhatKy.push({
+        i, ngay, tag: l.tag, hong: !l.hop_le,
+        chu: `${sl > 0 ? '▲' : '▼'} ${l.loai} ${l.gia}`
+           + (l.hop_le ? '' : ` · ${l.trang_thai}`),
+      })
+    }
+  })
+
+  return { nhip, nhatKy, ma, chong, so, lenh, thap, cao }
 }

@@ -293,11 +293,9 @@ const TIENG_ANH: Record<string, string> = {
   'Thôi soi (Esc)': 'Stop tracing (Esc)',
   'Chưa có lượt nào để xem. Bấm Backtest trước đã.':
     'No run to view yet. Press Backtest first.',
-  // ── view/DoThiNen.tsx
-  'chưa có nến nào': 'no bars yet',
   // ── view/TrangView.tsx
-  'Soi đường lệnh này đã đi, trên sơ đồ ở cửa sổ chính':
-    'Trace the path this order took, on the diagram in the main window',
+  'Lượt này không ra lệnh nào.': 'This run placed no orders.',
+  'Nhảy tới đây, và soi đường trên sơ đồ': 'Jump here, and trace the path on the diagram',
   'Chạy lại từ nến đầu': 'Replay from the first bar',
   'Nhảy tới cuối lượt chạy': 'Jump to the end of the run',
   'Về cuối': 'To the end',
@@ -317,7 +315,6 @@ const TIENG_ANH: Record<string, string> = {
   'Lượt này không có nến nào. Chạy lại bằng bản mới để LEAN in nến ra.':
     'This run has no bars. Run it again on the current build so LEAN records them.',
   'Chạy lại': 'Replay',
-  'Lệnh đã ra': 'Orders so far',
   'Thêm khối': 'Add block',
   'Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn': 'The setup block: symbols, date range, capital, schedule, brokerage',
   'Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ': 'Add a branching gate — ask one question about the world, then branch',

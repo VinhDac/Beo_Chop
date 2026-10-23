@@ -5,7 +5,7 @@ import { cho_cau_noi, py } from '../api'
 import type { KetQuaChay } from '../types'
 import { tr, trx, useNgonNgu } from '../ngon_ngu'
 import DoThiNen from './DoThiNen'
-import DoThiDuong from './DoThiDuong'
+import NhatKy from './NhatKy'
 import type { KieuVe } from './DoThiNen'
 import { dsMaCuaLuot, dungMachView } from './mach_view'
 
@@ -57,8 +57,6 @@ export default function TrangView({ ma }: { ma: string }) {
   )
 }
 
-/** Bao nhiêu nến bày một lúc. */
-const CUA = 140
 /** Tốc độ phát. Ô CHỌN chứ không ba cái nút: cửa sổ Tester cũ cho bảy mức, và cái
  *  khác nhau giữa ×16 với ×32 là có nhìn kịp một đoạn hay không. */
 const TOC = [1, 2, 4, 8, 16, 32, 64]
@@ -70,24 +68,19 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
   const [ma, setMa] = useState(() => dsMa[0] ?? '')
   const mach = useMemo(() => dungMachView(kq, ma), [kq, ma])
   const het = mach.nhip.length - 1
-  const [i, setI] = useState(het < 0 ? 0 : het)
-  const [chay, setChay] = useState(false)
-  const [toc, setToc] = useState(8)
+  /* ⚠ MỞ RA LÀ PHÁT LẠI TỪ ĐẦU, đừng thả con trỏ vào cuối. Đó là cả điểm của cửa sổ
+     này — nến lớn dần, lệnh hiện ra đúng lúc. Thả vào cuối thì nó chỉ còn là một
+     tấm ảnh chụp, và chính bản Tester cũ đã sửa đúng lỗi ấy một lần rồi. */
+  const [i, setI] = useState(0)
+  const [chay, setChay] = useState(true)
+  /* Tốc độ mặc định tính theo ĐỘ DÀI LƯỢT: chọn mức chậm nhất mà vẫn chạy hết trong
+     khoảng hai chục giây. Một con số gõ cứng thì 250 nến xong trong chớp mắt còn
+     2000 nến ngồi xem hết một phút rưỡi. */
+  const [toc, setToc] = useState(() => {
+    const n = Math.max(1, mach.nhip.length)
+    return TOC.find(t => (n / Math.max(1, Math.round(t / 8))) * 40 <= 20000) ?? 64
+  })
   const [kieu, setKieu] = useState<KieuVe>('nen')
-  const khung = useRef<HTMLDivElement>(null)
-  const [co, setCo] = useState({ rong: 760, cao: 360 })
-
-  // Khung co theo cửa sổ: SVG cần số đo thật, không nhận `100%` cho viewBox.
-  useEffect(() => {
-    const el = khung.current
-    if (!el) return
-    const o = new ResizeObserver(() => {
-      setCo({ rong: el.clientWidth, cao: el.clientHeight })
-    })
-    o.observe(el)
-    return () => o.disconnect()
-  }, [])
-
   // TUA. Một nhịp vẽ cho mỗi nến ở ×1; nhanh hơn thì nhảy nhiều nến một nhịp — chứ
   // không phải hẹn giờ ngắn lại, vì dưới ~16ms trình duyệt không chạy nhanh hơn được
   // nữa và tốc độ ×64 sẽ y hệt ×8.
@@ -199,18 +192,11 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
       )}
 
       <div className="view-than">
-        {/* NẾN + mấy đại lượng CÙNG THANG chồng lên; rồi mỗi đại lượng thang
-            khác một khung riêng bên dưới. RSI chạy 0–100 mà vàng chạy quanh 1250 —
-            nhét chung một trục thì một trong hai thành đường thẳng dính mép. */}
+        {/* NẾN + đại lượng cùng thang chồng lên, rồi mỗi đại lượng thang khác
+            một KHUNG PHỤ bên dưới — tất cả trong một chart, dùng chung trục thời
+            gian. Cuộn chuột để phóng, kéo để đi: của `lightweight-charts`. */}
         <div className="view-cot-do-thi">
-          <div className="view-khung-do-thi" ref={khung}>
-            <DoThiNen mach={mach} chiSo={i} cua={CUA} kieu={kieu}
-                      rong={co.rong} cao={co.cao} />
-          </div>
-          {mach.so.map(h => (
-            <DoThiDuong key={h.ten} ten={h.ten} gt={h.gt} chiSo={i} cua={CUA}
-                        rong={co.rong} />
-          ))}
+          <DoThiNen mach={mach} chiSo={i} kieu={kieu} />
         </div>
 
         <div className="view-ben">
@@ -230,26 +216,8 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
             ))}
           </tbody></table>
 
-          <div className="view-nhan-lenh">
-            {tr('Lệnh đã ra')} <b>{daRa.length}</b>/{mach.lenh.length}
-          </div>
-          <div className="view-ds-lenh">
-            {daRa.slice(-12).reverse().map(l => (
-              <button key={String(l.id)} type="button"
-                   title={tr('Soi đường lệnh này đã đi, trên sơ đồ ở cửa sổ chính')}
-                   onClick={() => void py.soi_luot(l.tag)}
-                   className={'view-mot-lenh' + (l.hop_le ? '' : ' tu-choi')}>
-                <div className="view-lenh-dau">
-                  <span className={Number(l.so_luong) > 0 ? 'mua' : 'ban'}>
-                    {Number(l.so_luong) > 0 ? '▲' : '▼'}
-                  </span>
-                  <b>{l.loai}</b>
-                  <span className="view-lenh-gia">{l.gia}</span>
-                </div>
-                <div className="view-lenh-tag">{l.tag || '—'}</div>
-              </button>
-            ))}
-          </div>
+          <NhatKy ds={mach.nhatKy} chiSo={i}
+                  nhay={k => { setChay(false); setI(k) }} />
         </div>
       </div>
     </div>

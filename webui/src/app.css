@@ -3045,15 +3045,6 @@ mark.tim-chu {
 .view-than { flex: 1; display: flex; min-height: 0; }
 /* Khung đồ thị phải có chiều cao THẬT: `ResizeObserver` đo nó rồi đưa số đo cho
    `viewBox`, mà một khung cao 0 thì SVG vẽ ra đúng không gì cả. */
-.view-khung-do-thi { flex: 1; min-width: 0; min-height: 0; position: relative; }
-.view-do-thi { display: block; width: 100%; height: 100%; }
-.view-luoi { stroke: var(--border-soft); stroke-width: 1; }
-.view-nhan-truc { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
-.view-dau-phat {
-  stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; opacity: .8;
-}
-.view-lenh { opacity: .95; }
-.view-lenh.tu-choi { opacity: .4; }
 
 .view-ben {
   flex: 0 0 272px; display: flex; flex-direction: column; min-height: 0;
@@ -3118,24 +3109,6 @@ mark.tim-chu {
   border-color: var(--accent);
 }
 .view-cot-do-thi { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.view-khung-duong {
-  position: relative; flex: 0 0 auto;
-  border-top: 1px solid var(--border-soft);
-}
-.view-ten-duong {
-  position: absolute; left: 10px; top: 4px; display: flex; gap: 8px;
-  font-family: var(--mono); font-size: 10.5px; color: var(--dim);
-  pointer-events: none;
-}
-.view-ten-duong b { color: var(--text); }
-.view-chong { fill: none; stroke-width: 1.2; }
-/* Mức giá lệnh CÒN TREO. Cam, và cam chỉ làm đúng việc này — xem `DoThiNen`. */
-.view-muc-cho {
-  stroke: var(--accent); stroke-width: 1; stroke-dasharray: 5 4; opacity: .85;
-}
-.view-nhan-cho {
-  fill: var(--accent); font-family: var(--mono); font-size: 10px;
-}
 
 /* ─────────────────────────────────────────── SOI LƯỢT: ghim một lệnh lên sơ đồ */
 .soi-dai {
@@ -3159,3 +3132,34 @@ mark.tim-chu {
 /* Khối và dây NGOÀI đường đang soi. Mờ chứ không giấu: cái đường sáng chỉ có nghĩa
    khi còn thấy nó nằm giữa những gì. */
 .soi-mo { opacity: .22; transition: opacity .2s ease; }
+
+/* Khung chart của `lightweight-charts` — nó tự đo (autoSize), chỉ cần một chỗ đứng. */
+.view-khung-chart { flex: 1; min-width: 0; min-height: 0; }
+
+/* ───────────────────────────────────────────────── nhật ký sống */
+.view-nk { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.view-nk-dau {
+  display: flex; align-items: baseline; gap: 8px; flex: 0 0 auto;
+  padding: 9px 12px 6px; font-size: 11px; color: var(--dim);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.view-nk-dem { font-family: var(--mono); color: var(--muted); }
+.view-nk-cuon { flex: 1; min-height: 0; overflow: auto; padding: 0 8px 8px; }
+.view-nk-trong { padding: 10px 4px; font-size: 12px; color: var(--dim); }
+.view-nk-dong {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  padding: 6px 9px; margin-bottom: 4px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+}
+.view-nk-dong:hover { background: var(--raised); }
+/* Dòng của ĐÚNG nhịp đang đứng — để lúc phát, mắt bám được dòng vừa nảy lên. */
+.view-nk-dong.dang { border-color: var(--accent); }
+.view-nk-dong.hong { opacity: .5; }
+.view-nk-ngay {
+  display: block; font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+}
+.view-nk-chu { display: block; font-size: 12.5px; color: var(--text); margin-top: 1px; }
+.view-nk-tag {
+  display: block; font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+  margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
