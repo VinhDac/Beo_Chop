@@ -3102,3 +3102,30 @@ mark.tim-chu {
 }
 .view-ngay-nhay { font-family: var(--mono); }
 .view-duong { fill: none; stroke: var(--accent); stroke-width: 1.3; }
+.view-the-ma {
+  display: flex; gap: 4px; flex: 0 0 auto; padding: 5px 12px;
+  background: var(--chrome); border-bottom: 1px solid var(--border-soft);
+  overflow-x: auto;
+}
+.view-ma {
+  padding: 4px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  background: transparent; border: 1px solid var(--border-soft);
+  color: var(--muted); font-family: var(--mono); font-size: 12px;
+}
+.view-ma:hover { color: var(--text); }
+.view-ma.chon {
+  color: var(--accent); background: rgba(255, 166, 87, .12);
+  border-color: var(--accent);
+}
+.view-cot-do-thi { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.view-khung-duong {
+  position: relative; flex: 0 0 auto;
+  border-top: 1px solid var(--border-soft);
+}
+.view-ten-duong {
+  position: absolute; left: 10px; top: 4px; display: flex; gap: 8px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+  pointer-events: none;
+}
+.view-ten-duong b { color: var(--text); }
+.view-chong { fill: none; stroke-width: 1.2; }

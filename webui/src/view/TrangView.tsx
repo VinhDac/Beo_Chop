@@ -5,8 +5,9 @@ import { cho_cau_noi, py } from '../api'
 import type { KetQuaChay } from '../types'
 import { tr, trx, useNgonNgu } from '../ngon_ngu'
 import DoThiNen from './DoThiNen'
+import DoThiDuong from './DoThiDuong'
 import type { KieuVe } from './DoThiNen'
-import { dungMachView } from './mach_view'
+import { dsMaCuaLuot, dungMachView } from './mach_view'
 
 /** CỬA SỔ VIEW — xem lại một lượt đã chạy, nến từng nến.
  *
@@ -63,7 +64,11 @@ const CUA = 140
 const TOC = [1, 2, 4, 8, 16, 32, 64]
 
 function RuotView({ kq }: { kq: KetQuaChay }) {
-  const mach = useMemo(() => dungMachView(kq), [kq])
+  // MỖI MÃ MỘT CUỘN PHIM. LEAN hay chạy cả rổ, nên cửa sổ này phải bày được từng mã
+  // — một phiên đang diễn ra trên tám mã thì người xem cần tám cái chart.
+  const dsMa = useMemo(() => dsMaCuaLuot(kq), [kq])
+  const [ma, setMa] = useState(() => dsMa[0] ?? '')
+  const mach = useMemo(() => dungMachView(kq, ma), [kq, ma])
   const het = mach.nhip.length - 1
   const [i, setI] = useState(het < 0 ? 0 : het)
   const [chay, setChay] = useState(false)
@@ -184,10 +189,28 @@ function RuotView({ kq }: { kq: KetQuaChay }) {
                }} />
       </div>
 
+      {dsMa.length > 1 && (
+        <div className="view-the-ma">
+          {dsMa.map(t => (
+            <button key={t} className={'view-ma' + (t === ma ? ' chon' : '')}
+                    onClick={() => setMa(t)}>{t}</button>
+          ))}
+        </div>
+      )}
+
       <div className="view-than">
-        <div className="view-khung-do-thi" ref={khung}>
-          <DoThiNen mach={mach} chiSo={i} cua={CUA} kieu={kieu}
-                    rong={co.rong} cao={co.cao} />
+        {/* NẾN + mấy đại lượng CÙNG THANG chồng lên; rồi mỗi đại lượng thang
+            khác một khung riêng bên dưới. RSI chạy 0–100 mà vàng chạy quanh 1250 —
+            nhét chung một trục thì một trong hai thành đường thẳng dính mép. */}
+        <div className="view-cot-do-thi">
+          <div className="view-khung-do-thi" ref={khung}>
+            <DoThiNen mach={mach} chiSo={i} cua={CUA} kieu={kieu}
+                      rong={co.rong} cao={co.cao} />
+          </div>
+          {mach.so.map(h => (
+            <DoThiDuong key={h.ten} ten={h.ten} gt={h.gt} chiSo={i} cua={CUA}
+                        rong={co.rong} />
+          ))}
         </div>
 
         <div className="view-ben">

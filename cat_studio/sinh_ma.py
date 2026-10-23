@@ -210,8 +210,17 @@ class _Nc:
         thức, nên chúng là một hàng chứ không phải hai."""
         if not isinstance(ve, dict) or "ma_dl" not in ve:
             return                      # con số gõ tay thì không có gì để theo dõi
-        if bt not in self.so_bay:
-            self.so_bay[bt] = core.chu_dai_luong(ve)
+        if bt in self.so_bay:
+            return
+        # CÙNG THANG VỚI GIÁ thì vẽ chồng lên nến; không thì khung riêng. Từ điển
+        # khai sẵn ở ô `don_vi` — xem `hoi.DON_VI_GIA`.
+        # ⚠ CÓ GHÉP THÌ KHÔNG CÒN CÙNG THANG. «giá / đỉnh 60 nến» đơn vị là giá chia
+        # cho giá, tức một tỉ lệ quanh 1 — chồng nó lên nến vàng 1250 là một đường
+        # dính đáy. Bản đầu chỉ tra `ma_dl` nên vướng đúng chỗ ấy.
+        thang_gia = (hoi.cung_thang_gia(ve["ma_dl"])
+                     and not hoi.ds_ghep(ve)
+                     and not ve.get("he_so"))
+        self.so_bay[bt] = {"chu": core.chu_dai_luong(ve), "thang_gia": thang_gia}
 
     def loi(self, sid, msg, sev="error"):
         core._loi(self.van_de, sev, sid, msg)
@@ -880,71 +889,117 @@ BANG_GIA = "Price"
 BANG_SO = "Quantities"
 
 
+#: LEAN cho tổng cộng 30 đường (`maximum-chart-series` trong `config.json`), mà nó
+#: tự tiêu mất khoảng mười cái cho đồ thị của chính nó (Strategy Equity, Benchmark,
+#: Drawdown, Exposure, Portfolio Turnover/Margin, Assets Sales Volume, Capacity).
+#: Chừa hẳn một khoảng: thà bày ít mã mà đủ, còn hơn bày tham rồi mất mấy cái cuối.
+NGAN_SACH_DUONG = 18
+
+
 def _dong_bay(nc, st_bd):
     """Mấy câu `self.plot(...)` nuôi cửa sổ View. -> ([dòng khai], [dòng mỗi nến])
 
     ⚠ APP KHÔNG TỰ TÍNH LẤY MỘT SỐ NÀO (D-11). Cửa sổ Strategy Tester cũ có bảng số
     liệu chạy số sống vì hồi ấy app có engine riêng. Bản nay giao hết cho LEAN, nên
-    muốn thấy số thì phải BẢO LEAN IN RA — và đó là tất cả những gì hàm này làm. Không
-    một phép tính nào ở đây.
+    muốn thấy số thì phải BẢO LEAN IN RA — và đó là tất cả những gì hàm này làm.
 
-    ⚠ CHỈ KHI SƠ ĐỒ CHẠY TRÊN ĐÚNG MỘT MÃ. `_mot_ma` chạy lại cho TỪNG mã, nên hai mã
-    cùng ghi vào một đường thì đường ấy nhảy qua nhảy lại giữa hai thứ — một biểu đồ
-    trông vẫn bình thường mà vô nghĩa. Rổ động hay nhiều mã thì không bày, và cửa sổ
-    View nói rõ vì sao thay vì hiện một bảng trống.
+    MỖI MÃ MỘT CẶP BẢNG, vì LEAN hay chạy cả rổ và người xem cần thấy từng mã:
+
+      · `Price <MÃ>`      — nến, cộng mấy đại lượng CÙNG THANG VỚI GIÁ (trung bình
+                            trượt, dải, đỉnh/đáy N nến) chồng thẳng lên nến;
+      · `Quantities <MÃ>` — mấy đại lượng thang khác (RSI 0–100, MACD ±, …), mỗi cái
+                            một khung riêng bên dưới.
+
+    ⚠ TỪ ĐIỂN NÓI THANG NÀO, KHÔNG ĐỂ GIAO DIỆN ĐOÁN. `hoi.cung_thang_gia` đọc ô
+    `don_vi` đã khai sẵn ở mỗi đại lượng. Cách duy nhất khác là giao diện nhìn con số
+    rồi suy ra — tức một bản luật thứ hai viết bằng TypeScript cho thứ Python đã khai.
+
+    ⚠ VÀ PHẢI ĐẾM ĐƯỜNG. Xem `NGAN_SACH_DUONG`: vượt hạn thì LEAN bỏ im lặng.
     """
-    if nc.ro or nc.ca_danh_muc:
+    if nc.ca_danh_muc:
+        # CHIA DANH MỤC chạy MỘT lượt cho cả rổ, không có biến `sym` — mà mọi câu
+        # `plot` dưới đây đều cần nó. Nói ra chứ không lặng lẽ bỏ qua.
+        nc.loi(None, tr("Sơ đồ chia danh mục nên cửa sổ View chưa vẽ được nến: cả rổ "
+                        "chạy một lượt, không có mã nào để vẽ riêng."), "warning")
         return [], []
-    ma = [m for m in (core.o_bat_dau(st_bd, "ma") or []) if (m or {}).get("ma")]
-    if len(ma) != 1:
-        return [], []
-    ten_ma = str(ma[0]["ma"])
 
-    # NẾN GIÁ. Phải khai `SeriesType.CANDLE` trong `initialize` — `plot` không tự
-    # đoán ra kiểu, mặc định nó vẽ đường, và một đường nối bốn giá mỗi nến thì không
-    # phải cái nến nào cả.
+    moi_ma = 1 + len(nc.so_bay)          # 1 đường nến + mỗi đại lượng một đường
+    toi_da = max(1, NGAN_SACH_DUONG // moi_ma)
+
+    gia, khac = [], []
+    for bt, d in nc.so_bay.items():
+        (gia if d["thang_gia"] else khac).append((d["chu"], bt))
+
     khai = ["",
             tr("# Nến giá + mấy đại lượng sơ đồ đọc — để cửa sổ View bày lại."),
             tr("# Không câu nào dưới đây đổi kết quả backtest: chúng chỉ GHI RA."),
-            f"_bang = Chart({BANG_GIA!r})",
-            # ⚠ `CandlestickSeries`, KHÔNG phải `Series(..., SeriesType.CANDLE)`.
-            # Cái sau dựng ra đúng một `Series` thường mang nhãn kiểu nến, và lúc
-            # `plot` bốn giá LEAN ép kiểu nó sang `CandlestickSeries` thì nổ:
-            # *"Unable to cast object of type 'QuantConnect.Series' to type
-            # 'QuantConnect.CandlestickSeries'"*. Khai đúng lớp thì xong.
-            f"_bang.add_series(CandlestickSeries({ten_ma!r}))",
-            "self.add_chart(_bang)"]
+            f"self._ve_toi_da = {toi_da}",
+            "self._da_ve = set()"]
+
+    if not nc.ro:
+        ds = [str(m["ma"]) for m in (core.o_bat_dau(st_bd, "ma") or [])
+              if (m or {}).get("ma")]
+        if not ds:
+            return [], []
+        if len(ds) > toi_da:
+            nc.loi(None, tr(
+                "Sơ đồ có {0} mã mà LEAN chỉ đủ chỗ vẽ {1} — cửa sổ View sẽ bày {1} "
+                "mã đầu. Bớt đại lượng trong mấy cổng Hỏi thì vẽ được nhiều mã hơn.",
+                len(ds), toi_da), "warning")
+        for t in ds[:toi_da]:
+            khai += _khai_bang(repr(t))
+    else:
+        # RỔ ĐỘNG: lúc `initialize` chạy, rổ còn rỗng — LEAN chỉ chọn mã khi nến đầu
+        # về. Nên bảng khai muộn, ở `on_securities_changed` (xem `_khai_cb_theo_ro`).
+        khai.append(tr("# Rổ động: bảng khai lúc mã vào rổ, xem `on_securities_changed`."))
 
     # ⚠ CFD VÀ FOREX KHÔNG CÓ `data.bars`. Chúng về bằng `QuoteBar`, nên `data.bars`
     # rỗng — mà XAUUSD của màn 01 chính là CFD. Bản đầu chỉ đọc `data.bars` và bọc
-    # trong `if`, nên nó không nổ, không cảnh báo: bảng «Giá» đơn giản là KHÔNG CÓ
+    # trong `if`, nên không nổ, không cảnh báo: bảng «Price» đơn giản là KHÔNG CÓ
     # trong kết quả. Đã dò bằng một lượt chạy thật — 941 điểm RSI về đủ, nến thì
-    # không một điểm nào. Lấy cả hai nguồn, và cả hai đều là `IBaseDataBar` nên
-    # `plot` nhận y như nhau.
+    # không một điểm nào. Lấy cả hai nguồn; cả hai đều là `IBaseDataBar`.
     moi_nen = [tr("# Ghi lại nến và mấy đại lượng — nuôi cửa sổ View, không tính gì."),
-               # ⚠ `data` CÓ THỂ LÀ None. Sơ đồ chạy theo HẸN GIỜ thì thân mã
-               # mở bằng `data = self.current_slice`, mà `current_slice` chưa có
-               # lát nào thì là None — đọc `.bars` của nó là đứt cả lượt, ở đúng
-               # một nhịp hẹn giờ nào đó chứ không phải nhịp đầu. Bài kiểm chạy
-               # thật thân mã với `data=None` và đã lôi ra chỗ này.
-               "_nen = None",
-               "if data is not None:",
-               TAB + "if sym in data.bars:",
-               TAB * 2 + "_nen = data.bars[sym]",
-               TAB + "elif sym in data.quote_bars:",
-               TAB * 2 + "_nen = data.quote_bars[sym]",
-               "if _nen is not None:",
+               "_t = str(sym.value)",
+               "if _t in self._da_ve:",
+               # ⚠ `data` CÓ THỂ LÀ None. Sơ đồ chạy theo HẸN GIỜ thì thân mã mở bằng
+               # `data = self.current_slice`, mà nó chưa có lát nào thì là None — đọc
+               # `.bars` của nó là đứt cả lượt, ở một nhịp giữa chừng chứ không phải
+               # nhịp đầu. Bài kiểm chạy thật thân mã với `data=None` đã lôi ra chỗ này.
+               TAB + "_nen = None",
+               TAB + "if data is not None:",
+               TAB * 2 + "if sym in data.bars:",
+               TAB * 3 + "_nen = data.bars[sym]",
+               TAB * 2 + "elif sym in data.quote_bars:",
+               TAB * 3 + "_nen = data.quote_bars[sym]",
+               TAB + "if _nen is not None:",
                # ⚠ BỐN GIÁ RỜI, ĐỪNG ĐƯA CẢ CÁI NẾN. LEAN có `plot(chart, series,
                # bar: TradeBar)` nhưng KHÔNG có bản nhận `QuoteBar` — mà CFD/forex
-               # chỉ về bằng QuoteBar. Đưa cả nến là lượt chạy chết ngay nến đầu:
-               # *"Argument mismatch: argument 3 ('value') expected float, got
-               # QuoteBar"*. Bản bốn giá thì nhận cả hai loại.
-               TAB + f"self.plot({BANG_GIA!r}, {ten_ma!r},"
-                     " _nen.open, _nen.high, _nen.low, _nen.close)"]
-    for bt, chu in nc.so_bay.items():
-        moi_nen.append(f"self.plot({BANG_SO!r}, {chu!r}, {bt})")
+               # chỉ về bằng QuoteBar. Bản bốn giá nhận cả hai loại.
+               TAB * 2 + f'self.plot(f"{BANG_GIA} {{_t}}", _t,'
+                         ' _nen.open, _nen.high, _nen.low, _nen.close)']
+    for chu, bt in gia:
+        moi_nen.append(TAB + f'self.plot(f"{BANG_GIA} {{_t}}", {chu!r}, {bt})')
+    for chu, bt in khac:
+        moi_nen.append(TAB + f'self.plot(f"{BANG_SO} {{_t}}", {chu!r}, {bt})')
     moi_nen.append("")
     return khai, moi_nen
+
+
+def _khai_bang(bt_ma, thut=""):
+    """Khai bảng nến của MỘT mã. -> [dòng]
+
+    `bt_ma` là BIỂU THỨC Python cho ra tên mã: `'SPY'` với danh sách gõ sẵn, `_t`
+    với rổ động. Nhận biểu thức chứ không nhận chuỗi, nên một hàm dùng được cả hai
+    lối — rổ động chỉ biết tên mã lúc chạy.
+
+    ⚠ `CandlestickSeries`, KHÔNG phải `Series(..., SeriesType.CANDLE)`. Cái sau dựng
+    ra một `Series` thường mang nhãn kiểu nến, và lúc `plot` bốn giá LEAN ép kiểu nó
+    sang `CandlestickSeries` thì nổ: *"Unable to cast object of type
+    'QuantConnect.Series' to type 'QuantConnect.CandlestickSeries'"*."""
+    return [thut + f"_b = Chart({BANG_GIA + ' '!r} + {bt_ma})",
+            thut + f"_b.add_series(CandlestickSeries({bt_ma}))",
+            thut + "self.add_chart(_b)",
+            thut + f"self._da_ve.add({bt_ma})"]
 
 
 def _khai_cb_theo_ro(nc):
@@ -971,10 +1026,16 @@ def _khai_cb_theo_ro(nc):
          KHÔNG thay được chặn `is_ready` — xem `_ghep`, chỗ dựng chặn ấy."""
     ra = ["for s in changes.removed_securities:",
           TAB + "self._cb.pop(s.symbol, None)",
+          TAB + "self._da_ve.discard(str(s.symbol.value))",
           "for s in changes.added_securities:",
           TAB + "if s.symbol in self._cb:",
           TAB * 2 + "continue",
           TAB + "self._cb[s.symbol] = {}"]
+    # Bảng nến của mã mới — tới hạn ngân sách thì thôi, LEAN bỏ im lặng chứ không
+    # báo (xem `NGAN_SACH_DUONG`). Người xem thấy mấy mã đầu, không thấy mã trống.
+    ra.append(TAB + "if len(self._da_ve) < self._ve_toi_da:")
+    ra.append(TAB * 2 + "_t = str(s.symbol.value)")
+    ra += _khai_bang("_t", TAB * 2)
     for k, (cau, dk) in nc.kho.ds.items():
         ra.append(TAB + "_cb = " + _thay(cau, {"sym": "s.symbol"}))
         if dk:

@@ -665,9 +665,27 @@ KHO = [BANG_DAI_LUONG[m] for m in
        [dl["ma"] for d in LOAI_HOI.values() for _t, ds in d["nhom"] for dl in ds]]
 
 
+#: Đơn vị «giá» — 59 đại lượng mang nó, và nay nó KHÔNG CÒN LÀ MỘT CÁI NHÃN NỮA:
+#: cửa sổ View hỏi đúng ô này để biết vẽ một đại lượng Ở ĐÂU. Cùng thang với giá thì
+#: nó chồng lên nến (trung bình trượt, dải Bollinger, đỉnh/đáy N nến); không cùng
+#: thang thì nó phải có khung riêng, vì RSI chạy 0–100 mà vàng chạy quanh 1250 —
+#: nhét chung một trục thì một trong hai thành đường thẳng dính mép.
+#:
+#: ⚠ ĐỂ TỪ ĐIỂN NÓI, ĐỪNG ĐỂ GIAO DIỆN ĐOÁN. Cách duy nhất khác là giao diện tự nhìn
+#: con số rồi suy ra thang — tức một bản luật thứ hai, viết bằng TypeScript, cho thứ
+#: Python đã khai sẵn ở đây.
+DON_VI_GIA = "giá"
+
+
 def dai_luong(ma):
     """Một đại lượng, hay None nếu mã không có trong kho."""
     return BANG_DAI_LUONG.get(ma)
+
+
+def cung_thang_gia(ma):
+    """Đại lượng này có vẽ chung trục với nến được không. -> bool"""
+    d = BANG_DAI_LUONG.get(ma)
+    return bool(d) and d.get("don_vi") == DON_VI_GIA
 
 
 def la_loai_hoi(t):

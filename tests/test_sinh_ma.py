@@ -148,8 +148,9 @@ kiem("lấy cả `bars` lẫn `quote_bars`",
      "data.bars[sym]" in ma and "data.quote_bars[sym]" in ma)
 kiem("chặn `data` rỗng", "if data is not None:" in ma,
      "— nhịp hẹn giờ đọc `self.current_slice`, mà nó có lúc là None")
-kiem("in ra đại lượng sơ đồ đọc", "self.plot('Quantities', 'RSI(14)'" in ma)
-kiem("tên bảng KHÔNG dịch", "'Price'" in ma and "'Quantities'" in ma,
+kiem("in ra đại lượng sơ đồ đọc",
+     "self.plot(f\"Quantities {_t}\", 'RSI(14)'" in ma)
+kiem("tên bảng KHÔNG dịch", "'Price '" in ma and 'f"Quantities {_t}"' in ma,
      "— giao diện tìm bảng theo tên; dịch thì lượt chạy cũ mở ra là bảng trống")
 
 print("\n▸ ② Làm nóng tự suy từ chu kỳ dài nhất")
@@ -316,9 +317,13 @@ kiem("biên dịch được", not loi_cp, f"— {loi_cp}")
 print(NL + "  (1) khai mã — một câu `set_universe_selection`, KHÔNG `add_*` nào")
 kiem("có `set_universe_selection`", "self.set_universe_selection(" in m_etf)
 kiem("đúng lớp LEAN", "ETFConstituentsUniverseSelectionModel('SPY'" in m_etf)
-# KHÔNG được còn một dòng `add_*` nào: thêm `add_equity` cạnh một rổ là đăng ký một
-# mã NGOÀI rổ, nó chạy suốt backtest mà sơ đồ không nói tới nó ở đâu cả.
-kiem("không còn dòng `add_` nào", "self.add_" not in m_etf)
+# KHÔNG được còn một dòng ĐĂNG KÝ MÃ nào: thêm `add_equity` cạnh một rổ là đăng ký
+# một mã NGOÀI rổ, nó chạy suốt backtest mà sơ đồ không nói tới nó ở đâu cả.
+# ⚠ TRỪ `add_chart`. Nó khai một cái BẢNG VẼ, không đăng ký mã nào — bản trước dò
+# chuỗi `self.add_` nên nó bắt luôn cả bảng nến của cửa sổ View, và bài đỏ vì một lý
+# do chẳng liên quan gì tới điều nó muốn nói.
+dang_ky = re.findall(r"self\.add_(?!chart\()\w+\(", m_etf)
+kiem("không còn dòng đăng ký mã nào", not dang_ky, f"— còn: {dang_ky}")
 kiem("không còn `self._ten`", "self._ten" not in m_etf)
 # THỨ TỰ: model chụp lấy `universe_settings` ngay lúc dựng, nên đặt độ phân giải SAU
 # là rổ lặng lẽ chạy bằng mặc định của LEAN (phút) trong khi sơ đồ nói nến ngày — và
@@ -838,17 +843,27 @@ class _ChiBaoGia:
         self.current = type("C", (), {"value": v})()
 
 
+#: MỘT đối tượng mã, dùng cả làm `sym` lẫn làm khoá `_cb` — y như LEAN, nơi
+#: `self._cb[sym]` tra bằng chính cái `Symbol` truyền vào. Bộ giả cũ truyền chuỗi
+#: trần nên mã sinh ra đọc `sym.value` là nổ, và cái nổ ấy là lỗi của bộ giả.
+SYM = type("Sym", (), {"value": "X"})()
+
+
 class _SelfGia:
     """`self` giả — vừa đủ mấy thứ thân `_mot_ma` gọi tới, không hơn."""
 
     def __init__(self, nhanh, dai):
-        self._cb = {"X": {"roc_21": _ChiBaoGia(nhanh), "roc_126": _ChiBaoGia(dai)}}
+        self._cb = {SYM: {"roc_21": _ChiBaoGia(nhanh), "roc_126": _ChiBaoGia(dai)}}
         self._n = {"so_1": 0.0, "so_2": 0.0}
         self.phat = []
         #: Mấy câu `self.plot(...)` bộ sinh mã viết ra để nuôi cửa sổ View. Giữ lại
         #: chứ không nuốt: thân mã GỌI THẬT hàm này, nên thiếu nó là bài đỏ vì một
         #: lý do chẳng liên quan gì tới thứ đang kiểm.
         self.ve = []
+        #: Mã đã có bảng nến — `initialize` dựng, thân mã đọc. Bộ giả phải có nó,
+        #: không thì thân mã chạy tới câu `if _t in self._da_ve` là nổ.
+        self._da_ve = {SYM.value}
+        self._ve_toi_da = 8
 
     def _nho_cua(self, _sym):
         return self._n
@@ -863,7 +878,11 @@ class _SelfGia:
 def _chay_than(than, nhanh, dai):
     """Chạy thân ấy MỘT nhịp với hai giá trị chỉ báo. -> (ô nhớ, trọng số hay None)."""
     s = _SelfGia(nhanh, dai)
-    mt = {"self": s, "sym": "X", "data": None,
+    # ⚠ `sym` PHẢI CÓ `.value` NHƯ `Symbol` CỦA LEAN. Bộ giả cũ truyền một chuỗi
+    # trần; mã sinh ra đọc `sym.value` để đặt tên bảng nến thì nổ `AttributeError`,
+    # và cái nổ ấy là lỗi của bộ giả chứ không phải của mã. Bộ giả nói dối một chỗ
+    # là mọi khẳng định dựng trên nó bớt đi một phần giá trị.
+    mt = {"self": s, "sym": SYM, "data": None,
           "timedelta": lambda **k: k,
           "InsightDirection": type("D", (), {"UP": "UP", "DOWN": "DOWN"}),
           "Insight": type("I", (), {"price": staticmethod(lambda *a: a)})}

@@ -12,7 +12,16 @@
  */
 import type { DongLenh, KetQuaChay } from '../types'
 
-/** Tên hai bảng `sinh_ma` bảo LEAN vẽ. Đổi một bên là bảng trống — xem `sinh_ma`. */
+/** Tên hai HỌ bảng `sinh_ma` bảo LEAN vẽ, mỗi mã một cặp: `Price SPY`,
+ *  `Quantities SPY`. Đổi một bên là bảng trống — xem `sinh_ma.BANG_GIA`.
+ *
+ *  ⚠ MỖI MÃ MỘT CẶP, vì LEAN hay chạy cả rổ. Tám mã là tám cái chart, và đó đúng là
+ *  thứ người xem cần: một phiên đang diễn ra trên tám mã, y như live.
+ *
+ *  Chỗ duy nhất ở đây phải TÁCH CHỮ là lấy tên mã ra khỏi tên bảng — việc bày biện,
+ *  không phải việc đoán nghĩa. Còn ĐẠI LƯỢNG NÀO VẼ Ở ĐÂU thì `sinh_ma` đã quyết rồi
+ *  (nó đọc `hoi.DON_VI_GIA`): cùng thang giá thì nó in thẳng vào bảng `Price`, nên ở
+ *  đây không có phép suy nào cả — bảng nào thì vẽ bảng ấy. */
 export const BANG_GIA = 'Price'
 export const BANG_SO = 'Quantities'
 
@@ -28,9 +37,11 @@ export interface NhipView {
 
 export interface MachView {
   nhip: NhipView[]
-  /** Tên mã — lấy từ tên đường nến, chính là cái `sinh_ma` đặt. */
+  /** Tên mã của cuộn phim này. */
   ma: string
-  /** Mỗi đại lượng một hàng: tên, và giá trị theo từng nhịp (null = LEAN không in). */
+  /** Đại lượng CÙNG THANG GIÁ — vẽ chồng lên nến. */
+  chong: { ten: string; gt: (number | null)[] }[]
+  /** Đại lượng thang khác — mỗi cái một khung riêng. (null = LEAN không in nhịp ấy.) */
   so: { ten: string; gt: (number | null)[] }[]
   /** Mọi lệnh cả lượt, theo thứ tự thời gian. */
   lenh: DongLenh[]
@@ -52,18 +63,29 @@ export function giayCuaLuc(luc: string): number {
  *  cho cùng một lệnh. */
 export { soKhoiCuaNhan } from '../man/mach_chay'
 
-function bang(kq: KetQuaChay, ten: string) {
-  return (kq.bieu_do ?? []).find(b => b.ten === ten)
+/** Mã nào có bảng nến trong lượt này, theo thứ tự `sinh_ma` khai. */
+export function dsMaCuaLuot(kq: KetQuaChay): string[] {
+  return (kq.bieu_do ?? [])
+    .filter(b => b.ten.startsWith(BANG_GIA + ' '))
+    .map(b => b.ten.slice(BANG_GIA.length + 1))
 }
 
-export function dungMachView(kq: KetQuaChay): MachView {
-  const bGia = bang(kq, BANG_GIA)
-  const dGia = bGia?.duong?.[0]
+function bang(kq: KetQuaChay, ho: string, ma: string) {
+  return (kq.bieu_do ?? []).find(b => b.ten === `${ho} ${ma}`)
+}
+
+export function dungMachView(kq: KetQuaChay, ma: string): MachView {
+  const bGia = bang(kq, BANG_GIA, ma)
+  // Đường NẾN của bảng giá; mấy đường còn lại là đại lượng CÙNG THANG, vẽ chồng lên.
+  const dGia = (bGia?.duong ?? []).find(d => d.kieu === 'nen') ?? bGia?.duong?.[0]
   // LEAN ghi một nến là `[giây, mở, cao, thấp, đóng]` — xem `chay_lean._diem`.
   const diem = (dGia?.diem ?? []).filter(p => p.length >= 5)
 
-  const lenh = [...(kq.lenh ?? [])].sort(
-    (a, b) => giayCuaLuc(a.luc) - giayCuaLuc(b.luc))
+  // CHỈ LỆNH CỦA MÃ NÀY. Cả rổ thì mọi mã nằm chung một danh sách; bày hết lên chart
+  // của SPY là vẽ lệnh của QQQ ở đúng mức giá của SPY — một cái chart trông bình
+  // thường mà sai hẳn.
+  const lenh = (kq.lenh ?? []).filter(l => l.ma === ma)
+    .sort((a, b) => giayCuaLuc(a.luc) - giayCuaLuc(b.luc))
 
   // Lệnh rơi vào nhịp NÀO. Ghép theo nhịp gần nhất KHÔNG VƯỢT QUÁ giờ của lệnh:
   // lệnh khớp trong lòng một nến, nên nó thuộc về nến đang mở lúc ấy.
@@ -80,16 +102,19 @@ export function dungMachView(kq: KetQuaChay): MachView {
 
   // ĐẠI LƯỢNG. Mỗi đường một hàng, giá trị xếp theo đúng trục nhịp của giá — LEAN
   // có thể bỏ vài nhịp đầu (chỉ báo chưa chín), nên chỗ nào không có thì để null.
-  const bSo = bang(kq, BANG_SO)
   const chiSo = new Map(nhip.map((n, k) => [n.t, k]))
-  const so = (bSo?.duong ?? []).map(d => {
+  const xep = (d: { ten: string; diem: number[][] }) => {
     const gt: (number | null)[] = new Array(nhip.length).fill(null)
     for (const p of d.diem ?? []) {
       const k = chiSo.get(p[0])
       if (k !== undefined) gt[k] = p[p.length - 1]
     }
     return { ten: d.ten, gt }
-  })
+  }
+  // Cùng thang giá -> `sinh_ma` đã in thẳng vào bảng `Price`, nên chúng vẽ CHỒNG lên
+  // nến. Thang khác -> bảng `Quantities`, mỗi cái một khung riêng bên dưới.
+  const chong = (bGia?.duong ?? []).filter(d => d !== dGia).map(xep)
+  const so = (bang(kq, BANG_SO, ma)?.duong ?? []).map(xep)
 
   let thap = Infinity, cao = -Infinity
   for (const n of nhip) {
@@ -98,5 +123,5 @@ export function dungMachView(kq: KetQuaChay): MachView {
   }
   if (!Number.isFinite(thap)) { thap = 0; cao = 1 }
 
-  return { nhip, ma: dGia?.ten ?? '', so, lenh, thap, cao }
+  return { nhip, ma, chong, so, lenh, thap, cao }
 }

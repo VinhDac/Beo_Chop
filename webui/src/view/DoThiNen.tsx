@@ -14,6 +14,10 @@ import { tr } from '../ngon_ngu'
 
 const MAU_LEN = '#22ab94'
 const MAU_XUONG = '#f23645'
+/** Màu cho đại lượng vẽ chồng lên nến. Cố ý KHÔNG dùng xanh/đỏ: hai màu ấy đã mang
+ *  nghĩa lên/xuống trên chính cây nến, mượn lại là một đường trung bình trượt trông
+ *  như đang nói điều gì đó về lãi lỗ. */
+const MAU_CHONG = ['#6aa5f5', '#ffa657', '#c792ea', '#80cbc4']
 
 /** Mép biểu đồ: chừa chỗ cho trục giá bên phải và trục ngày bên dưới. */
 const L = 8, R = 72, T = 10, B = 22
@@ -104,6 +108,26 @@ function DoThiNen({ mach, chiSo, cua, kieu, rong, cao }: DoThiNenProps) {
             )}
           </g>
         )
+      })}
+
+      {/* ĐẠI LƯỢNG CÙNG THANG GIÁ — trung bình trượt, dải, đỉnh/đáy N nến — vẽ
+          CHỒNG lên nến, vì chúng đo cùng một thứ. `sinh_ma` đã quyết cái nào thuộc
+          nhóm này (nó đọc `hoi.DON_VI_GIA`), nên ở đây không suy gì cả.
+          ⚠ Chỗ trống thì CẮT ĐƯỜNG: chỉ báo chưa chín thì LEAN không in nhịp ấy, nối
+          thẳng qua là vẽ một đoạn chưa từng có. */}
+      {mach.chong.map((h, k) => {
+        const khuc: string[] = []
+        let cur = ''
+        for (let i = 0; i < d.lat.length; i++) {
+          const v = h.gt[d.dau + i]
+          if (v === null || v === undefined) { if (cur) { khuc.push(cur); cur = '' } continue }
+          cur += `${cur ? 'L' : 'M'}${px(i).toFixed(1)} ${py(v).toFixed(1)} `
+        }
+        if (cur) khuc.push(cur)
+        return khuc.map((q, j) => (
+          <path key={`${h.ten}-${j}`} d={q.trim()} className="view-chong"
+                stroke={MAU_CHONG[k % MAU_CHONG.length]} />
+        ))
       })}
 
       {/* LỆNH THẬT. Mỗi lệnh một mũi tên ở đúng nến và đúng giá LEAN ghi — đây là
