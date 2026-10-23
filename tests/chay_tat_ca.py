@@ -20,6 +20,11 @@ BAI = [
     ("test_bat_dau.py", "Khối BẮT ĐẦU — nửa «thiết lập», và nó phải sống qua lưu/mở"),
     ("test_sinh_ma.py", "BỘ SINH MÃ — sơ đồ thành thuật toán LEAN Python chạy được"),
     ("test_chay_lean.py", "BỘ CHẠY LEAN — đọc file chứ đừng đọc mã thoát, và gột sạch venv"),
+    # ĐỨNG SAU hai bài trên vì nó soi CHỖ GIỮA chúng: `sinh_ma` ghi dấu, `chay_lean`
+    # dò dấu, mà hai mô-đun cố ý không import nhau — lệch một ký tự là cửa sổ View bày
+    # một lượt chạy im lặng, không lỗi, không cảnh báo.
+    ("test_vet.py", "VẾT TỪNG NHỊP — cỗ máy tự kể nó dừng ở cổng nào, và dòng vết "
+                    "phải mang GIỜ CỦA NHỊP CŨ"),
     ("test_so_do_api.py", "Cửa sơ đồ — một cửa soát, ba tầng lưu, nhân bản không dính gốc"),
     ("test_giao_dien.py", "Biến CSS ma — thứ hỏng LẶNG, build vẫn sạch"),
     ("test_cai_dat.py", "Cài đặt app — cái núm phải NỐI VÀO ĐÂU ĐÓ, không phải núm giả"),

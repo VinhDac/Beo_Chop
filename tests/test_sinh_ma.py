@@ -168,11 +168,20 @@ print("\n▸ Nhánh sinh thành `if / elif`, không phải mấy câu `if` rời
 than = ma.split("def _mot_ma")[1]
 kiem("có `elif`", "elif " in than,
      "— mấy câu `if` rời là NHIỀU nhánh cùng chạy trong một nến")
-# Đếm ở ĐẦU DÒNG: `elif (` có chứa `if (`, nên đếm cả chuỗi sẽ ra 2 mà tưởng là sai.
-_if = len(re.findall(r"^\s*if \(", than, re.M))
-_elif = len(re.findall(r"^\s*elif \(", than, re.M))
+# Đếm ở ĐẦU DÒNG: `elif` có chứa `if`, nên đếm cả chuỗi sẽ ra 2 mà tưởng là sai.
+#
+# ⚠ MỖI CỔNG NAY BỌC TRONG `self._vet(sym, '<số khối>', (...))` — xem
+# `sinh_ma._bao_vet`: cỗ máy tự kể mỗi nhịp nó chạy tới cổng nào và cổng cho ra gì.
+# Nên hình dòng cổng là `if self._vet(`, không còn là `if (`. Soát đúng hình MỚI chứ
+# không nới thành `if ` chung chung: nới ra là bài này thôi canh luôn cả cái bọc.
+_if = len(re.findall(r"^\s*if self\._vet\(", than, re.M))
+_elif = len(re.findall(r"^\s*elif self\._vet\(", than, re.M))
 kiem("đúng một `if` mở đầu, một `elif` nối theo", _if == 1 and _elif == 1,
      f"— if={_if}, elif={_elif}")
+kiem("cổng bọc trong `_vet` mang ĐÚNG số khối, và điều kiện còn nguyên ngoặc",
+     bool(re.search(r"if self\._vet\(sym, '1A', \(", than))
+     and bool(re.search(r"elif self\._vet\(sym, '1B', \(", than)),
+     "— bọc sai số khối thì «Soi trên sơ đồ» sáng lên đúng một khối khác")
 kiem("điều kiện đọc được", "< 30" in than and "> 70" in than)
 
 print("\n▸ Ô `tag` tự điền số khối + điều kiện vừa khớp")
@@ -592,7 +601,7 @@ kiem("và KHÔNG dựng ô nhớ theo `self._ma`",
      "— `self._ma` lúc initialize của rổ động là RỖNG")
 # Chỗ ĐỌC và chỗ GHI phải trỏ vào CÙNG một biểu thức — hai chuỗi khác nhau thì ghi
 # một nơi đọc một nẻo, và backtest chạy trơn tru với một cờ không bao giờ bật.
-_doc = [l for l in _kq["ma"].splitlines() if "if (" in l and "_nho" in l]
+_doc = [l for l in _kq["ma"].splitlines() if "if self._vet(" in l and "_nho" in l]
 _ghi = [l for l in _kq["ma"].splitlines() if "_nho" in l and "] =" in l
         and "self._nho =" not in l and "_nho_mau" not in l and "_nho_ma[sym]" not in l]
 kiem("chỗ ĐỌC và chỗ GHI dùng cùng một biểu thức ô nhớ",
@@ -657,7 +666,7 @@ def _ma_cua(dk):
 
 
 _kq = _ma_cua(_ve_chuoi())
-_dong = next((l.strip() for l in _kq["ma"].splitlines() if "if (" in l), "")
+_dong = next((l.strip() for l in _kq["ma"].splitlines() if "if self._vet(" in l), "")
 kiem("bốn thành phần đều có mặt trong mã",
      all(x in _dong for x in ("roc_63", "roc_126", "roc_252", "std_20")),
      f"— {_dong[:120]}")
@@ -685,9 +694,17 @@ _so = {"so": 2, "he_so": 3, "ghep": [        # 3×2 = 6
 # Nối trái→phải ra 50. Theo thứ tự ưu tiên của Python thì `3*2 + 5*4 * 2 - 2` = 44.
 # Hai số khác nhau, nên phép này phân biệt được đúng cái cần phân biệt.
 _dk_so = {"trai": _so, "phep": "==", "phai": {"so": 50}}
-_bt = next((l.strip() for l in _ma_cua(_dk_so)["ma"].splitlines()
-            if "if (" in l), "")
-_bt = _bt[len("if "):].rstrip(":").strip()
+_dong_so = next((l.strip() for l in _ma_cua(_dk_so)["ma"].splitlines()
+                 if "if self._vet(" in l), "")
+# ⚠ BÓC CÁI BỌC `_vet` RA TRƯỚC KHI TÍNH. `sinh_ma._bao_vet` bọc mỗi cổng thành
+# `self._vet(sym, '<số khối>', (...))`, mà ở đây không có `self` nào để gọi — và cũng
+# không cần: cái bọc chỉ GHI LẠI rồi trả nguyên giá trị nó nhận, nên biểu thức bên
+# trong mới là thứ đáng tính. Bóc bằng khuôn CHẶT chứ không cắt bừa mấy ký tự đầu:
+# bọc đổi hình thì phép này phải ĐỎ, không được lặng lẽ tính một mẩu chuỗi khác.
+_m_bt = re.match(r"^if self\._vet\(sym, '[^']+', (\(.*\))\):$", _dong_so)
+kiem("bóc được cái bọc `_vet` ra khỏi dòng cổng", bool(_m_bt),
+     f"— {_dong_so[:130]}")
+_bt = _m_bt.group(1) if _m_bt else "None"
 kiem("tính ra ĐÚNG kết quả nối trái→phải (50)",
      eval(_bt) is True,          # noqa: S307 — biểu thức do CHÍNH TA sinh ra
      f"— {_bt[:130]}")
@@ -703,7 +720,7 @@ kiem("và thẻ KHÔNG in hệ số hai lần", "0.35 × 0.35" not in _chu, f"�
 _cu = core.make_dieu_kien("gia", "<=", 0.97)
 _cu["trai"]["ghep"] = {"phep": "/", "ma_dl": "max", "tham_so": {"n": 60}}
 _dong_cu = next((l.strip() for l in _ma_cua(_cu)["ma"].splitlines()
-                 if "if (" in l), "")
+                 if "if self._vet(" in l), "")
 kiem("ghép kiểu CŨ (một dict) vẫn sinh ra đúng phép chia",
      "max_60" in _dong_cu and "else 0" in _dong_cu, f"— {_dong_cu[:130]}")
 kiem("và thẻ của nó vẫn như cũ, không thừa dấu ngoặc",
@@ -864,6 +881,17 @@ class _SelfGia:
         #: không thì thân mã chạy tới câu `if _t in self._da_ve` là nổ.
         self._da_ve = {SYM.value}
         self._ve_toi_da = 8
+        #: VẾT từng cổng thân mã chạy qua — `[(số khối, cổng mở không)]`.
+        #:
+        #: ⚠ BỘ GIẢ PHẢI CÓ HÀM NÀY, và phải làm ĐÚNG việc cỗ máy thật làm: ghi lại
+        #: rồi TRẢ NGUYÊN giá trị nhận được (`sinh_ma._ham_vet`). Trả sai thì mọi
+        #: cổng trong thân mã rẽ sai đường và cả khối «chạy thật» dưới đây đo một cỗ
+        #: máy khác — đúng cái bẫy «bộ giả nói dối» mà `SYM` ở trên kể lại.
+        self.vet = []
+
+    def _vet(self, _sym, so, v):
+        self.vet.append((so, bool(v)))
+        return v
 
     def _nho_cua(self, _sym):
         return self._n
@@ -876,7 +904,7 @@ class _SelfGia:
 
 
 def _chay_than(than, nhanh, dai):
-    """Chạy thân ấy MỘT nhịp với hai giá trị chỉ báo. -> (ô nhớ, trọng số hay None)."""
+    """Chạy thân ấy MỘT nhịp. -> (ô nhớ, trọng số hay None, mấy câu plot, vết)."""
     s = _SelfGia(nhanh, dai)
     # ⚠ `sym` PHẢI CÓ `.value` NHƯ `Symbol` CỦA LEAN. Bộ giả cũ truyền một chuỗi
     # trần; mã sinh ra đọc `sym.value` để đặt tên bảng nến thì nổ `AttributeError`,
@@ -889,7 +917,7 @@ def _chay_than(than, nhanh, dai):
     # Bọc vào một hàm: `return` giữa thân mới đúng nghĩa "hết lượt, nến sau tính lại".
     exec(compile("def _n():" + NL + textwrap.indent(than, "    "), "than", "exec"), mt)
     mt["_n"]()
-    return dict(s._n), (s.phat[0][6] if s.phat else None), list(s.ve)
+    return dict(s._n), (s.phat[0][6] if s.phat else None), list(s.ve), list(s.vet)
 
 
 _than = {}
@@ -901,9 +929,10 @@ for _k in ("lan_luot", "tat_ca"):
 
 _tl = _than["lan_luot"]
 _tc = _than["tat_ca"]
+# ⚠ Hình dòng cổng nay là `if self._vet(` — xem `sinh_ma._bao_vet`.
 kiem("LẦN LƯỢT: một `if`, một `elif`",
-     len(re.findall(r"^if \(", _tl, re.M)) == 1
-     and len(re.findall(r"^elif \(", _tl, re.M)) == 1)
+     len(re.findall(r"^if self\._vet\(", _tl, re.M)) == 1
+     and len(re.findall(r"^elif self\._vet\(", _tl, re.M)) == 1)
 kiem("LẦN LƯỢT: có `else: return` chốt trước chỗ gộp", "else:" in _tl
      and "return" in _tl, "— thiếu nó là không khớp nhánh nào vẫn rơi xuống chỗ gộp")
 # ⚠ SOI `elif` Ở ĐẦU DÒNG, đừng dò chữ trong cả thân. Điều cần khẳng định là hai
@@ -911,7 +940,7 @@ kiem("LẦN LƯỢT: có `else: return` chốt trước chỗ gộp", "else:" in
 # trên. Dò chữ khắp thân thì một `elif` thụt trong khối ghi nến cho cửa sổ View cũng
 # làm bài đỏ, dù nó chẳng dính gì tới nhánh.
 kiem("CHẠY HẾT: hai `if` RỜI, không `elif`",
-     len(re.findall(r"^if \(", _tc, re.M)) == 2
+     len(re.findall(r"^if self\._vet\(", _tc, re.M)) == 2
      and not re.findall(r"^elif ", _tc, re.M))
 kiem("CHẠY HẾT: KHÔNG có `else: return`", "else:" not in _tc and "return" not in _tc,
      "— chốt lại là chặn đúng chỗ trộn, tức cả tính năng thành vô dụng")
@@ -922,23 +951,41 @@ kiem("cả hai đều trộn ĐỦ HAI ô nhớ",
 
 # ---- Và nay CHẠY, để con số tự nói ----
 # Ba nhịp, và nhịp thứ ba là nhịp vạch rõ hai kiểu khác nhau ở đâu.
+#
+# ⭐ VÀ VẾT TỪNG NHỊP ĐI KÈM, vì chính nó phân biệt được hai kiểu rẽ nhánh rõ nhất:
+# cả hai cổng đều ĐÚNG thì LẦN LƯỢT chỉ CHẠY TỚI cổng đầu (`elif` ngắt mạch, nên vết
+# có một cặp), còn CHẠY HẾT chạy qua cả hai (vết có hai cặp). Mấy con số ô nhớ không
+# nói được chuyện ấy — hai kiểu đều ra `so_1 = 1.0`.
+#
+# ⚠ KHẲNG ĐỊNH NGUYÊN CẢ DÃY, không chỉ đếm. Đây là thứ nhật ký cửa sổ View bày ra
+# («dòng dừng ở [1B]» — `mach_view.dungVet` đọc đúng mấy cặp này), nên một cặp sai
+# giá trị là một dòng nhật ký nói dối đúng chỗ người ta mở cửa sổ ra để tin.
 _mong = {
-    #  (roc21, roc126): {kiểu: (ô nhớ, trọng số)}
-    (1.0, 1.0): {"lan_luot": ({"so_1": 1.0, "so_2": 0.0}, 0.5),
-                 "tat_ca":   ({"so_1": 1.0, "so_2": 1.0}, 1.0)},
-    (-1.0, 1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 1.0}, 0.5),
-                  "tat_ca":   ({"so_1": 0.0, "so_2": 1.0}, 0.5)},
+    #  (roc21, roc126): {kiểu: (ô nhớ, trọng số, vết)}
+    (1.0, 1.0): {"lan_luot": ({"so_1": 1.0, "so_2": 0.0}, 0.5,
+                              [("1A", True)]),
+                 "tat_ca":   ({"so_1": 1.0, "so_2": 1.0}, 1.0,
+                              [("1A", True), ("1B", True)])},
+    (-1.0, 1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 1.0}, 0.5,
+                               [("1A", False), ("1B", True)]),
+                  "tat_ca":   ({"so_1": 0.0, "so_2": 1.0}, 0.5,
+                               [("1A", False), ("1B", True)])},
     # Không nhánh nào khớp: LẦN LƯỢT là HẾT LƯỢT (không phát gì), còn CHẠY HẾT vẫn
-    # phát — vì chỗ gộp không phải nhánh, nó là chỗ trộn.
-    (-1.0, -1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 0.0}, None),
-                   "tat_ca":   ({"so_1": 0.0, "so_2": 0.0}, 0.0)},
+    # phát — vì chỗ gộp không phải nhánh, nó là chỗ trộn. Vết thì giống nhau: hai
+    # cổng đều đóng. Đúng cái nhật ký phải nói «dòng dừng ở [1B]».
+    (-1.0, -1.0): {"lan_luot": ({"so_1": 0.0, "so_2": 0.0}, None,
+                                [("1A", False), ("1B", False)]),
+                   "tat_ca":   ({"so_1": 0.0, "so_2": 0.0}, 0.0,
+                                [("1A", False), ("1B", False)])},
 }
 for (_a, _b), _theo in sorted(_mong.items()):
-    for _k, (_nho_m, _w_m) in sorted(_theo.items()):
-        _nho, _w, _ve = _chay_than(_than[_k], _a, _b)
+    for _k, (_nho_m, _w_m, _vet_m) in sorted(_theo.items()):
+        _nho, _w, _ve, _vet = _chay_than(_than[_k], _a, _b)
         kiem(f"chạy thật «{_k}» roc21={_a:+.0f} roc126={_b:+.0f}",
              _nho == _nho_m and _w == _w_m,
              f"— nhớ {_nho}, trọng số {_w}")
+        kiem("    và vết kể đúng cổng nào chạy tới, cổng nào mở",
+             _vet == _vet_m, f"— vết {_vet}, mong {_vet_m}")
 
 # ---- Ba luật rẽ nhánh phải NỚI đúng chỗ, và luật thứ tư phải GIỮ ----
 # Nới sai thì người dùng bật «chạy hết» xong vẫn bị chặn; giữ sai thì thứ tự chạy do

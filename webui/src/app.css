@@ -3023,12 +3023,17 @@ mark.tim-chu {
   display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
   padding: 7px 12px; background: var(--chrome);
   border-bottom: 1px solid var(--border-soft);
+  /* Cụm nút không bao giờ xuống hàng thứ hai: thanh này là chỗ TAY ĐẬU, nó phải ở
+     đúng một chỗ. Hẹp quá thì cuộn ngang. */
+  overflow-x: auto; overflow-y: hidden;
 }
 .view-nut, .view-toc {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
   padding: 5px 11px; border-radius: 7px; cursor: pointer;
   background: var(--raised); border: 1px solid var(--border);
-  color: var(--text); font-size: 12.5px;
+  /* KHÔNG XUỐNG DÒNG. Cửa sổ hẹp lại thì «Về cuối» tự ngắt thành ba dòng và đội cả
+     thanh điều khiển cao gấp đôi — thấy ở cỡ 900×620. */
+  color: var(--text); font-size: 12.5px; white-space: nowrap;
 }
 .view-nut:hover, .view-toc:hover { background: var(--raised-hover); }
 .view-toc { font-family: var(--mono); padding: 5px 9px; }
@@ -3047,7 +3052,7 @@ mark.tim-chu {
    `viewBox`, mà một khung cao 0 thì SVG vẽ ra đúng không gì cả. */
 
 .view-ben {
-  flex: 0 0 272px; display: flex; flex-direction: column; min-height: 0;
+  flex: 0 0 290px; display: flex; flex-direction: column; min-height: 0;
   background: var(--chrome); border-left: 1px solid var(--border-soft);
 }
 .view-bang-so { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
@@ -3144,22 +3149,155 @@ mark.tim-chu {
   letter-spacing: .04em; text-transform: uppercase;
 }
 .view-nk-dem { font-family: var(--mono); color: var(--muted); }
-.view-nk-cuon { flex: 1; min-height: 0; overflow: auto; padding: 0 8px 8px; }
+.view-nk-cuon { flex: 1; min-height: 0; overflow: auto; padding: 4px 0 8px; }
 .view-nk-trong { padding: 10px 4px; font-size: 12px; color: var(--dim); }
+/* MỘT DÒNG LÀ MỘT DÒNG — ngày, mã, việc, nhãn khối, tất cả trên MỘT hàng.
+   Bản trước mỗi dòng là một cái thẻ bốn hàng cao 50px: ba chữ mà ăn bằng cả một cây
+   nến, và một lượt 250 dòng thì cuộn mãi không hết. Nhật ký là thứ để QUÉT MẮT, nên
+   nó phải dày — y bức tường dòng của cửa sổ Tester cũ. */
 .view-nk-dong {
-  display: block; width: 100%; text-align: left; cursor: pointer;
-  padding: 6px 9px; margin-bottom: 4px; border-radius: 6px;
-  background: var(--surface); border: 1px solid var(--border-soft);
+  display: flex; align-items: baseline; gap: 9px;
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 3px 10px; border: 0; border-left: 2px solid transparent;
+  background: transparent; color: var(--text);
 }
 .view-nk-dong:hover { background: var(--raised); }
-/* Dòng của ĐÚNG nhịp đang đứng — để lúc phát, mắt bám được dòng vừa nảy lên. */
-.view-nk-dong.dang { border-color: var(--accent); }
+/* Dòng của ĐÚNG nhịp đang đứng — để lúc phát, mắt bám được dòng vừa nảy lên. Vạch
+   bên trái chứ không viền quanh: viền quanh một dòng cao 20px là một cái hộp bẹt. */
+.view-nk-dong.dang { border-left-color: var(--accent); background: var(--raised); }
 .view-nk-dong.hong { opacity: .5; }
 .view-nk-ngay {
-  display: block; font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+  flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--dim);
 }
-.view-nk-chu { display: block; font-size: 12.5px; color: var(--text); margin-top: 1px; }
+.view-nk-chu {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .view-nk-tag {
-  display: block; font-family: var(--mono); font-size: 10.5px; color: var(--dim);
-  margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 0 1 auto; max-width: 44%; font-family: var(--mono); font-size: 10.5px;
+  color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* ───────────────────────── LƯỚI CHART: mọi mã một lần, bấm một cái là mở to */
+.view-san { flex: 1; min-height: 0; display: flex; }
+.view-luoi {
+  flex: 1; min-height: 0; overflow: auto; padding: 10px;
+  display: grid; gap: 10px;
+  /* `auto-fit`, KHÔNG `auto-fill`. `auto-fill` dựng đủ số cột vừa bề ngang rồi để
+     mấy cột thừa ĐỨNG TRỐNG: năm mã trên màn 1920 xếp thành năm ô chen về bên trái
+     và một khoảng trống bằng hai ô ở bên phải. `auto-fit` dẹp cột rỗng đi, nên mấy
+     ô có thật giãn ra cho kín. Nhìn ảnh chụp ở cỡ 1920×1080 mới thấy. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* HÀNG GIÃN RA CHO ĐẦY CHỖ, không đứng cứng 170px. Năm mã xếp vừa một hàng mà hàng
+     cao cứng thì dưới nó là một khoảng trống bằng nửa cửa sổ — nhìn như app hỏng. Có
+     nhiều mã thì `minmax` giữ sàn 170px rồi cho cuộn. */
+  grid-auto-rows: minmax(170px, 1fr);
+}
+/* Một mã thì đừng xếp nó vào một ô 240px giữa một khoảng trống mênh mông. */
+.view-luoi.mot { grid-template-columns: 1fr; grid-auto-rows: 1fr; }
+.view-o-ma {
+  position: relative; display: flex; cursor: pointer; padding: 0;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 8px; overflow: hidden;
+}
+.view-o-ma:hover { border-color: var(--accent); }
+.view-o-ten {
+  position: absolute; left: 8px; top: 6px; z-index: 2;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  pointer-events: none;
+}
+.view-mot { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.view-mot-dau {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  padding: 6px 12px; background: var(--chrome);
+  border-bottom: 1px solid var(--border-soft); font-family: var(--mono);
+}
+
+/* ───────────────────────── BẢNG DƯỚI: nhật ký và kết quả, của CẢ LƯỢT
+
+   ⚠ KHÔNG CÓ LỚP NÀO Ở ĐÂY, và đó là cả điểm. Vỏ bảng dưới dùng lại ĐÚNG
+   `components/BangDuoi` của cửa sổ chính (`.bang-duoi`, `.thanh-keo`, `.hang-tab`,
+   `.tab`, `.noi-dung-tab`), nên nó có sẵn: kéo mép trên chỉnh chiều cao, nhấp đúp
+   hàng tab để cụp, nút ▼/▲ ở góc phải, số đếm cạnh nhãn tab.
+     Bản trước tôi dựng tay một hàng tab `.view-tab` riêng và mất cả ba thứ ấy — đúng
+   cái lỗi cửa sổ Live của bản cũ đã mắc, và lời dặn trong `BangDuoi.tsx` kể lại nó. */
+/* ⚠ MỘT CHỖ CUỘN, KHÔNG PHẢI HAI. `.noi-dung-tab` vốn tự cuộn; để nguyên thì nhật ký
+   có HAI thanh cuộn lồng nhau, và cái trong cùng không có trần chiều cao nên nó cao
+   bằng cả danh sách — tức `scrollTop` mà nhật ký tự đặt để BÁM DÒNG MỚI NHẤT rơi vào
+   một hộp không cuộn được, và lúc phát thì dòng mới rơi ra ngoài mép, màn hình đứng
+   im. Đúng cái lỗi bản Tester cũ phải sửa, chỉ khác là lần này nó nấp trong CSS. */
+.cua-so-view .noi-dung-tab {
+  padding: 0; background: var(--bg);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Cột mã rộng CỐ ĐỊNH, để chữ việc ở mọi dòng bắt đầu cùng một chỗ — mắt quét dọc
+   một cột thẳng nhanh hơn hẳn một mép răng cưa. */
+.view-nk-ma {
+  flex: 0 0 56px; font-family: var(--mono); font-size: 11px; color: var(--accent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.view-nk-dong.dang-menu { border-color: var(--accent); }
+/* Dòng TƯỜNG THUẬT (cỗ máy kể nó dừng ở đâu) mờ hơn dòng CÓ VIỆC (một cái lệnh): hai
+   thứ khác hẳn nhau về trọng lượng, mà xếp cùng một danh sách thì phải nhìn ra ngay
+   cái nào là việc đã làm. */
+.view-nk-lang { opacity: .62; }
+.view-nk-lang .view-nk-chu { color: var(--muted); }
+/* `×6` — mấy nhịp liền nhau ghi đúng một dòng, gộp lại. Nó TRẢ LỜI THÊM câu «cổng đó
+   chặn mấy nến liền», nên để sát chữ chứ không đẩy ra lề. */
+.view-nk-lap {
+  flex: 0 0 auto; padding: 0 5px; border-radius: 4px;
+  background: var(--surface); color: var(--muted);
+  font-family: var(--mono); font-size: 10.5px;
+}
+
+/* ───────────────────────── mấy nút BẬT/TẮT trên thanh điều khiển */
+.view-b.bat {
+  color: var(--accent); background: rgba(255, 166, 87, .12);
+  border-color: var(--accent);
+}
+
+/* ───────────────────────── bảng số liệu: cột `phu`, và chỗ kẻ sang nhóm */
+.view-bang-so td.view-ten { color: var(--muted); }
+/* Cột `phu` nằm đúng cái KHE giữa nhãn và số — chỗ trước đây bỏ không, và cũng là lý
+   do tên dài bị cắt cụt. Mờ hơn tên chính: nó là phần phụ của cùng một cái tên. */
+.view-bang-so td.view-phu {
+  color: var(--dim); font-family: var(--mono); font-size: 11px;
+  text-align: right; padding-left: 0; padding-right: 0; max-width: 72px;
+}
+/* Phần lớn đại lượng không gõ mã nên cột này rỗng — rỗng thì đừng ăn chỗ của tên. */
+.view-bang-so td.view-phu:empty { padding: 0; }
+/* SANG NHÓM — một đường mảnh, KHÔNG một cái tiêu đề. Xem `mach_view.HangSo.dauNhom`:
+   không tiêu đề nào thì không tiêu đề nào sai được. */
+.view-bang-so tr.sang-nhom td { border-top: 1px solid var(--border); }
+.view-mot-lenh.khop { border-color: var(--border); }
+.view-mot-lenh.khop .view-lenh-dau { color: var(--muted); }
+
+/* ═══════════════ POPUP SOI SƠ ĐỒ — ngay trong cửa sổ View ═══════════════════
+
+   Tiền tố `vs-` (View · Soi). `.soi-mo`, `.day-nen`, `.day-dong`, `.hop`, `.dau`,
+   `.than`, `.chan`, `.the`, `.so-thu-tu` thì DÙNG LẠI đúng nghĩa cũ của chúng — mặt
+   khối trong popup phải là mặt khối ở Xưởng, không phải một bộ mặt thứ hai. */
+.vs-nen {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .55);
+}
+.vs-khung {
+  display: flex; flex-direction: column;
+  width: min(1040px, 92vw); height: min(680px, 86vh);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 24px 60px rgba(0, 0, 0, .6); overflow: hidden;
+}
+/* Dải tiêu đề dùng lại `.soi-nhan` / `.soi-chu` / `.soi-canh` / `.soi-tat` của dải
+   «Soi lượt» trên canvas cửa sổ chính — cùng một việc thì cùng một bộ mặt. */
+.vs-dai {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  padding: 9px 10px 9px 14px;
+  background: var(--chrome); border-bottom: 1px solid var(--accent);
+}
+.vs-dai .soi-chu { flex: 1; }
+.vs-san { flex: 1; min-height: 0; position: relative; }
+/* Khối trong popup KHÔNG bắt chuột: popup này để đọc, không để sửa. */
+.vs-khoi { cursor: default; }
+.vs-khoi-tren { border-color: var(--accent); }

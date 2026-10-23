@@ -258,6 +258,87 @@ class ApiKetQua(NenCuaSo):
         self._goi_chinh(json.dumps(str(nhan or "")))
         return _ok(True)
 
+    @_bat_loi
+    def so_do_soi(self):
+        """SƠ ĐỒ ĐÃ SINH RA LƯỢT NÀY, kèm bản soát. -> {steps, edges, soat, chup}
+
+        Cửa sổ View mở một popup vẽ lại sơ đồ rồi tô đường cái lệnh đã đi — không
+        phải nhảy sang cửa sổ chính nữa. Hai cách soi đứng cạnh nhau chứ không thay
+        nhau: popup trả lời ngay trong tầm mắt, còn `soi_luot` ghim lên CÁI SƠ ĐỒ
+        ĐANG VẼ để sửa tiếp.
+
+        `chup` = True là sơ đồ lấy từ bản chụp cạnh kết quả, tức ĐÚNG cỗ máy đã sinh
+        ra mấy cái lệnh ấy. False là lượt chạy từ bản cũ chưa biết chụp, nên phải dò
+        ngược từ tên lớp trong kho Strategy — có thể đã sửa sau lượt chạy, và cửa sổ
+        PHẢI NÓI RA chuyện đó thay vì bày một vệt sáng trông rất chắc chắn."""
+        sd = chay_lean.doc_so_do_luot(self._ma_id)
+        chup = bool(sd.get("steps"))
+        if not chup:
+            # Lối CỨU. Xem `_so_do_theo_ten_lop`: phép tên-chiến-thuật -> tên-lớp là
+            # một chiều và xác định, nên dò ngược bằng cách chạy xuôi là ra đúng cái
+            # cần — nhưng cái "đúng" ấy là bản HÔM NAY, không phải bản hôm chạy.
+            kq = chay_lean.doc_luot_chay(self._ma_id)
+            sd = _so_do_theo_ten_lop(kq.get("ten_lop") or "") if kq["ok"] else {}
+        if not sd.get("steps"):
+            return _loi(tr("Lượt này chạy từ bản cũ nên không lưu sơ đồ, mà kho Strategy cũng "
+                           "không còn cái nào sinh ra lớp ấy. Chạy lại một lượt mới thì soi "
+                           "được."))
+        steps = sd.get("steps") or []
+        edges = sd.get("edges") or []
+        return _ok({"steps": steps, "edges": edges, "chup": chup,
+                    "soat": _soat(steps, edges, sd.get("co_may"))})
+
+
+def _soat(steps, edges=None, co_may=None):
+    """RUỘT của cửa `soat` — đánh số, soát lỗi, dựng thẻ. -> dict (chưa bọc `_ok`).
+
+    ⚠ TÁCH RA VÌ CÓ HAI NGƯỜI GỌI, không phải để cho gọn. Cửa sổ View cũng phải
+    soát: nó bày «Soi trên sơ đồ» trên BẢN CHỤP sơ đồ của lượt chạy
+    (`chay_lean.TEN_SO_DO`), và muốn dò đường từ số khối `[1A.1]` thì phải có
+    `thu_tu`/`entry`/`edges` — đúng ba thứ hàm này dựng. Chép tay lần thứ hai thì
+    hôm nào phép đánh số đổi, số khối trên sơ đồ ở cửa sổ chính và số khối cửa sổ
+    View soi sẽ lệch nhau, mà không gì báo: vệt sáng chỉ đơn giản chạy sai khối."""
+    steps = core.ensure_step_ids([s for s in (steps or []) if isinstance(s, dict)])
+    edges = core.clean_edges(edges, steps) if edges is not None \
+        else core.default_edges(steps)
+    kq = core.flow_order(steps, edges)
+    # HỒ SƠ CỖ MÁY — giao diện gửi kèm; thiếu thì lôi từ khối Bắt đầu (file cũ).
+    may = core.chuan_hoa_co_may(co_may, steps)
+    # Bảng Vấn đề = lỗi ĐỒ THỊ (nối dây) + lỗi RUỘT từng khối. Gộp ở đây chứ
+    # không ở `validate_flow_graph`: cái đó chỉ biết về dây, cố ý vậy.
+    van_de = core.validate_flow_graph(steps, edges)
+    for s in steps:
+        van_de.extend(core.soat_khoi_hoi(s))
+        van_de.extend(core.soat_khoi_lam(s))
+        van_de.extend(core.soat_khoi_bat_dau(s, may))
+        # Hành động nằm trong một Nhóm cũng phải soát — khối Nhóm không có `type`
+        # của riêng nó, nên vòng trên không chạm tới ruột nó.
+        for a in core.hanh_dong_cua(s):
+            if a is not s:
+                van_de.extend(core.soat_khoi_lam({**a, "id": s["id"]}))
+    # Soát CHÉO khối: chạy cả rổ thì mọi khối phải gõ rõ tên mã. Một khối nhìn
+    # vào chính nó thì không biết khối Bắt đầu đang chạy kiểu nào.
+    van_de.extend(core.soat_loai_la(steps))
+    van_de.extend(core.soat_ca_ro(steps))
+    van_de.extend(core.soat_ro_dong(steps))
+    van_de.extend(core.soat_day_chuyen(steps, may))
+    # Bảng TÊN ô nhớ — khai ở khối Bắt đầu, mà thẻ cần vẽ ở khối Ghi nhớ.
+    _tn = core.ten_nho_cua(may)
+    return {
+        "thu_tu": kq["order"],
+        "entry": kq["entry"],
+        "the": {s["id"]: core.the_buoc(s, _tn) for s in steps},
+        # CỖ MÁY LEAN — mấy chữ cho viên thuốc ở góc phải canvas, và hồ sơ
+        # đã chuẩn hoá (giao diện dùng nó để mở hộp Cỗ máy, và để lưu). Đi CÙNG
+        # cửa soát chứ không thành cửa riêng: tách ra là mời hai lượt gọi thấy
+        # hai trạng thái khác nhau.
+        "co_may": may,
+        "tom_tat_co_may": core.tom_tat_co_may(may),
+        "van_de": van_de,
+        "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
+        "edges": edges,
+    }
+
 
 def _so_do_theo_ten_lop(ten_lop):
     """Dò trong kho Strategy ra sơ đồ sinh đúng lớp `ten_lop`. -> doc, hay {}.
@@ -603,7 +684,10 @@ class Api(NenCuaSo):
         self._kem = {"van_de": kq["van_de"], "ma": kq["ma"],
                      "ten_lop": kq["ten_lop"],
                      "moc_ten": m or tr("SPY — LEAN tự chọn")}
-        return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"]))
+        # CHỤP SƠ ĐỒ THEO LƯỢT CHẠY. `doc` ở đây là sơ đồ ĐÃ ÁP MÀN (`ap_man` ép
+        # sân chơi của màn), tức đúng cỗ máy LEAN sắp chạy — không phải bản người
+        # chơi đang vẽ. Xem `chay_lean.TEN_SO_DO`.
+        return _ok(chay_lean.bat_dau_chay(kq["ma"], kq["ten_lop"], doc))
 
     @_bat_loi
     @_bat_loi
@@ -955,48 +1039,9 @@ class Api(NenCuaSo):
     def soat(self, steps, edges=None, co_may=None):
         """Tất cả những gì giao diện cần để vẽ lại sơ đồ sau một thay đổi.
 
-        Gộp làm MỘT cửa chứ không ba: đánh số, soát lỗi và dựng thẻ đều đọc cùng một
-        đồ thị, tách ra thì ba lượt gọi có thể thấy ba trạng thái khác nhau."""
-        steps = core.ensure_step_ids([s for s in (steps or []) if isinstance(s, dict)])
-        edges = core.clean_edges(edges, steps) if edges is not None \
-            else core.default_edges(steps)
-        kq = core.flow_order(steps, edges)
-        # HỒ SƠ CỖ MÁY — giao diện gửi kèm; thiếu thì lôi từ khối Bắt đầu (file cũ).
-        may = core.chuan_hoa_co_may(co_may, steps)
-        # Bảng Vấn đề = lỗi ĐỒ THỊ (nối dây) + lỗi RUỘT từng khối. Gộp ở đây chứ
-        # không ở `validate_flow_graph`: cái đó chỉ biết về dây, cố ý vậy.
-        van_de = core.validate_flow_graph(steps, edges)
-        for s in steps:
-            van_de.extend(core.soat_khoi_hoi(s))
-            van_de.extend(core.soat_khoi_lam(s))
-            van_de.extend(core.soat_khoi_bat_dau(s, may))
-            # Hành động nằm trong một Nhóm cũng phải soát — khối Nhóm không có `type`
-            # của riêng nó, nên vòng trên không chạm tới ruột nó.
-            for a in core.hanh_dong_cua(s):
-                if a is not s:
-                    van_de.extend(core.soat_khoi_lam({**a, "id": s["id"]}))
-        # Soát CHÉO khối: chạy cả rổ thì mọi khối phải gõ rõ tên mã. Một khối nhìn
-        # vào chính nó thì không biết khối Bắt đầu đang chạy kiểu nào.
-        van_de.extend(core.soat_loai_la(steps))
-        van_de.extend(core.soat_ca_ro(steps))
-        van_de.extend(core.soat_ro_dong(steps))
-        van_de.extend(core.soat_day_chuyen(steps, may))
-        # Bảng TÊN ô nhớ — khai ở khối Bắt đầu, mà thẻ cần vẽ ở khối Ghi nhớ.
-        _tn = core.ten_nho_cua(may)
-        return _ok({
-            "thu_tu": kq["order"],
-            "entry": kq["entry"],
-            "the": {s["id"]: core.the_buoc(s, _tn) for s in steps},
-            # CỖ MÁY LEAN — mấy chữ cho viên thuốc ở góc phải canvas, và hồ sơ
-            # đã chuẩn hoá (giao diện dùng nó để mở hộp Cỗ máy, và để lưu). Đi CÙNG
-            # cửa soát chứ không thành cửa riêng: tách ra là mời hai lượt gọi thấy
-            # hai trạng thái khác nhau.
-            "co_may": may,
-            "tom_tat_co_may": core.tom_tat_co_may(may),
-            "van_de": van_de,
-            "vong": {a: list(b) for a, b in core.canh_vong(edges, steps).items()},
-            "edges": edges,
-        })
+        Gộp làm MỘT cửa chứ không ba: đánh số, soát lỗi và dựng thẻ đều đọc cùng
+        một đồ thị, tách ra thì ba lượt gọi có thể thấy ba trạng thái khác nhau."""
+        return _ok(_soat(steps, edges, co_may))
 
     @_bat_loi
     def nhan_ban(self, steps, edges=None, giu_hat_nhan=False, co_may=None):

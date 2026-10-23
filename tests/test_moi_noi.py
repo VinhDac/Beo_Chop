@@ -224,8 +224,9 @@ for _d in _kho:
     _st[1]["dieu_kien"] = [_dk]
     _kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "D",
                         "steps": _st, "edges": _ed})
+    # ⚠ Cổng nay bọc trong `self._vet(...)` — xem `sinh_ma._bao_vet`.
     _dong = next((l.strip() for l in _kq["ma"].splitlines()
-                  if l.strip().startswith("if (")), "")
+                  if l.strip().startswith("if self._vet(")), "")
     _vd = []
     if not _kq["ok"]:
         _vd.append(_kq["van_de"][0]["message"][:60])

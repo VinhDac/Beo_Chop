@@ -293,9 +293,43 @@ const TIENG_ANH: Record<string, string> = {
   'Thôi soi (Esc)': 'Stop tracing (Esc)',
   'Chưa có lượt nào để xem. Bấm Backtest trước đã.':
     'No run to view yet. Press Backtest first.',
+  // ── view/mach_view.ts
+  'dòng qua cổng {0}': 'flow passed gate {0}',
+  'dòng dừng ở {0}': 'flow stopped at {0}',
+  // ── view/NhatKy.tsx
+  'Lượt này chưa ghi dòng nhật ký nào.': 'This run logged nothing.',
+  '{0} mã': '{0} symbols',
+  '{0} nến liền nhau ghi đúng dòng này': '{0} bars in a row logged this same line',
+  'Chép dòng': 'Copy the line',
+  // ── view/SoDoSoi.tsx
+  'không mở được sơ đồ của lượt này': 'could not open this run’s diagram',
+  'SOI LƯỢT': 'TRACE',
+  'nhãn này không khớp khối nào trên sơ đồ':
+    'this label matches no block in the diagram',
+  'lượt cũ không lưu sơ đồ — đây là bản dò từ kho, có thể đã sửa':
+    'this old run saved no diagram — this one came from the library and may have changed',
+  'Tắt (Esc)': 'Close (Esc)',
+  'đang mở sơ đồ…': 'opening the diagram…',
   // ── view/TrangView.tsx
-  'Lượt này không ra lệnh nào.': 'This run placed no orders.',
-  'Nhảy tới đây, và soi đường trên sơ đồ': 'Jump here, and trace the path on the diagram',
+  'Khung hiển thị — chỉ đổi CÁCH VẼ': 'Display timeframe — changes only HOW IT IS DRAWN',
+  'Gốc': 'Native',
+  'Nến xanh/đỏ như thường': 'Green/red candles again',
+  'Nến về màu xám (để dành xanh/đỏ cho lãi lỗ)':
+    'Grey candles (keep green/red for profit and loss)',
+  'Ẩn mũi tên lệnh và mức giá chờ': 'Hide order arrows and pending price lines',
+  'Hiện lại visual lệnh': 'Show the order visuals again',
+  'Về nến hiện tại': 'Back to the current bar',
+  'Chưa có nến': 'No bar yet',
+  '{0} chưa vào rổ ở nhịp này.': '{0} was not in the basket at this bar.',
+  'Lệnh còn treo': 'Pending orders',
+  'nhịp này không có lệnh nào': 'no order at this bar',
+  'khớp': 'filled',
+  'Bấm để nhảy tới đây · chuột phải để soi trên sơ đồ':
+    'Click to jump here · right-click to trace it on the diagram',
+  'Nhảy tới đây': 'Jump here',
+  'Soi trên sơ đồ': 'Trace on the diagram',
+  'Mở to {0}': 'Open {0}',
+  'Về lưới': 'Back to the grid',
   'Chạy lại từ nến đầu': 'Replay from the first bar',
   'Nhảy tới cuối lượt chạy': 'Jump to the end of the run',
   'Về cuối': 'To the end',
@@ -309,7 +343,6 @@ const TIENG_ANH: Record<string, string> = {
   'Nến': 'Candles',
   'Thanh': 'Bars',
   'Đường': 'Line',
-  'Nhảy tới ngày': 'Jump to a date',
   'View — {0}': 'View — {0}',
   'View': 'View',
   'Lượt này không có nến nào. Chạy lại bằng bản mới để LEAN in nến ra.':

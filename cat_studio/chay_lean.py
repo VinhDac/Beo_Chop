@@ -301,6 +301,14 @@ def _doc_ket_qua(thu_muc, ten_lop):
     return d, nk
 
 
+#: Dấu mở đầu mỗi dòng VẾT trong nhật ký LEAN.
+#:
+#: ⚠ CÙNG MỘT CHUỖI VỚI `sinh_ma.DAU_VET`, và `tests/test_vet.py` canh cho hai bên
+#: không lệch. Khai lại ở đây chứ không `import sinh_ma`: `chay_lean` cố ý không biết
+#: gì về bộ sinh mã (nó chạy được một file Python bất kỳ), mà một dòng `import` chỉ
+#: để lấy một chuỗi là buộc hai mô-đun vào nhau vì không gì cả.
+DAU_VET = "CAT|"
+
 #: `seriesType` của LEAN -> tên kiểu vẽ. Đọc thẳng từ `Common/BaseSeries.cs`.
 #: Giao diện KHÔNG tự khai bảng này — đoán một bảng mã số là sai lặng.
 KIEU_DUONG = {0: "duong", 1: "cham", 2: "nen", 3: "cot", 4: "co",
@@ -468,9 +476,49 @@ def _giao_dich_gon(t):
     }
 
 
+#: Trần số dòng VẾT gửi sang giao diện.
+#:
+#: Bộ sinh mã đã có trần của nó (`sinh_ma.VET_TOI_DA`, 20000 dòng ghi ra nhật ký); đây
+#: là trần thứ hai, của cái cầu nối. Hai con số khác việc nhau: bên kia giữ cho file
+#: nhật ký đừng phình, bên này giữ cho cầu nối đừng nghẹt và WebView2 đừng treo —
+#: cùng lý do với `TRAN_DIEM`.
+TRAN_VET = 8000
+
+
+def _doc_vet(nk):
+    """Nhật ký LEAN -> mấy dòng VẾT đã tách sẵn. -> ([{luc, ma, cong}], bị cắt?)
+
+    Cỗ máy tự ghi mỗi nhịp một dòng `CAT|<giờ>|<mã>|-1A,1B,-1C` — xem `sinh_ma._vet`:
+    dấu trừ là cổng ĐÓNG. Ở đây chỉ việc tách lại, không suy thêm một chữ nào.
+
+    ⚠ ĐỌC TỪ `nk` ĐẦY ĐỦ, không đọc từ `nhat_ky` đã cắt. `_gon` chỉ gửi 60000 ký tự
+    CUỐI của nhật ký sang giao diện (một file nhật ký LEAN có thể vài MB) — tách vết
+    từ bản đã cắt ấy thì mất hết vết của nửa đầu lượt chạy, mà bảng vẫn trông đầy.
+
+    ⚠ KHÔNG NUỐT DÒNG LẠ. Một dòng mang dấu `CAT|` mà không đủ bốn phần thì bỏ, chứ
+    không đoán phần thiếu: thà thiếu một dòng còn hơn bày một mốc giờ bịa ra."""
+    ra = []
+    cat = False
+    for dong in str(nk or "").splitlines():
+        i = dong.find(DAU_VET)
+        if i < 0:
+            continue
+        phan = dong[i + len(DAU_VET):].rstrip().split("|")
+        if len(phan) != 3 or not phan[0]:
+            continue
+        if len(ra) >= TRAN_VET:
+            cat = True
+            break
+        cong = [[c.lstrip("-"), not c.startswith("-")]
+                for c in phan[2].split(",") if c]
+        ra.append({"luc": phan[0], "ma": phan[1], "cong": cong})
+    return ra, cat
+
+
 def _gon(d, nk):
     """Cả đống kết quả -> đúng phần màn Kết quả cần."""
     tp = d.get("totalPerformance") or {}
+    vet, vet_cat = _doc_vet(nk)
     return {
         # TÁM Ô SỐ trên đầu — LEAN dựng sẵn đúng tám mục này, không phải ta chọn.
         "o_so": d.get("runtimeStatistics") or {},
@@ -481,12 +529,26 @@ def _gon(d, nk):
         "lenh": [_lenh_gon(o) for o in (d.get("orders") or {}).values()],
         "giao_dich": [_giao_dich_gon(t) for t in (tp.get("closedTrades") or [])],
         "nhat_ky": nk[-60000:],
+        # VẾT TỪNG NHỊP — cỗ máy tự kể nó dừng ở cổng nào (`sinh_ma._ham_vet`).
+        # Rỗng với lượt chạy từ bản cũ, và cửa sổ View nói ra chuyện đó.
+        "vet": vet,
+        "vet_cat": vet_cat,
     }
 
 
 #: Thẻ tóm tắt một lượt chạy, ghi cạnh kết quả. Kho lượt chạy đọc THẺ chứ không mở
 #: từng file kết quả: một file LEAN nặng vài MB, mà kho chỉ cần năm con số.
 TEN_THE = "_the.json"
+
+#: SƠ ĐỒ ĐÃ SINH RA LƯỢT NÀY, ghi cạnh kết quả.
+#:
+#: ⚠ CHỤP LẠI SƠ ĐỒ, ĐỪNG ĐỌC LẠI SƠ ĐỒ ĐANG VẼ. Cửa sổ View bày «Soi trên sơ đồ»:
+#: bấm một dòng nhật ký là thấy lệnh ấy đã đi qua những khối nào. Mà người ta xem lại
+#: một lượt chạy TUẦN TRƯỚC, rồi tuần này sơ đồ đã sửa ba lần — soi vào sơ đồ đang vẽ
+#: thì vệt sáng chạy trên một cỗ máy khác hẳn cái đã sinh ra mấy cái lệnh ấy, và
+#: không gì báo. Mẻ Optimize đã chụp sơ đồ từ lâu (`chay_toi_uu.chay`); backtest thì
+#: chưa, nên lối CỨU `api._so_do_theo_ten_lop` phải dò ngược từ tên lớp.
+TEN_SO_DO = "_so_do.json"
 
 #: Mấy con số bày trên thẻ. Lấy từ `statistics` của LEAN, tên y nguyên của nó — đổi
 #: tên ở đây là tự đẻ một bảng tra thứ hai phải trông coi.
@@ -505,6 +567,34 @@ def _ghi_the(thu_muc, kq):
         luu_tru.ghi_json_nguyen_tu(os.path.join(thu_muc, TEN_THE), the)
     except Exception:                               # noqa: BLE001
         pass
+
+
+def _ghi_so_do(thu_muc, so_do):
+    """Chụp sơ đồ cạnh kết quả. Hỏng thì THÔI — y lý do của `_ghi_the`: mất bản chụp
+    chỉ làm «Soi trên sơ đồ» phải dò ngược từ tên lớp, không được phép làm hỏng cả
+    lượt chạy vừa xong."""
+    if not (so_do or {}).get("steps"):
+        return
+    try:
+        luu_tru.ghi_json_nguyen_tu(
+            os.path.join(thu_muc, TEN_SO_DO),
+            {"name": so_do.get("name") or "", "steps": so_do.get("steps") or [],
+             "edges": so_do.get("edges") or [], "co_may": so_do.get("co_may") or {}})
+    except Exception:                               # noqa: BLE001
+        pass
+
+
+def doc_so_do_luot(ma_id):
+    """Sơ đồ đã sinh ra lượt `ma_id`. -> doc, hay {} nếu lượt ấy chạy từ bản cũ."""
+    d = _thu_muc_luot(ma_id)
+    if not d:
+        return {}
+    try:
+        with open(os.path.join(d, TEN_SO_DO), encoding="utf-8") as f:
+            sd = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return sd if isinstance(sd, dict) and sd.get("steps") else {}
 
 
 def ds_luot_chay():
@@ -589,7 +679,7 @@ def don_kho():
     return xoa
 
 
-def chay(ma, ten_lop):
+def chay(ma, ten_lop, so_do=None):
     """Chạy một thuật toán đã sinh. -> {ok, loi, ...phần màn Kết quả cần}
 
     ⚠ Không đọc mã thoát (xem bẫy 1 ở đầu file): có file kết quả là THÀNH CÔNG."""
@@ -609,6 +699,9 @@ def chay(ma, ten_lop):
     ma_luot = time.strftime("%Y%m%d-%H%M%S")
     ra_thu_muc = os.path.join(luu_tru.thu_muc_ket_qua(), ten_lop, ma_luot)
     os.makedirs(ra_thu_muc, exist_ok=True)
+    # Chụp sơ đồ NGAY, trước khi LEAN chạy: lượt chạy mất vài phút, mà trong lúc ấy
+    # người dùng sửa sơ đồ được. Chụp lúc xong là chụp bản đã sửa — xem `TEN_SO_DO`.
+    _ghi_so_do(ra_thu_muc, so_do)
 
     thu_muc_exe = os.path.dirname(sb["launcher"])
     goc_cfg = os.path.join(sb["goc"], "Launcher", "config.json")
@@ -625,6 +718,17 @@ def chay(ma, ten_lop):
         "data-folder": os.path.join(sb["goc"], "Data"),
         "results-destination-folder": ra_thu_muc,
         "environment": "backtesting",
+        # ⚠ NỚI HẠN ĐƯỜNG VẼ. Mặc định `maximum-chart-series` của LEAN là 30 — con số
+        # của HẠNG TÀI KHOẢN trên đám mây QuantConnect, không phải giới hạn kỹ thuật.
+        # Chạy trên máy mình thì không có hạng nào cả. 30 đường nghe nhiều, nhưng
+        # LEAN tự tiêu mất mười cái cho đồ thị của chính nó, và cửa sổ View cần mỗi
+        # mã một đường nến cộng mỗi đại lượng một đường: một sơ đồ 8 đại lượng chỉ
+        # còn đủ chỗ cho HAI mã, trong khi rổ có năm chục.
+        #     Và vượt hạn thì LEAN BỎ IM LẶNG — `BacktestingResultHandler.cs` dòng
+        # 726: *"new series will be ignored"*, chỉ một dòng debug. Nên đây không phải
+        # chuyện «vẽ được nhiều hơn cho đẹp», mà là chuyện mấy cái chart cuối có tồn
+        # tại hay không.
+        "maximum-chart-series": 200,
         # ⚠ KHÔNG CÓ DÒNG NÀY THÌ LEAN TREO MÃI. `JobQueue.AcknowledgeJob` chạy xong
         # thì in «Engine.Main(): Press any key to continue.» rồi `Console.Read()` —
         # chờ một phím mà không ai gõ được, vì cửa sổ console của nó bị app nuốt.
@@ -700,7 +804,7 @@ def chay(ma, ten_lop):
     return kq
 
 
-def bat_dau_chay(ma, ten_lop):
+def bat_dau_chay(ma, ten_lop, so_do=None):
     """Khởi động một lượt backtest trong LUỒNG RIÊNG rồi trả về NGAY.
 
     Vì sao không chạy thẳng trong cú gọi cầu nối: một lượt backtest mất từ chục giây
@@ -719,7 +823,7 @@ def bat_dau_chay(ma, ten_lop):
 
     def chay_nen():
         try:
-            kq = chay(ma, ten_lop)
+            kq = chay(ma, ten_lop, so_do)
         except Exception as e:                      # noqa: BLE001
             # Luồng nền mà ném thì KHÔNG ai thấy: không có chỗ nào bắt, và giao diện
             # sẽ hỏi tiến độ mãi mãi. Nên gói lại thành một kết quả hỏng tử tế.

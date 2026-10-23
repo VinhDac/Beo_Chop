@@ -202,6 +202,9 @@ class _Nc:
         #: View. Khoá là biểu thức LEAN, nên hai khối cùng viết RSI(14) chỉ ra một
         #: hàng. Gom lúc dịch điều kiện (`_dieu_kien_py`), xem `ghi_so`.
         self.so_bay = {}
+        #: Đã gài VẾT vào bao nhiêu cổng Hỏi — xem `_ham_vet`. 0 thì khỏi sinh mấy
+        #: phương thức vết, vì sơ đồ không có cổng nào để mà kể.
+        self.so_vet = 0
 
     def ghi_so(self, ve, bt):
         """Ghi một đại lượng vào bảng số liệu của cửa sổ View. Trùng thì bỏ qua.
@@ -351,7 +354,34 @@ def _dieu_kien_py(nc, step):
             ve.append(f"({trai} {phep} {phai})")
     # Chữ mô tả phải nói CẢ cổng, không phải mỗi dòng đầu: một cổng hai điều kiện mà
     # `tag` chỉ ghi một dòng thì đọc nhật ký lệnh sẽ tưởng nó khớp vì lý do khác.
-    return " and ".join(ve), tr(" và ").join(core.mo_ta_dieu_kien(dk) for dk in ds)
+    return _bao_vet(nc, step, " and ".join(ve)),         tr(" và ").join(core.mo_ta_dieu_kien(dk) for dk in ds)
+
+
+def _bao_vet(nc, step, bt):
+    """Bọc biểu thức một cổng Hỏi lại thành `self._vet(sym, '1A.1', (bt))`.
+
+    ⚠ BỌC VÀO TRONG BIỂU THỨC, KHÔNG CHÈN MỘT DÒNG RIÊNG. Cách hiển nhiên hơn là
+    `_v = (bt)` rồi `self._vet(...)` rồi `if _v:` — nhưng cổng của một điểm rẽ sinh ra
+    `elif`, và giữa `if` với `elif` thì KHÔNG đặt được câu lệnh nào. Làm theo lối ấy
+    thì phải xếp lại cả `_toa` thành if/else lồng nhau, tức sửa đúng chỗ dễ sai nhất
+    của bộ sinh mã để lấy một dòng nhật ký. Bọc vào biểu thức thì cả hai lối gọi
+    (`_chuoi` và `_toa`) không phải đổi một chữ.
+
+    ⚠ `_vet` TRẢ NGUYÊN GIÁ TRỊ NÓ NHẬN, nên nó không đổi được kết quả backtest: cổng
+    vẫn mở đúng lúc nó vẫn mở. Biểu thức cũng chỉ tính ĐÚNG MỘT LẦN, y như trước —
+    nó là tham số của một cú gọi, không bị nhân đôi.
+
+    ⚠ VÀ VÌ SAO PHẢI CÓ. Nhật ký hôm nay chỉ kể mấy CÁI LỆNH, nên một lượt chạy ba
+    tháng không ra lệnh nào bày ra một bảng trống — đúng lúc người ta mở cửa sổ View
+    ra để hỏi «vì sao nó không mua». `mach_chay` suy được một phần chuyện ấy từ chỗ
+    LEAN im lặng, nhưng suy thì có chỗ OAN (xem lời dặn đầu `mach_chay.ts`). Đây là
+    cỗ máy TỰ NÓI: cổng nào nó chạy tới, cổng ấy cho ra đúng hay sai."""
+    so = nc.thu_tu.get(step.get("id")) or ""
+    if not so:
+        return bt                   # cổng không chạy tới thì không có gì để kể
+    nc.so_vet += 1
+    # CHIA DANH MỤC chạy một lượt cho cả rổ — không có biến `sym` nào trong hàm.
+    return f"self._vet({'None' if nc.ca_danh_muc else 'sym'}, {so!r}, ({bt}))"
 
 
 # ---------------------------------------------------------------------------
@@ -765,6 +795,66 @@ def _ham_khoi_tao_ma(may):
             ] + [TAB * 2 + c for c in cau]
 
 
+#: Dấu mở đầu mỗi dòng VẾT trong nhật ký LEAN. `chay_lean._doc_vet` dò đúng chuỗi
+#: này, nên nó là KHOÁ chứ không phải chữ để đọc — không bọc `tr()`.
+DAU_VET = "CAT|"
+
+#: Trần số dòng vết MỘT LƯỢT CHẠY được ghi.
+#:
+#: Vì sao phải có trần: một lượt nhịp PHÚT chạy năm chục mã trong ba năm có thể ra
+#: hàng triệu nhịp, mà mỗi nhịp một dòng là một file nhật ký vài trăm MB — đọc lại thì
+#: treo app, mà cũng chẳng ai cuộn hết. Vượt trần thì DỪNG ghi, và `chay_lean` nói ra
+#: chuyện đã dừng chứ không lặng lẽ bày một nhật ký cụt.
+VET_TOI_DA = 20000
+
+
+def _ham_vet(nc):
+    """Ba phương thức ghi VẾT — cỗ máy tự kể nó dừng ở cổng nào. -> [dòng].
+
+    ⚠ MỖI NHỊP MỘT DÒNG, KHÔNG PHẢI MỖI CỔNG MỘT DÒNG. Một nhịp có thể thử ba nhánh
+    liền (`if/elif/elif`), nên gom cả nhịp lại thành một dòng `-1A.1,2A.1,-2A.2`:
+    dấu trừ là cổng đóng. Mỗi cổng một dòng thì một lượt ba tháng ra mấy nghìn dòng
+    mà chẳng dòng nào trả lời được câu «nhịp ấy nó đi tới đâu».
+
+    ⚠ TỰ GHI GIỜ VÀO DÒNG, KHÔNG DÙNG GIỜ `self.log` ĐÓNG SẴN. LEAN đóng dấu giờ
+    LÚC GỌI `log`, mà dòng của nhịp này chỉ xả ra khi nhịp SAU bắt đầu (lý do ở dưới)
+    — mượn dấu của nó thì mọi dòng nhật ký lệch đúng một nhịp, và lệch lặng.
+
+    ⚠ XẢ Ở NHỊP SAU, không xả cuối nhịp. Thân `_mot_ma` có `return` (nhánh không khớp
+    thì hết lượt, chỉ báo chưa chín thì thôi), nên một câu xả đặt cuối thân sẽ bị mấy
+    cái `return` ấy nhảy qua — đúng những nhịp cổng đóng, tức đúng những nhịp đáng kể
+    nhất. Thấy nhịp mới thì xả nhịp cũ là không có đường nào nhảy qua được.
+    `on_end_of_algorithm` xả nhịp cuối cùng còn treo lại."""
+    if not nc.so_vet:
+        return []
+    return [
+        "", TAB + "def _vet(self, sym, so, v):",
+        TAB * 2 + tr("\"\"\"Ghi lại: nhịp này chạy tới cổng `so`, và cổng cho ra `v`."),
+        "",
+        TAB * 2 + tr("TRẢ NGUYÊN `v` — hàm này không đổi được kết quả backtest.\"\"\""),
+        TAB * 2 + "_k = '' if sym is None else str(sym.value)",
+        TAB * 2 + "_r = self._vet_cho.get(_k)",
+        TAB * 2 + "if _r is None or _r[0] != self.time:",
+        TAB * 3 + "self._vet_ra(_k)",
+        TAB * 3 + "_r = [self.time, []]",
+        TAB * 3 + "self._vet_cho[_k] = _r",
+        TAB * 2 + "_r[1].append(so if v else '-' + so)",
+        TAB * 2 + "return v",
+        "", TAB + "def _vet_ra(self, k):",
+        TAB * 2 + tr("\"\"\"Xả vết của nhịp đã qua ra nhật ký. Hết trần thì thôi.\"\"\""),
+        TAB * 2 + "_r = self._vet_cho.pop(k, None)",
+        TAB * 2 + f"if not _r or self._vet_so >= {VET_TOI_DA}:",
+        TAB * 3 + "return",
+        TAB * 2 + "self._vet_so += 1",
+        TAB * 2 + f'self.log("{DAU_VET}%s|%s|%s" % ('
+                  "_r[0].strftime('%Y-%m-%d %H:%M:%S'), k, ','.join(_r[1])))",
+        "", TAB + "def on_end_of_algorithm(self):",
+        TAB * 2 + tr("\"\"\"Cửa có thật của `QCAlgorithm` — xả nhịp cuối còn treo.\"\"\""),
+        TAB * 2 + "for _k in list(self._vet_cho):",
+        TAB * 3 + "self._vet_ra(_k)",
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Cửa chính
 # ---------------------------------------------------------------------------
@@ -870,12 +960,20 @@ def sinh(doc):
     dong_mo += khai_bay
     than = dong_bay + than
 
+    # --- vết từng nhịp: cỗ máy tự kể nó dừng ở cổng nào ---
+    # ⚠ SAU `_toa`, vì chỉ lúc đi hết sơ đồ mới biết có bao nhiêu cổng chạy tới được
+    # (`nc.so_vet`) — sơ đồ không cổng nào thì khỏi sinh ba phương thức vô dụng.
+    ham_vet = _ham_vet(nc)
+    if ham_vet:
+        dong_mo += ["", tr("# Vết từng nhịp cho nhật ký cửa sổ View — xem `_vet`."),
+                    "self._vet_cho = {}", "self._vet_so = 0"]
+
     ok = not any(p["severity"] == "error" for p in nc.van_de)
     return {"ok": ok, "ten_lop": lop, "van_de": nc.van_de,
             "ma": _ghep(lop, d.get("name"), cau_chay != "on_data", dong_mo, than,
                         nc.ca_danh_muc, nc.ro, dong_doi_ro,
                         _ham_loc_ro(nc, st_bd), bool(nc.kho.ds),
-                        _ham_khoi_tao_ma(nc.may) + _ham_nho_cua(nc.may))}
+                        _ham_khoi_tao_ma(nc.may) + _ham_nho_cua(nc.may) + ham_vet)}
 
 
 #: Tên hai bảng LEAN vẽ cho cửa sổ View.
@@ -889,11 +987,16 @@ BANG_GIA = "Price"
 BANG_SO = "Quantities"
 
 
-#: LEAN cho tổng cộng 30 đường (`maximum-chart-series` trong `config.json`), mà nó
-#: tự tiêu mất khoảng mười cái cho đồ thị của chính nó (Strategy Equity, Benchmark,
-#: Drawdown, Exposure, Portfolio Turnover/Margin, Assets Sales Volume, Capacity).
-#: Chừa hẳn một khoảng: thà bày ít mã mà đủ, còn hơn bày tham rồi mất mấy cái cuối.
-NGAN_SACH_DUONG = 18
+#: Bao nhiêu ĐƯỜNG được phép vẽ cho cửa sổ View.
+#:
+#: `chay_lean` đặt `maximum-chart-series` của LEAN lên 200 — mặc định 30 là con số
+#: hạng tài khoản trên đám mây QuantConnect, chạy trên máy mình thì không có hạng
+#: nào. Chừa lại cho LEAN khoảng mười đường của chính nó, và chừa thêm một quãng cho
+#: chắc: vượt hạn thì nó BỎ IM LẶNG, chỉ một dòng debug.
+#:
+#: ⚠ CON SỐ NÀY ĐI KÈM `maximum-chart-series` TRONG `chay_lean`. Nâng một bên mà quên
+#: bên kia thì hoặc phí chỗ, hoặc mất chart mà không ai báo.
+NGAN_SACH_DUONG = 180
 
 
 def _dong_bay(nc, st_bd):

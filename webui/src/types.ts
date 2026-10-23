@@ -388,9 +388,34 @@ export interface KetQuaChay {
   lenh?: DongLenh[]
   giao_dich?: DongGiaoDich[]
   nhat_ky?: string
+  /** VẾT TỪNG NHỊP — cỗ máy tự kể mỗi nhịp nó chạy tới cổng nào, cổng cho ra gì.
+   *  Rỗng với lượt chạy từ bản cũ (trước khi `sinh_ma` biết ghi vết). */
+  vet?: DongVet[]
+  /** Vết đã bị cắt vì quá trần (`chay_lean.TRAN_VET`). */
+  vet_cat?: boolean
   /** Tên mốc so sánh thật — để trống thì LEAN tự lấy SPY. */
   moc_ten?: string
   van_de?: VanDe[]
+}
+
+/** SƠ ĐỒ ĐÃ SINH RA MỘT LƯỢT CHẠY, kèm bản soát — `api.ApiKetQua.so_do_soi`. */
+export interface SoDoSoiDL {
+  steps: Step[]
+  edges: Edge[]
+  soat: KetQuaSoat
+  /** True = bản CHỤP cạnh kết quả, tức đúng cỗ máy đã sinh ra mấy cái lệnh ấy.
+   *  False = dò ngược từ tên lớp trong kho Strategy, nên có thể đã sửa sau lượt chạy. */
+  chup: boolean
+}
+
+/** MỘT NHỊP CỦA MỘT MÃ, theo lời chính cỗ máy — xem `sinh_ma._ham_vet`. */
+export interface DongVet {
+  /** `2020-12-18 16:00:00`, giờ UTC — cỗ máy tự ghi vào dòng, không lấy dấu của LEAN. */
+  luc: string
+  /** Rỗng với sơ đồ chia danh mục: lượt ấy chạy cho cả rổ, không có mã đang xét. */
+  ma: string
+  /** `[số khối, cổng có mở không]`, theo đúng thứ tự cỗ máy chạy qua chúng. */
+  cong: [string, boolean][]
 }
 
 /** Lượt backtest đang tới đâu.

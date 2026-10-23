@@ -231,8 +231,11 @@ def _ghep(trai_dl, phep, phai, **kw):
                           {"from": h["id"], "to": t["id"], "port": "out"}]
     kq = sinh_ma.sinh({"schema": 1, "type": "strategy", "name": "Do",
                        "steps": st, "edges": ed})
+    # ⚠ Cổng nay bọc trong `self._vet(...)` — xem `sinh_ma._bao_vet`. Biểu thức bên
+    # trong KHÔNG đổi một chữ, nên mấy phép dưới vẫn soát đúng thứ cần soát; chỉ cái
+    # hình đầu dòng là mới.
     dong = next((l.strip() for l in kq["ma"].splitlines()
-                 if l.strip().startswith("if (")), "")
+                 if l.strip().startswith("if self._vet(")), "")
     return loi, dong
 
 

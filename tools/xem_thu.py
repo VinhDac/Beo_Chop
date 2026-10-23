@@ -33,6 +33,7 @@ import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -54,13 +55,21 @@ KIEU = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=ut
 
 #: Vỏ `window.pywebview` giả. Khai ĐÚNG danh sách hàm mà `api.py` có, vì `cho_cau_noi`
 #: của giao diện chờ một HÀM CÓ THẬT xuất hiện (xem `webui/src/api.ts`).
+#:
+#: ⚠ GỬI KÈM THAM SỐ URL. App thật đưa mỗi CỬA SỔ một js_api khác nhau — cửa sổ chính
+#: được `Api`, cửa sổ Kết quả và cửa sổ View được `ApiKetQua`, cửa sổ Optimize được
+#: `ApiToiUu` — và ba lớp sau cố ý có BỀ MẶT HẸP (xem docstring `NenCuaSo`). Bản trước
+#: của file này phục vụ `Api` cho mọi vai, nên nó NÓI DỐI đúng kiểu bài học D-12 ở trên
+#: kể lại: một cửa bấm ngon trong trình duyệt mà app thật báo «không có hàm». Nay vai
+#: nào thì bề mặt ấy, và tham số URL là thứ quyết định vai (y `webui/src/main.tsx`).
 SHIM = """
 window.pywebview = { api: {} };
 (async () => {
-  const ten = await (await fetch('/_ten')).json();
+  const q = window.location.search || '';
+  const ten = await (await fetch('/_ten' + q)).json();
   for (const t of ten) {
     window.pywebview.api[t] = async (...a) => {
-      const r = await fetch('/_goi/' + t, {
+      const r = await fetch('/_goi/' + t + q, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(a),
       });
@@ -75,8 +84,28 @@ window.pywebview = { api: {} };
 API = api_mod.Api()
 
 
+def _api_cua_vai(truy_van):
+    """Tham số URL -> js_api của ĐÚNG cửa sổ ấy, y app thật.
+
+    Cùng bảng định tuyến với `webui/src/main.tsx`: `?kq=` và `?view=` là cửa sổ phụ bày
+    một lượt chạy, `?tu=` là cửa sổ Optimize, không tham số nào là cửa sổ chính."""
+    t = parse_qs(truy_van or "")
+    ma = (t.get("view") or t.get("kq") or [None])[0]
+    if ma:
+        # `goi_chinh` ở app thật gọi `evaluate_js` sang cửa sổ chính. Ở đây không có
+        # cửa sổ chính nào, nên in ra — «Soi lượt» bấm vào vẫn thấy nó đã gọi tới đâu.
+        return api_mod.ApiKetQua(
+            ma, lambda chu: sys.stderr.write(f"  [soi_luot] {chu}\n"))
+    me = (t.get("tu") or [None])[0]
+    if me:
+        return api_mod.ApiToiUu(me, lambda d: sys.stderr.write(f"  [bao_chinh] {d}\n"))
+    return API
+
+
 class Tay(BaseHTTPRequestHandler):
-    api = API
+    @property
+    def api(self):
+        return _api_cua_vai(self.path.partition("?")[2])
 
     def _tra(self, ma, kieu, body):
         self.send_response(ma)
@@ -114,7 +143,10 @@ class Tay(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.path.startswith("/_goi/"):
             return self._tra(404, "text/plain; charset=utf-8", b"khong co")
-        ten = self.path[len("/_goi/"):]
+        # ⚠ CẮT THAM SỐ URL RA KHỎI TÊN HÀM. Vỏ giả gửi kèm `?view=…` để biết phục vụ
+        # bề mặt của cửa sổ nào (xem `SHIM`), nên không cắt thì tên hàm thành
+        # «doc_luot_chay?view=…» và mọi cửa báo "api.py không có hàm".
+        ten = self.path[len("/_goi/"):].partition("?")[0]
         n = int(self.headers.get("Content-Length") or 0)
         args = json.loads(self.rfile.read(n) or b"[]")
         ham = getattr(self.api, ten, None)

@@ -25,6 +25,7 @@ import type {
   NumSoDo,
   OLam,
   Reply,
+  SoDoSoiDL,
   Step,
   StepKind,
   Strategy,
@@ -164,6 +165,11 @@ export const py = {
   doc_luot_chay: (id: string) => goi<KetQuaChay>('doc_luot_chay', id),
   /** Ghim một lệnh lên sơ đồ ở CỬA SỔ CHÍNH — cửa sổ View gọi cửa này. */
   soi_luot: (nhan: string) => goi<boolean>('soi_luot', nhan),
+  /** SƠ ĐỒ ĐÃ SINH RA LƯỢT NÀY, kèm bản soát — cửa sổ View vẽ popup soi bằng cái này.
+   *
+   *  `chup` False = lượt chạy từ bản cũ chưa biết chụp sơ đồ, nên đây là bản dò ngược
+   *  từ tên lớp trong kho Strategy: có thể đã sửa sau lượt chạy. Cửa sổ PHẢI nói ra. */
+  so_do_soi: () => goi<SoDoSoiDL>('so_do_soi'),
   xoa_luot_chay: (id: string) => goi<boolean>('xoa_luot_chay', id),
 
   /** DỪNG lượt đang chạy — giết thẳng tiến trình LEAN. */
