@@ -95,7 +95,6 @@ const TIENG_ANH: Record<string, string> = {
   '{0} những thứ LEAN lo hộ quanh sơ đồ — không phải một bước nào trong sơ đồ': '{0} the things LEAN handles around the diagram — not a step in the diagram',
   // ── components/HopDieuKien.tsx
   'Mã': 'Symbol',
-  'Đường': 'Line',
   'một con số': 'a plain number',
   'Bấm để chọn đại lượng': 'Click to pick a quantity',
   'chọn đại lượng…': 'pick a quantity…',
@@ -285,6 +284,34 @@ const TIENG_ANH: Record<string, string> = {
   'không thấy': 'not found',
   '— trong {0}': '— in {0}',
   // ── components/Ribbon.tsx
+  'View — tua lại lượt vừa chạy, nến từng nến: lệnh nằm ở đâu, và mấy đại lượng cỗ máy đọc lúc ấy bằng bao nhiêu':
+    'View — replay the last run bar by bar: where each order landed, and what the engine was reading at the time',
+  // ── SoDo.tsx
+  'Chưa có lượt nào để xem. Bấm Backtest trước đã.':
+    'No run to view yet. Press Backtest first.',
+  // ── view/DoThiNen.tsx
+  'chưa có nến nào': 'no bars yet',
+  // ── view/TrangView.tsx
+  'Chạy lại từ nến đầu': 'Replay from the first bar',
+  'Nhảy tới cuối lượt chạy': 'Jump to the end of the run',
+  'Về cuối': 'To the end',
+  'Về lệnh trước': 'Previous order',
+  'Lùi 1 nến': 'Back one bar',
+  'Phát': 'Play',
+  'Tới 1 nến': 'Forward one bar',
+  'Tới lệnh kế tiếp': 'Next order',
+  'Tốc độ phát': 'Replay speed',
+  'Kiểu vẽ': 'Chart style',
+  'Nến': 'Candles',
+  'Thanh': 'Bars',
+  'Đường': 'Line',
+  'Nhảy tới ngày': 'Jump to a date',
+  'View — {0}': 'View — {0}',
+  'View': 'View',
+  'Lượt này không có nến nào. Chạy lại bằng bản mới để LEAN in nến ra.':
+    'This run has no bars. Run it again on the current build so LEAN records them.',
+  'Chạy lại': 'Replay',
+  'Lệnh đã ra': 'Orders so far',
   'Thêm khối': 'Add block',
   'Khối thiết lập: mã, khoảng ngày, vốn, nhịp chạy, sàn': 'The setup block: symbols, date range, capital, schedule, brokerage',
   'Thêm một cổng rẽ nhánh — hỏi một câu về thế giới rồi rẽ': 'Add a branching gate — ask one question about the world, then branch',
@@ -309,7 +336,6 @@ const TIENG_ANH: Record<string, string> = {
   'Dừng lượt backtest đang chạy (F6)': 'Stop the running backtest (F6)',
   'Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này': 'Backtest — try it on past data with LEAN on this PC',
   'Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất': 'Optimize — sweep the knobs pinned on the diagram and find the best set of numbers',
-  'Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn.': 'Live — trading with real money. NOT HERE YET: it needs a brokerage account.',
   'Results — mở lại kết quả lượt backtest vừa rồi': 'Results — reopen the results of the last backtest',
   // ── components/RuotBatDau.tsx
   'tên ô nhớ — «đang chờ mua lại»': 'memory slot name — «waiting to buy back»',

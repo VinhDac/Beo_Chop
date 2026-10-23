@@ -1588,6 +1588,19 @@ function SoDoTrong({ manChoi = '', man = null, onRa, onChayMay }: ViecXuong) {
     dung: dungChay,
     moKetQua: () => setMoKhoLuot(true),
     coKetQua: true,   // kho lượt chạy luôn mở được, kể cả lượt của hôm trước
+    // VIEW mở thẳng LƯỢT MỚI NHẤT, không qua hộp chọn. Bấm View là vừa chạy xong và
+    // muốn xem ngay lượt ấy — bắt chọn lại từ một danh sách là thêm một bước cho
+    // thứ chỉ có một đáp án đúng. Muốn xem lượt cũ thì đã có Results.
+    moView: () => void (async () => {
+      const r = await py.ds_luot_chay()
+      const dau = r.ok ? (r.value ?? [])[0] : undefined
+      if (!dau) {
+        await bao({ loi: tr('Chưa có lượt nào để xem. Bấm Backtest trước đã.') })
+        return
+      }
+      await py.mo_cua_so_view(dau.id)
+    })(),
+    coView: true,
     dangChay,
     sinhMa: () => void (async () => {
       const r = await py.sinh_ma(ten || 'Co May', rfSangSteps(nodes),

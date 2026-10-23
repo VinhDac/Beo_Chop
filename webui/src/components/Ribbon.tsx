@@ -110,8 +110,10 @@ export interface ViecRibbon {
   dung: () => void
   /** Mở lại kết quả lượt vừa chạy. */
   moKetQua: () => void
+  moView: () => void
   /** Đã có kết quả để mở chưa. */
   coKetQua: boolean
+  coView: boolean
   /** Đang chạy backtest — khoá nút lại. */
   dangChay: boolean
   luu: () => void
@@ -228,8 +230,13 @@ export default function Ribbon({ v, soChon, trongHatNhan, coHoanTac, coLamLai }:
                  title={tr('Backtest — chạy thử trên dữ liệu quá khứ bằng LEAN trên máy này')} />}
         <Nut ten="Optimize" icon="branch" onClick={v.toiUu}
              title={tr('Optimize — quét mấy núm đã ghim trên sơ đồ, tìm bộ số tốt nhất')} />
-        <Nut ten="Live" icon="an-lenh" tat
-             title={tr('Live — giao dịch bằng tiền thật. CHƯA CÓ: cần tài khoản sàn.')} />
+        {/* CHỖ NÀY TRƯỚC LÀ «Live» — một nút chết, `tat` vĩnh viễn, với chú
+            giải «CHƯA CÓ». Giao dịch thật vẫn chưa có, nhưng một cái nút không bấm
+            được nằm giữa bốn cái sống thì mỗi lần nhìn là một lần vấp. Nay chỗ ấy
+            làm việc thật. */}
+        <Nut ten="View" icon="kieu-nen" onClick={v.moView} tat={!v.coView}
+             title={tr('View — tua lại lượt vừa chạy, nến từng nến: lệnh nằm ở đâu, '
+                       + 'và mấy đại lượng cỗ máy đọc lúc ấy bằng bao nhiêu')} />
         <Nut ten="Results" icon="kieu-line" onClick={v.moKetQua} tat={!v.coKetQua}
              title={tr('Results — mở lại kết quả lượt backtest vừa rồi')} />
       </Nhom>

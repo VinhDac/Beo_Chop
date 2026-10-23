@@ -157,6 +157,9 @@ export const py = {
   /** Mở MỘT CỬA SỔ RIÊNG cho một lượt — để xếp cạnh nhau mà so hai phiên bản. */
   mo_cua_so_ket_qua: (id: string) =>
     goi<{ id: string; moi: boolean }>('mo_cua_so_ket_qua', id),
+  /** Mở CỬA SỔ VIEW cho một lượt — tua lại nến từng nến, lệnh nằm đúng chỗ. */
+  mo_cua_so_view: (id: string) =>
+    goi<{ id: string; moi: boolean }>('mo_cua_so_view', id),
   ds_luot_chay: () => goi<TheLuotChay[]>('ds_luot_chay'),
   doc_luot_chay: (id: string) => goi<KetQuaChay>('doc_luot_chay', id),
   xoa_luot_chay: (id: string) => goi<boolean>('xoa_luot_chay', id),

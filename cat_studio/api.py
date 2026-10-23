@@ -155,6 +155,10 @@ class NenCuaSo:
     #: bấm hai lần vào cùng một lượt thì ĐƯA CỬA SỔ CŨ LÊN chứ không đẻ cái thứ hai,
     #: và phải giữ tham chiếu tới `ApiKetQua` để Python đừng thu gom mất cái js_api
     #: đang sống trong cửa sổ ấy.
+    #: Cửa sổ phụ đang mở, theo VAI (`kq`, `view`) rồi tới mã lượt.
+    #: Một sổ cho mỗi vai: mở Kết quả và View của CÙNG một lượt là hai
+    #: cửa sổ khác nhau, nên chúng không được giẫm lên chỗ của nhau.
+    _cua_so_phu: dict = {}
     _cua_so_kq: dict = {}
     #: Cùng vai với `_cua_so_kq`, cho cửa sổ Optimize.
     _cua_so_tu: dict = {}
@@ -339,6 +343,62 @@ class Api(NenCuaSo):
     """Mọi phương thức công khai ở đây thành `window.pywebview.api.<tên>` bên JS."""
 
 
+    def _mo_cua_so_phu(self, ma_id, vai, nhan):
+        """Mở một CỬA SỔ PHỤ bày một lượt backtest đã lưu. -> {id, moi}
+
+        `vai` là tham số URL (`kq` hay `view`): cùng một bundle, `main.tsx` thấy tham
+        số nào thì dựng trang ấy. `nhan` đi vào tiêu đề cửa sổ.
+
+        ⚠ MỘT BẢN CHO MỌI CỬA SỔ PHỤ. Chép hàm này ra làm hai là ba cái bẫy trong
+        docstring `NenCuaSo` sống lại ở bản chép — mà bẫy nặng nhất trong đó là ✕ của
+        cửa sổ phụ ĐÓNG CỬA SỔ CHÍNH."""
+        import webview
+        kq = chay_lean.doc_luot_chay(ma_id)
+        if not kq["ok"]:
+            return _loi(kq["loi"])
+
+        kho = self._cua_so_phu.setdefault(vai, {})
+        cu = kho.get(ma_id)
+        if cu is not None:
+            try:                      # còn sống thì nâng lên, đừng mở cái nữa
+                cu[0].restore()
+                return _ok({"id": ma_id, "moi": False})
+            except Exception:         # noqa: BLE001 — đã đóng, mở lại bình thường
+                kho.pop(ma_id, None)
+
+        # ⚠ js_api RIÊNG, không phải `self`. Xem docstring `NenCuaSo`: mở cửa sổ thứ
+        # hai với `js_api=self` là ba lỗi cùng lúc — ✕ của nó đóng CỬA SỔ CHÍNH, và
+        # `KhungTuVe` dùng chung làm hai cửa sổ ghi đè WndProc gốc của nhau, dẫn tới
+        # một cửa sổ bị dọn HAI LẦN: `del BrowserView.instances[uid]` của pywebview
+        # ném `KeyError('child_…')` ra thẳng hộp thoại .NET. Đã dính thật.
+        phu = ApiKetQua(ma_id)
+        tieu_de = f"{nhan} · {kq['ten_lop']} · {_doc_ma_luot(kq['ma_luot'])}"
+        w = webview.create_window(
+            tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?{vai}={ma_id}",
+            js_api=phu,
+            width=1180, height=800, min_size=(900, 600),
+            background_color=khung_cua_so.MAU_CUA_SO,
+            # Cùng kiểu khung với cửa sổ chính: Windows 10 không cho đổi màu thanh
+            # tiêu đề gốc, nên không bỏ khung thì cửa sổ kết quả đội một dải trắng.
+            frameless=True, easy_drag=False,
+        )
+        phu._gan_window(w)
+        kho[ma_id] = (w, phu)
+        w.events.closed += lambda: kho.pop(ma_id, None)
+        # Vá khung ở LUỒNG RIÊNG: `_va_khung` thử lại trong bốn giây, mà cú gọi này
+        # đi qua cầu nối nên chặn ở đây là đóng băng giao diện ngần ấy lâu.
+        # `phu._va_khung` chứ không `self._va_khung`: mỗi cửa sổ vá KHUNG CỦA MÌNH.
+        def va_va_bao():
+            # VÁ HỤT THÌ NÓI. Không vá được là cửa sổ ấy không kéo, không giãn, không
+            # Aero Snap — mà nhìn vào thì y hệt một cửa sổ bình thường. Im lặng ở đây
+            # là để người dùng ngồi thử đi thử lại một dải tiêu đề đã chết.
+            if not phu._va_khung(tieu_de):
+                print(f"[cửa sổ {vai}] KHÔNG vá được khung «{tieu_de}» — "
+                      f"cửa sổ này sẽ không kéo/giãn được", file=sys.stderr)
+
+        threading.Thread(target=va_va_bao, daemon=True).start()
+        return _ok({"id": ma_id, "moi": True})
+
     @_bat_loi
     def mo_cua_so_ket_qua(self, ma_id):
         """Mở MỘT CỬA SỔ RIÊNG cho một lượt backtest đã lưu.
@@ -352,51 +412,17 @@ class Api(NenCuaSo):
         này thì dựng trang Kết quả thay cho sơ đồ. Một bundle, hai vai; không có
         trang thứ hai để lệch khỏi trang thứ nhất.
         """
-        import webview
-        kq = chay_lean.doc_luot_chay(ma_id)
-        if not kq["ok"]:
-            return _loi(kq["loi"])
+        return self._mo_cua_so_phu(ma_id, "kq", tr("Kết quả"))
 
-        cu = self._cua_so_kq.get(ma_id)
-        if cu is not None:
-            try:                      # còn sống thì nâng lên, đừng mở cái nữa
-                cu[0].restore()
-                return _ok({"id": ma_id, "moi": False})
-            except Exception:         # noqa: BLE001 — đã đóng, mở lại bình thường
-                self._cua_so_kq.pop(ma_id, None)
+    @_bat_loi
+    def mo_cua_so_view(self, ma_id):
+        """Mở CỬA SỔ VIEW cho một lượt đã chạy — tua lại nến từng nến.
 
-        # ⚠ js_api RIÊNG, không phải `self`. Xem docstring `NenCuaSo`: mở cửa sổ thứ
-        # hai với `js_api=self` là ba lỗi cùng lúc — ✕ của nó đóng CỬA SỔ CHÍNH, và
-        # `KhungTuVe` dùng chung làm hai cửa sổ ghi đè WndProc gốc của nhau, dẫn tới
-        # một cửa sổ bị dọn HAI LẦN: `del BrowserView.instances[uid]` của pywebview
-        # ném `KeyError('child_…')` ra thẳng hộp thoại .NET. Đã dính thật.
-        phu = ApiKetQua(ma_id)
-        tieu_de = tr("Kết quả · {0} · {1}", kq['ten_lop'], _doc_ma_luot(kq['ma_luot']))
-        w = webview.create_window(
-            tieu_de, url=f"{self._window.get_current_url().split('?')[0]}?kq={ma_id}",
-            js_api=phu,
-            width=1180, height=800, min_size=(900, 600),
-            background_color=khung_cua_so.MAU_CUA_SO,
-            # Cùng kiểu khung với cửa sổ chính: Windows 10 không cho đổi màu thanh
-            # tiêu đề gốc, nên không bỏ khung thì cửa sổ kết quả đội một dải trắng.
-            frameless=True, easy_drag=False,
-        )
-        phu._gan_window(w)
-        self._cua_so_kq[ma_id] = (w, phu)
-        w.events.closed += lambda: self._cua_so_kq.pop(ma_id, None)
-        # Vá khung ở LUỒNG RIÊNG: `_va_khung` thử lại trong bốn giây, mà cú gọi này
-        # đi qua cầu nối nên chặn ở đây là đóng băng giao diện ngần ấy lâu.
-        # `phu._va_khung` chứ không `self._va_khung`: mỗi cửa sổ vá KHUNG CỦA MÌNH.
-        def va_va_bao():
-            # VÁ HỤT THÌ NÓI. Không vá được là cửa sổ ấy không kéo, không giãn, không
-            # Aero Snap — mà nhìn vào thì y hệt một cửa sổ bình thường. Im lặng ở đây
-            # là để người dùng ngồi thử đi thử lại một dải tiêu đề đã chết.
-            if not phu._va_khung(tieu_de):
-                print(f"[cửa sổ kết quả] KHÔNG vá được khung «{tieu_de}» — "
-                      f"cửa sổ này sẽ không kéo/giãn được", file=sys.stderr)
-
-        threading.Thread(target=va_va_bao, daemon=True).start()
-        return _ok({"id": ma_id, "moi": True})
+        Bảng Kết quả nói lượt ấy lãi bao nhiêu; nó không nói được LÚC ẤY MÁY THẤY GÌ.
+        Cửa sổ này bày nến thật, lệnh thật nằm đúng chỗ, và mấy đại lượng cỗ máy đọc
+        tại đúng nến đó — mọi con số đều do LEAN in ra lúc chạy, không cái nào app
+        tính lấy."""
+        return self._mo_cua_so_phu(ma_id, "view", tr("View"))
 
     @_bat_loi
     def hanh_trinh(self):

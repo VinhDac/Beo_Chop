@@ -3010,3 +3010,95 @@ mark.tim-chu {
 }
 
 
+
+/* ═══════════════════════════ CỬA SỔ VIEW — tua lại một lượt, nến từng nến ════
+
+   Mọi lớp ở đây mang tiền tố `view-`. `app.css` là MỘT tệp cho cả app; đặt tên trùng
+   thì luật cũ ăn vào phần tử mới và không gì báo — đã dính năm lần ở tệp CSS của
+   trang web, lần nào cũng chỉ ảnh chụp mới thấy. */
+.cua-so-view { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.view-ruot { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+.view-thanh {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  padding: 7px 12px; background: var(--chrome);
+  border-bottom: 1px solid var(--border-soft);
+}
+.view-nut, .view-toc {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 7px; cursor: pointer;
+  background: var(--raised); border: 1px solid var(--border);
+  color: var(--text); font-size: 12.5px;
+}
+.view-nut:hover, .view-toc:hover { background: var(--raised-hover); }
+.view-toc { font-family: var(--mono); padding: 5px 9px; }
+.view-toc.chon {
+  color: var(--accent); background: rgba(255, 166, 87, .12);
+  border-color: var(--accent);
+}
+.view-keo { flex: 1; min-width: 80px; accent-color: var(--accent); }
+.view-dem, .view-ngay {
+  font-family: var(--mono); font-size: 12px; color: var(--dim);
+}
+.view-ngay { color: var(--text); }
+
+.view-than { flex: 1; display: flex; min-height: 0; }
+/* Khung đồ thị phải có chiều cao THẬT: `ResizeObserver` đo nó rồi đưa số đo cho
+   `viewBox`, mà một khung cao 0 thì SVG vẽ ra đúng không gì cả. */
+.view-khung-do-thi { flex: 1; min-width: 0; min-height: 0; position: relative; }
+.view-do-thi { display: block; width: 100%; height: 100%; }
+.view-luoi { stroke: var(--border-soft); stroke-width: 1; }
+.view-nhan-truc { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
+.view-dau-phat {
+  stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; opacity: .8;
+}
+.view-lenh { opacity: .95; }
+.view-lenh.tu-choi { opacity: .4; }
+
+.view-ben {
+  flex: 0 0 272px; display: flex; flex-direction: column; min-height: 0;
+  background: var(--chrome); border-left: 1px solid var(--border-soft);
+}
+.view-bang-so { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
+.view-bang-so td {
+  padding: 5px 12px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+}
+.view-bang-so td.view-gt {
+  text-align: right; font-family: var(--mono); color: var(--text); max-width: none;
+}
+.view-nhan-lenh {
+  padding: 9px 12px 6px; font-size: 11px; color: var(--dim);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.view-ds-lenh { flex: 1; min-height: 0; overflow: auto; padding: 0 8px 8px; }
+.view-mot-lenh {
+  padding: 6px 9px; margin-bottom: 5px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+}
+.view-mot-lenh.tu-choi { opacity: .45; }
+.view-lenh-dau { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.view-lenh-dau .mua { color: var(--ok); }
+.view-lenh-dau .ban { color: var(--err); }
+.view-lenh-gia { margin-left: auto; font-family: var(--mono); color: var(--text); }
+.view-lenh-tag {
+  margin-top: 3px; font-family: var(--mono); font-size: 10.5px; color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.view-trong { padding: 28px; color: var(--dim); font-size: 13px; }
+.view-ngan { width: 1px; height: 20px; background: var(--border); margin: 0 3px; }
+.view-b {
+  min-width: 28px; padding: 5px 7px; border-radius: 6px; cursor: pointer;
+  background: var(--raised); border: 1px solid var(--border);
+  color: var(--text); font-size: 12px; line-height: 1;
+}
+.view-b.rong { min-width: 38px; }
+.view-b:hover:not(:disabled) { background: var(--raised-hover); }
+.view-b:disabled { opacity: .35; cursor: default; }
+.view-o {
+  padding: 4px 7px; border-radius: 6px; font-size: 12px;
+  background: var(--field); border: 1px solid var(--border); color: var(--text);
+}
+.view-ngay-nhay { font-family: var(--mono); }
+.view-duong { fill: none; stroke: var(--accent); stroke-width: 1.3; }

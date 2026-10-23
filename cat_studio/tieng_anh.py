@@ -20,7 +20,7 @@ TIENG_ANH = {
     "Mẻ này chạy từ bản cũ nên không lưu sơ đồ, mà kho Strategy cũng không còn cái nào sinh ra lớp \"{0}\". Chạy lại một mẻ mới thì bấm đúp sẽ mở được.": "This batch ran on an older build, so it saved no diagram, and the Strategy library no longer holds one that produces the class \"{0}\". Run a fresh batch and double-clicking will work.",
     "Sơ đồ của mẻ này không còn ô nào ghim {0} — bản đã lưu cũ hơn lúc ghim. Mở sơ đồ ra ghim lại rồi chạy một mẻ mới, mẻ ấy sẽ bấm đúp được.": "This batch's diagram no longer has a field pinned as {0} — the saved copy is older than the pin. Open the diagram, pin it again, and run a fresh batch; that one will be double-clickable.",
     "núm nào": "any knob",
-    "Kết quả · {0} · {1}": "Results · {0} · {1}",
+    "Kết quả": "Results",
     "Sơ đồ còn chỗ chưa diễn đạt hết — xem bảng Vấn đề.": "The diagram still has places it does not fully express — see the Problems panel.",
     "SPY — LEAN tự chọn": "SPY — LEAN picks it",
     "Tên mới không được để trống.": "The new name cannot be empty.",

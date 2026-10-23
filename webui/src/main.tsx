@@ -5,6 +5,7 @@ import './theme.css'
 import './app.css'
 import TroChoi from './TroChoi'
 import TrangKetQua from './TrangKetQua'
+import TrangView from './view/TrangView'
 import TrangToiUu from './TrangToiUu'
 
 /* THỨ TỰ QUAN TRỌNG: stylesheet gốc của React Flow phải nạp TRƯỚC app.css, không thì
@@ -21,9 +22,14 @@ const tham = new URLSearchParams(window.location.search)
 const kq = tham.get('kq')
 /** `?tu=<mã mẻ>` — cửa sổ OPTIMIZE. Cùng một bundle, vai thứ ba. */
 const tu = tham.get('tu')
+/** `?view=<mã lượt>` — cửa sổ VIEW: tua lại lượt ấy nến từng nến. Vai thứ tư. */
+const view = tham.get('view')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {kq ? <TrangKetQua ma={kq} /> : tu ? <TrangToiUu ma={tu} /> : <TroChoi />}
+    {kq ? <TrangKetQua ma={kq} />
+      : view ? <TrangView ma={view} />
+      : tu ? <TrangToiUu ma={tu} />
+      : <TroChoi />}
   </React.StrictMode>,
 )
