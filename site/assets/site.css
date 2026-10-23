@@ -158,59 +158,46 @@ code{font-family:var(--mono); font-size:.92em; color:var(--text)}
 .nep span{margin:0 auto; font-size:11px; color:var(--dim)}
 .giay{position:relative; flex:1; min-height:0; background:var(--bg)}
 
-/* ----------------------------------------------------- sơ đồ: khối và dây thật */
+/* ------------------------------------------- sơ đồ: MỘT BỘ KHỐI CHO CẢ TRANG
+
+   ⚠ TRƯỚC ĐÂY LÀ HAI. Mạch cuộn có `.khoi/.bade/.dinh/.than` riêng, sáu cảnh vẽ có
+   `.c-khoi/...` riêng — cùng năm khối, cùng bốn dây, hai bộ luật. Và chúng đã lệch:
+   con số trong thân khối bên này vàng (`--warn`), bên kia cam (`--accent`). Cùng một
+   thứ, hai màu, trên cùng một trang.
+   Nay chỉ còn bộ `.c-*` (khai ở khúc «sáu cảnh vẽ»). Ở đây chỉ thêm đúng cái mạch
+   cuộn cần mà cảnh vẽ không cần: RƠI DẦN THEO NHỊP. */
 .so-do .giay{
+  position:relative; overflow:hidden;
   background-image:radial-gradient(var(--border-soft) 1px,transparent 1px);
   background-size:22px 22px;
 }
-.day{position:absolute; inset:0; width:100%; height:100%}
-.day path{fill:none; stroke:var(--border); stroke-width:2.4; stroke-linecap:round}
+/* Khung 800×342 thu cho vừa tờ giấy — `--ty-mach` do `mach.js` đo và đặt.
+   ⚠ CĂN GIỮA BẰNG `translate(-50%,-50%)`, ĐỪNG NHỜ GRID. Hộp này rộng 800 trong một
+   tờ giấy có khi chỉ 325 — `place-items:center` của grid không căn giữa nổi một món
+   to hơn chỗ chứa, nó đẩy sang phải. Trên điện thoại cả sơ đồ trôi xuống góc dưới
+   bên phải, chỉ còn mỗi khối «Start» ló ra. Thu nhỏ rồi mới kéo về giữa thì cỡ bao
+   nhiêu cũng đúng. */
+.mach .c-so-do{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%) scale(var(--ty-mach,1));
+}
+
+.mach .c-khoi{
+  opacity:0; transform:translateY(10px) scale(.95);
+  transition:opacity 380ms ease,transform 380ms cubic-bezier(.2,.9,.3,1.35);
+}
+.mach .c-khoi.hien{opacity:1; transform:none}
+
 /* Dây VẼ DẦN, không hiện cả sợi.
    ⚠ `pathLength="1"` nằm trên chính thẻ `<path>` trong HTML, KHÔNG phải ở đây:
    `pathLength` là thuộc tính SVG, viết vào CSS thì trình duyệt bỏ qua lặng lẽ — và
    `stroke-dasharray:1` lúc ấy nghĩa là gạch 1 pixel trên một sợi dài trăm pixel, nên
    dây hoá thành một hàng chấm gần như vô hình. Không lỗi nào báo. */
-.day path{stroke-dasharray:1; stroke-dashoffset:1; transition:stroke-dashoffset 520ms ease}
-.day path.hien{stroke-dashoffset:0}
-
-.khoi{
-  position:absolute; width:28%; border-radius:7px; background:var(--surface);
-  border:1px solid var(--border-soft); overflow:hidden;
-  opacity:0; transform:translateY(10px) scale(.95);
-  transition:opacity 380ms ease,transform 380ms cubic-bezier(.2,.9,.3,1.35);
+.mach .c-day path{
+  stroke-dasharray:1; stroke-dashoffset:1; stroke-width:2.4; stroke-linecap:round;
+  transition:stroke-dashoffset 520ms ease;
 }
-.khoi.hien{opacity:1; transform:none}
-.khoi:before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--dim)}
-.khoi.hoi:before{background:var(--accent)}
-.khoi.lam:before{background:var(--ok)}
-.bade{
-  position:absolute; left:-9px; top:-9px; z-index:2; padding:1px 6px; border-radius:9px;
-  font-family:var(--mono); font-size:9.5px; font-weight:600; color:#1a1200;
-  background:var(--accent);
-}
-.dinh{
-  display:flex; align-items:baseline; gap:7px; padding:6px 9px 5px 11px;
-  border-bottom:1px solid var(--border-soft); background:var(--raised);
-}
-.dinh b{font-size:11.5px; color:var(--text)}
-.dinh em{margin-left:auto; font-style:normal; font-size:8px; letter-spacing:.09em; color:var(--dim)}
-.than{padding:7px 9px 8px 11px; font-family:var(--mono); font-size:10px; line-height:1.75; color:var(--muted)}
-/* BA VAI, BA MÀU — y như app tô chữ trên thẻ khối. */
-.than .ma{color:var(--text); font-weight:600; letter-spacing:.03em}
-.than .so{color:var(--warn)}
-.than .dl{color:var(--lam)}
-.than .phep{color:var(--dim)}
-
-/* Chỗ đứng của năm khối trên tờ giấy 560×300 của sơ đồ.
-   ⚠ CỘNG LẠI PHẢI VỪA BỀ NGANG. Bản đầu để khối rộng 35,7% đứng ở 72,1% — cộng ra
-   107,8%, nên khối cuối thò ra ngoài và bị `overflow:hidden` của khung cắt mất chữ
-   «SINGLE». Trên màn rộng chỉ cụt một mẩu nên nhìn lướt không ra; ở màn hẹp thì mất
-   hẳn nửa khối. Nay 70% + 28% = 98%, còn 2% chừa mép. */
-.khoi.bat-dau{left:2%;  top:34%}
-.khoi.hoi.a  {left:36%; top:8%}
-.khoi.lam.a  {left:70%; top:8%}
-.khoi.hoi.b  {left:36%; top:60%}
-.khoi.lam.b  {left:70%; top:60%}
+.mach .c-day path.hien{stroke-dashoffset:0}
 
 /* -------------------------------------------------- nhịp cuối: kết quả THẬT */
 .ket-qua{opacity:0; pointer-events:none; transition:opacity 520ms ease}
@@ -474,8 +461,8 @@ code{font-family:var(--mono); font-size:.92em; color:var(--text)}
 .c-mon.c-sang i{background:var(--accent); opacity:.85}
 .c-mon.c-tat{opacity:.35}
 .c-vach-doc{width:1px; height:34px; background:var(--border); margin:0 16px 0 10px}
-.c-mon.c-nhan{position:relative}
-.c-mon.c-nhan:after{
+.c-mon-nhan{position:relative}
+.c-mon-nhan:after{
   content:""; position:absolute; inset:-5px -3px; border-radius:7px;
   border:1.5px solid var(--accent);
 }
@@ -518,9 +505,9 @@ code{font-family:var(--mono); font-size:.92em; color:var(--text)}
 .c-khoi .so{color:var(--accent)}
 .c-khoi .dl{color:var(--lam)}
 .c-khoi .phep{color:var(--dim)}
-.c-khoi.c-bat-dau{border-left:2px solid var(--accent)}
-.c-khoi.c-hoi{border-left:2px solid var(--lam)}
-.c-khoi.c-lam{border-left:2px solid var(--ok)}
+.c-khoi-bd{border-left:2px solid var(--accent)}
+.c-khoi-hoi{border-left:2px solid var(--lam)}
+.c-khoi-lam{border-left:2px solid var(--ok)}
 .c-chan-xuong{
   position:absolute; left:0; right:0; bottom:0; height:30px; padding:0 14px;
   display:flex; align-items:center; background:var(--chrome);
@@ -611,19 +598,40 @@ code{font-family:var(--mono); font-size:.92em; color:var(--text)}
 .c-kho-chu{margin:11px 0 0; text-align:center; font-size:13px; color:var(--dim)}
 
 /* ───────────────────────────────────────────────────────── 26 màn, 10 hồi */
-.bang-man{display:grid; gap:2px; background:var(--border-soft);
-  border:1px solid var(--border-soft); border-radius:var(--round); overflow:hidden}
-.hoi-man{
-  display:grid; grid-template-columns:230px 1fr; gap:22px; align-items:center;
-  padding:15px 18px; background:var(--bg);
+/* MỘT CON ĐƯỜNG, không phải một cái bảng. Sống dọc chạy suốt mười hồi, mỗi hồi
+   một mắt trên sống; màu sống nhạt dần để thấy chỗ bắt đầu và chỗ còn xa. */
+.bang-man{position:relative; display:grid; gap:0}
+.bang-man:before{                       /* sống dọc */
+  content:""; position:absolute; left:7px; top:26px; bottom:26px; width:2px;
+  background:linear-gradient(var(--accent),var(--border) 62%,var(--border-soft));
 }
+.hoi-man{
+  position:relative; display:grid; grid-template-columns:236px 1fr; gap:22px;
+  align-items:center; padding:16px 0 16px 34px;
+}
+.hoi-man + .hoi-man{border-top:1px solid var(--border-soft)}
+.hoi-man:before{                        /* mắt của hồi, nằm trên sống */
+  content:""; position:absolute; left:2px; top:50%; translate:0 -50%;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--bg); border:2px solid var(--border);
+}
+.hoi-man:first-child:before{border-color:var(--accent); background:var(--accent)}
 .ten-hoi h3{font-size:16px}
 .ten-hoi p{margin:3px 0 0; font-size:13px; color:var(--dim); line-height:1.4}
-.day-man{display:flex; flex-wrap:wrap; gap:7px; list-style:none; margin:0; padding:0}
+.day-man{display:flex; flex-wrap:wrap; gap:9px 14px; list-style:none; margin:0; padding:0}
 .o-man{
-  display:flex; align-items:center; gap:8px; min-width:0;
+  position:relative; display:flex; align-items:center; gap:8px; min-width:0;
   padding:6px 11px 6px 8px; border-radius:7px;
   background:var(--surface); border:1px solid var(--border-soft);
+}
+/* nhánh ngang nối các màn trong cùng một hồi */
+.o-man + .o-man:before{
+  content:""; position:absolute; left:-15px; top:50%; width:14px; height:1px;
+  background:var(--border);
+}
+.o-man:first-child:before{
+  content:""; position:absolute; left:-15px; top:50%; width:14px; height:1px;
+  background:var(--border);
 }
 .o-man b{
   font-family:var(--mono); font-size:11.5px; font-weight:700;
@@ -729,7 +737,7 @@ section.lang{background:var(--chrome)}
      của .giay làm cả bảng xẹp xuống còn mỗi thanh tiêu đề. */
   .giay{flex:0 0 auto}
   .so-do .giay{height:300px}
-  .khoi,.day path{opacity:1; transform:none; stroke-dashoffset:0; transition:none}
+  .mach .c-khoi,.mach .c-day path{opacity:1; transform:none; stroke-dashoffset:0; transition:none}
   .ket-qua{opacity:1}
   .ket-qua .giay{height:270px}
   .mach[data-nhip="5"] .so-do{opacity:1}
@@ -741,14 +749,8 @@ section.lang{background:var(--chrome)}
 @media (max-width:640px){
   .top nav a:not(.btn){display:none}
   section{padding:58px 0}
-  /* Khối co theo bề ngang bảng, nhưng CHỮ TRONG KHỐI thì không — nên ở màn hẹp nó
-     tràn ra khỏi hộp của chính nó. Thu chữ lại và bỏ cái nhãn «SINGLE» đi: nó là thứ
-     ít tin nhất trên khối, mà lại chiếm chỗ nhất. */
+  /* Không còn sáu dòng thu khối gõ tay ở đây nữa: khung 800×342 thu NGUYÊN KHỐI
+     theo `--ty-mach`, nên hộp và chữ co cùng một nhịp. Trước đây hộp co theo phần
+     trăm còn chữ thì không, nên chữ tràn ra khỏi hộp của chính nó ở màn hẹp. */
   .so-do .giay{height:240px}
-  .khoi{width:30%}
-  .dinh{padding:5px 6px 4px 8px}
-  .dinh b{font-size:9px}
-  .dinh em{display:none}
-  .than{padding:5px 6px 6px 8px; font-size:8px; line-height:1.65}
-  .bade{font-size:8px; left:-7px; top:-7px}
 }

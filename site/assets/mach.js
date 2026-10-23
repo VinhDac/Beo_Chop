@@ -203,8 +203,21 @@
     if (!w) return;
     o_anh.style.setProperty('--ty', String(Math.max(w / KHO_W, THU_IT_NHAT)));
   }
-  addEventListener('resize', doLai);
+  /* Sơ đồ trong MẠCH CUỘN cũng là khung 800×342 ấy — thu cho vừa tờ giấy, vừa cả
+     bề ngang lẫn bề cao, nên không mép nào thò ra. */
+  const giay_mach = document.querySelector('#mach .so-do .giay');
+  const so_do_mach = giay_mach && giay_mach.querySelector('.c-so-do');
+  function doLaiMach() {
+    if (!so_do_mach) return;
+    const w = giay_mach.clientWidth, h = giay_mach.clientHeight;
+    if (!w || !h) return;
+    so_do_mach.style.setProperty('--ty-mach',
+      String(Math.min(w / KHO_W, h / 342)));
+  }
+  addEventListener('resize', () => { doLai(); doLaiMach(); });
   doLai();
+  doLaiMach();
+  requestAnimationFrame(doLaiMach);
   /* Khung chỉ có bề ngang sau khi trang dựng xong; một nhịp vẽ nữa cho chắc. */
   requestAnimationFrame(doLai);
 

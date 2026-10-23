@@ -30,6 +30,15 @@ GOC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRANG = os.path.join(GOC, "site")
 HTML = io.open(os.path.join(TRANG, "index.html"), encoding="utf-8").read()
 CSS = io.open(os.path.join(TRANG, "assets", "site.css"), encoding="utf-8").read()
+
+# ⚠ BỎ LỜI CHÚ THÍCH TRƯỚC ĐÃ. Bài này dò chữ trong tệp, nên một dòng chú viết
+# «trước đây là `.khoi/.bade/.dinh/.than`» bị nó đọc thành bốn luật CSS có thật — và
+# nó kêu oan vào đúng lời giải thích vì sao mấy luật ấy đã bị xoá. Dự án này đã dính
+# đúng kiểu ấy ba lần ở chỗ khác; đừng để lần thứ tư.
+_KHONG_CHU = re.compile(r'/\*.*?\*/', re.S)
+_KHONG_CHU_HTML = re.compile(r'<!--.*?-->', re.S)
+CSS_SACH = _KHONG_CHU.sub(" ", CSS)
+HTML_SACH = _KHONG_CHU_HTML.sub(" ", HTML)
 JS = io.open(os.path.join(TRANG, "assets", "mach.js"), encoding="utf-8").read()
 
 dung = sai = 0
@@ -130,12 +139,12 @@ kiem(f"{dem} ảnh", not lech, "— " + "; ".join(lech) if lech else "")
 #   Lớp thừa trong CSS chính là dấu một lần đổi tên làm nửa chừng.
 print("\n▸ Mỗi lớp trong HTML có luật trong CSS")
 trong_html = set()
-for m in re.finditer(r'class="([^"]+)"', HTML):
+for m in re.finditer(r'class="([^"]+)"', HTML_SACH):
     trong_html |= set(m.group(1).split())
 # Lớp do JS gắn vào lúc chạy, không có trong HTML tĩnh.
 JS_GAN = {"hien"}
 khong_luat = sorted(c for c in trong_html
-                    if not re.search(r'\.' + re.escape(c) + r'(?![\w-])', CSS))
+                    if not re.search(r'\.' + re.escape(c) + r'(?![\w-])', CSS_SACH))
 kiem(f"{len(trong_html)} lớp", not khong_luat, f"— không luật: {khong_luat}"
      if khong_luat else "")
 
@@ -186,8 +195,32 @@ hai_nghia = sorted(f"{t} ({'/'.join(sorted(v))})"
                    for t, v in tren_the.items() if len(v) > 1)
 kiem(f"{len(tren_the)} lớp", not hai_nghia, f"— {hai_nghia}" if hai_nghia else "")
 
+# ⚠ VÀ CẢ TIỀN TỐ LẪN «MỘT LOẠI THẺ» VẪN CHƯA ĐỦ. Hai lớp nữa đụng nhau ngay trong
+# vùng `c-`, mà cả hai bên đều là <div> nên phép trên cho qua:
+#   `.c-hoi`  vừa là hàng tiêu đề hồi ở màn Hành trình (`display:flex`), vừa là biến
+#             thể «khối Xác nhận» — năm cái khối hoá thành flex hàng ngang, thân khối
+#             nhảy sang nằm cạnh cái đỉnh và chữ `RSI(14) < 30` thò ra ngoài hộp;
+#   `.c-nhan` vừa là nhãn nhỏ trong hộp («ARENA»), vừa là vòng sáng quanh nút Backtest.
+# Dấu hiệu chung: một lớp VỪA đứng một mình, VỪA đi kèm sau một lớp khác — tức là nó
+# vừa là TÊN của một thứ, vừa là BIẾN THỂ của thứ khác. Biến thể thì phải mang tên
+# cái nó sửa (`c-khoi-hoi`, `c-mon-nhan`).
+print("\n▸ Không lớp nào vừa là tên, vừa là biến thể")
+mot_minh, di_kem = set(), {}
+for v in vung:
+    for m in re.finditer(r'class="([^"]+)"', v):
+        t = m.group(1).split()
+        if len(t) == 1:
+            mot_minh.add(t[0])
+        else:
+            for x in t[1:]:
+                di_kem.setdefault(x, set()).add(t[0])
+hai_viec = sorted(f"{c} (cũng là biến thể của {sorted(di_kem[c])})"
+                  for c in mot_minh & set(di_kem))
+kiem(f"{len(mot_minh)} lớp đứng một mình · {len(di_kem)} biến thể", not hai_viec,
+     f"— {hai_viec}" if hai_viec else "")
+
 print("\n▸ Mỗi lớp trong CSS được HTML dùng tới")
-trong_css = set(re.findall(r'(?<![\w-])\.([a-z][\w-]*)', CSS))
+trong_css = set(re.findall(r'(?<![\w-])\.([a-z][\w-]*)', CSS_SACH))
 thua = sorted(trong_css - trong_html - JS_GAN)
 kiem(f"{len(trong_css)} lớp", not thua,
      f"— CSS tạo luật mà HTML không dùng: {thua}" if thua else "")
