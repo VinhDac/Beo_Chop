@@ -165,6 +165,11 @@ kiem(f"{len(trong_html)} lớp", not khong_luat, f"— không luật: {khong_lua
 print("\n▸ Lớp trong cảnh vẽ đều mang tiền tố `c-`")
 DUNG_CHUNG = {"ma", "so", "dl", "phep"}
 vung = (re.findall(r'<div class="c-canh".*?\n        </div>', HTML, re.S)
+        # ⚠ HAI CỬA SỔ CỦA KHÚC «BÀN LÀM VIỆC» CŨNG LÀ CẢNH VẼ. Thêm vào đây chứ
+        # không để ngoài: chúng mang đúng cái rủi ro mấy phép dưới sinh ra để gác —
+        # vẽ bằng HTML, tên lớp trộn chung một tệp CSS với cả trang. Bỏ sót chúng thì
+        # bài này xanh trên một nửa số cảnh, mà nửa kia không ai gác.
+        + re.findall(r'<div class="c-cua-so".*?\n        </div>', HTML, re.S)
         + re.findall(r'<div class="c-kho">.*?\n  </div>', HTML, re.S))
 trong_canh = set()
 for v in vung:
@@ -231,6 +236,15 @@ kiem(f"{len(trong_css)} lớp", not thua,
 print("\n▸ Mỗi `querySelector` trong JS bắt được thứ gì đó trong HTML")
 hut = []
 bo_chon = set(re.findall(r"querySelector(?:All)?\('([^']+)'\)", JS))
+# ⚠ VÀ MẤY BỘ CHỌN ĐI QUA MỘT HÀM PHỤ. Cả tệp JS có ba chỗ viết
+# `dat('[data-kq-may]', …)` rồi mới `querySelector(sel)` bên trong — bản trước của
+# phép này chỉ nhìn thấy chuỗi nằm NGAY trong ngoặc `querySelector(...)`, nên mấy cái
+# đi qua hàm phụ thì không ai gác: đổi tên một mốc `data-` mà quên sửa JS là trang
+# vẫn xanh, chỉ có đường vốn không bao giờ vẽ ra.
+#   ÉP VỠ MỚI BẮT ĐƯỢC: đổi `[data-kq-may]` thành một tên không có thật, bài vẫn xanh.
+# Nên quét MỌI chuỗi nháy đơn mở đầu bằng `#`, `.` hay `[` — đó là hình của một bộ
+# chọn, và trong tệp này không có chuỗi nào khác mang hình ấy.
+bo_chon |= set(re.findall(r"'([#.\[][^']*)'", JS))
 for bc in bo_chon:
     # ⚠ SOI MỌI TỪ, không phải mỗi từ cuối. `'.sau-ray button'` có từ cuối là
     # `button` — một tên thẻ, lúc nào chẳng có — nên bản đầu đổi `.sau-ray` thành
@@ -252,11 +266,16 @@ kiem(f"{len(bo_chon)} bộ chọn", not hut, f"— không bắt được: {hut}"
 # số ấy phải là ba con số app đếm được, không phải ba con số gõ tay cách chỗ sinh ra
 # chúng bốn thư mục. Thêm một màn vào `hanh_trinh.MAN` là trang nói dối ngay.
 print("\n▸ Con số trên trang = con số app đếm được")
-from cat_studio import hanh_trinh, hoi, ngon_ngu  # noqa: E402
+from cat_studio import hanh_trinh, hoi, ngon_ngu, toi_uu  # noqa: E402
 ngon_ngu.dat("en")
 d = hanh_trinh.tu_dien()
 so_man, so_sao = len(d["man"]), d["sao_toi_da"]
 so_dai_luong = len(hoi.tu_dien()["kho"])
+# ⚠ «27 metrics» trong khúc Optimize cũng là một con số gõ tay cách `toi_uu.CHI_TIEU`
+# bốn thư mục — đúng loại đã bắt phải canh ba con số kia. Thêm một chỉ tiêu vào bảng
+# ấy là trang nói dối, mà không gì kêu. ÉP VỠ MỚI THẤY: đổi trang thành «99 metrics»,
+# bản trước của bài này vẫn xanh.
+so_chi_tieu = len(toi_uu.CHI_TIEU)
 
 # ⚠ ĐÒI MỌI CHỖ, không phải «có một chỗ đúng». Bản đầu hỏi «chuỗi "26 levels" có
 # trong trang không» — trang nói «26 levels» ở khúc này và «30 levels» ở khúc kia thì
@@ -268,7 +287,7 @@ def moi_con_so(danh_tu, that):
 
 
 for danh_tu, that in (("levels", so_man), ("stars", so_sao),
-                      ("quantities", so_dai_luong)):
+                      ("quantities", so_dai_luong), ("metrics", so_chi_tieu)):
     co, lech = moi_con_so(danh_tu, that)
     kiem(f"«{danh_tu}» — app đếm {that}", bool(co) and not lech,
          f"— trang nói {co}" if lech else (f"— {len(co)} chỗ, đều đúng" if co

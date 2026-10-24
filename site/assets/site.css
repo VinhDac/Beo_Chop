@@ -708,6 +708,129 @@ section.lang{background:var(--chrome)}
    ⚠ VÀ CHÍNH CỬA SỔ TÔI SOI BẰNG ĐANG BẬT «giảm chuyển động» — nên mọi ảnh chụp đầu
    tiên đều là nhánh này mà tôi tưởng là nhánh thường. Lần sau phải hỏi trình duyệt
    trước khi tin cái mình nhìn thấy. */
+
+/* ══════════════════════════════════ BÀN LÀM VIỆC — CHẠY MỘT LƯỢT, QUÉT CHÍN LƯỢT
+
+   Hai cửa sổ thật của app, VẼ chứ không chụp — cùng luật với sáu cảnh ở khúc trên:
+   khung cố định 800×430 rồi `scale` cho vừa chỗ, nên chữ vẫn là chữ.
+
+   ⚠ TIỀN TỐ `c-` CHO MỌI LỚP BÊN TRONG KHUNG VẼ. `tests/test_trang.py` gác đúng
+   chuyện ấy, và nó gác vì cùng một cái lỗi đã xảy ra năm lần: một tên lớp trùng thì
+   không công cụ nào kêu, chỉ bức tranh hỏng.
+   Dùng chung đúng mấy lớp mang NGHĨA sẵn có: `.so` (con số), `.c-tot`/`.c-xau` (số
+   đẹp / số xấu), `.c-chon` (cái đang chọn). Chúng vốn đã có đúng một nghĩa ấy. */
+#cong-cu{padding:64px 0}
+.mot-cu{
+  display:grid; gap:26px 34px; align-items:start;
+  grid-template-columns:minmax(0,320px) minmax(0,1fr);
+}
+.mot-cu + .mot-cu{margin-top:54px; padding-top:54px; border-top:1px solid var(--border-soft)}
+/* `min-width:0` là chỗ dễ sót nhất của một ô lưới: thiếu nó thì ô không chịu co
+   dưới bề ngang nội dung, và khung vẽ 800px đẩy cả hàng tràn ra ngoài trang. */
+.cu-cua{min-width:0}
+.cu-chu h3{font-size:22px; margin-bottom:9px}
+.cu-chu p{font-size:15.5px}
+.cu-diem{list-style:none; margin:16px 0 0; padding:0; display:grid; gap:13px}
+.cu-diem li{
+  position:relative; padding-left:17px; font-size:14.5px; line-height:1.55;
+}
+.cu-diem li::before{
+  content:""; position:absolute; left:0; top:9px;
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+}
+.cu-ghi{margin:13px 0 0; font-size:13.5px; color:var(--dim)}
+.cu-ghi b{color:var(--muted)}
+
+/* Chỗ đứng của khung vẽ. Cùng lối với `.phim .anh`: cao theo tỉ lệ thu, và dưới một
+   mức thì thôi thu — cho cuộn ngang, vì chữ 10px thu nữa là nhìn chứ không đọc. */
+.cu-san{
+  position:relative; background:var(--bg);
+  height:calc(452px * var(--ty-cu,1));
+  overflow-x:auto; overflow-y:hidden; scrollbar-width:thin;
+}
+.c-cua-so{
+  position:absolute; top:0; left:0; width:800px; height:452px;
+  transform-origin:top left; transform:scale(var(--ty-cu,1));
+  background:var(--bg); overflow:hidden;
+  font-size:12.5px; line-height:1.45; color:var(--muted);
+}
+.c-cua-so b,.c-cua-so strong{color:var(--text)}
+
+/* ───────────────────────────────────────────── ① CỬA SỔ KẾT QUẢ */
+.c-kq-tab{
+  display:flex; gap:3px; padding:7px 12px 0;
+  border-bottom:1px solid var(--border-soft); background:var(--chrome);
+}
+.c-kq-nut{
+  padding:6px 13px 7px; border-radius:7px 7px 0 0; color:var(--dim);
+  border:1px solid transparent; border-bottom:0;
+}
+.c-kq-nut u{font-family:var(--mono); text-decoration:none; color:var(--dim); margin-left:5px}
+.c-kq-nut.c-chon{color:var(--text); background:var(--bg); border-color:var(--border-soft)}
+
+/* TÁM Ô SỐ — LEAN dựng sẵn đúng tám mục này, app không chọn hộ. */
+.c-kq-luoi{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border-soft)}
+.c-kq-o{padding:9px 12px 10px; background:var(--chrome)}
+.c-kq-o u{display:block; text-decoration:none; font-size:10.5px; color:var(--dim); letter-spacing:.04em}
+.c-kq-o b{display:block; margin-top:2px; font-family:var(--mono); font-size:15px}
+
+.c-kq-do{position:relative; height:132px; margin:11px 20px 0}
+.c-kq-ve{width:100%; height:132px}
+.c-kq-khong{stroke:var(--border); stroke-width:1; stroke-dasharray:3 4}
+.c-kq-may{fill:none; stroke:var(--accent); stroke-width:1.8}
+.c-kq-boss{fill:none; stroke:var(--dim); stroke-width:1.4; stroke-dasharray:4 4}
+.c-kq-nhan{position:absolute; top:2px; left:0; display:flex; align-items:center; gap:6px; font-size:11px}
+.c-kq-nhan.c-kq-mo{left:160px; color:var(--dim)}
+.c-kq-nhan b{font-family:var(--mono)}
+.c-kq-cham{width:8px; height:2px; background:var(--accent)}
+.c-kq-mo .c-kq-cham{background:var(--dim)}
+
+.c-kq-dau{margin:14px 20px 6px; font-size:10.5px; color:var(--dim); letter-spacing:.05em}
+.c-kq-bang{width:calc(100% - 40px); margin:0 20px; border-collapse:collapse; font-size:12px}
+.c-kq-bang td{padding:4.5px 10px 4.5px 0; border-top:1px solid var(--border-soft); white-space:nowrap}
+.c-kq-gia{font-family:var(--mono); color:var(--text)}
+.c-kq-mua{color:var(--ok)}
+.c-kq-ban{color:var(--err)}
+.c-kq-tag{font-family:var(--mono); font-size:10.5px; color:var(--dim); width:100%}
+
+/* ───────────────────────────────────────────── ② CỬA SỔ OPTIMIZE */
+.c-op-tren{display:grid; grid-template-columns:260px minmax(0,1fr); gap:1px; background:var(--border-soft)}
+.c-op-trai{padding:12px 16px 14px; background:var(--chrome)}
+.c-op-dau{margin:0 0 7px; font-size:10.5px; color:var(--dim); letter-spacing:.05em}
+.c-op-num{
+  display:flex; justify-content:space-between; gap:10px;
+  padding:6px 9px; margin-bottom:6px; border-radius:6px;
+  background:var(--field); border:1px solid var(--border-soft); font-size:11.5px;
+}
+.c-op-num span{font-family:var(--mono); color:var(--muted)}
+.c-op-muc{margin-bottom:5px; font-size:11.5px}
+.c-op-chay{margin-top:10px; font-size:11.5px; color:var(--accent)}
+.c-op-nhiet{padding:12px 16px 14px; background:var(--chrome)}
+
+/* BẢNG NHIỆT — chín ô, chín con số LEAN trả về. Độ đậm của ô là `--d`, đặt thẳng
+   trong HTML vì nó LÀ dữ liệu: đậm nhất là |Sharpe| lớn nhất của chính mẻ ấy. */
+.c-op-luoi{display:grid; grid-template-columns:52px repeat(3,1fr); gap:4px}
+.c-op-goc{display:block}
+.c-op-truc{display:flex; align-items:center; font-size:10.5px; color:var(--dim)}
+.c-op-o{
+  display:grid; place-items:center; height:34px; border-radius:5px;
+  font-family:var(--mono); font-size:12.5px; color:var(--text);
+}
+.c-op-duong{background:rgb(34 171 148 / var(--d,.3))}
+.c-op-am{background:rgb(242 54 69 / var(--d,.3))}
+
+.c-op-bang{width:calc(100% - 40px); margin:10px 20px 0; border-collapse:collapse; font-size:12px}
+.c-op-bang td{padding:2.5px 10px 2.5px 0; border-top:1px solid var(--border-soft); white-space:nowrap}
+.c-op-hang-dau td{border-top:0; font-size:10.5px; color:var(--dim); letter-spacing:.04em}
+.c-op-so{font-family:var(--mono); color:var(--text)}
+/* Hàng tốt nhất — và lời chú ngay dưới khung nói thẳng rằng đó cũng là hàng dễ ăn may
+   nhất. Tô sáng mà không nói thì cả bảng thành một lời mời chọn bừa. */
+.c-op-tot td{background:rgba(255,166,87,.09); border-top-color:var(--accent)}
+
+@media (max-width:900px){
+  .mot-cu{grid-template-columns:minmax(0,1fr)}
+}
+
 @media (max-width:860px){
   .sau-ray{grid-template-columns:repeat(3,1fr)}
   .sau-ray button span{display:none}

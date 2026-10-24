@@ -85,6 +85,14 @@ Everything on the page is real and must stay that way:
   width, and able to point at the button you press. Below ~584 px the stage stops
   shrinking and scrolls sideways instead, because 5 px type is not a screenshot of
   anything.
+- **The two workbench windows** — Results and Optimize — are drawn the same way, on
+  a fixed 800×452 stage. The Results window shows the same XAUUSD run as everything
+  else on the page, so the two cannot drift apart: its curve is read from
+  `luot.js` at load time, not typed in. The Optimize window is the `DoSMA` batch run
+  on 2026-10-18: SPY, two knobs (SMA period 50→150 step 50, hold 5→15 step 5),
+  grid search on Sharpe Ratio, nine runs. The nine heat-map cells and all nine table
+  rows are those nine results. One came out positive, and the page says in as many
+  words that this is also the one most likely to be luck.
 - **The 26 levels** are generated from `hanh_trinh.tu_dien()`, not typed in. So are
   the three numbers the page claims (26 levels, 66 stars, 164 quantities), and the
   money, dates and percentages in the drawn screens, which come from `luot.js`.

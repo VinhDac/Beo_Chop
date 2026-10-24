@@ -267,3 +267,64 @@
 
   di(1);
 })();
+
+
+/* ══════════════════════════ BÀN LÀM VIỆC — hai cửa sổ vẽ, và một đường vốn THẬT
+
+   ⚠ CÙNG MỘT LƯỢT CHẠY VỚI KHÚC ĐẦU TRANG. Đường trong cửa sổ Kết quả đọc đúng
+   `window.LUOT` mà mạch cuộn đọc, nên hai chỗ không thể nói hai con số — mà «hai chỗ
+   trên cùng một trang nói hai con số» đúng là thứ sẽ xảy ra nếu gõ tay một bên.
+
+   ⚠ VẼ CẢ LƯỢT, không cắt 90% như cảnh ⑤. Cảnh ấy là lúc máy ĐANG chạy nên nó dừng
+   giữa chừng; cửa sổ Kết quả mở ra khi lượt đã xong, nên đường phải đi hết. */
+(function () {
+  const khuc = document.querySelector('#cong-cu');
+  if (!khuc) return;
+
+  /* ---------------------------------------------- thu khung vẽ cho vừa chỗ */
+  /* Khung dựng 800 rộng rồi `scale`, y hệt sáu cảnh ở khúc trên. Dưới mức này thì
+     thôi thu, cho cuộn ngang: chữ nhỏ nhất trong khung là 10,5px, thu quá 0,72 là
+     dưới 8px — nhìn chứ không đọc được. */
+  const KHO_W = 800;
+  const THU_IT_NHAT = 0.72;
+  const san = [...khuc.querySelectorAll('.cu-san')];
+  function doLaiCu() {
+    san.forEach((o) => {
+      const w = o.clientWidth;
+      if (!w) return;
+      o.style.setProperty('--ty-cu', String(Math.max(w / KHO_W, THU_IT_NHAT)));
+    });
+  }
+  addEventListener('resize', doLaiCu);
+  doLaiCu();
+  /* Khung chỉ có bề ngang sau khi trang dựng xong — một nhịp vẽ nữa cho chắc. */
+  requestAnimationFrame(doLaiCu);
+
+  /* ------------------------------------------------- đường vốn trong cửa sổ */
+  const L = window.LUOT;
+  if (!L || !Array.isArray(L.may) || !Array.isArray(L.boss)) return;
+
+  const W = 760, H = 132, LE = 12;
+  const moi = [...L.may, ...L.boss].map((p) => p[1]);
+  const lo = Math.min(...moi, 0), hi = Math.max(...moi, 0);
+  const khoang = hi - lo || 1;
+  const y = (v) => LE + ((hi - v) / khoang) * (H - LE * 2);
+  const duong = (ds) => ds
+    .map((p, i) => `${i ? 'L' : 'M'}${((i / (ds.length - 1)) * W).toFixed(1)} `
+                 + `${y(p[1]).toFixed(1)}`)
+    .join('');
+
+  const khong = khuc.querySelector('[data-kq-khong]');
+  if (khong) { khong.setAttribute('y1', y(0)); khong.setAttribute('y2', y(0)); }
+  const dat = (sel, ds) => {
+    const el = khuc.querySelector(sel);
+    if (el) el.setAttribute('d', duong(ds));
+  };
+  dat('[data-kq-boss]', L.boss);
+  dat('[data-kq-may]', L.may);
+
+  const pt = (v) => `${v > 0 ? '+' : '−'}${Math.abs(Number(v)).toFixed(2)}%`;
+  const chu = (sel, v) => { const el = khuc.querySelector(sel); if (el) el.textContent = v; };
+  if (typeof L.may_pt === 'number') chu('[data-kq-may-pt]', pt(L.may_pt));
+  if (typeof L.boss_pt === 'number') chu('[data-kq-boss-pt]', pt(L.boss_pt));
+})();

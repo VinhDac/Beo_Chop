@@ -15,6 +15,7 @@
   <nav>
     <a href="#mach">Watch one get built</a>
     <a href="#sau-man">The app</a>
+    <a href="#cong-cu">The workbench</a>
     <a href="#man">The levels</a>
     <a class="btn" href="https://github.com/VinhDac/Cat-Studio/releases/latest/download/Cat_Studio-0.2-windows-x64-setup.exe">Download</a>
   </nav>
@@ -496,6 +497,213 @@
 </div></section>
 
 
+<!-- ═══════════════════════════════════════════════ BÀN LÀM VIỆC: CHẠY VÀ QUÉT
+     ⚠ KHÚC NÀY THIẾU HẲN CHO TỚI HÔM NAY, và nó là nửa NGHIÊM TÚC của app: trang cũ
+     kể hết về 26 màn chơi rồi nhảy thẳng sang «thứ bạn giữ lại», nên người lạ đọc
+     xong tưởng đây là một trò chơi có kèm chút backtest. Hai cửa sổ dưới đây mới là
+     chỗ người ta ngồi lâu nhất.
+
+     ⚠ ĐỨNG TRƯỚC KHÚC 26 MÀN, không đứng sau. Để sau thì ấn tượng «trò chơi» kịp
+     đóng lại trước khi nó được chữa.
+
+     ⚠ MỌI CON SỐ Ở ĐÂY LÀ SỐ THẬT, hai lượt chạy có thật trên máy này:
+       · cửa sổ Kết quả  — XAUUSD 2012→2014, cùng lượt với đường vốn ở khúc đầu
+         trang (`luot.js`), nên hai chỗ không thể nói hai con số;
+       · cửa sổ Optimize — mẻ `DoSMA` 18/10/2026: hai núm, lưới 3×3, chín lượt,
+         mục tiêu Sharpe Ratio. Chín ô nhiệt dưới đây là chín con số LEAN trả về.
+     Vẽ đại một bảng nhiệt xanh mướt thì dễ, và phá đúng lời hứa cả trang dựng quanh. -->
+<section id="cong-cu"><div class="wrap">
+  <div class="dau">
+    <span class="moc">The workbench</span>
+    <h2>One run tells you what happened.<br>Nine tell you whether it was luck.</h2>
+    <p>
+      The levels are the teacher. These two windows are the workbench, and they open
+      on any diagram you draw — level or not. Both are <b>drawn in the page</b> like
+      the screens above; the numbers in them are two real LEAN runs.
+    </p>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── ① BACKTEST -->
+  <div class="mot-cu">
+    <div class="cu-chu">
+      <h3>Backtest</h3>
+      <p>Press it once. What comes back is LEAN's own result file — not our summary
+        of it.</p>
+      <ul class="cu-diem">
+        <li><b>Replay it bar by bar.</b> Candles, the indicators your gates read drawn
+          on them, orders landing where they landed.</li>
+        <li><b>The log says where the flow stopped.</b> Every bar, every symbol, which
+          gate closed — written by the generated algorithm itself.</li>
+        <li><b>Every run is kept.</b> Open two in their own windows and put them side
+          by side.</li>
+      </ul>
+    </div>
+    <div class="cu-cua">
+      <div class="khung">
+        <div class="nep"><i></i><i></i><i></i><span>Results — RSISample</span></div>
+        <div class="cu-san">
+        <div class="c-cua-so" data-cua-so="kq">
+          <div class="c-kq-tab">
+            <span class="c-kq-nut c-chon">Overview</span>
+            <span class="c-kq-nut">Orders <u>9</u></span>
+            <span class="c-kq-nut">Trades <u>4</u></span>
+            <span class="c-kq-nut">Log</span>
+            <span class="c-kq-nut">Code</span>
+          </div>
+
+          <div class="c-kq-luoi">
+            <!-- ⚠ Ô NÀY KHÔNG TÔ ĐỎ, và đó là cố ý hai lần. Một: `.c-xau` là lớp của
+                 một ô BẢNG (`<td>`), gắn nó lên `<b>` là một tên gánh hai loại thẻ —
+                 đúng thứ `test_trang` gác. Hai: cả trang này dựng quanh câu «−9,87%
+                 LÀ một thắng lợi», nên tô đỏ chính con số ấy là tự cãi mình. -->
+            <div class="c-kq-o"><u>Net profit</u><b>−9.870%</b></div>
+            <div class="c-kq-o"><u>Drawdown</u><b>28.300%</b></div>
+            <div class="c-kq-o"><u>Sharpe ratio</u><b>−0.213</b></div>
+            <div class="c-kq-o"><u>Annual return</u><b>−3.399%</b></div>
+            <div class="c-kq-o"><u>Orders</u><b>9</b></div>
+            <div class="c-kq-o"><u>Win rate</u><b>75%</b></div>
+            <div class="c-kq-o"><u>Fees</u><b>$0.00</b></div>
+            <div class="c-kq-o"><u>End equity</u><b>$90,129.87</b></div>
+          </div>
+
+          <div class="c-kq-do">
+            <svg class="c-kq-ve" viewBox="0 0 760 132" preserveAspectRatio="none" aria-hidden>
+              <line class="c-kq-khong" x1="0" x2="760" data-kq-khong />
+              <path class="c-kq-boss" data-kq-boss />
+              <path class="c-kq-may" data-kq-may />
+            </svg>
+            <span class="c-kq-nhan"><i class="c-kq-cham"></i>Strategy equity
+              <b data-kq-may-pt>—</b></span>
+            <span class="c-kq-nhan c-kq-mo"><i class="c-kq-cham"></i>Benchmark
+              <b data-kq-boss-pt>—</b></span>
+          </div>
+
+          <p class="c-kq-dau">ORDERS · every one carries the block that placed it</p>
+          <table class="c-kq-bang">
+            <tr><td>2012-05-09</td><td>Market on close</td><td class="c-kq-mua">▲ 62</td>
+              <td class="c-kq-gia">1603.189</td><td class="c-kq-tag">[1A.1] RSI(14) &lt; 30</td></tr>
+            <tr><td>2012-08-23</td><td>Market on close</td><td class="c-kq-ban">▼ 62</td>
+              <td class="c-kq-gia">1655.364</td><td class="c-kq-tag">[1B.1] RSI(14) &gt; 70</td></tr>
+            <tr><td>2012-12-20</td><td>Market on close</td><td class="c-kq-mua">▲ 61</td>
+              <td class="c-kq-gia">1667.952</td><td class="c-kq-tag">[1A.1] RSI(14) &lt; 30</td></tr>
+            <tr><td>2013-08-28</td><td>Market on close</td><td class="c-kq-ban">▼ 61</td>
+              <td class="c-kq-gia">1418.638</td><td class="c-kq-tag">[1B.1] RSI(14) &gt; 70</td></tr>
+          </table>
+        </div>
+        </div>
+      </div>
+      <p class="cu-ghi">
+        XAUUSD · 2012-01-01 → 2014-12-31 · $100,000 · fees on. The same LEAN run as
+        the curve at the top of this page.
+      </p>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── ② OPTIMIZE -->
+  <div class="mot-cu">
+    <div class="cu-chu">
+      <h3>Optimize</h3>
+      <p>Pin a number in the diagram and it becomes a knob. Give it a range, and LEAN
+        runs the grid.</p>
+      <ul class="cu-diem">
+        <li><b>Sweep the whole grid, or sweep then zoom.</b> Several runs at a time,
+          as many as your machine will take.</li>
+        <li><b>Sort on any of 27 metrics.</b> Sharpe, drawdown, win rate, turnover —
+          LEAN's own names, not ours.</li>
+        <li><b>Double-click a row</b> and those numbers go straight back into the
+          diagram you drew.</li>
+      </ul>
+    </div>
+    <div class="cu-cua">
+      <div class="khung">
+        <div class="nep"><i></i><i></i><i></i><span>Optimize — DoSMA</span></div>
+        <div class="cu-san">
+        <div class="c-cua-so" data-cua-so="op">
+          <div class="c-op-tren">
+            <div class="c-op-trai">
+              <p class="c-op-dau">KNOBS</p>
+              <div class="c-op-num"><b>SMA period</b>
+                <span><span class="so">50</span> → <span class="so">150</span>
+                  step <span class="so">50</span></span></div>
+              <div class="c-op-num"><b>Hold for</b>
+                <span><span class="so">5</span> → <span class="so">15</span>
+                  step <span class="so">5</span> days</span></div>
+              <p class="c-op-dau">SEARCH</p>
+              <div class="c-op-muc">Maximise <b>Sharpe Ratio</b></div>
+              <div class="c-op-muc">Grid search · <span class="so">3</span> at a time</div>
+              <div class="c-op-chay"><span class="so">9</span> runs · all finished</div>
+            </div>
+
+            <div class="c-op-nhiet">
+              <p class="c-op-dau">SHARPE RATIO, ALL NINE</p>
+              <div class="c-op-luoi">
+                <span class="c-op-goc"></span>
+                <span class="c-op-truc">sma 50</span>
+                <span class="c-op-truc">100</span>
+                <span class="c-op-truc">150</span>
+
+                <span class="c-op-truc">hold 5</span>
+                <span class="c-op-o c-op-duong" style="--d:.54">+0.556</span>
+                <span class="c-op-o c-op-duong" style="--d:.14">+0.022</span>
+                <span class="c-op-o c-op-am" style="--d:.75">−0.828</span>
+
+                <span class="c-op-truc">10</span>
+                <span class="c-op-o c-op-am" style="--d:.18">−0.079</span>
+                <span class="c-op-o c-op-am" style="--d:.52">−0.519</span>
+                <span class="c-op-o c-op-am" style="--d:.82">−0.913</span>
+
+                <span class="c-op-truc">15</span>
+                <span class="c-op-o c-op-am" style="--d:.59">−0.613</span>
+                <span class="c-op-o c-op-am" style="--d:.82">−0.917</span>
+                <span class="c-op-o c-op-am" style="--d:.62">−0.660</span>
+              </div>
+            </div>
+          </div>
+
+          <table class="c-op-bang">
+            <tr class="c-op-hang-dau"><td>#</td><td>sma</td><td>hold</td>
+              <td>Sharpe</td><td>Net profit</td><td>Drawdown</td><td>Orders</td></tr>
+            <tr class="c-op-tot"><td>1</td><td class="c-op-so">50</td><td class="c-op-so">5</td>
+              <td class="c-tot">+0.556</td><td class="c-tot">+6.360%</td>
+              <td>12.400%</td><td>5</td></tr>
+            <tr><td>2</td><td class="c-op-so">100</td><td class="c-op-so">5</td>
+              <td class="c-tot">+0.022</td><td class="c-tot">+0.146%</td>
+              <td>12.400%</td><td>4</td></tr>
+            <tr><td>3</td><td class="c-op-so">50</td><td class="c-op-so">10</td>
+              <td class="c-xau">−0.079</td><td class="c-xau">−2.107%</td>
+              <td>18.900%</td><td>5</td></tr>
+            <tr><td>4</td><td class="c-op-so">100</td><td class="c-op-so">10</td>
+              <td class="c-xau">−0.519</td><td class="c-xau">−8.127%</td>
+              <td>18.900%</td><td>4</td></tr>
+            <tr><td>5</td><td class="c-op-so">50</td><td class="c-op-so">15</td>
+              <td class="c-xau">−0.613</td><td class="c-xau">−15.704%</td>
+              <td>29.900%</td><td>6</td></tr>
+            <tr><td>6</td><td class="c-op-so">150</td><td class="c-op-so">15</td>
+              <td class="c-xau">−0.660</td><td class="c-xau">−18.757%</td>
+              <td>33.600%</td><td>5</td></tr>
+            <tr><td>7</td><td class="c-op-so">150</td><td class="c-op-so">5</td>
+              <td class="c-xau">−0.828</td><td class="c-xau">−16.012%</td>
+              <td>26.600%</td><td>4</td></tr>
+            <tr><td>8</td><td class="c-op-so">150</td><td class="c-op-so">10</td>
+              <td class="c-xau">−0.913</td><td class="c-xau">−22.148%</td>
+              <td>29.000%</td><td>4</td></tr>
+            <tr><td>9</td><td class="c-op-so">100</td><td class="c-op-so">15</td>
+              <td class="c-xau">−0.917</td><td class="c-xau">−22.622%</td>
+              <td>30.500%</td><td>4</td></tr>
+          </table>
+        </div>
+        </div>
+      </div>
+      <p class="cu-ghi">
+        SPY · one real grid, nine real runs. <b>One cell in nine came out positive —
+        and it is also the cell most likely to be luck.</b> That is what the hidden
+        period is there to catch.
+      </p>
+    </div>
+  </div>
+</div></section>
+
+
 <!-- ═══════════════════════════════════════════════════ 26 MÀN, 10 HỒI
      ⚠ SINH RA TỪ APP, không gõ tay — xem `scratchpad/va_26_man.py`. Tên hồi, tên màn
      và con số đều lấy từ `hanh_trinh.tu_dien()`. Sửa một màn trong app rồi chạy lại
@@ -696,6 +904,7 @@
   <span>Cat Studio · you draw it, LEAN runs it</span>
   <nav>
     <a href="#sau-man">The app</a>
+    <a href="#cong-cu">The workbench</a>
     <a href="#man">The levels</a>
     <a href="#giu">What you keep</a>
     <a href="#lay">Get it</a>
